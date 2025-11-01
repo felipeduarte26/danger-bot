@@ -21,6 +21,7 @@ import {
   portugueseDocumentationPlugin,
   prSizeCheckerPlugin,
   spellCheckerPlugin,
+  pluginTestPlugin,
 } from "./plugins/flutter";
 
 /**
@@ -34,14 +35,5 @@ export const allFlutterPlugins = [
   flutterArchitecturePlugin,
   spellCheckerPlugin,
   portugueseDocumentationPlugin,
+  pluginTestPlugin,
 ];
-
-/**
- * All available plugins (all platforms)
- * Use this for quick setup with all plugins enabled
- */
-export const allPlugins = [
-  ...allFlutterPlugins,
-  // Add more platforms here when available
-];
-
