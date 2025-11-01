@@ -4,9 +4,44 @@
  * Main entry point of the package
  */
 
+// Re-export Danger JS for convenience (single import)
+export { danger, message, warn, fail, markdown, schedule } from "danger";
+
 // Export types and helpers
 export * from "./types";
 
 // Export all plugins (organized by platform)
 export * from "./plugins";
+
+// Export all plugins as a single array (barrel export)
+import {
+  changelogCheckerPlugin,
+  flutterAnalyzePlugin,
+  flutterArchitecturePlugin,
+  portugueseDocumentationPlugin,
+  prSizeCheckerPlugin,
+  spellCheckerPlugin,
+} from "./plugins/flutter";
+
+/**
+ * All available Flutter plugins in a single array
+ * Use this for quick setup with all plugins enabled
+ */
+export const allFlutterPlugins = [
+  prSizeCheckerPlugin,
+  changelogCheckerPlugin,
+  flutterAnalyzePlugin,
+  flutterArchitecturePlugin,
+  spellCheckerPlugin,
+  portugueseDocumentationPlugin,
+];
+
+/**
+ * All available plugins (all platforms)
+ * Use this for quick setup with all plugins enabled
+ */
+export const allPlugins = [
+  ...allFlutterPlugins,
+  // Add more platforms here when available
+];
 
