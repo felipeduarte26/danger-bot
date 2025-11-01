@@ -17,8 +17,7 @@
   "scripts": {
     "build": "tsc",
     "watch": "tsc --watch",
-    "prepublishOnly": "npm run build",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "danger",
@@ -53,4 +52,3 @@
     "node": ">=18.0.0"
   }
 }
-
