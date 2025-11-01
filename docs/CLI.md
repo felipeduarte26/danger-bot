@@ -102,13 +102,12 @@ CREATE NEW DANGER BOT PLUGIN
 Select platform/language:
   1. Flutter/Dart
   2. Node.js
-  3. React
-  4. Other
 
-Platform (1-4) [1]: 
+Platform (1-4) [1]:
 ```
 
 **Opções:**
+
 - `1` - Flutter/Dart (padrão)
 - `2` - Node.js
 - `3` - React
@@ -186,15 +185,15 @@ export default createPlugin(
   },
   async () => {
     // TODO: Implement plugin logic
-    
+
     // Example: Access Danger data
     const modifiedFiles = danger.git.modified_files;
     const createdFiles = danger.git.created_files;
     const allFiles = [...modifiedFiles, ...createdFiles];
-    
+
     // Example: Send messages
     message(`✅ Plugin test-coverage executed successfully!`);
-    
+
     // Other options:
     // warn("⚠️ Warning message");
     // fail("❌ Critical error - this will fail the PR");
@@ -212,6 +211,7 @@ export { default } from "./test-coverage";
 #### 4. README.md
 
 Template completo com seções padrão:
+
 - Overview
 - Purpose
 - How It Works
@@ -233,12 +233,12 @@ export { default as testCoveragePlugin } from "./test-coverage";
 
 ### Convenções de Nomenclatura
 
-| Input | Output |
-|-------|--------|
-| Nome: "Test Coverage" | Arquivo: `test-coverage.ts` |
-| | Pasta: `test-coverage/` |
-| | Export: `testCoveragePlugin` |
-| | Config name: `"test-coverage"` |
+| Input                 | Output                         |
+| --------------------- | ------------------------------ |
+| Nome: "Test Coverage" | Arquivo: `test-coverage.ts`    |
+|                       | Pasta: `test-coverage/`        |
+|                       | Export: `testCoveragePlugin`   |
+|                       | Config name: `"test-coverage"` |
 
 ---
 
@@ -304,6 +304,7 @@ Total: 7 plugin(s) across 2 platform(s)
 ### Informações Exibidas
 
 Para cada plugin:
+
 - **Número** - Índice sequencial
 - **Nome** - Nome do plugin em maiúsculas
 - **Platform** - Plataforma (flutter, nodejs, react, etc)
@@ -410,7 +411,7 @@ import {
   portugueseDocumentationPlugin,
   prSizeCheckerPlugin,
   spellCheckerPlugin,
-  
+
   // Helpers
   runPlugins,
 } from "@diletta/danger-bot";
@@ -428,16 +429,19 @@ const plugins = [
 // Execute plugins
 (async () => {
   try {
-    const pr = danger.github?.pr || danger.bitbucket_cloud?.pr || danger.gitlab?.mr;
-    
+    const pr =
+      danger.github?.pr || danger.bitbucket_cloud?.pr || danger.gitlab?.mr;
+
     if (pr) {
       message(
         `🔍 Danger CI - Análise automática\n\n` +
-        `**Título**: ${pr.title}\n` +
-        `📦 Plugins ativos: ${plugins.filter(p => p.config.enabled).length}/${plugins.length}`
+          `**Título**: ${pr.title}\n` +
+          `📦 Plugins ativos: ${
+            plugins.filter((p) => p.config.enabled).length
+          }/${plugins.length}`
       );
     }
-    
+
     await runPlugins(plugins);
     message("✅ Danger CI - Análise concluída!");
   } catch (error) {
@@ -486,16 +490,19 @@ Plugin details:
 #### Obrigatórias ✅
 
 1. **Import do createPlugin**
+
    ```typescript
    import { createPlugin } from "@types";
    ```
 
 2. **Export default**
+
    ```typescript
    export default createPlugin(...)
    ```
 
 3. **Campo 'name'**
+
    ```typescript
    {
      name: "plugin-name",
@@ -514,6 +521,7 @@ Plugin details:
 #### Recomendadas ⚠️
 
 5. **Campo 'enabled'**
+
    ```typescript
    {
      enabled: true,
@@ -613,6 +621,7 @@ $ danger-bot: command not found
 ```
 
 **Solução:**
+
 ```bash
 cd /path/to/danger-bot
 npm link
@@ -625,12 +634,14 @@ Error: Plugin already exists
 ```
 
 **Solução:**
+
 - Escolha outro nome
 - Ou delete a pasta existente antes de criar
 
 ### Plugin não aparece no list
 
 **Verificar:**
+
 1. Plugin está na pasta correta (`src/plugins/{platform}/{plugin}/`)
 2. Arquivo tem extensão `.ts`
 3. Não é `index.ts`
@@ -642,6 +653,7 @@ Cannot find module '@types'
 ```
 
 **Solução:**
+
 ```bash
 npm run build  # Recompila o projeto
 ```
@@ -653,6 +665,7 @@ npm run build  # Recompila o projeto
 ### 1. Nomenclatura
 
 ✅ **Use kebab-case:**
+
 ```
 test-coverage
 api-validator
@@ -660,6 +673,7 @@ screenshot-checker
 ```
 
 ❌ **Evite:**
+
 ```
 TestCoverage
 test_coverage
@@ -669,12 +683,14 @@ testCoverage
 ### 2. Descrições
 
 ✅ **Seja claro e objetivo:**
+
 ```
 "Verifica cobertura mínima de testes"
 "Valida contratos de API REST"
 ```
 
 ❌ **Evite descrições vagas:**
+
 ```
 "Plugin de teste"
 "Faz validação"
@@ -683,6 +699,7 @@ testCoverage
 ### 3. Organização
 
 ✅ **Agrupe por plataforma:**
+
 ```
 src/plugins/
 ├── flutter/       # Plugins Dart/Flutter
@@ -748,4 +765,3 @@ Encontrou um bug ou tem uma sugestão para a CLI?
 [Voltar ao Índice](DOCS_INDEX.md) • [Instalação](INSTALLATION.md) • [Arquitetura](PLATFORM_ARCHITECTURE.md)
 
 </div>
-

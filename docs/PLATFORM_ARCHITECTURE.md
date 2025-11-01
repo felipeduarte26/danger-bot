@@ -7,6 +7,7 @@
 Reorganizamos os plugins para suportar múltiplas linguagens/plataformas:
 
 #### Antes (Estrutura Plana)
+
 ```
 src/plugins/
 ├── pr-size-checker/
@@ -18,6 +19,7 @@ src/plugins/
 ```
 
 #### Depois (Estrutura por Plataforma)
+
 ```
 src/plugins/
 ├── flutter/                        # Plataforma Flutter
@@ -40,16 +42,19 @@ src/plugins/
 Implementamos path aliases para imports limpos:
 
 #### ❌ Antes (Imports Relativos Longos)
+
 ```typescript
 import { createPlugin } from "../../../types";
 ```
 
 #### ✅ Depois (Path Aliases Limpos)
+
 ```typescript
 import { createPlugin } from "@types";
 ```
 
 #### Configuração no `tsconfig.json`
+
 ```json
 {
   "compilerOptions": {
@@ -78,8 +83,6 @@ CREATE NEW DANGER BOT PLUGIN
 Select platform/language:
   1. Flutter/Dart
   2. Node.js
-  3. React
-  4. Other
 
 Platform (1-4) [1]: 1
 
@@ -115,6 +118,7 @@ Plugin structure:
 ### 4. Barrel Files Organizados
 
 #### `src/plugins/flutter/index.ts`
+
 ```typescript
 /**
  * FLUTTER PLUGINS - BARREL FILE
@@ -131,6 +135,7 @@ export { default as spellCheckerPlugin } from "./spell-checker";
 ```
 
 #### `src/plugins/index.ts`
+
 ```typescript
 /**
  * DANGER BOT PLUGINS - MAIN BARREL FILE
@@ -148,6 +153,7 @@ export * from "./flutter";
 ```
 
 #### `src/index.ts`
+
 ```typescript
 /**
  * DANGER-BOT - MAIN EXPORTS
@@ -167,6 +173,7 @@ export * from "./plugins";
 ### 5. CLI Atualizada
 
 #### Comando `list`
+
 ```bash
 $ danger-bot list
 
@@ -195,6 +202,7 @@ Total: 6 plugin(s) across 1 platform(s)
 ```
 
 #### Comando `info`
+
 ```bash
 $ danger-bot info
 
@@ -253,21 +261,25 @@ Selected platform: Node.js
 ## 🎯 Benefícios
 
 ### 1. **Escalabilidade**
+
 - ✅ Fácil adicionar novas plataformas (Node.js, React, Python, etc)
 - ✅ Plugins organizados por contexto
 - ✅ Estrutura clara e intuitiva
 
 ### 2. **Imports Limpos**
+
 - ✅ Sem `../../../` nos imports
 - ✅ Path aliases TypeScript
 - ✅ Código mais legível
 
 ### 3. **Manutenibilidade**
+
 - ✅ Fácil encontrar plugins por plataforma
 - ✅ Barrel files automáticos
 - ✅ Documentação organizada
 
 ### 4. **CLI Inteligente**
+
 - ✅ Pergunta a plataforma antes de criar
 - ✅ Cria estrutura automaticamente
 - ✅ Lista plugins por plataforma
@@ -323,6 +335,7 @@ danger-bot/
 ### Todos os Plugins Atualizados
 
 Todos os 6 plugins Flutter foram atualizados para usar:
+
 ```typescript
 import { createPlugin } from "@types";
 ```
@@ -332,18 +345,21 @@ import { createPlugin } from "@types";
 ## 🚀 Como Usar
 
 ### Criar Plugin para Flutter
+
 ```bash
 danger-bot create-plugin
 # Selecionar opção 1 (Flutter/Dart)
 ```
 
 ### Criar Plugin para Node.js
+
 ```bash
 danger-bot create-plugin
 # Selecionar opção 2 (Node.js)
 ```
 
 ### Criar Plugin para Plataforma Customizada
+
 ```bash
 danger-bot create-plugin
 # Selecionar opção 4 (Other)
@@ -355,17 +371,20 @@ danger-bot create-plugin
 ## ✅ Impactos Verificados
 
 ### ✅ Sem Breaking Changes
+
 - Exports continuam os mesmos
 - Imports externos não mudam
 - API pública mantida
 
 ### ✅ Build Funcionando
+
 ```bash
 $ npm run build
 ✓ Compiled successfully
 ```
 
 ### ✅ CLI Funcionando
+
 ```bash
 $ danger-bot list    ✓ OK
 $ danger-bot info    ✓ OK
@@ -376,14 +395,14 @@ $ danger-bot create-plugin  ✓ OK
 
 ## 📊 Comparação
 
-| Aspecto | Antes | Depois |
-|---------|-------|--------|
-| Estrutura | Plana | Por plataforma |
-| Imports | `../../../types` | `@types` |
-| Escalabilidade | Limitada | Alta |
-| Organização | Boa | Excelente |
-| CLI | Básica | Inteligente |
-| Plataformas | 1 (Flutter) | Ilimitadas |
+| Aspecto        | Antes            | Depois         |
+| -------------- | ---------------- | -------------- |
+| Estrutura      | Plana            | Por plataforma |
+| Imports        | `../../../types` | `@types`       |
+| Escalabilidade | Limitada         | Alta           |
+| Organização    | Boa              | Excelente      |
+| CLI            | Básica           | Inteligente    |
+| Plataformas    | 1 (Flutter)      | Ilimitadas     |
 
 ---
 
@@ -394,4 +413,3 @@ $ danger-bot create-plugin  ✓ OK
 **Pronta para suportar múltiplas plataformas!**
 
 </div>
-
