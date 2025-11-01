@@ -121,7 +121,7 @@ danger-bot info
 danger-bot generate-dangerfile
 ```
 
-📖 **[Ver guia completo da CLI](docs/CLI_GUIDE.md)**
+📖 **[Ver guia completo da CLI](docs/CLI.md)**
 
 ---
 

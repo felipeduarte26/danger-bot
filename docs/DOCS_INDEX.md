@@ -20,12 +20,13 @@
    - Scripts npm
    - Solução de problemas
 
-3. **[CLI_GUIDE.md](CLI_GUIDE.md)** ⭐ **NOVO!**
-   - **Guia completo da CLI**
+3. **[CLI.md](CLI.md)** ⭐ **GUIA COMPLETO DA CLI**
+   - **Todos os comandos explicados em detalhes**
    - Criar plugins interativamente
    - Listar e validar plugins
    - Gerar dangerfile automaticamente
-   - Exemplos práticos
+   - Casos de uso e exemplos práticos
+   - Troubleshooting completo
 
 ### Para Usar em Produção
 
@@ -59,10 +60,16 @@
    - Conclusão
 
 8. **[ARCHITECTURE.md](ARCHITECTURE.md)** - Arquitetura dos plugins
-   - Estrutura modular
+   - Estrutura modular original
    - Barrel files
    - Documentação integrada
    - Padrões de nomenclatura
+
+9. **[PLATFORM_ARCHITECTURE.md](PLATFORM_ARCHITECTURE.md)** - Arquitetura por plataforma
+   - Organização por linguagem (Flutter, Node.js, React)
+   - Path aliases TypeScript (`@types`)
+   - Suporte multi-plataforma
+   - CLI inteligente com seleção de plataforma
 
 ---
 
