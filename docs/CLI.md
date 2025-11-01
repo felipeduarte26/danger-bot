@@ -175,6 +175,7 @@ src/plugins/{platform}/{plugin-name}/
  * Verifica cobertura de testes mínima
  */
 
+import { danger, message, warn, fail } from "danger";
 import { createPlugin } from "@types";
 
 export default createPlugin(
@@ -192,12 +193,12 @@ export default createPlugin(
     const allFiles = [...modifiedFiles, ...createdFiles];
     
     // Example: Send messages
-    message("Plugin test-coverage executed successfully!");
+    message(`✅ Plugin test-coverage executed successfully!`);
     
     // Other options:
-    // warn("Warning message");
-    // fail("Critical error");
-    // message("Success message");
+    // warn("⚠️ Warning message");
+    // fail("❌ Critical error - this will fail the PR");
+    // message("📝 Informational message");
   }
 );
 ```
@@ -392,11 +393,15 @@ Next steps:
 
 ```typescript
 /**
- * DANGER BOT - EXAMPLE DANGERFILE
- * ================================
+ * DANGER BOT - DANGERFILE
+ * ========================
  * Auto-generated dangerfile with all available plugins
  */
 
+// Import Danger types and functions
+import { danger, message, warn, fail } from "danger";
+
+// Import Danger Bot plugins
 import {
   // Flutter plugins
   changelogCheckerPlugin,

@@ -6,25 +6,26 @@
  * CLI para facilitar o desenvolvimento e uso do Danger Bot
  */
 
-const { program } = require('commander');
-const fs = require('fs');
-const path = require('path');
-const readline = require('readline');
+const { program } = require("commander");
+const fs = require("fs");
+const path = require("path");
+const readline = require("readline");
 
 const rl = readline.createInterface({
   input: process.stdin,
-  output: process.stdout
+  output: process.stdout,
 });
 
 // Função para fazer perguntas
-const question = (query) => new Promise((resolve) => rl.question(query, resolve));
+const question = (query) =>
+  new Promise((resolve) => rl.question(query, resolve));
 
 // Converter para kebab-case
 function toKebabCase(str) {
   return str
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
 }
 
 // Converter para camelCase
@@ -42,20 +43,39 @@ function toPascalCase(str) {
 
 // Emojis disponíveis para plugins
 const EMOJIS = [
-  '🔍', '📄', '🏗️', '🔤', '🌐', '⚡', '🎨', '🔧', '📊', '🚀',
-  '💡', '🎯', '📝', '🔒', '🎁', '🔔', '📱', '💻', '🌟', '✨'
+  "🔍",
+  "📄",
+  "🏗️",
+  "🔤",
+  "🌐",
+  "⚡",
+  "🎨",
+  "🔧",
+  "📊",
+  "🚀",
+  "💡",
+  "🎯",
+  "📝",
+  "🔒",
+  "🎁",
+  "🔔",
+  "📱",
+  "💻",
+  "🌟",
+  "✨",
 ];
 
 // Template para novo plugin
 function generatePluginTemplate(name, description, enabled) {
   const kebabName = toKebabCase(name);
-  
+
   return `/**
  * ${name.toUpperCase()} PLUGIN
- * ${'='.repeat(name.length + 7)}
+ * ${"=".repeat(name.length + 7)}
  * ${description}
  */
 
+import { danger, message, warn, fail } from "danger";
 import { createPlugin } from "@types";
 
 export default createPlugin(
@@ -73,12 +93,12 @@ export default createPlugin(
     const allFiles = [...modifiedFiles, ...createdFiles];
     
     // Example: Send messages
-    message("Plugin ${kebabName} executed successfully!");
+    message(\`✅ Plugin ${kebabName} executed successfully!\`);
     
     // Other options:
-    // warn("Warning message");
-    // fail("Critical error");
-    // message("Success message");
+    // warn("⚠️ Warning message");
+    // fail("❌ Critical error - this will fail the PR");
+    // message("📝 Informational message");
   }
 );
 `;
@@ -164,97 +184,89 @@ None - uses Danger JS built-in APIs only.
 
 // Criar novo plugin
 async function createPlugin() {
-  console.log('\n' + '='.repeat(60));
-  console.log('CREATE NEW DANGER BOT PLUGIN');
-  console.log('='.repeat(60) + '\n');
-  
+  console.log("\n" + "=".repeat(60));
+  console.log("CREATE NEW DANGER BOT PLUGIN");
+  console.log("=".repeat(60) + "\n");
+
   // 1. Perguntar a linguagem/plataforma
-  console.log('Select platform/language:');
-  console.log('  1. Flutter/Dart');
-  console.log('  2. Node.js');
-  console.log('  3. React');
-  console.log('  4. Other\n');
-  
-  const platformInput = await question('Platform (1-4) [1]: ');
-  const platformChoice = platformInput || '1';
-  
-  let platformFolder = 'flutter';
-  let platformName = 'Flutter/Dart';
-  
+  console.log("Select platform/language:");
+  console.log("  1. Flutter/Dart");
+  console.log("  2. Node.js");
+
+  const platformInput = await question("Platform (1-2) [1]: ");
+  const platformChoice = platformInput || "1";
+
+  let platformFolder = "flutter";
+  let platformName = "Flutter/Dart";
+
   switch (platformChoice) {
-    case '1':
-      platformFolder = 'flutter';
-      platformName = 'Flutter/Dart';
+    case "1":
+      platformFolder = "flutter";
+      platformName = "Flutter/Dart";
       break;
-    case '2':
-      platformFolder = 'nodejs';
-      platformName = 'Node.js';
-      break;
-    case '3':
-      platformFolder = 'react';
-      platformName = 'React';
-      break;
-    case '4':
-      const customPlatform = await question('Platform name: ');
-      platformFolder = toKebabCase(customPlatform || 'other');
-      platformName = customPlatform || 'Other';
+    case "2":
+      platformFolder = "nodejs";
+      platformName = "Node.js";
       break;
   }
-  
+
   console.log(`\nSelected platform: ${platformName}\n`);
-  
+
   const name = await question('Plugin name (e.g., "My Custom Plugin"): ');
   if (!name) {
-    console.error('\nError: Plugin name is required!');
+    console.error("\nError: Plugin name is required!");
     rl.close();
     return;
   }
-  
-  const description = await question('Description: ');
+
+  const description = await question("Description: ");
   if (!description) {
-    console.error('\nError: Description is required!');
+    console.error("\nError: Description is required!");
     rl.close();
     return;
   }
-  
-  const enabledInput = await question('Enable by default? (y/n) [y]: ');
-  const enabled = !enabledInput || enabledInput.toLowerCase() === 'y' || enabledInput.toLowerCase() === 's';
-  
+
+  const enabledInput = await question("Enable by default? (y/n) [y]: ");
+  const enabled =
+    !enabledInput ||
+    enabledInput.toLowerCase() === "y" ||
+    enabledInput.toLowerCase() === "s";
+
   rl.close();
-  
-  console.log('\n' + '-'.repeat(60));
-  console.log('CREATING PLUGIN...');
-  console.log('-'.repeat(60) + '\n');
-  
+
+  console.log("\n" + "-".repeat(60));
+  console.log("CREATING PLUGIN...");
+  console.log("-".repeat(60) + "\n");
+
   // Gerar nomes
   const kebabName = toKebabCase(name);
   const camelName = toCamelCase(name);
   const fileName = `${kebabName}.ts`;
-  
+
   // Caminhos - agora dentro da pasta da plataforma
-  const pluginsDir = path.join(process.cwd(), 'src', 'plugins');
+  const pluginsDir = path.join(process.cwd(), "src", "plugins");
   const platformDir = path.join(pluginsDir, platformFolder);
   const pluginFolder = path.join(platformDir, kebabName);
   const filePath = path.join(pluginFolder, fileName);
-  const barrelPath = path.join(pluginFolder, 'index.ts');
-  const readmePath = path.join(pluginFolder, 'README.md');
-  const platformIndexPath = path.join(platformDir, 'index.ts');
-  
+  const barrelPath = path.join(pluginFolder, "index.ts");
+  const readmePath = path.join(pluginFolder, "README.md");
+  const platformIndexPath = path.join(platformDir, "index.ts");
+
   // Verificar se já existe
   if (fs.existsSync(pluginFolder)) {
     console.error(`\nError: Plugin already exists: ${pluginFolder}`);
     return;
   }
-  
+
   // Criar diretório da plataforma se não existir
   if (!fs.existsSync(platformDir)) {
     fs.mkdirSync(platformDir, { recursive: true });
     console.log(`[OK] Created platform folder: ${platformFolder}/`);
-    
+
     // Criar barrel file da plataforma
     const platformBarrelContent = `/**
  * ${platformName.toUpperCase()} PLUGINS - BARREL FILE
- * ${'='.repeat(platformName.length + 23)}
+ * ${"=".repeat(platformName.length + 23)}
  * Exporta todos os plugins relacionados ao ${platformName}
  */
 
@@ -262,173 +274,205 @@ async function createPlugin() {
 // Plugins will be automatically added here by CLI
 `;
     fs.writeFileSync(platformIndexPath, platformBarrelContent);
-    console.log(`[OK] Created platform barrel file: ${platformFolder}/index.ts`);
+    console.log(
+      `[OK] Created platform barrel file: ${platformFolder}/index.ts`
+    );
   }
-  
+
   // Criar diretório do plugin
   fs.mkdirSync(pluginFolder, { recursive: true });
   console.log(`[OK] Created plugin folder: ${platformFolder}/${kebabName}/`);
-  
+
   // Gerar e escrever arquivo principal do plugin
   const content = generatePluginTemplate(name, description, enabled);
   fs.writeFileSync(filePath, content);
-  console.log(`[OK] Created plugin file: ${platformFolder}/${kebabName}/${fileName}`);
-  
+  console.log(
+    `[OK] Created plugin file: ${platformFolder}/${kebabName}/${fileName}`
+  );
+
   // Criar barrel file (index.ts)
   const barrelContent = `export { default } from "./${kebabName}";\n`;
   fs.writeFileSync(barrelPath, barrelContent);
-  console.log(`[OK] Created barrel file: ${platformFolder}/${kebabName}/index.ts`);
-  
+  console.log(
+    `[OK] Created barrel file: ${platformFolder}/${kebabName}/index.ts`
+  );
+
   // Criar README.md
-  const readmeContent = generatePluginReadme(name, description, kebabName, camelName);
+  const readmeContent = generatePluginReadme(
+    name,
+    description,
+    kebabName,
+    camelName
+  );
   fs.writeFileSync(readmePath, readmeContent);
-  console.log(`[OK] Created documentation: ${platformFolder}/${kebabName}/README.md`);
-  
+  console.log(
+    `[OK] Created documentation: ${platformFolder}/${kebabName}/README.md`
+  );
+
   // Atualizar index.ts da plataforma
   if (fs.existsSync(platformIndexPath)) {
-    let platformIndexContent = fs.readFileSync(platformIndexPath, 'utf-8');
-    
+    let platformIndexContent = fs.readFileSync(platformIndexPath, "utf-8");
+
     // Adicionar export
     const exportLine = `export { default as ${camelName}Plugin } from "./${kebabName}";`;
-    
+
     if (!platformIndexContent.includes(exportLine)) {
       // Encontrar onde adicionar (após os outros exports de plugins)
-      const lastPluginExport = platformIndexContent.lastIndexOf('export { default as');
+      const lastPluginExport = platformIndexContent.lastIndexOf(
+        "export { default as"
+      );
       if (lastPluginExport !== -1) {
-        const endOfLine = platformIndexContent.indexOf('\n', lastPluginExport);
-        platformIndexContent = 
+        const endOfLine = platformIndexContent.indexOf("\n", lastPluginExport);
+        platformIndexContent =
           platformIndexContent.slice(0, endOfLine + 1) +
-          exportLine + '\n' +
+          exportLine +
+          "\n" +
           platformIndexContent.slice(endOfLine + 1);
       } else {
         // Se não houver outros plugins, adicionar no final
         platformIndexContent += `\n${exportLine}\n`;
       }
-      
+
       fs.writeFileSync(platformIndexPath, platformIndexContent);
       console.log(`[OK] Export added to ${platformFolder}/index.ts`);
     }
   }
-  
-  console.log('\n' + '='.repeat(60));
-  console.log('PLUGIN CREATED SUCCESSFULLY!');
-  console.log('='.repeat(60) + '\n');
-  
-  console.log('Plugin structure:');
+
+  console.log("\n" + "=".repeat(60));
+  console.log("PLUGIN CREATED SUCCESSFULLY!");
+  console.log("=".repeat(60) + "\n");
+
+  console.log("Plugin structure:");
   console.log(`  src/plugins/${platformFolder}/${kebabName}/`);
   console.log(`  ├── ${fileName}      # Plugin implementation`);
   console.log(`  ├── index.ts        # Barrel file`);
   console.log(`  └── README.md       # Documentation`);
   console.log();
-  console.log('Next steps:');
+  console.log("Next steps:");
   console.log(`  1. Edit: ${filePath}`);
   console.log(`  2. Update documentation: ${readmePath}`);
   console.log(`  3. Implement the plugin logic`);
   console.log(`  4. Run: npm run build`);
-  console.log(`  5. Use: import { ${camelName}Plugin } from "@diletta/danger-bot"\n`);
+  console.log(
+    `  5. Use: import { ${camelName}Plugin } from "@diletta/danger-bot"\n`
+  );
 }
 
 // Listar plugins
 function listPlugins() {
-  const pluginsDir = path.join(process.cwd(), 'src', 'plugins');
-  
+  const pluginsDir = path.join(process.cwd(), "src", "plugins");
+
   if (!fs.existsSync(pluginsDir)) {
-    console.log('\nError: Plugins directory not found!');
+    console.log("\nError: Plugins directory not found!");
     return;
   }
-  
+
   // Agora temos pastas por plataforma (flutter, nodejs, etc)
-  const platformFolders = fs.readdirSync(pluginsDir).filter(f => {
+  const platformFolders = fs.readdirSync(pluginsDir).filter((f) => {
     const fullPath = path.join(pluginsDir, f);
     return fs.statSync(fullPath).isDirectory();
   });
-  
-  console.log('\n' + '='.repeat(60));
-  console.log('DANGER BOT PLUGINS');
-  console.log('='.repeat(60) + '\n');
-  
+
+  console.log("\n" + "=".repeat(60));
+  console.log("DANGER BOT PLUGINS");
+  console.log("=".repeat(60) + "\n");
+
   let totalPlugins = 0;
-  
+
   platformFolders.forEach((platform) => {
     const platformPath = path.join(pluginsDir, platform);
-    const pluginFolders = fs.readdirSync(platformPath).filter(f => {
+    const pluginFolders = fs.readdirSync(platformPath).filter((f) => {
       const fullPath = path.join(platformPath, f);
       return fs.statSync(fullPath).isDirectory();
     });
-    
+
     if (pluginFolders.length === 0) return;
-    
+
     console.log(`--- ${platform.toUpperCase()} ---\n`);
-    
+
     pluginFolders.forEach((folder, index) => {
       // Buscar arquivo .ts dentro da pasta (ignorar index.ts)
       const pluginFolder = path.join(platformPath, folder);
-      const files = fs.readdirSync(pluginFolder).filter(f => f.endsWith('.ts') && f !== 'index.ts');
-      
+      const files = fs
+        .readdirSync(pluginFolder)
+        .filter((f) => f.endsWith(".ts") && f !== "index.ts");
+
       if (files.length === 0) return;
-      
+
       const pluginFile = path.join(pluginFolder, files[0]);
-      const content = fs.readFileSync(pluginFile, 'utf-8');
-      
+      const content = fs.readFileSync(pluginFile, "utf-8");
+
       // Extrair informações do plugin
       const nameMatch = content.match(/name:\s*["']([^"']+)["']/);
       const descMatch = content.match(/description:\s*["']([^"']+)["']/);
       const enabledMatch = content.match(/enabled:\s*(true|false)/);
-      
+
       const name = nameMatch ? nameMatch[1] : folder;
-      const desc = descMatch ? descMatch[1] : 'No description';
-      const enabled = enabledMatch ? enabledMatch[1] === 'true' : true;
-      
+      const desc = descMatch ? descMatch[1] : "No description";
+      const enabled = enabledMatch ? enabledMatch[1] === "true" : true;
+
       console.log(`[${totalPlugins + 1}] ${name.toUpperCase()}`);
       console.log(`    Platform: ${platform}`);
       console.log(`    Folder: ${folder}/`);
       console.log(`    File: ${files[0]}`);
       console.log(`    Description: ${desc}`);
-      console.log(`    Status: ${enabled ? 'ENABLED' : 'DISABLED'}`);
-      
+      console.log(`    Status: ${enabled ? "ENABLED" : "DISABLED"}`);
+
       // Verificar se tem README
-      const readmePath = path.join(pluginFolder, 'README.md');
+      const readmePath = path.join(pluginFolder, "README.md");
       if (fs.existsSync(readmePath)) {
         console.log(`    Documentation: README.md`);
       }
       console.log();
-      
+
       totalPlugins++;
     });
   });
-  
-  console.log('='.repeat(60));
-  console.log(`Total: ${totalPlugins} plugin(s) across ${platformFolders.length} platform(s)\n`);
+
+  console.log("=".repeat(60));
+  console.log(
+    `Total: ${totalPlugins} plugin(s) across ${platformFolders.length} platform(s)\n`
+  );
 }
 
 // Gerar dangerfile de exemplo
 function generateDangerfile() {
-  const pluginsDir = path.join(process.cwd(), 'src', 'plugins');
-  
+  const pluginsDir = path.join(process.cwd(), "src", "plugins");
+
   if (!fs.existsSync(pluginsDir)) {
-    console.log('❌ Diretório de plugins não encontrado!');
+    console.log("❌ Diretório de plugins não encontrado!");
     return;
   }
-  
-  const files = fs.readdirSync(pluginsDir).filter(f => f.endsWith('.ts'));
-  
+
+  const files = fs.readdirSync(pluginsDir).filter((f) => f.endsWith(".ts"));
+
   // Extrair nomes dos plugins
-  const plugins = files.map(file => {
-    const content = fs.readFileSync(path.join(pluginsDir, file), 'utf-8');
+  const plugins = files.map((file) => {
+    const content = fs.readFileSync(path.join(pluginsDir, file), "utf-8");
     const nameMatch = content.match(/name:\s*["']([^"']+)["']/);
-    const name = nameMatch ? nameMatch[1] : file.replace('.ts', '');
+    const name = nameMatch ? nameMatch[1] : file.replace(".ts", "");
     const camelName = toCamelCase(name);
     return `${camelName}Plugin`;
   });
-  
-  const dangerfileContent = `import {
-  ${plugins.join(',\n  ')},
+
+  const dangerfileContent = `/**
+ * DANGER BOT - DANGERFILE
+ * ========================
+ * Auto-generated dangerfile with all available plugins
+ */
+
+// Import Danger types and functions
+import { danger, message, warn, fail } from "danger";
+
+// Import Danger Bot plugins
+import {
+  ${plugins.join(",\n  ")},
   runPlugins,
 } from "danger-bot";
 
 // Configurar plugins ativos
 const plugins = [
-  ${plugins.join(',\n  ')},
+  ${plugins.join(",\n  ")},
 ];
 
 // Executar análise
@@ -453,14 +497,14 @@ const plugins = [
   }
 })();
 `;
-  
-  const outputPath = path.join(process.cwd(), 'dangerfile.example.ts');
+
+  const outputPath = path.join(process.cwd(), "dangerfile.example.ts");
   fs.writeFileSync(outputPath, dangerfileContent);
-  
+
   console.log(`\n✅ Dangerfile de exemplo criado: ${outputPath}`);
-  console.log('\n📝 Para usar:');
-  console.log('   1. Renomeie para dangerfile.ts');
-  console.log('   2. Customize conforme necessário');
+  console.log("\n📝 Para usar:");
+  console.log("   1. Renomeie para dangerfile.ts");
+  console.log("   2. Customize conforme necessário");
 }
 
 // Validar plugin
@@ -469,56 +513,56 @@ function validatePlugin(pluginPath) {
     console.error(`❌ Arquivo não encontrado: ${pluginPath}`);
     return;
   }
-  
-  const content = fs.readFileSync(pluginPath, 'utf-8');
+
+  const content = fs.readFileSync(pluginPath, "utf-8");
   const errors = [];
   const warnings = [];
-  
+
   // Verificações obrigatórias
-  if (!content.includes('import { createPlugin }')) {
-    errors.push('❌ Falta import do createPlugin');
+  if (!content.includes("import { createPlugin }")) {
+    errors.push("❌ Falta import do createPlugin");
   }
-  
-  if (!content.includes('export default createPlugin')) {
-    errors.push('❌ Falta export default createPlugin');
+
+  if (!content.includes("export default createPlugin")) {
+    errors.push("❌ Falta export default createPlugin");
   }
-  
+
   if (!content.match(/name:\s*["'][^"']+["']/)) {
     errors.push('❌ Falta campo "name"');
   }
-  
+
   if (!content.match(/description:\s*["'][^"']+["']/)) {
     errors.push('❌ Falta campo "description"');
   }
-  
+
   if (!content.match(/enabled:\s*(true|false)/)) {
     warnings.push('⚠️ Falta campo "enabled" (será true por padrão)');
   }
-  
+
   // Verificações de boas práticas
-  if (!content.includes('async ()')) {
-    warnings.push('⚠️ Função run não é async');
+  if (!content.includes("async ()")) {
+    warnings.push("⚠️ Função run não é async");
   }
-  
-  if (!content.includes('/**')) {
-    warnings.push('⚠️ Falta documentação JSDoc no topo do arquivo');
+
+  if (!content.includes("/**")) {
+    warnings.push("⚠️ Falta documentação JSDoc no topo do arquivo");
   }
-  
+
   // Mostrar resultados
-  console.log('\n🔍 Validando plugin...\n');
-  
+  console.log("\n🔍 Validando plugin...\n");
+
   if (errors.length === 0 && warnings.length === 0) {
-    console.log('✅ Plugin válido! Nenhum problema encontrado.');
+    console.log("✅ Plugin válido! Nenhum problema encontrado.");
   } else {
     if (errors.length > 0) {
-      console.log('❌ Erros encontrados:');
-      errors.forEach(err => console.log(`   ${err}`));
+      console.log("❌ Erros encontrados:");
+      errors.forEach((err) => console.log(`   ${err}`));
       console.log();
     }
-    
+
     if (warnings.length > 0) {
-      console.log('⚠️ Avisos:');
-      warnings.forEach(warn => console.log(`   ${warn}`));
+      console.log("⚠️ Avisos:");
+      warnings.forEach((warn) => console.log(`   ${warn}`));
       console.log();
     }
   }
@@ -526,89 +570,93 @@ function validatePlugin(pluginPath) {
 
 // Informações do projeto
 function showInfo() {
-  const packagePath = path.join(process.cwd(), 'package.json');
-  
+  const packagePath = path.join(process.cwd(), "package.json");
+
   if (!fs.existsSync(packagePath)) {
-    console.error('\nError: package.json not found!');
+    console.error("\nError: package.json not found!");
     return;
   }
-  
-  const pkg = JSON.parse(fs.readFileSync(packagePath, 'utf-8'));
-  
-  console.log('\n' + '='.repeat(60));
-  console.log('DANGER BOT - PROJECT INFO');
-  console.log('='.repeat(60) + '\n');
-  
+
+  const pkg = JSON.parse(fs.readFileSync(packagePath, "utf-8"));
+
+  console.log("\n" + "=".repeat(60));
+  console.log("DANGER BOT - PROJECT INFO");
+  console.log("=".repeat(60) + "\n");
+
   console.log(`Name:        ${pkg.name}`);
   console.log(`Version:     ${pkg.version}`);
   console.log(`Description: ${pkg.description}`);
   console.log();
-  
+
   // Listar plugins por plataforma
-  const pluginsDir = path.join(process.cwd(), 'src', 'plugins');
+  const pluginsDir = path.join(process.cwd(), "src", "plugins");
   if (fs.existsSync(pluginsDir)) {
-    const platformFolders = fs.readdirSync(pluginsDir).filter(f => {
+    const platformFolders = fs.readdirSync(pluginsDir).filter((f) => {
       const fullPath = path.join(pluginsDir, f);
       return fs.statSync(fullPath).isDirectory();
     });
-    
+
     let totalPlugins = 0;
-    console.log('Platforms:\n');
-    
+    console.log("Platforms:\n");
+
     platformFolders.forEach((platform) => {
       const platformPath = path.join(pluginsDir, platform);
-      const pluginFolders = fs.readdirSync(platformPath).filter(f => {
+      const pluginFolders = fs.readdirSync(platformPath).filter((f) => {
         const fullPath = path.join(platformPath, f);
         return fs.statSync(fullPath).isDirectory();
       });
-      
+
       console.log(`  ${platform}/ (${pluginFolders.length} plugins)`);
       pluginFolders.forEach((folder) => {
         console.log(`    - ${folder}/`);
       });
       console.log();
-      
+
       totalPlugins += pluginFolders.length;
     });
-    
-    console.log(`Total: ${totalPlugins} plugin(s) across ${platformFolders.length} platform(s)`);
+
+    console.log(
+      `Total: ${totalPlugins} plugin(s) across ${platformFolders.length} platform(s)`
+    );
   }
-  
-  console.log('\n' + '='.repeat(60) + '\n');
+
+  console.log("\n" + "=".repeat(60) + "\n");
 }
 
 // Configurar CLI
 program
-  .name('danger-bot')
-  .description('CLI para Danger Bot - Facilita criação e gerenciamento de plugins')
-  .version('1.0.0');
+  .name("danger-bot")
+  .description(
+    "CLI para Danger Bot - Facilita criação e gerenciamento de plugins"
+  )
+  .version("1.0.0");
 
 program
-  .command('create-plugin')
-  .alias('new')
-  .description('Criar um novo plugin interativamente')
+  .command("create-plugin")
+  .alias("new")
+  .description("Criar um novo plugin interativamente")
   .action(createPlugin);
 
 program
-  .command('list')
-  .alias('ls')
-  .description('Listar todos os plugins disponíveis')
+  .command("list")
+  .alias("ls")
+  .description("Listar todos os plugins disponíveis")
   .action(listPlugins);
 
 program
-  .command('generate-dangerfile')
-  .alias('gen')
-  .description('Gerar dangerfile de exemplo com todos os plugins')
+  .command("generate-dangerfile")
+  .alias("gen")
+  .description("Gerar dangerfile de exemplo com todos os plugins")
   .action(generateDangerfile);
 
 program
-  .command('validate <plugin-file>')
-  .description('Validar se um plugin segue o padrão correto')
+  .command("validate <plugin-file>")
+  .description("Validar se um plugin segue o padrão correto")
   .action(validatePlugin);
 
 program
-  .command('info')
-  .description('Mostrar informações do projeto')
+  .command("info")
+  .description("Mostrar informações do projeto")
   .action(showInfo);
 
 // Parse dos argumentos
@@ -618,5 +666,3 @@ program.parse(process.argv);
 if (!process.argv.slice(2).length) {
   program.outputHelp();
 }
-
-
