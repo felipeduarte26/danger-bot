@@ -191,17 +191,13 @@ danger-bot/
 
 ---
 
-## 📄 Licença
-
-MIT © [Diletta](https://github.com/diletta)
-
 ---
 
 ## 📞 Suporte
 
 - 🐛 **Issues**: [GitHub Issues](https://github.com/diletta/danger-bot/issues)
 - 📖 **Docs**: [Documentação Completa](docs/DOCS_INDEX.md)
-- 💬 **Email**: support@diletta.com
+- 💬 **Email**: felipe.duarte@dilettasolutions.com
 
 ---
 
