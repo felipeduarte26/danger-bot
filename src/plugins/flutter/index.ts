@@ -10,3 +10,4 @@ export { default as flutterAnalyzePlugin } from "./flutter-analyze";
 export { default as flutterArchitecturePlugin } from "./flutter-architecture";
 export { default as portugueseDocumentationPlugin } from "./portuguese-documentation";
 export { default as spellCheckerPlugin } from "./spell-checker";
+export { default as pluginTestPlugin } from "./plugin-test";
