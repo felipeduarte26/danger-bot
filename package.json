@@ -15,7 +15,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && tsc-alias",
     "watch": "tsc --watch",
     "prepublishOnly": "npm run build"
   },
@@ -37,16 +37,17 @@
   },
   "devDependencies": {
     "@types/node": "^24.9.2",
+    "tsc-alias": "^1.8.16",
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "danger": "^13.0.5",
-    "commander": "^14.0.2",
-    "cld3-asm": "^4.0.0",
-    "cspell": "^9.2.2",
-    "@cspell/dict-software-terms": "^5.1.11",
     "@cspell/dict-dart": "^2.3.1",
-    "@cspell/dict-flutter": "^1.1.1"
+    "@cspell/dict-flutter": "^1.1.1",
+    "@cspell/dict-software-terms": "^5.1.11",
+    "cld3-asm": "^4.0.0",
+    "commander": "^14.0.2",
+    "cspell": "^9.2.2",
+    "danger": "^13.0.5"
   },
   "engines": {
     "node": ">=22.19.0"
