@@ -4,7 +4,7 @@
  * Verifica se o CHANGELOG foi atualizado quando necessário
  */
 
-import { createPlugin } from "../../types";
+import { createPlugin } from "@types";
 
 export default createPlugin(
   {

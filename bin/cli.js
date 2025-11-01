@@ -56,7 +56,7 @@ function generatePluginTemplate(name, description, enabled) {
  * ${description}
  */
 
-import { createPlugin } from "../../types";
+import { createPlugin } from "@types";
 
 export default createPlugin(
   {
@@ -168,6 +168,41 @@ async function createPlugin() {
   console.log('CREATE NEW DANGER BOT PLUGIN');
   console.log('='.repeat(60) + '\n');
   
+  // 1. Perguntar a linguagem/plataforma
+  console.log('Select platform/language:');
+  console.log('  1. Flutter/Dart');
+  console.log('  2. Node.js');
+  console.log('  3. React');
+  console.log('  4. Other\n');
+  
+  const platformInput = await question('Platform (1-4) [1]: ');
+  const platformChoice = platformInput || '1';
+  
+  let platformFolder = 'flutter';
+  let platformName = 'Flutter/Dart';
+  
+  switch (platformChoice) {
+    case '1':
+      platformFolder = 'flutter';
+      platformName = 'Flutter/Dart';
+      break;
+    case '2':
+      platformFolder = 'nodejs';
+      platformName = 'Node.js';
+      break;
+    case '3':
+      platformFolder = 'react';
+      platformName = 'React';
+      break;
+    case '4':
+      const customPlatform = await question('Platform name: ');
+      platformFolder = toKebabCase(customPlatform || 'other');
+      platformName = customPlatform || 'Other';
+      break;
+  }
+  
+  console.log(`\nSelected platform: ${platformName}\n`);
+  
   const name = await question('Plugin name (e.g., "My Custom Plugin"): ');
   if (!name) {
     console.error('\nError: Plugin name is required!');
@@ -196,13 +231,14 @@ async function createPlugin() {
   const camelName = toCamelCase(name);
   const fileName = `${kebabName}.ts`;
   
-  // Caminhos - agora cada plugin tem sua pasta
+  // Caminhos - agora dentro da pasta da plataforma
   const pluginsDir = path.join(process.cwd(), 'src', 'plugins');
-  const pluginFolder = path.join(pluginsDir, kebabName);
+  const platformDir = path.join(pluginsDir, platformFolder);
+  const pluginFolder = path.join(platformDir, kebabName);
   const filePath = path.join(pluginFolder, fileName);
   const barrelPath = path.join(pluginFolder, 'index.ts');
   const readmePath = path.join(pluginFolder, 'README.md');
-  const indexPath = path.join(process.cwd(), 'src', 'index.ts');
+  const platformIndexPath = path.join(platformDir, 'index.ts');
   
   // Verificar se já existe
   if (fs.existsSync(pluginFolder)) {
@@ -210,48 +246,67 @@ async function createPlugin() {
     return;
   }
   
+  // Criar diretório da plataforma se não existir
+  if (!fs.existsSync(platformDir)) {
+    fs.mkdirSync(platformDir, { recursive: true });
+    console.log(`[OK] Created platform folder: ${platformFolder}/`);
+    
+    // Criar barrel file da plataforma
+    const platformBarrelContent = `/**
+ * ${platformName.toUpperCase()} PLUGINS - BARREL FILE
+ * ${'='.repeat(platformName.length + 23)}
+ * Exporta todos os plugins relacionados ao ${platformName}
+ */
+
+// Export all ${platformName} plugins
+// Plugins will be automatically added here by CLI
+`;
+    fs.writeFileSync(platformIndexPath, platformBarrelContent);
+    console.log(`[OK] Created platform barrel file: ${platformFolder}/index.ts`);
+  }
+  
   // Criar diretório do plugin
   fs.mkdirSync(pluginFolder, { recursive: true });
-  console.log(`[OK] Created plugin folder: ${kebabName}/`);
+  console.log(`[OK] Created plugin folder: ${platformFolder}/${kebabName}/`);
   
   // Gerar e escrever arquivo principal do plugin
   const content = generatePluginTemplate(name, description, enabled);
   fs.writeFileSync(filePath, content);
-  console.log(`[OK] Created plugin file: ${kebabName}/${fileName}`);
+  console.log(`[OK] Created plugin file: ${platformFolder}/${kebabName}/${fileName}`);
   
   // Criar barrel file (index.ts)
   const barrelContent = `export { default } from "./${kebabName}";\n`;
   fs.writeFileSync(barrelPath, barrelContent);
-  console.log(`[OK] Created barrel file: ${kebabName}/index.ts`);
+  console.log(`[OK] Created barrel file: ${platformFolder}/${kebabName}/index.ts`);
   
   // Criar README.md
   const readmeContent = generatePluginReadme(name, description, kebabName, camelName);
   fs.writeFileSync(readmePath, readmeContent);
-  console.log(`[OK] Created documentation: ${kebabName}/README.md`);
+  console.log(`[OK] Created documentation: ${platformFolder}/${kebabName}/README.md`);
   
-  // Atualizar index.ts principal
-  if (fs.existsSync(indexPath)) {
-    let indexContent = fs.readFileSync(indexPath, 'utf-8');
+  // Atualizar index.ts da plataforma
+  if (fs.existsSync(platformIndexPath)) {
+    let platformIndexContent = fs.readFileSync(platformIndexPath, 'utf-8');
     
     // Adicionar export
-    const exportLine = `export { default as ${camelName}Plugin } from "./plugins/${kebabName}";`;
+    const exportLine = `export { default as ${camelName}Plugin } from "./${kebabName}";`;
     
-    if (!indexContent.includes(exportLine)) {
+    if (!platformIndexContent.includes(exportLine)) {
       // Encontrar onde adicionar (após os outros exports de plugins)
-      const lastPluginExport = indexContent.lastIndexOf('export { default as');
+      const lastPluginExport = platformIndexContent.lastIndexOf('export { default as');
       if (lastPluginExport !== -1) {
-        const endOfLine = indexContent.indexOf('\n', lastPluginExport);
-        indexContent = 
-          indexContent.slice(0, endOfLine + 1) +
+        const endOfLine = platformIndexContent.indexOf('\n', lastPluginExport);
+        platformIndexContent = 
+          platformIndexContent.slice(0, endOfLine + 1) +
           exportLine + '\n' +
-          indexContent.slice(endOfLine + 1);
+          platformIndexContent.slice(endOfLine + 1);
       } else {
         // Se não houver outros plugins, adicionar no final
-        indexContent += `\n${exportLine}\n`;
+        platformIndexContent += `\n${exportLine}\n`;
       }
       
-      fs.writeFileSync(indexPath, indexContent);
-      console.log(`[OK] Export added to src/index.ts`);
+      fs.writeFileSync(platformIndexPath, platformIndexContent);
+      console.log(`[OK] Export added to ${platformFolder}/index.ts`);
     }
   }
   
@@ -260,7 +315,7 @@ async function createPlugin() {
   console.log('='.repeat(60) + '\n');
   
   console.log('Plugin structure:');
-  console.log(`  src/plugins/${kebabName}/`);
+  console.log(`  src/plugins/${platformFolder}/${kebabName}/`);
   console.log(`  ├── ${fileName}      # Plugin implementation`);
   console.log(`  ├── index.ts        # Barrel file`);
   console.log(`  └── README.md       # Documentation`);
@@ -270,7 +325,7 @@ async function createPlugin() {
   console.log(`  2. Update documentation: ${readmePath}`);
   console.log(`  3. Implement the plugin logic`);
   console.log(`  4. Run: npm run build`);
-  console.log(`  5. Use: import { ${camelName}Plugin } from "danger-bot"\n`);
+  console.log(`  5. Use: import { ${camelName}Plugin } from "@diletta/danger-bot"\n`);
 }
 
 // Listar plugins
@@ -282,8 +337,8 @@ function listPlugins() {
     return;
   }
   
-  // Agora cada plugin está em uma pasta
-  const pluginFolders = fs.readdirSync(pluginsDir).filter(f => {
+  // Agora temos pastas por plataforma (flutter, nodejs, etc)
+  const platformFolders = fs.readdirSync(pluginsDir).filter(f => {
     const fullPath = path.join(pluginsDir, f);
     return fs.statSync(fullPath).isDirectory();
   });
@@ -292,41 +347,58 @@ function listPlugins() {
   console.log('DANGER BOT PLUGINS');
   console.log('='.repeat(60) + '\n');
   
-  pluginFolders.forEach((folder, index) => {
-    // Buscar arquivo .ts dentro da pasta (ignorar index.ts)
-    const pluginFolder = path.join(pluginsDir, folder);
-    const files = fs.readdirSync(pluginFolder).filter(f => f.endsWith('.ts') && f !== 'index.ts');
+  let totalPlugins = 0;
+  
+  platformFolders.forEach((platform) => {
+    const platformPath = path.join(pluginsDir, platform);
+    const pluginFolders = fs.readdirSync(platformPath).filter(f => {
+      const fullPath = path.join(platformPath, f);
+      return fs.statSync(fullPath).isDirectory();
+    });
     
-    if (files.length === 0) return;
+    if (pluginFolders.length === 0) return;
     
-    const pluginFile = path.join(pluginFolder, files[0]);
-    const content = fs.readFileSync(pluginFile, 'utf-8');
+    console.log(`--- ${platform.toUpperCase()} ---\n`);
     
-    // Extrair informações do plugin
-    const nameMatch = content.match(/name:\s*["']([^"']+)["']/);
-    const descMatch = content.match(/description:\s*["']([^"']+)["']/);
-    const enabledMatch = content.match(/enabled:\s*(true|false)/);
-    
-    const name = nameMatch ? nameMatch[1] : folder;
-    const desc = descMatch ? descMatch[1] : 'No description';
-    const enabled = enabledMatch ? enabledMatch[1] === 'true' : true;
-    
-    console.log(`[${index + 1}] ${name.toUpperCase()}`);
-    console.log(`    Folder: ${folder}/`);
-    console.log(`    File: ${files[0]}`);
-    console.log(`    Description: ${desc}`);
-    console.log(`    Status: ${enabled ? 'ENABLED' : 'DISABLED'}`);
-    
-    // Verificar se tem README
-    const readmePath = path.join(pluginFolder, 'README.md');
-    if (fs.existsSync(readmePath)) {
-      console.log(`    Documentation: README.md`);
-    }
-    console.log();
+    pluginFolders.forEach((folder, index) => {
+      // Buscar arquivo .ts dentro da pasta (ignorar index.ts)
+      const pluginFolder = path.join(platformPath, folder);
+      const files = fs.readdirSync(pluginFolder).filter(f => f.endsWith('.ts') && f !== 'index.ts');
+      
+      if (files.length === 0) return;
+      
+      const pluginFile = path.join(pluginFolder, files[0]);
+      const content = fs.readFileSync(pluginFile, 'utf-8');
+      
+      // Extrair informações do plugin
+      const nameMatch = content.match(/name:\s*["']([^"']+)["']/);
+      const descMatch = content.match(/description:\s*["']([^"']+)["']/);
+      const enabledMatch = content.match(/enabled:\s*(true|false)/);
+      
+      const name = nameMatch ? nameMatch[1] : folder;
+      const desc = descMatch ? descMatch[1] : 'No description';
+      const enabled = enabledMatch ? enabledMatch[1] === 'true' : true;
+      
+      console.log(`[${totalPlugins + 1}] ${name.toUpperCase()}`);
+      console.log(`    Platform: ${platform}`);
+      console.log(`    Folder: ${folder}/`);
+      console.log(`    File: ${files[0]}`);
+      console.log(`    Description: ${desc}`);
+      console.log(`    Status: ${enabled ? 'ENABLED' : 'DISABLED'}`);
+      
+      // Verificar se tem README
+      const readmePath = path.join(pluginFolder, 'README.md');
+      if (fs.existsSync(readmePath)) {
+        console.log(`    Documentation: README.md`);
+      }
+      console.log();
+      
+      totalPlugins++;
+    });
   });
   
   console.log('='.repeat(60));
-  console.log(`Total: ${pluginFolders.length} plugin(s)\n`);
+  console.log(`Total: ${totalPlugins} plugin(s) across ${platformFolders.length} platform(s)\n`);
 }
 
 // Gerar dangerfile de exemplo
@@ -472,18 +544,34 @@ function showInfo() {
   console.log(`Description: ${pkg.description}`);
   console.log();
   
-  // Listar plugins (agora em pastas)
+  // Listar plugins por plataforma
   const pluginsDir = path.join(process.cwd(), 'src', 'plugins');
   if (fs.existsSync(pluginsDir)) {
-    const pluginFolders = fs.readdirSync(pluginsDir).filter(f => {
+    const platformFolders = fs.readdirSync(pluginsDir).filter(f => {
       const fullPath = path.join(pluginsDir, f);
       return fs.statSync(fullPath).isDirectory();
     });
-    console.log(`Plugins:     ${pluginFolders.length}`);
-    console.log();
-    pluginFolders.forEach((folder, i) => {
-      console.log(`  ${i + 1}. ${folder}/`);
+    
+    let totalPlugins = 0;
+    console.log('Platforms:\n');
+    
+    platformFolders.forEach((platform) => {
+      const platformPath = path.join(pluginsDir, platform);
+      const pluginFolders = fs.readdirSync(platformPath).filter(f => {
+        const fullPath = path.join(platformPath, f);
+        return fs.statSync(fullPath).isDirectory();
+      });
+      
+      console.log(`  ${platform}/ (${pluginFolders.length} plugins)`);
+      pluginFolders.forEach((folder) => {
+        console.log(`    - ${folder}/`);
+      });
+      console.log();
+      
+      totalPlugins += pluginFolders.length;
     });
+    
+    console.log(`Total: ${totalPlugins} plugin(s) across ${platformFolders.length} platform(s)`);
   }
   
   console.log('\n' + '='.repeat(60) + '\n');

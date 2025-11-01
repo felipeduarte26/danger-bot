@@ -4,7 +4,7 @@
  * Verifica padrões de arquitetura do Flutter/Dart
  */
 
-import { createPlugin } from "../../types";
+import { createPlugin } from "@types";
 import * as fs from "fs";
 import * as path from "path";
 

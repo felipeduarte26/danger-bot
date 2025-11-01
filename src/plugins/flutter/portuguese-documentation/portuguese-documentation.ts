@@ -11,7 +11,7 @@
  * ✅ Comenta inline no PR
  */
 
-import { createPlugin } from "../../types";
+import { createPlugin } from "@types";
 import * as fs from "fs";
 
 // Importar CLD3 (precisa estar instalado: npm install cld3-asm)

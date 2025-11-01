@@ -4,7 +4,7 @@
  * Verifica o tamanho do PR e alerta se está muito grande
  */
 
-import { createPlugin } from "../../types";
+import { createPlugin } from "@types";
 
 export default createPlugin(
   {
