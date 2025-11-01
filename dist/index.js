@@ -19,7 +19,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.allPlugins = exports.allFlutterPlugins = exports.schedule = exports.markdown = exports.fail = exports.warn = exports.message = exports.danger = void 0;
+exports.allFlutterPlugins = exports.schedule = exports.markdown = exports.fail = exports.warn = exports.message = exports.danger = void 0;
 // Re-export Danger JS for convenience (single import)
 var danger_1 = require("danger");
 Object.defineProperty(exports, "danger", { enumerable: true, get: function () { return danger_1.danger; } });
@@ -45,12 +45,5 @@ exports.allFlutterPlugins = [
     flutter_1.flutterArchitecturePlugin,
     flutter_1.spellCheckerPlugin,
     flutter_1.portugueseDocumentationPlugin,
-];
-/**
- * All available plugins (all platforms)
- * Use this for quick setup with all plugins enabled
- */
-exports.allPlugins = [
-    ...exports.allFlutterPlugins,
-    // Add more platforms here when available
+    flutter_1.pluginTestPlugin,
 ];

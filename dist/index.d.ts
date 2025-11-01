@@ -11,8 +11,3 @@ export * from "./plugins";
  * Use this for quick setup with all plugins enabled
  */
 export declare const allFlutterPlugins: import("./types").DangerPlugin[];
-/**
- * All available plugins (all platforms)
- * Use this for quick setup with all plugins enabled
- */
-export declare const allPlugins: import("./types").DangerPlugin[];
