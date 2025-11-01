@@ -60,13 +60,14 @@
    - Conclusão
 
 8. **[ARCHITECTURE.md](ARCHITECTURE.md)** - Arquitetura dos plugins
+
    - Estrutura modular original
    - Barrel files
    - Documentação integrada
    - Padrões de nomenclatura
 
 9. **[PLATFORM_ARCHITECTURE.md](PLATFORM_ARCHITECTURE.md)** - Arquitetura por plataforma
-   - Organização por linguagem (Flutter, Node.js, React)
+   - Organização por linguagem (Flutter, Node.js)
    - Path aliases TypeScript (`@types`)
    - Suporte multi-plataforma
    - CLI inteligente com seleção de plataforma

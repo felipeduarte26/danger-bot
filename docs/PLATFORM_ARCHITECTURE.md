@@ -31,7 +31,6 @@ src/plugins/
 │   ├── portuguese-documentation/
 │   └── spell-checker/
 ├── nodejs/                         # Futuro: plugins Node.js
-├── react/                          # Futuro: plugins React
 └── index.ts                        # Barrel file principal
 ```
 
@@ -148,7 +147,6 @@ export * from "./flutter";
 
 // Future: Export plugins from other platforms
 // export * from "./nodejs";
-// export * from "./react";
 // export * from "./python";
 ```
 
@@ -262,7 +260,7 @@ Selected platform: Node.js
 
 ### 1. **Escalabilidade**
 
-- ✅ Fácil adicionar novas plataformas (Node.js, React, Python, etc)
+- ✅ Fácil adicionar novas plataformas (Node.js, Python, etc)
 - ✅ Plugins organizados por contexto
 - ✅ Estrutura clara e intuitiva
 
@@ -304,7 +302,6 @@ danger-bot/
 │   │   │   ├── portuguese-documentation/
 │   │   │   └── spell-checker/
 │   │   ├── nodejs/                     # Futuro: Plugins Node.js
-│   │   ├── react/                      # Futuro: Plugins React
 │   │   └── index.ts                    # Barrel principal
 │   ├── types.ts                        # @types alias
 │   └── index.ts                        # Export principal

@@ -110,8 +110,6 @@ Platform (1-4) [1]:
 
 - `1` - Flutter/Dart (padrão)
 - `2` - Node.js
-- `3` - React
-- `4` - Outra (customizada)
 
 #### 2. Informações do Plugin
 
@@ -307,7 +305,7 @@ Para cada plugin:
 
 - **Número** - Índice sequencial
 - **Nome** - Nome do plugin em maiúsculas
-- **Platform** - Plataforma (flutter, nodejs, react, etc)
+- **Platform** - Plataforma (flutter, nodejs, etc)
 - **Folder** - Nome da pasta
 - **File** - Nome do arquivo principal
 - **Description** - Descrição extraída do código
@@ -704,7 +702,6 @@ testCoverage
 src/plugins/
 ├── flutter/       # Plugins Dart/Flutter
 ├── nodejs/        # Plugins Node.js
-└── react/         # Plugins React
 ```
 
 ### 4. Desenvolvimento

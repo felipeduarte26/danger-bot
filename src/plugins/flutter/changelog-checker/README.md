@@ -35,9 +35,7 @@ Se mudanças de código forem detectadas sem atualização do CHANGELOG, um avis
 ```
 .dart    # Arquivos Dart
 .ts      # TypeScript
-.js      # JavaScript  
-.tsx     # React TypeScript
-.jsx     # React JavaScript
+.js      # JavaScript
 ```
 
 ### ❌ Ignorados
@@ -65,7 +63,7 @@ __tests__/
 import { changelogCheckerPlugin } from "@diletta/danger-bot";
 
 const plugins = [
-  changelogCheckerPlugin,  // Habilitado por padrão
+  changelogCheckerPlugin, // Habilitado por padrão
 ];
 ```
 
@@ -107,16 +105,20 @@ Arquivos modificados:
 ## [Não Lançado]
 
 ### ✨ Adicionado
+
 - Nova funcionalidade X
 - Nova funcionalidade Y
 
 ### 🔄 Modificado
+
 - Comportamento alterado de Z
 
 ### 🐛 Corrigido
+
 - Bug corrigido na issue #123
 
 ### 💥 Breaking Changes
+
 - Endpoint da API /old renomeado para /new
 ```
 
@@ -130,24 +132,29 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 ## [Não Lançado]
 
 ### ✨ Adicionado
+
 - Sistema de autenticação com JWT
 - Cache Redis para melhor performance
 - Testes unitários para serviços principais
 
 ### 🔄 Modificado
+
 - Migrado de REST para GraphQL
 - Atualizado Flutter para versão 3.16
 
 ### 🐛 Corrigido
+
 - Correção de memory leak no auth service
 - Fix em validação de formulários
 
 ### 💥 Breaking Changes
+
 - API antiga v1 foi removida, use v2
 
 ## [1.2.0] - 2024-01-15
 
 ### ✨ Adicionado
+
 - Suporte para dark mode
 - Exportação de relatórios em PDF
 ```
@@ -175,26 +182,26 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
 ## 🎨 Categorias Sugeridas
 
-| Emoji | Categoria | Uso |
-|-------|-----------|-----|
-| ✨ | **Adicionado** | Novas funcionalidades |
-| 🔄 | **Modificado** | Mudanças em funcionalidades existentes |
-| 🐛 | **Corrigido** | Correções de bugs |
-| 🗑️ | **Removido** | Funcionalidades removidas |
-| 💥 | **Breaking Changes** | Mudanças incompatíveis |
-| 🔒 | **Segurança** | Correções de vulnerabilidades |
-| 📝 | **Documentação** | Apenas mudanças em docs |
-| ⚡ | **Performance** | Melhorias de performance |
+| Emoji | Categoria            | Uso                                    |
+| ----- | -------------------- | -------------------------------------- |
+| ✨    | **Adicionado**       | Novas funcionalidades                  |
+| 🔄    | **Modificado**       | Mudanças em funcionalidades existentes |
+| 🐛    | **Corrigido**        | Correções de bugs                      |
+| 🗑️    | **Removido**         | Funcionalidades removidas              |
+| 💥    | **Breaking Changes** | Mudanças incompatíveis                 |
+| 🔒    | **Segurança**        | Correções de vulnerabilidades          |
+| 📝    | **Documentação**     | Apenas mudanças em docs                |
+| ⚡    | **Performance**      | Melhorias de performance               |
 
 ---
 
 ## 🌐 Plataformas Suportadas
 
-| Plataforma | Status |
-|------------|--------|
-| GitHub | ✅ |
-| Bitbucket Cloud | ✅ |
-| GitLab | ✅ |
+| Plataforma      | Status |
+| --------------- | ------ |
+| GitHub          | ✅     |
+| Bitbucket Cloud | ✅     |
+| GitLab          | ✅     |
 
 ---
 
