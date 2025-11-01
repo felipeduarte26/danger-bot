@@ -1,0 +1,56 @@
+{
+  "name": "@diletta/danger-bot",
+  "version": "1.0.0",
+  "description": "Conjunto modular de plugins Danger JS",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "danger-bot": "./bin/cli.js"
+  },
+  "files": [
+    "dist",
+    "scripts",
+    "bin",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "prepublishOnly": "npm run build",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "danger",
+    "danger-js",
+    "flutter",
+    "dart",
+    "ci",
+    "code-review",
+    "automation",
+    "plugins"
+  ],
+  "author": "Felipe Duarte Barbosa",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://felipeDuarteBarbosa@bitbucket.org/diletta/danger-bot.git"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0"
+  },
+  "dependencies": {
+    "danger": "^13.0.0",
+    "commander": "^11.0.0",
+    "cld3-asm": "^4.0.0",
+    "cspell": "^8.0.0",
+    "@cspell/dict-software-terms": "^3.0.0",
+    "@cspell/dict-dart": "^2.0.0",
+    "@cspell/dict-flutter": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
+
