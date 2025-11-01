@@ -26,8 +26,8 @@ O **spell-checker** agora detecta automaticamente onde os scripts estão:
 // ✅ Busca primeiro no projeto local (se existir pasta scripts/)
 // ✅ Depois busca no danger-bot instalado (node_modules/@diletta/danger-bot/scripts/)
 
-const setupScript = fs.existsSync("scripts/setup_spell_check.sh") 
-  ? "scripts/setup_spell_check.sh"  // Local
+const setupScript = fs.existsSync("scripts/setup_spell_check.sh")
+  ? "scripts/setup_spell_check.sh" // Local
   : `${dangerBotPath}scripts/setup_spell_check.sh`; // Do pacote npm
 ```
 
@@ -40,6 +40,7 @@ npm install
 ```
 
 Isso instalará:
+
 - ✅ `danger`
 - ✅ `@diletta/danger-bot` (com scripts incluídos)
 - ✅ `cspell` e dicionários
@@ -59,21 +60,21 @@ on:
 jobs:
   danger:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout código
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # Importante para o Danger ter acesso ao histórico
-      
+          fetch-depth: 0 # Importante para o Danger ter acesso ao histórico
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
-      
+          node-version: "18"
+
       - name: Instalar dependências
         run: npm install
-      
+
       - name: Executar Danger
         run: npm run danger:ci
         env:
@@ -85,7 +86,7 @@ jobs:
 ```yaml
 pipelines:
   pull-requests:
-    '**':
+    "**":
       - step:
           name: Danger CI
           image: node:18
@@ -177,14 +178,14 @@ pipeline {
             image 'node:18'
         }
     }
-    
+
     stages {
         stage('Install') {
             steps {
                 sh 'npm install'
             }
         }
-        
+
         stage('Danger CI') {
             when {
                 changeRequest()
@@ -200,16 +201,19 @@ pipeline {
 ## 🔐 Variáveis de Ambiente Necessárias
 
 ### GitHub
+
 ```bash
 GITHUB_TOKEN=<seu_token>
 ```
 
 ### Bitbucket Cloud
+
 ```bash
 BITBUCKET_TOKEN=<seu_token>
 ```
 
 ### GitLab
+
 ```bash
 DANGER_GITLAB_HOST=<gitlab_url>
 DANGER_GITLAB_API_TOKEN=<seu_token>
@@ -257,12 +261,13 @@ const plugins = [
 
 (async () => {
   try {
-    const pr = danger.github?.pr || danger.bitbucket_cloud?.pr || danger.gitlab?.mr;
-    
+    const pr =
+      danger.github?.pr || danger.bitbucket_cloud?.pr || danger.gitlab?.mr;
+
     if (pr) {
       message(`🔍 Analisando PR: ${pr.title}`);
     }
-    
+
     await runPlugins(plugins);
     message("✅ Análise concluída!");
   } catch (error) {
@@ -326,11 +331,13 @@ npm run danger:local
 ## ⚠️ Requisitos do Ambiente de Pipeline
 
 ### Obrigatórios:
+
 - ✅ Node.js 18+ instalado
 - ✅ Acesso ao repositório Git
 - ✅ Token de API configurado
 
 ### Opcionais (dependendo dos plugins usados):
+
 - 🔧 Flutter SDK (apenas para `flutter-analyze`)
 - 🔧 Bash shell (para `spell-checker`)
 
@@ -342,7 +349,7 @@ Se seu pipeline não tem Flutter instalado:
 
 ```typescript
 // dangerfile.ts
-flutterAnalyze.config.enabled = false;  // Desabilitar temporariamente
+flutterAnalyze.config.enabled = false; // Desabilitar temporariamente
 ```
 
 ### Configurar palavras personalizadas (spell-checker)
@@ -351,12 +358,7 @@ Crie `.vscode/settings.json`:
 
 ```json
 {
-  "cSpell.words": [
-    "esfera",
-    "diletta",
-    "customWord1",
-    "customWord2"
-  ]
+  "cSpell.words": ["esfera", "diletta", "customWord1", "customWord2"]
 }
 ```
 
@@ -393,7 +395,7 @@ O Danger Bot comenta automaticamente no PR:
 Para disponibilizar para outros projetos:
 
 ```bash
-cd /Users/felipeduarte/Projetos/GenialSolutions/danger-bot
+cd danger-bot
 
 # Login no npm
 npm login
@@ -412,4 +414,3 @@ npm publish --access public
 ---
 
 ✅ **Conclusão**: O Danger Bot está 100% pronto para uso em pipelines!
-

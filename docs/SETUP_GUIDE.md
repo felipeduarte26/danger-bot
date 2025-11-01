@@ -30,7 +30,7 @@ danger-bot/
 
 ```bash
 # 1. No danger-bot
-cd /Users/felipeduarte/Projetos/GenialSolutions/danger-bot
+cd danger-bot
 npm link
 
 # 2. No esfera_web
@@ -44,7 +44,7 @@ npm run danger:local
 ### Opção 2: Publicar no NPM
 
 ```bash
-cd /Users/felipeduarte/Projetos/GenialSolutions/danger-bot
+cd danger-bot
 
 # Login (primeira vez)
 npm login
@@ -76,16 +76,19 @@ npm publish
 ## 📦 Instalação em Outros Projetos
 
 ### Via NPM (após publicar):
+
 ```bash
 npm install --save-dev @diletta/danger-bot danger
 ```
 
 ### Via Git:
+
 ```bash
 npm install --save-dev git+https://github.com/diletta/danger-bot.git danger
 ```
 
 ### Via Path Local:
+
 ```bash
 npm install --save-dev ../danger-bot danger
 ```
@@ -116,11 +119,11 @@ const plugins = [
 (async () => {
   try {
     const pr = danger.github?.pr || danger.bitbucket_cloud?.pr;
-    
+
     if (pr) {
       message(`🔍 Analisando PR: ${pr.title}`);
     }
-    
+
     await runPlugins(plugins);
     message("✅ Análise concluída!");
   } catch (error) {
@@ -146,11 +149,11 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
-          node-version: '18'
-      
+          node-version: "18"
+
       - name: Install dependencies
         run: npm install
-      
+
       - name: Run Danger
         run: npm run danger:ci
         env:
@@ -162,7 +165,7 @@ jobs:
 ```yaml
 pipelines:
   pull-requests:
-    '**':
+    "**":
       - step:
           name: Danger CI
           image: node:18
@@ -173,14 +176,14 @@ pipelines:
 
 ## 🎯 Plugins Disponíveis
 
-| Plugin | Descrição | Status |
-|--------|-----------|--------|
-| `prSizeChecker` | Verifica tamanho do PR | ✅ |
-| `changelogChecker` | Verifica CHANGELOG | ✅ |
-| `flutterAnalyze` | Analisa código Dart | ✅ |
-| `flutterArchitecture` | Valida arquitetura | ✅ |
-| `spellChecker` | Verifica ortografia | ✅ |
-| `portugueseDocumentation` | Detecta docs em PT | ✅ |
+| Plugin                    | Descrição              | Status |
+| ------------------------- | ---------------------- | ------ |
+| `prSizeChecker`           | Verifica tamanho do PR | ✅     |
+| `changelogChecker`        | Verifica CHANGELOG     | ✅     |
+| `flutterAnalyze`          | Analisa código Dart    | ✅     |
+| `flutterArchitecture`     | Valida arquitetura     | ✅     |
+| `spellChecker`            | Verifica ortografia    | ✅     |
+| `portugueseDocumentation` | Detecta docs em PT     | ✅     |
 
 ## 🛠️ Desenvolvimento
 
@@ -223,7 +226,7 @@ npm run watch
 ### 1. Configurar Repositório Git
 
 ```bash
-cd /Users/felipeduarte/Projetos/GenialSolutions/danger-bot
+cd danger-bot
 git init
 git add .
 git commit -m "feat: Initial commit - Danger Bot v1.0.0"
@@ -255,15 +258,11 @@ npm install @diletta/danger-bot
 ✅ **Testável**: Teste localmente antes de publicar  
 ✅ **Documentado**: README completo  
 ✅ **TypeScript**: Type-safe  
-✅ **Open Source**: MIT License  
+✅ **Open Source**: MIT License
 
 ## 📞 Suporte
 
-- 📧 Email: support@genialsolutions.com
 - 🐛 Issues: GitHub Issues
 - 📖 Docs: README.md
 
 ---
-
-**Criado com ❤️ por Genial Solutions**
-

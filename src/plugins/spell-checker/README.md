@@ -7,6 +7,7 @@ Validates spelling in Dart identifiers (class names, method names, variables) to
 ## Purpose
 
 Proper spelling in code is essential for:
+
 - Code readability
 - Professional appearance
 - Avoiding confusion in team collaboration
@@ -27,35 +28,40 @@ Proper spelling in code is essential for:
 import { spellCheckerPlugin } from "danger-bot";
 
 const plugins = [
-  spellCheckerPlugin,  // Enabled by default
+  spellCheckerPlugin, // Enabled by default
 ];
 ```
 
 ## Requirements
 
 This plugin requires:
+
 - `cspell` package (included with danger-bot)
 - Setup script (automatically included)
 
 ## Setup
 
 The plugin automatically runs the setup script on first use:
+
 ```bash
 scripts/setup_spell_check.sh
 ```
 
 This creates:
+
 - `cspell.json` - Configuration file
 - `.cspell-words.txt` - Custom dictionary
 
 ## Files Analyzed
 
 ✅ **Included:**
+
 - `.dart` files
 - Class names, method names, variables
 - Function names, parameter names
 
 ❌ **Excluded:**
+
 - String literals
 - Comments
 - Import paths
@@ -64,6 +70,7 @@ This creates:
 ## Example Output
 
 **When spelling errors are found:**
+
 ```
 Spelling errors found in lib/features/payment/paymnt_service.dart:
 
@@ -78,6 +85,7 @@ Suggestions:
 ```
 
 **When no errors:**
+
 ```
 ✅ No spelling errors found in Dart identifiers
 ```
@@ -85,33 +93,41 @@ Suggestions:
 ## Common Issues Detected
 
 ### Typos in Class Names
+
 ❌ **Bad:**
+
 ```dart
 class UserContoller { }  // "Contoller" → "Controller"
 class PaymntService { }  // "Paymnt" → "Payment"
 ```
 
 ✅ **Good:**
+
 ```dart
 class UserController { }
 class PaymentService { }
 ```
 
 ### Typos in Methods
+
 ❌ **Bad:**
+
 ```dart
 void fetchUsrData() { }    // "Usr" → "User"
 void calclateTotl() { }    // "calclate" → "calculate", "Totl" → "Total"
 ```
 
 ✅ **Good:**
+
 ```dart
 void fetchUserData() { }
 void calculateTotal() { }
 ```
 
 ### Typos in Variables
+
 ❌ **Bad:**
+
 ```dart
 final usrName = 'John';       // "usr" → "user"
 final totlAmount = 100.0;     // "totl" → "total"
@@ -119,6 +135,7 @@ final isProccessing = false;  // "Proccessing" → "Processing"
 ```
 
 ✅ **Good:**
+
 ```dart
 final userName = 'John';
 final totalAmount = 100.0;
@@ -131,8 +148,6 @@ Add project-specific terms to `.cspell-words.txt`:
 
 ```txt
 # Project-specific terms
-Genial
-Esfera
 UserDto
 ProductEntity
 ```
@@ -154,11 +169,7 @@ The plugin creates a `cspell.json` file:
       "path": "./.cspell-words.txt"
     }
   ],
-  "ignorePaths": [
-    "**/*.g.dart",
-    "**/*.freezed.dart",
-    "**/*.mocks.dart"
-  ]
+  "ignorePaths": ["**/*.g.dart", "**/*.freezed.dart", "**/*.mocks.dart"]
 }
 ```
 
@@ -186,6 +197,7 @@ enum PaymentStatus { }  // Extracts: "Payment", "Status"
 ## Technical Terms Supported
 
 CSpell includes dictionaries for:
+
 - Programming terms (async, await, const, etc.)
 - Flutter/Dart terms (widget, stateful, etc.)
 - Common abbreviations (dto, api, url, etc.)
@@ -207,7 +219,7 @@ CSpell includes dictionaries for:
 - name: Setup Node.js
   uses: actions/setup-node@v3
   with:
-    node-version: '18'
+    node-version: "18"
 
 - name: Install Dependencies
   run: npm install
@@ -238,6 +250,7 @@ spellCheckerPlugin.config.enabled = false;
 ### Add Custom Words
 
 Edit `.cspell-words.txt`:
+
 ```txt
 YourProjectName
 CustomTerm
@@ -267,4 +280,3 @@ SpecificAcronym
 - `flutter-analyze` - Dart static analysis
 - `portuguese-documentation` - Language detection
 - `flutter-architecture` - Code quality checks
-

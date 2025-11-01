@@ -25,17 +25,20 @@ npm --version
 ### Instalar Node.js (se não tiver)
 
 **macOS:**
+
 ```bash
 brew install node
 ```
 
 **Linux:**
+
 ```bash
 curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
 sudo apt-get install -y nodejs
 ```
 
 **Windows:**
+
 - Baixar de: https://nodejs.org/
 
 ---
@@ -78,6 +81,7 @@ npm install --save-dev danger-bot@git+https://github.com/diletta/danger-bot.git#
 ```
 
 **✅ Isso instala:**
+
 - `danger-bot` (com todos os plugins)
 - `danger` (automaticamente)
 - `cspell`, `cld3-asm` e outras dependências
@@ -146,19 +150,21 @@ const plugins = [
 // Executar análise
 (async () => {
   try {
-    const pr = danger.github?.pr || danger.bitbucket_cloud?.pr || danger.gitlab?.mr;
-    
+    const pr =
+      danger.github?.pr || danger.bitbucket_cloud?.pr || danger.gitlab?.mr;
+
     if (pr) {
       message(
         `🔍 **Danger CI** executando análise automática\n\n` +
-        `**Título**: ${pr.title}\n` +
-        `📦 Plugins ativos: ${plugins.filter(p => p.config.enabled).length}/${plugins.length}`
+          `**Título**: ${pr.title}\n` +
+          `📦 Plugins ativos: ${
+            plugins.filter((p) => p.config.enabled).length
+          }/${plugins.length}`
       );
     }
-    
+
     await runPlugins(plugins);
     message("✅ **Danger CI** - Análise concluída com sucesso!");
-
   } catch (error) {
     message("⚠️ **Erro no Danger CI**: Verifique os logs do CI.");
     throw error;
@@ -261,21 +267,21 @@ on:
 jobs:
   danger:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout código
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
-      
+          node-version: "18"
+
       - name: Instalar dependências
         run: npm install
-      
+
       - name: Executar Danger
         run: npm run danger:ci
         env:
@@ -289,7 +295,7 @@ Crie `bitbucket-pipelines.yml`:
 ```yaml
 pipelines:
   pull-requests:
-    '**':
+    "**":
       - step:
           name: Danger CI
           image: node:18
@@ -349,8 +355,10 @@ const meuPlugin = createPlugin(
   },
   async () => {
     // Sua lógica aqui
-    const hasTests = danger.git.created_files.some(f => f.includes("_test.dart"));
-    
+    const hasTests = danger.git.created_files.some((f) =>
+      f.includes("_test.dart")
+    );
+
     if (!hasTests) {
       warn("⚠️ Considere adicionar testes para este PR");
     }
@@ -408,7 +416,7 @@ if (process.platform === "win32") {
 - name: Setup Flutter
   uses: subosito/flutter-action@v2
   with:
-    flutter-version: '3.x'
+    flutter-version: "3.x"
 
 - name: Flutter Doctor
   run: flutter doctor
@@ -436,7 +444,7 @@ npm run danger:ci
 
 # Atualizar danger-bot
 npm uninstall danger-bot
-npm install danger-bot@git+https://github.com/genial-solutions/danger-bot.git#v1.1.0
+npm install danger-bot@git+https://felipeDuarteBarbosa@bitbucket.org/diletta/danger-bot.git#v1.1.0
 
 # Ver versão instalada
 npm list danger-bot
@@ -465,16 +473,18 @@ npm list danger-bot
 ## 💡 Dicas
 
 **✅ Mantenha atualizado:**
+
 ```bash
 # Verificar atualizações
 git ls-remote https://github.com/diletta/danger-bot.git --tags
 
 # Atualizar para nova versão
-npm install danger-bot@git+https://github.com/genial-solutions/danger-bot.git#v1.1.0
+npm install danger-bot@git+https://felipeDuarteBarbosa@bitbucket.org/diletta/danger-bot.git#v1.1.0
 ```
 
 **✅ Use em conjunto com linters:**
 O Danger Bot complementa ferramentas como:
+
 - `flutter analyze`
 - `dart format`
 - Testes automatizados
@@ -487,11 +497,6 @@ Cada projeto pode ter necessidades diferentes. Adapte os plugins conforme necess
 ## 🆘 Suporte
 
 - 🐛 Issues: [GitHub Issues](https://github.com/diletta/danger-bot/issues)
-- 📧 Email: support@genialsolutions.com
 - 📖 Docs: Veja outros guias neste repositório
 
 ---
-
-**Feito com ❤️ por Genial Solutions**
-
-

@@ -14,7 +14,7 @@ npm install danger-bot@git+https://github.com/diletta/danger-bot.git#v1.0.0
 npx danger-bot <comando>
 
 # Ou instalar globalmente
-npm install -g danger-bot@git+https://github.com/genial-solutions/danger-bot.git#v1.0.0
+npm install -g danger-bot@git+https://felipeDuarteBarbosa@bitbucket.org/diletta/danger-bot.git#v1.0.0
 danger-bot <comando>
 ```
 
@@ -31,14 +31,16 @@ danger-bot new
 ```
 
 **Funcionalidades:**
+
 - ✅ Pergunta nome, descrição e se está habilitado
-- ✅ Permite escolher emoji para o plugin  
+- ✅ Permite escolher emoji para o plugin
 - ✅ Cria arquivo com padrão: `nome-do-plugin-plugin.ts`
 - ✅ Adiciona automaticamente o export no `index.ts`
 - ✅ Gera código base com `createPlugin` e imports corretos
 - ✅ Converte nome para kebab-case no arquivo e camelCase no export
 
 **Exemplo:**
+
 ```
 $ danger-bot create-plugin
 
@@ -48,7 +50,7 @@ Nome do plugin: Test Coverage
 Descrição do plugin: Verifica se testes cobrem arquivos modificados
 
 📋 Escolha um emoji:
-1. 🔍  2. 📄  3. 🏗️  4. 🔤  5. 🌐  
+1. 🔍  2. 📄  3. 🏗️  4. 🔤  5. 🌐
 6. ⚡  7. 🎨  8. 🔧  9. 📊  10. 🚀
 
 Número do emoji (1-20) [1]: 9
@@ -72,11 +74,12 @@ Lista todos os plugins disponíveis com suas informações.
 
 ```bash
 danger-bot list
-# ou  
+# ou
 danger-bot ls
 ```
 
 **Saída:**
+
 ```
 📦 Plugins Disponíveis:
 
@@ -102,6 +105,7 @@ danger-bot gen
 ```
 
 **Arquivo gerado:**
+
 ```typescript
 import {
   prSizeCheckerPlugin,
@@ -131,6 +135,7 @@ danger-bot validate src/plugins/meu-plugin.ts
 ```
 
 **Verificações:**
+
 - ✅ Import do `createPlugin`
 - ✅ Export default presente
 - ✅ Campos: `name`, `description`, `enabled`
@@ -168,7 +173,7 @@ export default createPlugin(
   async () => {
     // Sua lógica aqui
     const modifiedFiles = danger.git.modified_files;
-    
+
     message("✅ Plugin executado!");
   }
 );
@@ -177,6 +182,7 @@ export default createPlugin(
 ### Export Automático
 
 No `src/index.ts`:
+
 ```typescript
 export { default as testCoveragePlugin } from "./plugins/test-coverage-plugin";
 ```
@@ -229,7 +235,7 @@ danger-bot gen
 
 ```bash
 # No danger-bot
-cd /Users/felipeduarte/Projetos/GenialSolutions/danger-bot
+cd danger-bot
 npm link
 
 # Agora pode usar globalmente
@@ -253,9 +259,6 @@ danger-bot info        # Informações
 ✅ **Produtividade** - Criação rápida de plugins  
 ✅ **Validação** - Garante qualidade do código  
 ✅ **Automação** - Exports automáticos  
-✅ **Interatividade** - Interface amigável  
+✅ **Interatividade** - Interface amigável
 
 ---
-
-**Feito com ❤️ por Genial Solutions**
-

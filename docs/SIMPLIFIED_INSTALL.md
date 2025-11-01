@@ -10,7 +10,7 @@ O `danger` agora é uma **dependência direta** do `danger-bot`, não mais uma `
 {
   "devDependencies": {
     "danger-bot": "git+https://github.com/diletta/danger-bot.git#v1.0.0",
-    "danger": "^13.0.0"  // ← Cliente precisava saber disso
+    "danger": "^13.0.0" // ← Cliente precisava saber disso
   }
 }
 ```
@@ -20,7 +20,7 @@ O `danger` agora é uma **dependência direta** do `danger-bot`, não mais uma `
 ```json
 {
   "devDependencies": {
-    "danger-bot": "git+https://github.com/genial-solutions/danger-bot.git#v1.0.0"
+    "danger-bot": "git+https://felipeDuarteBarbosa@bitbucket.org/diletta/danger-bot.git#v1.0.0"
     // ✅ danger vem automaticamente junto!
   }
 }
@@ -70,9 +70,9 @@ npm install danger-bot@git+https://github.com/diletta/danger-bot.git#v1.0.0
 {
   "name": "@diletta/danger-bot",
   "dependencies": {
-    "danger": "^13.0.0",        // ← Instalado automaticamente
+    "danger": "^13.0.0", // ← Instalado automaticamente
     "cld3-asm": "^4.0.0",
-    "cspell": "^8.0.0",
+    "cspell": "^8.0.0"
     // ... outros
   }
 }
@@ -88,7 +88,7 @@ Quando alguém instala o `danger-bot`, o npm automaticamente instala todas as `d
 ✅ **Cliente não precisa saber sobre Danger JS**  
 ✅ **Versão do Danger gerenciada pelo danger-bot**  
 ✅ **Instalação mais simples**  
-✅ **Menos confusão**  
+✅ **Menos confusão**
 
 ---
 
@@ -129,11 +129,7 @@ npm run danger:ci
 ### 1. Cliente cria `dangerfile.ts`:
 
 ```typescript
-import {
-  flutterAnalyze,
-  prSizeChecker,
-  runPlugins,
-} from "danger-bot";  // ← Só precisa conhecer danger-bot
+import { flutterAnalyze, prSizeChecker, runPlugins } from "danger-bot"; // ← Só precisa conhecer danger-bot
 
 const plugins = [flutterAnalyze, prSizeChecker];
 
@@ -169,16 +165,15 @@ const plugins = [flutterAnalyze, prSizeChecker];
 
 ## 🔄 Comparação
 
-| Item | Antes (peerDependency) | Agora (dependency) |
-|------|------------------------|-------------------|
-| Instalação | 2 pacotes | 1 pacote |
-| Cliente sabe do Danger? | ✅ Sim | ❌ Não |
-| Gerenciamento de versão | Cliente | danger-bot |
-| Simplicidade | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
+| Item                    | Antes (peerDependency) | Agora (dependency) |
+| ----------------------- | ---------------------- | ------------------ |
+| Instalação              | 2 pacotes              | 1 pacote           |
+| Cliente sabe do Danger? | ✅ Sim                 | ❌ Não             |
+| Gerenciamento de versão | Cliente                | danger-bot         |
+| Simplicidade            | ⭐⭐⭐                 | ⭐⭐⭐⭐⭐         |
 
 ---
 
 ## ✅ Pronto!
 
 Agora o `danger-bot` é um **pacote completo e independente**. O cliente instala apenas ele e tudo funciona automaticamente! 🎉
-

@@ -37,6 +37,7 @@ danger-bot/
 ## 🎯 O Que Foi Resolvido
 
 ### ❌ ANTES (Problema)
+
 ```
 ❌ Scripts só existiam no esfera_web
 ❌ Projetos que instalassem o danger-bot não teriam os scripts
@@ -45,6 +46,7 @@ danger-bot/
 ```
 
 ### ✅ DEPOIS (Solução)
+
 ```
 ✅ Scripts incluídos no pacote npm
 ✅ Detecção automática (local ou do pacote)
@@ -64,6 +66,7 @@ npm install @diletta/danger-bot
 ```
 
 **O que acontece:**
+
 - ✅ Instala `danger-bot/dist/` (plugins compilados)
 - ✅ Instala `danger-bot/scripts/` (scripts auxiliares)
 - ✅ Instala dependências (cspell, cld3-asm, etc)
@@ -74,10 +77,10 @@ npm install @diletta/danger-bot
 // Plugin spell-checker busca automaticamente:
 
 // 1º Tenta local (se projeto tiver scripts/)
-"scripts/setup_spell_check.sh"
+"scripts/setup_spell_check.sh";
 
 // 2º Usa do danger-bot instalado
-"node_modules/@diletta/danger-bot/scripts/setup_spell_check.sh"
+"node_modules/@diletta/danger-bot/scripts/setup_spell_check.sh";
 
 // ✅ Resultado: Funciona sempre!
 ```
@@ -86,36 +89,38 @@ npm install @diletta/danger-bot
 
 ```yaml
 # .github/workflows/danger.yml
-- run: npm install     # ✅ Scripts vêm junto
-- run: npm run danger:ci  # ✅ Tudo funciona!
+- run: npm install # ✅ Scripts vêm junto
+- run: npm run danger:ci # ✅ Tudo funciona!
 ```
 
 ---
 
 ## 🎁 6 Plugins Incluídos
 
-| # | Plugin | Descrição | Pipeline? |
-|---|--------|-----------|-----------|
-| 1 | `prSizeChecker` | Verifica tamanho do PR | ✅ |
-| 2 | `changelogChecker` | Valida CHANGELOG | ✅ |
-| 3 | `flutterAnalyze` | Roda flutter analyze | ✅* |
-| 4 | `flutterArchitecture` | Valida arquitetura | ✅ |
-| 5 | `spellChecker` | Verifica ortografia | ✅ |
-| 6 | `portugueseDocumentation` | Detecta docs em PT | ✅ |
+| #   | Plugin                    | Descrição              | Pipeline? |
+| --- | ------------------------- | ---------------------- | --------- |
+| 1   | `prSizeChecker`           | Verifica tamanho do PR | ✅        |
+| 2   | `changelogChecker`        | Valida CHANGELOG       | ✅        |
+| 3   | `flutterAnalyze`          | Roda flutter analyze   | ✅\*      |
+| 4   | `flutterArchitecture`     | Valida arquitetura     | ✅        |
+| 5   | `spellChecker`            | Verifica ortografia    | ✅        |
+| 6   | `portugueseDocumentation` | Detecta docs em PT     | ✅        |
 
-\* *Requer Flutter SDK no ambiente*
+\* _Requer Flutter SDK no ambiente_
 
 ---
 
 ## 💻 Compatibilidade
 
 ### Plataformas Git
+
 - ✅ GitHub
 - ✅ Bitbucket Cloud
 - ✅ Bitbucket Server
 - ✅ GitLab
 
 ### CI/CD
+
 - ✅ GitHub Actions
 - ✅ Bitbucket Pipelines
 - ✅ GitLab CI
@@ -125,6 +130,7 @@ npm install @diletta/danger-bot
 - ✅ E outros...
 
 ### Sistemas Operacionais
+
 - ✅ Linux (Ubuntu, Debian, etc)
 - ✅ macOS
 - ⚠️ Windows (com Git Bash para spell-checker)
@@ -134,6 +140,7 @@ npm install @diletta/danger-bot
 ## 🔧 Requisitos do Pipeline
 
 ### Obrigatórios
+
 ```
 ✅ Node.js 18+
 ✅ Git
@@ -141,6 +148,7 @@ npm install @diletta/danger-bot
 ```
 
 ### Opcionais
+
 ```
 🔧 Flutter SDK (para flutter-analyze)
 🔧 Bash (para spell-checker)
@@ -151,12 +159,9 @@ npm install @diletta/danger-bot
 ## 📊 Exemplo de Uso
 
 ### dangerfile.ts
+
 ```typescript
-import {
-  flutterAnalyze,
-  prSizeChecker,
-  runPlugins,
-} from "@diletta/danger-bot";
+import { flutterAnalyze, prSizeChecker, runPlugins } from "@diletta/danger-bot";
 
 const plugins = [flutterAnalyze, prSizeChecker];
 
@@ -167,6 +172,7 @@ const plugins = [flutterAnalyze, prSizeChecker];
 ```
 
 ### Pipeline Output
+
 ```
 🔍 Danger CI executando análise automática
 📦 Plugins ativos: 6/6
@@ -184,6 +190,7 @@ const plugins = [flutterAnalyze, prSizeChecker];
 ## 🎯 Próximos Passos
 
 ### Para Testar Localmente
+
 ```bash
 cd danger-bot
 npm link
@@ -194,6 +201,7 @@ npm run danger:local
 ```
 
 ### Para Publicar no NPM
+
 ```bash
 cd danger-bot
 npm login
@@ -201,6 +209,7 @@ npm publish --access public
 ```
 
 ### Para Usar em Produção
+
 ```bash
 # Em qualquer projeto
 npm install @diletta/danger-bot
@@ -212,15 +221,15 @@ npm install @diletta/danger-bot
 
 ## ✨ Resumo Final
 
-| Item | Status |
-|------|--------|
-| Scripts incluídos | ✅ |
-| Detecção automática | ✅ |
-| Funciona em pipelines | ✅ |
-| Independente | ✅ |
-| Documentado | ✅ |
-| Testado | ✅ |
-| Pronto para produção | ✅ |
+| Item                  | Status |
+| --------------------- | ------ |
+| Scripts incluídos     | ✅     |
+| Detecção automática   | ✅     |
+| Funciona em pipelines | ✅     |
+| Independente          | ✅     |
+| Documentado           | ✅     |
+| Testado               | ✅     |
+| Pronto para produção  | ✅     |
 
 ---
 
@@ -239,10 +248,11 @@ O **Danger Bot** está **100% pronto** para uso em pipelines!
 ---
 
 **Documentação:**
+
 - 📖 [README.md](README.md)
 - 🚀 [PIPELINE_GUIDE.md](PIPELINE_GUIDE.md)
 - 🎯 [SETUP_GUIDE.md](SETUP_GUIDE.md)
 
 **Contato:**
-- 📧 support@genialsolutions.com
+
 - 🐛 GitHub Issues
