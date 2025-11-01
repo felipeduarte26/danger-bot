@@ -1,22 +1,5 @@
 # ✅ CONFIGURAÇÃO SIMPLIFICADA - Danger Incluído!
 
-## 🎯 Mudança Importante
-
-O `danger` agora é uma **dependência direta** do `danger-bot`, não mais uma `peerDependency`.
-
-### ✅ ANTES (Usuário precisava instalar 2 pacotes):
-
-```json
-{
-  "devDependencies": {
-    "danger-bot": "git+https://github.com/diletta/danger-bot.git#v1.0.0",
-    "danger": "^13.0.0" // ← Cliente precisava saber disso
-  }
-}
-```
-
-### ✅ AGORA (Usuário instala apenas 1 pacote):
-
 ```json
 {
   "devDependencies": {
@@ -30,7 +13,7 @@ O `danger` agora é uma **dependência direta** do `danger-bot`, não mais uma `
 
 ## 🚀 Como Usar (Super Simples)
 
-### No Esfera Web (ou qualquer projeto):
+### No Projeto:
 
 ```bash
 # 1. Instalar apenas o danger-bot
@@ -39,11 +22,11 @@ npm install danger-bot@git+https://github.com/diletta/danger-bot.git#v1.0.0
 # ✅ O danger é instalado automaticamente junto!
 ```
 
-### `package.json` do Esfera Web:
+### `package.json`:
 
 ```json
 {
-  "name": "esfera-web",
+  "name": "nome-projeto",
   "scripts": {
     "danger:ci": "npm run build && danger ci --dangerfile dist/dangerfile.js",
     "danger:pr": "npm run build && danger pr --dangerfile dist/dangerfile.js",
@@ -58,7 +41,7 @@ npm install danger-bot@git+https://github.com/diletta/danger-bot.git#v1.0.0
 }
 ```
 
-**✅ APENAS 1 dependência! O cliente não precisa saber que usa Danger JS.**
+**✅ APENAS 1 dependência!.**
 
 ---
 
@@ -84,8 +67,7 @@ Quando alguém instala o `danger-bot`, o npm automaticamente instala todas as `d
 
 ## 🎁 Vantagens
 
-✅ **Cliente instala apenas 1 pacote**  
-✅ **Cliente não precisa saber sobre Danger JS**  
+✅ **instala apenas 1 pacote**  
 ✅ **Versão do Danger gerenciada pelo danger-bot**  
 ✅ **Instalação mais simples**  
 ✅ **Menos confusão**
@@ -106,19 +88,15 @@ projeto-cliente/
         └── (ferramenta Danger JS)
 ```
 
-O cliente vê apenas `danger-bot` no `package.json`, mas o `danger` está lá nos `node_modules`, instalado automaticamente.
-
 ---
 
 ## 📝 Scripts de Uso (Cliente Final)
-
-O cliente só precisa saber sobre o `danger-bot`:
 
 ```bash
 # Instalar
 npm install danger-bot@git+https://github.com/diletta/danger-bot.git#v1.0.0
 
-# Usar (os comandos são do danger, mas cliente não precisa saber)
+# Usar
 npm run danger:ci
 ```
 
@@ -139,7 +117,7 @@ const plugins = [flutterAnalyze, prSizeChecker];
 })();
 ```
 
-### 2. Cliente adiciona scripts no `package.json`:
+### 2. Adiciona scripts no `package.json`:
 
 ```json
 {
@@ -149,7 +127,7 @@ const plugins = [flutterAnalyze, prSizeChecker];
 }
 ```
 
-### 3. Cliente usa em pipeline:
+### 3. Pipeline:
 
 ```yaml
 # .github/workflows/danger.yml
@@ -158,8 +136,6 @@ const plugins = [flutterAnalyze, prSizeChecker];
   env:
     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
-
-**Cliente nunca precisa mencionar "Danger JS"!**
 
 ---
 
