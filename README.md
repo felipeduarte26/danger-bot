@@ -40,25 +40,25 @@ npm run danger:ci
 
 ### Para Começar
 
-| Documento | Descrição |
-|-----------|-----------|
-| **[📖 Guia de Instalação](docs/INSTALLATION.md)** | Instalação completa, especialmente para projetos Flutter sem `package.json` |
-| **[⚡ Instalação Simplificada](docs/SIMPLIFIED_INSTALL.md)** | Por que o `danger` vem incluído automaticamente |
-| **[🤖 Guia da CLI](docs/CLI_GUIDE.md)** | Como usar a CLI para criar e gerenciar plugins |
+| Documento                                                    | Descrição                                                                   |
+| ------------------------------------------------------------ | --------------------------------------------------------------------------- |
+| **[📖 Guia de Instalação](docs/INSTALLATION.md)**            | Instalação completa, especialmente para projetos Flutter sem `package.json` |
+| **[⚡ Instalação Simplificada](docs/SIMPLIFIED_INSTALL.md)** | Por que o `danger` vem incluído automaticamente                             |
+| **[🤖 Guia da CLI](docs/CLI_GUIDE.md)**                      | Como usar a CLI para criar e gerenciar plugins                              |
 
 ### Para Produção
 
-| Documento | Descrição |
-|-----------|-----------|
+| Documento                                          | Descrição                                                                 |
+| -------------------------------------------------- | ------------------------------------------------------------------------- |
 | **[🚀 Guia de Pipelines](docs/PIPELINE_GUIDE.md)** | Configuração completa para CI/CD (GitHub Actions, GitLab, Bitbucket, etc) |
-| **[✅ Pipeline Ready](docs/PIPELINE_READY.md)** | Confirmação de que o projeto está pronto para pipelines |
+| **[✅ Pipeline Ready](docs/PIPELINE_READY.md)**    | Confirmação de que o projeto está pronto para pipelines                   |
 
 ### Para Desenvolvedores
 
-| Documento | Descrição |
-|-----------|-----------|
-| **[🏗️ Arquitetura](docs/ARCHITECTURE.md)** | Estrutura modular dos plugins, barrel files e padrões |
-| **[🔧 Setup & Publicação](docs/SETUP_GUIDE.md)** | Como desenvolver, testar e publicar o danger-bot |
+| Documento                                        | Descrição                                             |
+| ------------------------------------------------ | ----------------------------------------------------- |
+| **[🏗️ Arquitetura](docs/ARCHITECTURE.md)**       | Estrutura modular dos plugins, barrel files e padrões |
+| **[🔧 Setup & Publicação](docs/SETUP_GUIDE.md)** | Como desenvolver, testar e publicar o danger-bot      |
 
 ### Índice Completo
 
@@ -128,23 +128,25 @@ danger-bot generate-dangerfile
 ## 🌍 Plataformas Suportadas
 
 ### Git Providers
+
 ✅ GitHub • ✅ Bitbucket Cloud • ✅ Bitbucket Server • ✅ GitLab
 
 ### CI/CD
+
 ✅ GitHub Actions • ✅ GitLab CI • ✅ Bitbucket Pipelines • ✅ CircleCI • ✅ Travis CI • ✅ Jenkins
 
 ---
 
 ## 📦 Plugins Disponíveis
 
-| Plugin | Descrição | Documentação |
-|--------|-----------|--------------|
-| **pr-size-checker** | Verifica tamanho do PR | [📖 README](src/plugins/pr-size-checker/README.md) |
-| **changelog-checker** | Valida atualização do CHANGELOG | [📖 README](src/plugins/changelog-checker/README.md) |
-| **flutter-analyze** | Executa flutter analyze | [📖 README](src/plugins/flutter-analyze/README.md) |
-| **flutter-architecture** | Valida arquitetura Flutter | [📖 README](src/plugins/flutter-architecture/README.md) |
-| **spell-checker** | Verifica ortografia | [📖 README](src/plugins/spell-checker/README.md) |
-| **portuguese-documentation** | Detecta docs em português | [📖 README](src/plugins/portuguese-documentation/README.md) |
+| Plugin                       | Descrição                       | Documentação                                                |
+| ---------------------------- | ------------------------------- | ----------------------------------------------------------- |
+| **pr-size-checker**          | Verifica tamanho do PR          | [📖 README](src/plugins/pr-size-checker/README.md)          |
+| **changelog-checker**        | Valida atualização do CHANGELOG | [📖 README](src/plugins/changelog-checker/README.md)        |
+| **flutter-analyze**          | Executa flutter analyze         | [📖 README](src/plugins/flutter-analyze/README.md)          |
+| **flutter-architecture**     | Valida arquitetura Flutter      | [📖 README](src/plugins/flutter-architecture/README.md)     |
+| **spell-checker**            | Verifica ortografia             | [📖 README](src/plugins/spell-checker/README.md)            |
+| **portuguese-documentation** | Detecta docs em português       | [📖 README](src/plugins/portuguese-documentation/README.md) |
 
 ---
 
@@ -180,11 +182,10 @@ danger-bot/
 
 ## 🤝 Como Contribuir
 
-1. Fork o projeto
-2. Crie uma branch (`git checkout -b feature/MinhaFeature`)
-3. Commit suas mudanças (`git commit -m 'Add: Minha feature'`)
-4. Push para a branch (`git push origin feature/MinhaFeature`)
-5. Abra um Pull Request
+1. Crie uma branch (`git checkout -b feature/MinhaFeature`)
+2. Commit suas mudanças (`git commit -m 'Add: Minha feature'`)
+3. Push para a branch (`git push origin feature/MinhaFeature`)
+4. Abra um Pull Request
 
 📖 **[Ver guia de desenvolvimento](docs/SETUP_GUIDE.md)**
 
