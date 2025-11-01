@@ -10,6 +10,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createPlugin = createPlugin;
 exports.runPlugins = runPlugins;
+exports.executeDangerBot = executeDangerBot;
 /**
  * HELPER: Criar plugin facilmente
  */
@@ -38,4 +39,52 @@ async function runPlugins(plugins) {
             throw error;
         }
     }
+}
+/**
+ * Execute Danger Bot with plugins - Simplifies dangerfile.ts
+ *
+ * @param plugins - Array of plugins to run
+ * @param callbacks - Optional callbacks for lifecycle hooks
+ *
+ * @example
+ * executeDangerBot(allFlutterPlugins, {
+ *   onBeforeRun: () => {
+ *     message("Starting Danger CI...");
+ *     return true;
+ *   },
+ *   onSuccess: () => message("✅ Success!"),
+ *   onError: (error) => warn(`⚠️ Error: ${error.message}`)
+ * });
+ */
+function executeDangerBot(plugins, callbacks) {
+    (async () => {
+        try {
+            // Call onBeforeRun
+            if (callbacks?.onBeforeRun) {
+                const shouldContinue = await callbacks.onBeforeRun();
+                if (shouldContinue === false) {
+                    return;
+                }
+            }
+            // Run all plugins
+            await runPlugins(plugins);
+            // Call onSuccess
+            if (callbacks?.onSuccess) {
+                await callbacks.onSuccess();
+            }
+        }
+        catch (error) {
+            // Call onError
+            if (callbacks?.onError) {
+                await callbacks.onError(error instanceof Error ? error : new Error(String(error)));
+            }
+            console.error("Danger Bot execution error:", error);
+        }
+        finally {
+            // Call onFinally
+            if (callbacks?.onFinally) {
+                await callbacks.onFinally();
+            }
+        }
+    })();
 }

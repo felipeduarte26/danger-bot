@@ -66,3 +66,81 @@ export async function runPlugins(
   }
 }
 
+/**
+ * Callback options for executeDangerBot
+ */
+export interface DangerBotCallbacks {
+  /**
+   * Called before running plugins
+   * Return false to cancel execution
+   */
+  onBeforeRun?: () => boolean | Promise<boolean>;
+  
+  /**
+   * Called after all plugins run successfully
+   */
+  onSuccess?: () => void | Promise<void>;
+  
+  /**
+   * Called if any error occurs
+   */
+  onError?: (error: Error) => void | Promise<void>;
+  
+  /**
+   * Called after everything (success or error)
+   */
+  onFinally?: () => void | Promise<void>;
+}
+
+/**
+ * Execute Danger Bot with plugins - Simplifies dangerfile.ts
+ * 
+ * @param plugins - Array of plugins to run
+ * @param callbacks - Optional callbacks for lifecycle hooks
+ * 
+ * @example
+ * executeDangerBot(allFlutterPlugins, {
+ *   onBeforeRun: () => {
+ *     message("Starting Danger CI...");
+ *     return true;
+ *   },
+ *   onSuccess: () => message("✅ Success!"),
+ *   onError: (error) => warn(`⚠️ Error: ${error.message}`)
+ * });
+ */
+export function executeDangerBot(
+  plugins: DangerPlugin[],
+  callbacks?: DangerBotCallbacks
+): void {
+  (async () => {
+    try {
+      // Call onBeforeRun
+      if (callbacks?.onBeforeRun) {
+        const shouldContinue = await callbacks.onBeforeRun();
+        if (shouldContinue === false) {
+          return;
+        }
+      }
+      
+      // Run all plugins
+      await runPlugins(plugins);
+      
+      // Call onSuccess
+      if (callbacks?.onSuccess) {
+        await callbacks.onSuccess();
+      }
+    } catch (error) {
+      // Call onError
+      if (callbacks?.onError) {
+        await callbacks.onError(error instanceof Error ? error : new Error(String(error)));
+      }
+      console.error("Danger Bot execution error:", error);
+    } finally {
+      // Call onFinally
+      if (callbacks?.onFinally) {
+        await callbacks.onFinally();
+      }
+    }
+  })();
+}
+
