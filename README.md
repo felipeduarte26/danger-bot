@@ -195,7 +195,7 @@ danger-bot/
 
 ## 📞 Suporte
 
-- 🐛 **Issues**: [GitHub Issues](https://github.com/diletta/danger-bot/issues)
+- 🐛 **Issues**: [BitBucket](https://bitbucket.org/diletta/danger-bot/pull-requests/)
 - 📖 **Docs**: [Documentação Completa](docs/DOCS_INDEX.md)
 - 💬 **Email**: felipe.duarte@dilettasolutions.com
 
