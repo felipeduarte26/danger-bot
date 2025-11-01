@@ -1,54 +1,77 @@
-# Flutter Analyze
+# 🔍 Flutter Analyze
 
-## Overview
+## 📋 Visão Geral
 
-Executes `flutter analyze` on modified Dart files and reports issues with translated messages and documentation links.
+Executa `flutter analyze` nos arquivos Dart modificados e reporta issues com mensagens traduzidas e links para documentação oficial.
 
-## Purpose
+---
 
-Automated static analysis of Dart code to:
-- Catch errors before code review
-- Enforce Dart/Flutter best practices
-- Provide helpful, translated error messages
-- Link to official documentation for each issue
+## 🎯 Objetivo
 
-## How It Works
+Análise estática automatizada de código Dart para:
 
-1. Identifies modified/created `.dart` files (excluding generated files)
-2. Runs `flutter analyze` on those specific files
-3. Parses the output and extracts issues
-4. Translates error messages to Portuguese
-5. Adds documentation links
-6. Reports inline in the PR
+- 🐛 Detectar erros antes da revisão de código
+- ✅ Garantir boas práticas Flutter/Dart
+- 📚 Fornecer mensagens de erro úteis e traduzidas
+- 🔗 Linkar documentação oficial para cada issue
 
-## Configuration
+---
+
+## ⚙️ Como Funciona
+
+1. 🔎 Identifica arquivos `.dart` modificados/criados (excluindo gerados)
+2. ⚡ Executa `flutter analyze` nesses arquivos específicos
+3. 📝 Extrai e processa os issues encontrados
+4. 🌐 Traduz mensagens de erro para português
+5. 🔗 Adiciona links para documentação
+6. 💬 Reporta inline no PR
+
+---
+
+## 📁 Arquivos Analisados
+
+### ✅ Incluídos
+
+```dart
+*.dart    // Todos os arquivos Dart
+```
+
+### ❌ Excluídos
+
+```dart
+*.g.dart        // Arquivos gerados
+*.freezed.dart  // Freezed gerados
+*.mocks.dart    // Arquivos de mock
+```
+
+---
+
+## 🚀 Configuração
+
+### Uso Básico
 
 ```typescript
-import { flutterAnalyzePlugin } from "danger-bot";
+import { flutterAnalyzePlugin } from "@diletta/danger-bot";
 
 const plugins = [
-  flutterAnalyzePlugin,  // Enabled by default
+  flutterAnalyzePlugin,  // Habilitado por padrão
 ];
 ```
 
-## Requirements
+### Desabilitar se Flutter não estiver instalado
 
-- Flutter SDK must be installed in the CI environment
-- `flutter` command must be in PATH
+```typescript
+if (!isFlutterInstalled()) {
+  flutterAnalyzePlugin.config.enabled = false;
+}
+```
 
-## Files Analyzed
+---
 
-✅ **Included:**
-- `.dart` files
+## 📊 Exemplos de Saída
 
-❌ **Excluded:**
-- `.g.dart` (generated files)
-- `.freezed.dart` (freezed generated)
-- `.mocks.dart` (mock files)
+### ⚠️ Quando issues são encontrados
 
-## Example Output
-
-**When issues are found:**
 ```
 🔍 Flutter Analyze (warning)
 
@@ -56,33 +79,54 @@ Use isEmpty ao invés de length == 0
 
 Rule: prefer_is_empty
 
-📖 Official Documentation
+📖 Documentação Oficial
 ```
 
-**When no issues:**
+### ✅ Quando não há problemas
+
 ```
-✅ Flutter Analyze: No problems found in modified files!
+✅ Flutter Analyze: Nenhum problema encontrado nos arquivos modificados!
 ```
 
-## Translated Rules
+---
 
-The plugin translates 50+ Flutter/Dart lint rules to Portuguese, including:
+## 🌐 Regras Traduzidas
 
-### Common Rules:
-- `unused_local_variable` → "Variável local não utilizada"
-- `prefer_const_constructors` → "Prefira construtores const"
-- `avoid_print` → "Evite usar print() em produção"
-- `public_member_api_docs` → "Documentação ausente em API pública"
+O plugin traduz **50+ regras** do Flutter/Dart para português:
 
-### Performance:
-- `avoid_function_literals_in_foreach_calls`
-- `prefer_iterable_whereType`
+### 📋 Categorias Principais
 
-### Null Safety:
-- `unnecessary_null_checks`
-- `unnecessary_null_in_if_null_operators`
+#### 🔤 **Convenções de Código**
+| Regra Original | Tradução |
+|----------------|----------|
+| `unused_local_variable` | Variável local não utilizada |
+| `prefer_const_constructors` | Prefira construtores const |
+| `avoid_print` | Evite usar print() em produção |
+| `public_member_api_docs` | Documentação ausente em API pública |
 
-## CI/CD Setup
+#### ⚡ **Performance**
+| Regra Original | Tradução |
+|----------------|----------|
+| `avoid_function_literals_in_foreach_calls` | Evite literals de função em forEach |
+| `prefer_iterable_whereType` | Prefira whereType ao invés de where |
+| `prefer_const_constructors` | Use const para melhor performance |
+
+#### 🔒 **Null Safety**
+| Regra Original | Tradução |
+|----------------|----------|
+| `unnecessary_null_checks` | Verificação de null desnecessária |
+| `unnecessary_null_in_if_null_operators` | Null desnecessário em operadores ?? |
+
+#### 🏗️ **Estrutura**
+| Regra Original | Tradução |
+|----------------|----------|
+| `prefer_final_fields` | Prefira campos final |
+| `prefer_final_locals` | Prefira variáveis locais final |
+| `unnecessary_this` | Uso desnecessário de this |
+
+---
+
+## 🛠️ Setup em CI/CD
 
 ### GitHub Actions
 
@@ -94,43 +138,140 @@ The plugin translates 50+ Flutter/Dart lint rules to Portuguese, including:
 
 - name: Run Danger
   run: npm run danger:ci
+  env:
+    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 ### Bitbucket Pipelines
 
 ```yaml
-- step:
-    image: ghcr.io/cirruslabs/flutter:stable
-    script:
-      - flutter --version
-      - npm install
-      - npm run danger:ci
+image: ghcr.io/cirruslabs/flutter:stable
+
+pipelines:
+  pull-requests:
+    '**':
+      - step:
+          name: Danger Bot
+          script:
+            - flutter --version
+            - npm install
+            - npm run danger:ci
 ```
 
-## Customization
+### GitLab CI
 
-Disable if Flutter is not installed:
-
-```typescript
-if (!isFlutterInstalled()) {
-  flutterAnalyzePlugin.config.enabled = false;
-}
+```yaml
+danger:
+  image: ghcr.io/cirruslabs/flutter:stable
+  stage: test
+  script:
+    - flutter --version
+    - npm install
+    - npm run danger:ci
+  only:
+    - merge_requests
 ```
 
-## Best Practices
+---
 
-- Run `flutter analyze` locally before pushing
-- Fix critical issues before opening PR
-- Use `// ignore:` comments sparingly and with justification
+## 💡 Boas Práticas
 
-## Platforms Supported
+### ✅ Recomendado
 
-- ✅ GitHub
-- ✅ Bitbucket Cloud
-- ✅ GitLab
+- ✅ Executar `flutter analyze` localmente antes de push
+- ✅ Corrigir issues críticos antes de abrir PR
+- ✅ Usar `// ignore:` com justificativa quando necessário
+- ✅ Manter `analysis_options.yaml` atualizado
 
-## Dependencies
+### ❌ Evitar
 
-- Flutter SDK (must be installed in CI)
-- Node.js `child_process` module
+- ❌ Ignorar avisos sem justificativa
+- ❌ Usar `// ignore` em excesso
+- ❌ Desabilitar regras importantes
+- ❌ Deixar código com warnings em produção
 
+---
+
+## 📝 Exemplo de `analysis_options.yaml`
+
+```yaml
+include: package:flutter_lints/flutter.yaml
+
+linter:
+  rules:
+    # Convenções
+    - prefer_const_constructors
+    - prefer_final_fields
+    - unnecessary_this
+    
+    # Performance
+    - avoid_function_literals_in_foreach_calls
+    - prefer_const_literals_to_create_immutables
+    
+    # Documentação
+    - public_member_api_docs
+    
+    # Null Safety
+    - unnecessary_null_checks
+    - unnecessary_null_in_if_null_operators
+
+analyzer:
+  strong-mode:
+    implicit-casts: false
+    implicit-dynamic: false
+  
+  errors:
+    # Tratar warnings como erros
+    unused_local_variable: error
+    avoid_print: error
+```
+
+---
+
+## 🔧 Requisitos
+
+### Ambiente CI/CD
+
+- ✅ Flutter SDK instalado
+- ✅ Comando `flutter` no PATH
+- ✅ Versão Flutter >= 2.0
+
+### Verificar Instalação
+
+```bash
+flutter --version
+flutter analyze --help
+```
+
+---
+
+## 🌐 Plataformas Suportadas
+
+| Plataforma | Status |
+|------------|--------|
+| GitHub | ✅ |
+| Bitbucket Cloud | ✅ |
+| GitLab | ✅ |
+
+---
+
+## 📦 Dependências
+
+- **Flutter SDK** (obrigatório no CI)
+- **Node.js** `child_process` module
+
+---
+
+## 🔗 Plugins Relacionados
+
+- [flutter-architecture](../flutter-architecture/README.md) - Valida arquitetura
+- [spell-checker](../spell-checker/README.md) - Verifica ortografia
+- [portuguese-documentation](../portuguese-documentation/README.md) - Detecta docs em PT
+
+---
+
+<div align="center">
+
+**Código limpo e sem erros, sempre! ✨**
+
+</div>

@@ -1,140 +1,164 @@
-# Spell Checker
+# 🔤 Spell Checker
 
-## Overview
+## 📋 Visão Geral
 
-Validates spelling in Dart identifiers (class names, method names, variables) to ensure code clarity and professionalism.
+Valida a ortografia em identificadores Dart (nomes de classes, métodos, variáveis) para garantir clareza e profissionalismo no código.
 
-## Purpose
+---
 
-Proper spelling in code is essential for:
+## 🎯 Objetivo
 
-- Code readability
-- Professional appearance
-- Avoiding confusion in team collaboration
-- Easier code search and navigation
-- Consistent terminology
+Ortografia correta no código é essencial para:
 
-## How It Works
+- 📖 Legibilidade do código
+- 💼 Aparência profissional
+- 🤝 Evitar confusão na colaboração em equipe
+- 🔍 Facilitar busca e navegação no código
+- 📚 Terminologia consistente
 
-1. Extracts Dart identifiers from modified files
-2. Splits camelCase/PascalCase into individual words
-3. Runs spell check using CSpell
-4. Reports misspelled words with suggestions
-5. Supports custom dictionaries
+---
 
-## Configuration
+## ⚙️ Como Funciona
+
+1. 🔎 Extrai identificadores Dart dos arquivos modificados
+2. ✂️ Divide camelCase/PascalCase em palavras individuais
+3. ✅ Executa verificação ortográfica usando CSpell
+4. 📝 Reporta palavras com erro de ortografia com sugestões
+5. 📖 Suporta dicionários personalizados
+
+---
+
+## 🚀 Configuração
 
 ```typescript
-import { spellCheckerPlugin } from "danger-bot";
+import { spellCheckerPlugin } from "@diletta/danger-bot";
 
 const plugins = [
-  spellCheckerPlugin, // Enabled by default
+  spellCheckerPlugin,  // Habilitado por padrão
 ];
 ```
 
-## Requirements
+---
 
-This plugin requires:
+## 🛠️ Setup Automático
 
-- `cspell` package (included with danger-bot)
-- Setup script (automatically included)
-
-## Setup
-
-The plugin automatically runs the setup script on first use:
+O plugin executa automaticamente o script de setup na primeira vez:
 
 ```bash
 scripts/setup_spell_check.sh
 ```
 
-This creates:
+Isso cria:
+- `cspell.json` - Arquivo de configuração
+- `.cspell-words.txt` - Dicionário personalizado
 
-- `cspell.json` - Configuration file
-- `.cspell-words.txt` - Custom dictionary
+---
 
-## Files Analyzed
+## 📁 Arquivos Analisados
 
-✅ **Included:**
+### ✅ Incluídos
 
-- `.dart` files
-- Class names, method names, variables
-- Function names, parameter names
+```dart
+*.dart            // Todos os arquivos Dart
+// Analisa:
+- Nomes de classes
+- Nomes de métodos
+- Nomes de variáveis
+- Nomes de funções
+- Nomes de parâmetros
+```
 
-❌ **Excluded:**
+### ❌ Excluídos
 
-- String literals
-- Comments
-- Import paths
-- Generated files (`.g.dart`, `.freezed.dart`)
+```dart
+"String literals"  // Literais de string
+// Comentários      // Comentários
+import 'path';     // Caminhos de import
+*.g.dart           // Arquivos gerados
+*.freezed.dart     // Freezed gerados
+*.mocks.dart       // Arquivos de mock
+```
 
-## Example Output
+---
 
-**When spelling errors are found:**
+## 📊 Exemplos de Saída
+
+### ⚠️ Quando erros são encontrados
 
 ```
-Spelling errors found in lib/features/payment/paymnt_service.dart:
+Erros de ortografia encontrados em lib/features/payment/paymnt_service.dart:
 
-Line 15: "paymnt" (should be "payment")
-Line 23: "usrName" (should be "userName")
-Line 45: "proccess" (should be "process")
+Linha 15: "paymnt" (deveria ser "payment")
+Linha 23: "usrName" (deveria ser "userName")
+Linha 45: "proccess" (deveria ser "process")
 
-Suggestions:
+Sugestões:
 - payment
 - userName
 - process
 ```
 
-**When no errors:**
+### ✅ Sem erros
 
 ```
-✅ No spelling errors found in Dart identifiers
+✅ Nenhum erro de ortografia encontrado nos identificadores Dart
 ```
 
-## Common Issues Detected
+---
 
-### Typos in Class Names
+## 🐛 Problemas Comuns Detectados
 
-❌ **Bad:**
+### 1. Erros em Nomes de Classes
+
+#### ❌ Errado
 
 ```dart
-class UserContoller { }  // "Contoller" → "Controller"
-class PaymntService { }  // "Paymnt" → "Payment"
+class UserContoller { }   // "Contoller" → "Controller"
+class PaymntService { }   // "Paymnt" → "Payment"
+class AccntManager { }    // "Accnt" → "Account"
 ```
 
-✅ **Good:**
+#### ✅ Correto
 
 ```dart
 class UserController { }
 class PaymentService { }
+class AccountManager { }
 ```
 
-### Typos in Methods
+---
 
-❌ **Bad:**
+### 2. Erros em Métodos
+
+#### ❌ Errado
 
 ```dart
-void fetchUsrData() { }    // "Usr" → "User"
-void calclateTotl() { }    // "calclate" → "calculate", "Totl" → "Total"
+void fetchUsrData() { }     // "Usr" → "User"
+void calclateTotl() { }     // "calclate" → "calculate", "Totl" → "Total"
+void proccess Data() { }    // "proccess" → "process"
 ```
 
-✅ **Good:**
+#### ✅ Correto
 
 ```dart
 void fetchUserData() { }
 void calculateTotal() { }
+void processData() { }
 ```
 
-### Typos in Variables
+---
 
-❌ **Bad:**
+### 3. Erros em Variáveis
+
+#### ❌ Errado
 
 ```dart
-final usrName = 'John';       // "usr" → "user"
-final totlAmount = 100.0;     // "totl" → "total"
-final isProccessing = false;  // "Proccessing" → "Processing"
+final usrName = 'John';        // "usr" → "user"
+final totlAmount = 100.0;      // "totl" → "total"
+final isProccessing = false;   // "Proccessing" → "Processing"
 ```
 
-✅ **Good:**
+#### ✅ Correto
 
 ```dart
 final userName = 'John';
@@ -142,21 +166,30 @@ final totalAmount = 100.0;
 final isProcessing = false;
 ```
 
-## Custom Dictionary
+---
 
-Add project-specific terms to `.cspell-words.txt`:
+## 📖 Dicionário Personalizado
+
+### Adicionar Termos Específicos do Projeto
+
+Edite `.cspell-words.txt`:
 
 ```txt
-# Project-specific terms
+# Termos específicos do projeto
+Diletta
+Esfera
 UserDto
 ProductEntity
+AuthBloc
 ```
 
-These words will not be flagged as errors.
+Essas palavras não serão marcadas como erros.
 
-## CSpell Configuration
+---
 
-The plugin creates a `cspell.json` file:
+## ⚙️ Configuração do CSpell
+
+O plugin cria automaticamente `cspell.json`:
 
 ```json
 {
@@ -169,49 +202,109 @@ The plugin creates a `cspell.json` file:
       "path": "./.cspell-words.txt"
     }
   ],
-  "ignorePaths": ["**/*.g.dart", "**/*.freezed.dart", "**/*.mocks.dart"]
+  "ignorePaths": [
+    "**/*.g.dart",
+    "**/*.freezed.dart",
+    "**/*.mocks.dart",
+    "**/node_modules/**",
+    "**/build/**"
+  ]
 }
 ```
 
-## Identifier Extraction
+---
 
-The plugin extracts identifiers from various Dart constructs:
+## 🔍 Extração de Identificadores
+
+O plugin extrai identificadores de várias construções Dart:
 
 ```dart
 // Classes
-class MyClass { }  // Extracts: "My", "Class"
+class MyClass { }            // Extrai: "My", "Class"
 
-// Methods
-void fetchUserData() { }  // Extracts: "fetch", "User", "Data"
+// Métodos
+void fetchUserData() { }     // Extrai: "fetch", "User", "Data"
 
-// Variables
-final userName = '';  // Extracts: "user", "Name"
+// Variáveis
+final userName = '';         // Extrai: "user", "Name"
 
-// Parameters
-void login(String userEmail) { }  // Extracts: "user", "Email"
+// Parâmetros
+void login(String userEmail) { }  // Extrai: "user", "Email"
 
 // Enums
-enum PaymentStatus { }  // Extracts: "Payment", "Status"
+enum PaymentStatus { }       // Extrai: "Payment", "Status"
+
+// Constantes
+const kApiKey = '';          // Extrai: "Api", "Key"
 ```
 
-## Technical Terms Supported
+---
 
-CSpell includes dictionaries for:
+## 📚 Termos Técnicos Suportados
 
-- Programming terms (async, await, const, etc.)
-- Flutter/Dart terms (widget, stateful, etc.)
-- Common abbreviations (dto, api, url, etc.)
-- Technical jargon
+CSpell inclui dicionários para:
 
-## Best Practices
+| Categoria | Exemplos |
+|-----------|----------|
+| **Programação** | async, await, const, final |
+| **Flutter/Dart** | widget, stateful, stateless |
+| **Abreviações** | dto, api, url, http |
+| **Jargão Técnico** | auth, repo, impl, util |
 
-1. **Use Full Words**: Prefer `userName` over `usrNm`
-2. **Consistent Naming**: Use consistent terminology across codebase
-3. **Add to Dictionary**: Add legitimate technical terms to custom dictionary
-4. **Review Suggestions**: Plugin provides spelling suggestions
-5. **Abbreviations**: Use standard abbreviations (DTO, API, HTTP)
+---
 
-## CI/CD Setup
+## 💡 Boas Práticas
+
+### ✅ Recomendado
+
+1. **Palavras Completas**: Prefira `userName` ao invés de `usrNm`
+2. **Consistência**: Use terminologia consistente no codebase
+3. **Dicionário**: Adicione termos técnicos legítimos ao dicionário
+4. **Revisar Sugestões**: O plugin fornece sugestões ortográficas
+5. **Abreviações Padrão**: Use abreviações conhecidas (DTO, API, HTTP)
+
+### ❌ Evitar
+
+- ❌ Abreviações excessivas: `usrNm`, `prdctCtlr`
+- ❌ Ortografia inconsistente: `colour` vs `color`
+- ❌ Erros de digitação: `proccess`, `recieve`
+- ❌ Termos inventados sem necessidade
+
+---
+
+## 📝 Exemplos de Boas Práticas
+
+### ✅ Nomes Descritivos
+
+```dart
+// ✅ Claro e bem escrito
+class UserAuthenticationService { }
+void calculateMonthlyRevenue() { }
+final isEmailVerified = false;
+
+// ❌ Abreviado e com erros
+class UsrAuthSrvc { }         // Muito abreviado
+void calcMnthRev() { }        // Incompreensível
+final isEmlVrfied = false;    // Erro + abreviação
+```
+
+### ✅ Termos do Domínio
+
+```dart
+// ✅ Adicione ao dicionário
+final productSKU = '123';      // SKU é termo válido
+final httpClient = Client();   // HTTP é abreviação conhecida
+final apiEndpoint = '/users';  // API é padrão
+
+// Adicione ao .cspell-words.txt:
+// SKU
+// HTTP
+// API
+```
+
+---
+
+## 🛠️ Setup em CI/CD
 
 ### GitHub Actions
 
@@ -219,7 +312,7 @@ CSpell includes dictionaries for:
 - name: Setup Node.js
   uses: actions/setup-node@v3
   with:
-    node-version: "18"
+    node-version: '18'
 
 - name: Install Dependencies
   run: npm install
@@ -239,44 +332,64 @@ CSpell includes dictionaries for:
       - npm run danger:ci
 ```
 
-## Customization
+---
 
-### Disable Plugin
+## 🔧 Customização
+
+### Desabilitar Plugin
 
 ```typescript
 spellCheckerPlugin.config.enabled = false;
 ```
 
-### Add Custom Words
+### Adicionar Palavras Customizadas
 
-Edit `.cspell-words.txt`:
+Edite `.cspell-words.txt`:
 
 ```txt
-YourProjectName
-CustomTerm
-SpecificAcronym
+NomeDoProjeto
+TermoCustomizado
+SiglaEspecifica
 ```
 
-## Performance
+---
 
-- Analyzes only modified files
-- Caches dictionary for speed
-- Typically adds < 5 seconds to CI runtime
+## ⚡ Performance
 
-## Platforms Supported
+- ✅ Analisa apenas arquivos modificados
+- ✅ Cache de dicionário para velocidade
+- ✅ Tipicamente adiciona < 5 segundos ao CI
 
-- ✅ GitHub
-- ✅ Bitbucket Cloud
-- ✅ GitLab
+---
 
-## Dependencies
+## 🌐 Plataformas Suportadas
 
-- `cspell` - Spell checker (included with danger-bot)
-- `scripts/setup_spell_check.sh` - Setup script (included)
-- `scripts/extract_dart_identifiers.js` - Extractor (included)
+| Plataforma | Status |
+|------------|--------|
+| GitHub | ✅ |
+| Bitbucket Cloud | ✅ |
+| GitLab | ✅ |
 
-## Related Plugins
+---
 
-- `flutter-analyze` - Dart static analysis
-- `portuguese-documentation` - Language detection
-- `flutter-architecture` - Code quality checks
+## 📦 Dependências
+
+- **cspell** - Verificador ortográfico (incluído com danger-bot)
+- **scripts/setup_spell_check.sh** - Script de setup (incluído)
+- **scripts/extract_dart_identifiers.js** - Extrator (incluído)
+
+---
+
+## 🔗 Plugins Relacionados
+
+- [flutter-analyze](../flutter-analyze/README.md) - Análise estática Dart
+- [portuguese-documentation](../portuguese-documentation/README.md) - Detecção de idioma
+- [flutter-architecture](../flutter-architecture/README.md) - Validação de qualidade
+
+---
+
+<div align="center">
+
+**Código bem escrito, equipe profissional! ✨**
+
+</div>

@@ -1,85 +1,105 @@
-# Flutter Architecture
+# 🏗️ Flutter Architecture
 
-## Overview
+## 📋 Visão Geral
 
-Enforces Flutter/Dart architectural best practices and coding standards to maintain code quality and consistency across the project.
+Garante boas práticas de arquitetura Flutter/Dart e mantém a qualidade e consistência do código em todo o projeto.
 
-## Purpose
+---
 
-This plugin helps maintain:
-- Clean architecture patterns
-- Proper layer separation
-- Consistent code organization
-- Flutter best practices
-- Type safety
-- Error handling standards
+## 🎯 Objetivo
 
-## How It Works
+Este plugin ajuda a manter:
 
-Analyzes modified `.dart` files and checks for:
+- 🧹 Padrões de Clean Architecture
+- 📂 Separação adequada de camadas
+- 📋 Organização consistente do código
+- ✅ Boas práticas Flutter
+- 🔒 Type safety
+- ⚡ Tratamento de erros robusto
 
-### 1. **Hardcoded Strings**
-- Detects strings that should be in localization files
-- Ignores URLs, regex patterns, and common technical strings
+---
 
-### 2. **Business Logic in UI**
-- Warns when business logic appears in Widget files
-- Encourages separation of concerns
+## ⚙️ Como Funciona
 
-### 3. **Missing Error Handling**
-- Identifies async operations without try-catch
-- Ensures robust error management
+Analisa arquivos `.dart` modificados e verifica:
 
-### 4. **Large Files**
-- Flags files exceeding 300 lines
-- Suggests refactoring into smaller components
+### 1. 🔤 **Strings Hardcoded**
+Detecta strings que deveriam estar em arquivos de localização
 
-### 5. **Missing Documentation**
-- Checks for public API documentation
-- Ensures code maintainability
+### 2. 🧠 **Lógica de Negócio na UI**
+Avisa quando lógica de negócio aparece em arquivos de Widget
 
-## Configuration
+### 3. ⚠️ **Tratamento de Erros Ausente**
+Identifica operações async sem try-catch
+
+### 4. 📏 **Arquivos Grandes**
+Alerta quando arquivos excedem 300 linhas
+
+### 5. 📝 **Documentação Ausente**
+Verifica documentação em APIs públicas
+
+---
+
+## 🚀 Configuração
 
 ```typescript
-import { flutterArchitecturePlugin } from "danger-bot";
+import { flutterArchitecturePlugin } from "@diletta/danger-bot";
 
 const plugins = [
-  flutterArchitecturePlugin,  // Enabled by default
+  flutterArchitecturePlugin,  // Habilitado por padrão
 ];
 ```
 
-## Rules
+---
 
-### Hardcoded Strings
+## 📋 Regras Detalhadas
 
-❌ **Bad:**
+### 1. 🔤 Strings Hardcoded
+
+#### ❌ Errado
+
 ```dart
-Text('Welcome to the app')
-AppBar(title: Text('Settings'))
+Text('Bem-vindo ao app')
+AppBar(title: Text('Configurações'))
 ```
 
-✅ **Good:**
+#### ✅ Correto
+
 ```dart
 Text(AppLocalizations.of(context).welcome)
 AppBar(title: Text(context.l10n.settings))
 ```
 
-### Business Logic in UI
+**Exceções automaticamente ignoradas:**
+- URLs (`https://`, `http://`)
+- Regexes
+- Strings técnicas comuns (`test`, `debug`, etc)
 
-❌ **Bad:**
+---
+
+### 2. 🧠 Lógica de Negócio na UI
+
+#### ❌ Errado
+
 ```dart
 class MyWidget extends StatelessWidget {
   Widget build(BuildContext context) {
-    final result = calculateComplexLogic();  // ❌ Logic in UI
+    // ❌ Lógica complexa no Widget
+    final result = calculateComplexDiscount(
+      price: 100,
+      discount: 0.15,
+      tax: 0.08
+    );
     return Text('$result');
   }
 }
 ```
 
-✅ **Good:**
+#### ✅ Correto
+
 ```dart
 class MyWidget extends StatelessWidget {
-  final String result;  // ✅ Receive computed data
+  final String result;  // ✅ Recebe dados já processados
   
   MyWidget({required this.result});
   
@@ -89,143 +109,277 @@ class MyWidget extends StatelessWidget {
 }
 ```
 
-### Error Handling
+---
 
-❌ **Bad:**
+### 3. ⚠️ Tratamento de Erros
+
+#### ❌ Errado
+
 ```dart
 Future<void> fetchData() async {
-  final response = await api.getData();  // ❌ No error handling
+  // ❌ Sem tratamento de erro
+  final response = await api.getData();
   return response;
 }
 ```
 
-✅ **Good:**
+#### ✅ Correto
+
 ```dart
 Future<void> fetchData() async {
   try {
     final response = await api.getData();
     return response;
+  } on DioException catch (e) {
+    logger.error('Falha ao buscar dados', e);
+    throw NetworkException(e.message);
   } catch (e) {
-    logger.error('Failed to fetch data', e);
+    logger.error('Erro inesperado', e);
     rethrow;
   }
 }
 ```
 
-### File Size
+---
 
-❌ **Avoid:**
-- Files with 300+ lines
-- Mixing multiple concerns
-- Large, monolithic widgets
+### 4. 📏 Tamanho de Arquivo
 
-✅ **Prefer:**
-- Small, focused files
-- Extract reusable widgets
-- Separate concerns
+#### ⚠️ Evitar
 
-## Example Output
+- Arquivos com 300+ linhas
+- Misturar múltiplas responsabilidades
+- Widgets monolíticos grandes
 
-**Hardcoded Strings:**
+#### ✅ Preferir
+
+- Arquivos pequenos e focados
+- Extrair widgets reutilizáveis
+- Separar responsabilidades
+
+---
+
+## 📊 Exemplos de Saída
+
+### 🔤 Strings Hardcoded
+
 ```
-Hardcoded strings found in lib/features/home/home_page.dart (line 45)
+Strings hardcoded encontradas em lib/features/home/home_page.dart (linha 45)
 
-Consider moving to localization files:
-"Welcome to the app"
+Considere mover para arquivos de localização:
+"Bem-vindo ao app"
 
-Use: AppLocalizations.of(context) or context.l10n
+Use: AppLocalizations.of(context) ou context.l10n
 ```
 
-**Business Logic in Widget:**
+### 🧠 Lógica no Widget
+
 ```
-Possible business logic in Widget file
+Possível lógica de negócio em arquivo de Widget
 
-File: lib/features/product/product_widget.dart (line 67)
-Found: calculateDiscount
+Arquivo: lib/features/product/product_widget.dart (linha 67)
+Encontrado: calculateDiscount
 
-Consider moving to:
+Considere mover para:
 - ViewModel/Controller
 - UseCase/Service
 - Repository
 ```
 
-**Missing Error Handling:**
+### ⚠️ Falta Tratamento de Erro
+
 ```
-Async operation without error handling
+Operação async sem tratamento de erro
 
-File: lib/core/services/api_service.dart (line 123)
-Method: fetchUserProfile
+Arquivo: lib/core/services/api_service.dart (linha 123)
+Método: fetchUserProfile
 
-Add try-catch block for robust error handling.
-```
-
-**Large File Warning:**
-```
-File is too large: 456 lines
-
-File: lib/features/inventory/inventory_page.dart
-
-Consider refactoring:
-- Extract widgets to separate files
-- Split into multiple smaller components
-- Use composition over large files
+Adicione bloco try-catch para tratamento robusto de erros.
 ```
 
-## Architecture Patterns Supported
+### 📏 Arquivo Grande
+
+```
+Arquivo muito grande: 456 linhas
+
+Arquivo: lib/features/inventory/inventory_page.dart
+
+Considere refatorar:
+- Extrair widgets para arquivos separados
+- Dividir em múltiplos componentes menores
+- Usar composição ao invés de arquivos grandes
+```
+
+---
+
+## 🏛️ Padrões de Arquitetura Suportados
 
 ### Clean Architecture
+
 ```
 lib/
-├── core/           # Shared utilities
-├── features/       # Feature modules
+├── core/              # Utilitários compartilhados
+├── features/          # Módulos por feature
 │   └── feature_name/
-│       ├── data/       # Data layer
-│       ├── domain/     # Business logic
-│       └── presentation/  # UI layer
+│       ├── data/          # Camada de dados
+│       │   ├── datasources/
+│       │   ├── models/
+│       │   └── repositories/
+│       ├── domain/        # Lógica de negócio
+│       │   ├── entities/
+│       │   ├── repositories/
+│       │   └── usecases/
+│       └── presentation/  # Camada de UI
+│           ├── pages/
+│           ├── widgets/
+│           └── bloc/
 ```
 
 ### BLoC Pattern
-- Business logic in BLoC/Cubit
-- UI only renders state
-- Clear separation of concerns
 
-### MVVM Pattern
-- ViewModels handle logic
-- Views are passive
-- Models represent data
+```dart
+// ✅ Lógica no BLoC/Cubit
+class ProductBloc extends Bloc<ProductEvent, ProductState> {
+  final GetProductsUseCase getProducts;
+  
+  ProductBloc(this.getProducts) : super(ProductInitial()) {
+    on<LoadProducts>(_onLoadProducts);
+  }
+  
+  Future<void> _onLoadProducts(
+    LoadProducts event,
+    Emitter<ProductState> emit,
+  ) async {
+    emit(ProductLoading());
+    try {
+      final products = await getProducts();
+      emit(ProductLoaded(products));
+    } catch (e) {
+      emit(ProductError(e.toString()));
+    }
+  }
+}
 
-## Best Practices
-
-1. **Localization**: Use `AppLocalizations` for all user-facing strings
-2. **Separation**: Keep business logic out of UI layer
-3. **Error Handling**: Always handle async errors
-4. **File Size**: Keep files under 300 lines
-5. **Documentation**: Document public APIs
-
-## Customization
-
-Adjust thresholds:
-
-```typescript
-// In the plugin file, modify:
-const MAX_FILE_LINES = 300;  // Change as needed
+// ✅ UI apenas renderiza estado
+class ProductPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<ProductBloc, ProductState>(
+      builder: (context, state) {
+        if (state is ProductLoading) {
+          return CircularProgressIndicator();
+        }
+        if (state is ProductLoaded) {
+          return ProductList(products: state.products);
+        }
+        return ErrorWidget();
+      },
+    );
+  }
+}
 ```
 
-Disable specific checks by modifying the plugin logic.
+### MVVM Pattern
 
-## Platforms Supported
+```dart
+// ✅ ViewModel lida com lógica
+class ProductViewModel extends ChangeNotifier {
+  final GetProductsUseCase getProducts;
+  
+  List<Product> _products = [];
+  bool _loading = false;
+  
+  Future<void> loadProducts() async {
+    _loading = true;
+    notifyListeners();
+    
+    try {
+      _products = await getProducts();
+    } catch (e) {
+      // Handle error
+    } finally {
+      _loading = false;
+      notifyListeners();
+    }
+  }
+}
 
-- ✅ GitHub
-- ✅ Bitbucket Cloud
-- ✅ GitLab
+// ✅ View é passiva
+class ProductView extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<ProductViewModel>(
+      builder: (context, viewModel, child) {
+        if (viewModel.loading) {
+          return CircularProgressIndicator();
+        }
+        return ProductList(products: viewModel.products);
+      },
+    );
+  }
+}
+```
 
-## Dependencies
+---
 
-None - uses Danger JS built-in APIs only.
+## 💡 Boas Práticas
 
-## Related Plugins
+### ✅ Recomendado
 
-- `flutter-analyze` - Static analysis
-- `spell-checker` - Identifier spelling
-- `pr-size-checker` - PR size validation
+1. **Localização**: Use `AppLocalizations` para todas as strings visíveis ao usuário
+2. **Separação**: Mantenha lógica de negócio fora da camada de UI
+3. **Tratamento de Erros**: Sempre trate erros em operações async
+4. **Tamanho**: Mantenha arquivos abaixo de 300 linhas
+5. **Documentação**: Documente todas as APIs públicas
 
+### ❌ Evitar
+
+- ❌ Strings hardcoded em widgets
+- ❌ Cálculos complexos em métodos `build()`
+- ❌ Operações async sem try-catch
+- ❌ Arquivos monolíticos
+- ❌ APIs públicas sem documentação
+
+---
+
+## 🔧 Customização
+
+### Ajustar Limites
+
+Modifique os limites no arquivo do plugin:
+
+```typescript
+const MAX_FILE_LINES = 300;  // Altere conforme necessário
+const LARGE_METHOD_LINES = 50;
+```
+
+---
+
+## 🌐 Plataformas Suportadas
+
+| Plataforma | Status |
+|------------|--------|
+| GitHub | ✅ |
+| Bitbucket Cloud | ✅ |
+| GitLab | ✅ |
+
+---
+
+## 📦 Dependências
+
+Nenhuma - usa apenas APIs nativas do Danger JS.
+
+---
+
+## 🔗 Plugins Relacionados
+
+- [flutter-analyze](../flutter-analyze/README.md) - Análise estática
+- [spell-checker](../spell-checker/README.md) - Ortografia de identificadores
+- [pr-size-checker](../pr-size-checker/README.md) - Validação de tamanho do PR
+
+---
+
+<div align="center">
+
+**Arquitetura limpa, código sustentável! 🏗️**
+
+</div>

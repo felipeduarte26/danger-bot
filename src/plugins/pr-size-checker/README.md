@@ -1,93 +1,132 @@
-# PR Size Checker
+# 📏 PR Size Checker
 
-## Overview
+## 📋 Visão Geral
 
-Validates the size of Pull Requests and alerts when they are too large, helping maintain code review quality.
+Valida o tamanho dos Pull Requests e alerta quando estão muito grandes, ajudando a manter a qualidade nas revisões de código.
 
-## Purpose
+---
 
-Large Pull Requests are difficult to review and more prone to bugs. This plugin:
-- Warns when PRs exceed recommended size limits
-- Encourages smaller, more focused PRs
-- Improves code review efficiency
+## 🎯 Objetivo
 
-## How It Works
+Pull Requests grandes são difíceis de revisar e mais propensos a bugs. Este plugin:
 
-The plugin analyzes the number of additions and deletions in a PR and provides warnings based on configurable thresholds:
+- ⚠️ Avisa quando PRs excedem limites recomendados
+- 🎯 Incentiva PRs menores e mais focados
+- ⚡ Melhora a eficiência das revisões de código
+- 🐛 Reduz a probabilidade de bugs
 
-- **Large PR** (500+ lines): Warning message
-- **Very Large PR** (1000+ lines): Strong warning with recommendations
+---
 
-## Configuration
+## ⚙️ Como Funciona
+
+O plugin analisa o número de adições e deleções no PR e fornece avisos baseados em limites configuráveis:
+
+| Tamanho | Linhas Alteradas | Ação |
+|---------|------------------|------|
+| ✅ **Normal** | < 500 | Mensagem de sucesso |
+| ⚠️ **Grande** | 500 - 1000 | Aviso |
+| 🚨 **Muito Grande** | > 1000 | Aviso forte |
+
+---
+
+## 🚀 Configuração
+
+### Uso Básico
 
 ```typescript
-import { prSizeCheckerPlugin } from "danger-bot";
+import { prSizeCheckerPlugin } from "@diletta/danger-bot";
 
 const plugins = [
-  prSizeCheckerPlugin,  // Enabled by default
+  prSizeCheckerPlugin,  // Habilitado por padrão
 ];
 ```
 
-## Customization
-
-To disable this plugin:
+### Desabilitar
 
 ```typescript
 prSizeCheckerPlugin.config.enabled = false;
 ```
 
-## Thresholds
+---
 
-| Threshold | Lines Changed | Action |
-|-----------|---------------|--------|
-| Normal | < 500 | Success message |
-| Large | 500-1000 | Warning |
-| Very Large | > 1000 | Strong warning |
+## 📊 Exemplos de Saída
 
-## Example Output
+### ✅ PR Normal (< 500 linhas)
 
-**Normal PR (< 500 lines):**
 ```
-✅ PR Size: 234 lines (OK)
+✅ Tamanho do PR: 234 linhas (OK)
 ```
 
-**Large PR (500-1000 lines):**
+### ⚠️ PR Grande (500-1000 linhas)
+
 ```
-⚠️ Large PR (678 lines)
+⚠️ PR Grande (678 linhas)
 
-This PR has 456 additions and 222 deletions.
+Este PR tem 456 adições e 222 deleções.
 
-Consider reviewing if it can be split into smaller parts.
-```
-
-**Very Large PR (> 1000 lines):**
-```
-🚨 VERY LARGE PR (1,245 lines)
-
-This PR has 980 additions and 265 deletions.
-
-Recommendation: Consider splitting into smaller PRs for easier review.
-
-Smaller PRs are:
-- ✅ Easier to review
-- ✅ Less prone to bugs
-- ✅ Faster to merge
+Considere revisar se pode ser dividido em partes menores.
 ```
 
-## Best Practices
+### 🚨 PR Muito Grande (> 1000 linhas)
 
-- Keep PRs under 500 lines when possible
-- Split large features into multiple PRs
-- Focus each PR on a single concern
-- Use feature flags for incremental releases
+```
+🚨 PR MUITO GRANDE (1.245 linhas)
 
-## Platforms Supported
+Este PR tem 980 adições e 265 deleções.
 
-- ✅ GitHub
-- ✅ Bitbucket Cloud
-- ✅ GitLab
+Recomendação: Considere dividir em PRs menores para facilitar a revisão.
 
-## Dependencies
+PRs menores são:
+- ✅ Mais fáceis de revisar
+- ✅ Menos propensos a bugs
+- ✅ Mais rápidos para merge
+```
 
-None - uses Danger JS built-in APIs only.
+---
 
+## 💡 Boas Práticas
+
+### ✅ Recomendado
+
+- Manter PRs abaixo de 500 linhas quando possível
+- Dividir funcionalidades grandes em múltiplos PRs
+- Focar cada PR em uma única preocupação
+- Usar feature flags para releases incrementais
+
+### ❌ Evitar
+
+- PRs com mais de 1000 linhas
+- Misturar múltiplas funcionalidades
+- Refatorações + novas features no mesmo PR
+- Mudanças não relacionadas
+
+---
+
+## 🌐 Plataformas Suportadas
+
+| Plataforma | Status |
+|------------|--------|
+| GitHub | ✅ |
+| Bitbucket Cloud | ✅ |
+| GitLab | ✅ |
+
+---
+
+## 📦 Dependências
+
+Nenhuma - usa apenas APIs nativas do Danger JS.
+
+---
+
+## 🔗 Plugins Relacionados
+
+- [changelog-checker](../changelog-checker/README.md) - Valida CHANGELOG
+- [flutter-analyze](../flutter-analyze/README.md) - Análise estática de código
+
+---
+
+<div align="center">
+
+**Mantenha seus PRs pequenos e suas revisões eficientes! 🚀**
+
+</div>

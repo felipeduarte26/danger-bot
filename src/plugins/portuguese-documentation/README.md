@@ -1,60 +1,94 @@
-# Portuguese Documentation
+# 🌐 Portuguese Documentation
 
-## Overview
+## 📋 Visão Geral
 
-Detects documentation written in Portuguese (or other non-English languages) and encourages English documentation for international collaboration.
+Detect
 
-## Purpose
+a documentação escrita em português (ou outros idiomas não-inglês) e incentiva documentação em inglês para colaboração internacional.
 
-Maintaining English documentation is important for:
-- International team collaboration
-- Open source contributions
-- Global developer accessibility
-- Industry standard compliance
+---
 
-## How It Works
+## 🎯 Objetivo
 
-1. Analyzes modified `.dart` files
-2. Extracts documentation comments (`///` and `/** */`)
-3. Uses language detection (cld3-asm library)
-4. Reports non-English documentation with warnings
+Manter documentação em inglês é importante para:
 
-## Configuration
+- 🌍 Colaboração internacional em equipes
+- 🤝 Contribuições open source globais
+- 📚 Acessibilidade para desenvolvedores do mundo todo
+- 🏢 Conformidade com padrões da indústria
+
+---
+
+## ⚙️ Como Funciona
+
+1. 🔎 Analisa arquivos `.dart` modificados
+2. 📝 Extrai comentários de documentação (`///` e `/** */`)
+3. 🤖 Usa detecção de idioma (biblioteca cld3-asm)
+4. ⚠️ Reporta documentação em idiomas não-inglês com avisos
+
+---
+
+## 🚀 Configuração
 
 ```typescript
-import { portugueseDocumentationPlugin } from "danger-bot";
+import { portugueseDocumentationPlugin } from "@diletta/danger-bot";
 
 const plugins = [
-  portugueseDocumentationPlugin,  // Enabled by default
+  portugueseDocumentationPlugin,  // Habilitado por padrão
 ];
 ```
 
-## Language Detection
+---
 
-Uses Google's Compact Language Detector v3 (CLD3) to identify:
-- Portuguese (pt)
-- Spanish (es)
-- French (fr)
-- German (de)
-- And 100+ other languages
+## 🔍 Detecção de Idioma
 
-## Files Analyzed
+Usa o **Google Compact Language Detector v3 (CLD3)** para identificar:
 
-✅ **Included:**
-- `.dart` files with documentation comments
+| Idioma | Código | Status |
+|--------|--------|--------|
+| Português | pt | ✅ Detectado |
+| Espanhol | es | ✅ Detectado |
+| Francês | fr | ✅ Detectado |
+| Alemão | de | ✅ Detectado |
+| Italiano | it | ✅ Detectado |
+| Russo | ru | ✅ Detectado |
+| Japonês | ja | ✅ Detectado |
+| Chinês | zh | ✅ Detectado |
+| **+ 100 idiomas** | ... | ✅ Detectado |
 
-❌ **Excluded:**
-- Code comments (non-doc comments)
-- Generated files (`.g.dart`, `.freezed.dart`)
-- String literals in code
+---
 
-## Example Output
+## 📁 Arquivos Analisados
 
-**When Portuguese documentation is found:**
+### ✅ Incluídos
+
+```dart
+/// Comentários de documentação
+/**
+ * Blocos de documentação
+ */
+```
+
+### ❌ Excluídos
+
+```dart
+// Comentários de código (não analisados)
+/* Comentários multi-linha (não analisados) */
+// String literals no código
+*.g.dart       // Arquivos gerados
+*.freezed.dart // Freezed gerados
+```
+
+---
+
+## 📊 Exemplo de Saída
+
+### ⚠️ Quando documentação em português é encontrada
+
 ```
 Documentação em português detectada
 
-lib/features/auth/login_service.dart (lines 23-25):
+lib/features/auth/login_service.dart (linhas 23-25):
 
 /// Faz o login do usuário no sistema
 /// Retorna true se o login foi bem-sucedido
@@ -67,9 +101,12 @@ Sugestão:
 /// Returns true if login was successful
 ```
 
-## Documentation Examples
+---
 
-❌ **Portuguese (Detected):**
+## 💡 Exemplos de Documentação
+
+### ❌ Português (Detectado)
+
 ```dart
 /// Classe responsável por gerenciar autenticação
 /// 
@@ -80,10 +117,16 @@ class AuthManager {
   Future<bool> login(String email, String password) async {
     // ...
   }
+  
+  /// Faz logout do usuário
+  Future<void> logout() async {
+    // ...
+  }
 }
 ```
 
-✅ **English (Recommended):**
+### ✅ Inglês (Recomendado)
+
 ```dart
 /// Class responsible for managing authentication
 /// 
@@ -94,28 +137,55 @@ class AuthManager {
   Future<bool> login(String email, String password) async {
     // ...
   }
+  
+  /// Logs out the current user
+  Future<void> logout() async {
+    // ...
+  }
 }
 ```
 
-## Comment Types Detected
+---
 
-### Documentation Comments (Analyzed)
+## 📝 Tipos de Comentários
+
+### Analisados ✅
+
 ```dart
-/// Single-line doc comment ✅
+/// Comentário de documentação de linha única
+/// Segunda linha
+/// Terceira linha
+```
+
+```dart
 /**
- * Multi-line doc comment ✅
+ * Bloco de documentação multi-linha
+ * Segunda linha
+ * Terceira linha
  */
 ```
 
-### Code Comments (Ignored)
+### Ignorados ❌
+
 ```dart
-// Single-line comment ❌ (not analyzed)
-/* Multi-line comment ❌ (not analyzed) */
+// Comentário de código simples
+// Não é analisado
+
+/* 
+ * Comentário multi-linha simples
+ * Também não é analisado
+ */
+
+String text = "Texto em string literal"; // Ignorado
 ```
 
-## CI/CD Setup
+---
 
-This plugin requires the `cld3-asm` package:
+## 🛠️ Setup em CI/CD
+
+### Instalação Automática
+
+O pacote `cld3-asm` é instalado automaticamente com o danger-bot:
 
 ```json
 {
@@ -125,68 +195,123 @@ This plugin requires the `cld3-asm` package:
 }
 ```
 
-The package is automatically installed with `danger-bot`.
+---
 
-## Use Cases
+## 🎯 Casos de Uso
 
-### International Teams
-- Ensure documentation is accessible to all team members
-- Maintain consistency across global projects
+### 1. Equipes Internacionais
 
-### Open Source Projects
-- Enable contributions from worldwide developers
-- Follow industry standards
+```dart
+// ✅ Acessível para todos os membros
+/// Fetches user data from the API
+/// 
+/// Throws [NetworkException] if connection fails
+Future<User> fetchUser(String id) async { }
+```
 
-### Company Standards
-- Comply with company-wide English documentation policies
-- Prepare code for potential open sourcing
+### 2. Projetos Open Source
 
-## Best Practices
+```dart
+// ✅ Permite contribuições globais
+/// Widget that displays a loading spinner
+/// 
+/// Can be customized with [color] and [size] parameters
+class LoadingSpinner extends StatelessWidget { }
+```
 
-1. **Write in English**: Use English for all documentation
-2. **Clear and Simple**: Use clear, simple English
-3. **Avoid Jargon**: Minimize local idioms or culture-specific references
-4. **Use Examples**: Code examples are universal
-5. **Tools**: Use translation tools if needed (DeepL, Google Translate)
+### 3. Padrões Corporativos
 
-## Customization
+```dart
+// ✅ Segue padrões internacionais
+/// Service for handling payment transactions
+/// 
+/// Supports multiple payment methods:
+/// - Credit Card
+/// - PayPal
+/// - Bank Transfer
+class PaymentService { }
+```
 
-### Disable for Specific Projects
+---
+
+## 💡 Boas Práticas
+
+### ✅ Recomendado
+
+1. **Escrever em Inglês**: Use inglês para toda documentação
+2. **Inglês Claro**: Use inglês simples e direto
+3. **Evitar Jargões**: Minimize idiomas locais ou referências culturais específicas
+4. **Usar Exemplos**: Exemplos de código são universais
+5. **Ferramentas**: Use ferramentas de tradução (DeepL, Google Translate) se necessário
+
+### ❌ Evitar
+
+- ❌ Documentação em idiomas locais em projetos internacionais
+- ❌ Misturar idiomas na documentação
+- ❌ Gírias ou expressões coloquiais
+- ❌ Referências culturais específicas
+
+---
+
+## 🔧 Customização
+
+### Desabilitar para Projetos Específicos
 
 ```typescript
 portugueseDocumentationPlugin.config.enabled = false;
 ```
 
-### Allow Specific Languages
+### Permitir Idiomas Específicos
 
-Modify the plugin to whitelist certain languages if your team is multilingual.
+Modifique o plugin para permitir certos idiomas se sua equipe é multilíngue:
 
-## Language Support
+```typescript
+// Exemplo: Permitir português para projeto brasileiro
+const allowedLanguages = ['en', 'pt'];
+```
 
-Detects 100+ languages including:
-- Portuguese (pt)
-- Spanish (es)
-- French (fr)
-- German (de)
-- Italian (it)
-- Russian (ru)
-- Japanese (ja)
-- Chinese (zh)
-- Korean (ko)
-- Arabic (ar)
+---
 
-## Platforms Supported
+## 📚 Recursos Úteis
 
-- ✅ GitHub
-- ✅ Bitbucket Cloud
-- ✅ GitLab
+### Ferramentas de Tradução
 
-## Dependencies
+- [DeepL](https://www.deepl.com/) - Traduções de alta qualidade
+- [Google Translate](https://translate.google.com/) - Rápido e gratuito
+- [Grammarly](https://www.grammarly.com/) - Correção de inglês
 
-- `cld3-asm` - Compact Language Detector 3 (included with danger-bot)
+### Guias de Estilo
 
-## Related Plugins
+- [Google Developer Documentation Style Guide](https://developers.google.com/style)
+- [Microsoft Writing Style Guide](https://docs.microsoft.com/en-us/style-guide/welcome/)
 
-- `spell-checker` - Checks spelling in identifiers
-- `flutter-architecture` - Enforces documentation standards
+---
 
+## 🌐 Plataformas Suportadas
+
+| Plataforma | Status |
+|------------|--------|
+| GitHub | ✅ |
+| Bitbucket Cloud | ✅ |
+| GitLab | ✅ |
+
+---
+
+## 📦 Dependências
+
+- **cld3-asm** - Compact Language Detector 3 (incluído com danger-bot)
+
+---
+
+## 🔗 Plugins Relacionados
+
+- [spell-checker](../spell-checker/README.md) - Verifica ortografia em identificadores
+- [flutter-architecture](../flutter-architecture/README.md) - Padrões de documentação
+
+---
+
+<div align="center">
+
+**Documentação universal, colaboração global! 🌍**
+
+</div>

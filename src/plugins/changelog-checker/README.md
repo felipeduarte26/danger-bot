@@ -1,108 +1,218 @@
-# Changelog Checker
+# 📄 Changelog Checker
 
-## Overview
+## 📋 Visão Geral
 
-Ensures that the CHANGELOG.md file is updated whenever significant code changes are made to the project.
+Garante que o arquivo CHANGELOG.md seja atualizado sempre que mudanças significativas de código forem feitas no projeto.
 
-## Purpose
+---
 
-Maintaining an updated CHANGELOG is crucial for:
-- Tracking project changes over time
-- Communicating updates to users and developers
-- Documenting breaking changes
-- Facilitating version management
+## 🎯 Objetivo
 
-## How It Works
+Manter um CHANGELOG atualizado é crucial para:
 
-The plugin checks if:
-1. Significant code files were modified or created
-2. The CHANGELOG.md file was also updated
+- 📚 Rastrear mudanças do projeto ao longo do tempo
+- 💬 Comunicar atualizações para usuários e desenvolvedores
+- ⚠️ Documentar breaking changes
+- 🏷️ Facilitar o gerenciamento de versões
 
-If code changes are detected without CHANGELOG updates, a warning is issued.
+---
 
-## Configuration
+## ⚙️ Como Funciona
+
+O plugin verifica se:
+
+1. ✅ Arquivos de código significativos foram modificados ou criados
+2. ✅ O arquivo CHANGELOG.md também foi atualizado
+
+Se mudanças de código forem detectadas sem atualização do CHANGELOG, um aviso é emitido.
+
+---
+
+## 📁 Arquivos Considerados Significativos
+
+### ✅ Incluídos
+
+```
+.dart    # Arquivos Dart
+.ts      # TypeScript
+.js      # JavaScript  
+.tsx     # React TypeScript
+.jsx     # React JavaScript
+```
+
+### ❌ Ignorados
+
+```
+.test.       # Arquivos de teste
+.spec.       # Specs
+_test.dart   # Testes Dart
+.md          # Documentação
+.txt         # Texto
+.json        # Configuração
+.yaml, .yml  # Configuração
+test/        # Diretórios de teste
+tests/
+__tests__/
+```
+
+---
+
+## 🚀 Configuração
+
+### Uso Básico
 
 ```typescript
-import { changelogCheckerPlugin } from "danger-bot";
+import { changelogCheckerPlugin } from "@diletta/danger-bot";
 
 const plugins = [
-  changelogCheckerPlugin,  // Enabled by default
+  changelogCheckerPlugin,  // Habilitado por padrão
 ];
 ```
 
-## Files Considered Significant
+### Desabilitar
 
-The plugin considers these file types as requiring CHANGELOG updates:
-- `.dart` files
-- `.ts` / `.js` / `.tsx` / `.jsx` files
-
-## Files Ignored
-
-- Test files (`.test.`, `.spec.`, `_test.dart`)
-- Documentation (`.md`, `.txt`)
-- Configuration files (`.json`, `.yaml`, `.yml`)
-- Test directories (`test/`, `tests/`, `__tests__/`)
-
-## Example Output
-
-**When CHANGELOG needs updating:**
+```typescript
+changelogCheckerPlugin.config.enabled = false;
 ```
-📝 CHANGELOG not updated
 
-This PR modifies 5 code file(s).
+---
 
-Please update CHANGELOG.md with:
-- Summary of changes
-- Impact for users/developers
-- Breaking changes (if any)
+## 📊 Exemplo de Saída
 
-Modified files:
+### ⚠️ Quando CHANGELOG precisa ser atualizado
+
+```
+📝 CHANGELOG não atualizado
+
+Este PR modifica 5 arquivo(s) de código.
+
+Por favor, atualize o CHANGELOG.md com:
+- Resumo das mudanças
+- Impacto para usuários/desenvolvedores
+- Breaking changes (se houver)
+
+Arquivos modificados:
 - lib/features/auth/login.dart
 - lib/core/services/api_service.dart
 - lib/utils/validators.dart
 ```
 
-## CHANGELOG Format Recommendations
+---
+
+## 📝 Formato Recomendado do CHANGELOG
+
+### Estrutura Padrão
 
 ```markdown
-## [Unreleased]
+## [Não Lançado]
 
-### Added
-- New feature X
-- New feature Y
+### ✨ Adicionado
+- Nova funcionalidade X
+- Nova funcionalidade Y
 
-### Changed
-- Modified behavior of Z
+### 🔄 Modificado
+- Comportamento alterado de Z
 
-### Fixed
-- Bug fix for issue #123
+### 🐛 Corrigido
+- Bug corrigido na issue #123
 
-### Breaking Changes
-- API endpoint /old renamed to /new
+### 💥 Breaking Changes
+- Endpoint da API /old renomeado para /new
 ```
 
-## Best Practices
+### Exemplo Completo
 
-- Update CHANGELOG with every significant code change
-- Use clear, descriptive entries
-- Include issue/PR numbers when relevant
-- Separate entries by type (Added, Changed, Fixed, etc.)
-- Document breaking changes prominently
+```markdown
+# Changelog
 
-## Customization
+Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 
-To disable:
-```typescript
-changelogCheckerPlugin.config.enabled = false;
+## [Não Lançado]
+
+### ✨ Adicionado
+- Sistema de autenticação com JWT
+- Cache Redis para melhor performance
+- Testes unitários para serviços principais
+
+### 🔄 Modificado
+- Migrado de REST para GraphQL
+- Atualizado Flutter para versão 3.16
+
+### 🐛 Corrigido
+- Correção de memory leak no auth service
+- Fix em validação de formulários
+
+### 💥 Breaking Changes
+- API antiga v1 foi removida, use v2
+
+## [1.2.0] - 2024-01-15
+
+### ✨ Adicionado
+- Suporte para dark mode
+- Exportação de relatórios em PDF
 ```
 
-## Platforms Supported
+---
 
-- ✅ GitHub
-- ✅ Bitbucket Cloud
-- ✅ GitLab
+## 💡 Boas Práticas
 
-## Dependencies
+### ✅ Recomendado
 
-None - uses Danger JS built-in APIs only.
+- ✅ Atualizar CHANGELOG a cada mudança significativa
+- ✅ Usar entradas claras e descritivas
+- ✅ Incluir números de issues/PRs quando relevante
+- ✅ Separar entradas por tipo (Adicionado, Modificado, Corrigido, etc)
+- ✅ Documentar breaking changes com destaque
 
+### ❌ Evitar
+
+- ❌ Commits sem atualizar CHANGELOG
+- ❌ Descrições vagas ou genéricas
+- ❌ Misturar diferentes tipos de mudanças
+- ❌ Esquecer de documentar breaking changes
+
+---
+
+## 🎨 Categorias Sugeridas
+
+| Emoji | Categoria | Uso |
+|-------|-----------|-----|
+| ✨ | **Adicionado** | Novas funcionalidades |
+| 🔄 | **Modificado** | Mudanças em funcionalidades existentes |
+| 🐛 | **Corrigido** | Correções de bugs |
+| 🗑️ | **Removido** | Funcionalidades removidas |
+| 💥 | **Breaking Changes** | Mudanças incompatíveis |
+| 🔒 | **Segurança** | Correções de vulnerabilidades |
+| 📝 | **Documentação** | Apenas mudanças em docs |
+| ⚡ | **Performance** | Melhorias de performance |
+
+---
+
+## 🌐 Plataformas Suportadas
+
+| Plataforma | Status |
+|------------|--------|
+| GitHub | ✅ |
+| Bitbucket Cloud | ✅ |
+| GitLab | ✅ |
+
+---
+
+## 📦 Dependências
+
+Nenhuma - usa apenas APIs nativas do Danger JS.
+
+---
+
+## 🔗 Plugins Relacionados
+
+- [pr-size-checker](../pr-size-checker/README.md) - Valida tamanho do PR
+- [flutter-architecture](../flutter-architecture/README.md) - Valida arquitetura
+
+---
+
+<div align="center">
+
+**Mantenha seu histórico de mudanças sempre atualizado! 📝**
+
+</div>
