@@ -213,6 +213,4 @@ danger-bot/
   
 **Feito com ❤️ pela equipe Diletta**
 
-[Documentação](docs/DOCS_INDEX.md) • [Instalação](docs/INSTALLATION.md) • [CLI](docs/CLI_GUIDE.md) • [Pipelines](docs/PIPELINE_GUIDE.md)
-
 </div>
