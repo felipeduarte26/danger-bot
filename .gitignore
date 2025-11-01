@@ -3,8 +3,8 @@ node_modules/
 package-lock.json
 yarn.lock
 
-# Build output
-dist/
+# Build output - COMENTADO para commitar dist/
+# dist/  ← Precisa ser commitado para funcionar com npm install via git
 *.tsbuildinfo
 
 # IDEs
