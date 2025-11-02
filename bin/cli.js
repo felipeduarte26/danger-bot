@@ -6,10 +6,15 @@
  * CLI para facilitar o desenvolvimento e uso do Danger Bot
  */
 
-const { program } = require("commander");
-const fs = require("fs");
-const path = require("path");
-const readline = require("readline");
+import { program } from "commander";
+import fs from "fs";
+import path from "path";
+import readline from "readline";
+import { fileURLToPath } from "url";
+import { dirname } from "path";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -17,8 +22,7 @@ const rl = readline.createInterface({
 });
 
 // Função para fazer perguntas
-const question = (query) =>
-  new Promise((resolve) => rl.question(query, resolve));
+const question = (query) => new Promise((resolve) => rl.question(query, resolve));
 
 // Converter para kebab-case
 function toKebabCase(str) {
@@ -30,9 +34,7 @@ function toKebabCase(str) {
 
 // Converter para camelCase
 function toCamelCase(str) {
-  return str
-    .toLowerCase()
-    .replace(/[^a-z0-9]+(.)/g, (_, char) => char.toUpperCase());
+  return str.toLowerCase().replace(/[^a-z0-9]+(.)/g, (_, char) => char.toUpperCase());
 }
 
 // Converter para PascalCase
@@ -232,9 +234,7 @@ async function createPlugin() {
 
   const enabledInput = await question("Enable by default? (y/n) [y]: ");
   const enabled =
-    !enabledInput ||
-    enabledInput.toLowerCase() === "y" ||
-    enabledInput.toLowerCase() === "s";
+    !enabledInput || enabledInput.toLowerCase() === "y" || enabledInput.toLowerCase() === "s";
 
   rl.close();
 
@@ -278,9 +278,7 @@ async function createPlugin() {
 // Plugins will be automatically added here by CLI
 `;
     fs.writeFileSync(platformIndexPath, platformBarrelContent);
-    console.log(
-      `[OK] Created platform barrel file: ${platformFolder}/index.ts`
-    );
+    console.log(`[OK] Created platform barrel file: ${platformFolder}/index.ts`);
   }
 
   // Criar diretório do plugin
@@ -290,28 +288,17 @@ async function createPlugin() {
   // Gerar e escrever arquivo principal do plugin
   const content = generatePluginTemplate(name, description, enabled);
   fs.writeFileSync(filePath, content);
-  console.log(
-    `[OK] Created plugin file: ${platformFolder}/${kebabName}/${fileName}`
-  );
+  console.log(`[OK] Created plugin file: ${platformFolder}/${kebabName}/${fileName}`);
 
   // Criar barrel file (index.ts)
   const barrelContent = `export { default } from "./${kebabName}";\n`;
   fs.writeFileSync(barrelPath, barrelContent);
-  console.log(
-    `[OK] Created barrel file: ${platformFolder}/${kebabName}/index.ts`
-  );
+  console.log(`[OK] Created barrel file: ${platformFolder}/${kebabName}/index.ts`);
 
   // Criar README.md
-  const readmeContent = generatePluginReadme(
-    name,
-    description,
-    kebabName,
-    camelName
-  );
+  const readmeContent = generatePluginReadme(name, description, kebabName, camelName);
   fs.writeFileSync(readmePath, readmeContent);
-  console.log(
-    `[OK] Created documentation: ${platformFolder}/${kebabName}/README.md`
-  );
+  console.log(`[OK] Created documentation: ${platformFolder}/${kebabName}/README.md`);
 
   // Atualizar index.ts da plataforma
   if (fs.existsSync(platformIndexPath)) {
@@ -322,9 +309,7 @@ async function createPlugin() {
 
     if (!platformIndexContent.includes(exportLine)) {
       // Encontrar onde adicionar (após os outros exports de plugins)
-      const lastPluginExport = platformIndexContent.lastIndexOf(
-        "export { default as"
-      );
+      const lastPluginExport = platformIndexContent.lastIndexOf("export { default as");
       if (lastPluginExport !== -1) {
         const endOfLine = platformIndexContent.indexOf("\n", lastPluginExport);
         platformIndexContent =
@@ -357,9 +342,7 @@ async function createPlugin() {
   console.log(`  2. Update documentation: ${readmePath}`);
   console.log(`  3. Implement the plugin logic`);
   console.log(`  4. Run: npm run build`);
-  console.log(
-    `  5. Use: import { ${camelName}Plugin } from "@diletta/danger-bot"\n`
-  );
+  console.log(`  5. Use: import { ${camelName}Plugin } from "@diletta/danger-bot"\n`);
 }
 
 // Listar plugins
@@ -434,9 +417,7 @@ function listPlugins() {
   });
 
   console.log("=".repeat(60));
-  console.log(
-    `Total: ${totalPlugins} plugin(s) across ${platformFolders.length} platform(s)\n`
-  );
+  console.log(`Total: ${totalPlugins} plugin(s) across ${platformFolders.length} platform(s)\n`);
 }
 
 // Gerar dangerfile de exemplo
@@ -619,9 +600,7 @@ function showInfo() {
       totalPlugins += pluginFolders.length;
     });
 
-    console.log(
-      `Total: ${totalPlugins} plugin(s) across ${platformFolders.length} platform(s)`
-    );
+    console.log(`Total: ${totalPlugins} plugin(s) across ${platformFolders.length} platform(s)`);
   }
 
   console.log("\n" + "=".repeat(60) + "\n");
@@ -630,9 +609,7 @@ function showInfo() {
 // Configurar CLI
 program
   .name("danger-bot")
-  .description(
-    "CLI para Danger Bot - Facilita criação e gerenciamento de plugins"
-  )
+  .description("CLI para Danger Bot - Facilita criação e gerenciamento de plugins")
   .version("1.0.0");
 
 program
@@ -658,10 +635,7 @@ program
   .description("Validar se um plugin segue o padrão correto")
   .action(validatePlugin);
 
-program
-  .command("info")
-  .description("Mostrar informações do projeto")
-  .action(showInfo);
+program.command("info").description("Mostrar informações do projeto").action(showInfo);
 
 // Parse dos argumentos
 program.parse(process.argv);
