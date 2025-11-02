@@ -1,64 +1,49 @@
-# 🤖 Danger Bot CLI - Guia Completo
+# 🤖 CLI do Danger Bot
+
+> Interface de linha de comando para gerenciar plugins e facilitar o desenvolvimento
+
+---
 
 ## 📋 Visão Geral
 
-A CLI do Danger Bot é uma ferramenta de linha de comando poderosa para **criar, gerenciar e validar plugins** de forma automatizada e padronizada.
+O Danger Bot inclui uma CLI poderosa que facilita:
+
+- ✅ Criar novos plugins seguindo o padrão
+- ✅ Listar todos os plugins disponíveis
+- ✅ Validar plugins existentes
+- ✅ Gerar dangerfiles de exemplo
+- ✅ Ver informações do projeto
 
 ---
 
 ## 🚀 Instalação
 
-### Opção 1: Uso Direto (Recomendado para desenvolvimento)
+A CLI vem automaticamente quando você instala o Danger Bot:
 
 ```bash
-cd /path/to/danger-bot
-npm link
+npm install --save-dev @diletta/danger-bot@git+https://bitbucket.org/diletta/danger-bot.git
 ```
 
-Agora você pode usar `danger-bot` em qualquer lugar:
+Verifique a instalação:
 
 ```bash
-danger-bot --help
-danger-bot create-plugin
-danger-bot list
-```
-
-### Opção 2: Uso com npx (Sem instalação global)
-
-```bash
-cd /path/to/danger-bot
-npx danger-bot --help
-```
-
-### Opção 3: Uso Direto com Node
-
-```bash
-cd /path/to/danger-bot
-node bin/cli.js --help
+danger-bot --version
+# Output: 1.8.0
 ```
 
 ---
 
 ## 📚 Comandos Disponíveis
 
-### `danger-bot --version` ou `-V`
-
-Exibe a versão atual do Danger Bot.
+### 📖 Help - Ajuda
 
 ```bash
-$ danger-bot --version
-1.0.0
+danger-bot --help
+danger-bot -h
 ```
 
----
-
-### `danger-bot --help` ou `-h`
-
-Mostra a ajuda geral com lista de todos os comandos.
-
-```bash
-$ danger-bot --help
-
+**Output:**
+```
 Usage: danger-bot [options] [command]
 
 CLI para Danger Bot - Facilita criação e gerenciamento de plugins
@@ -70,17 +55,17 @@ Options:
 Commands:
   create-plugin|new        Criar um novo plugin interativamente
   list|ls                  Listar todos os plugins disponíveis
-  generate-dangerfile|gen  Gerar dangerfile de exemplo
-  validate <plugin-file>   Validar plugin
+  generate-dangerfile|gen  Gerar dangerfile de exemplo com todos os plugins
+  validate <plugin-file>   Validar se um plugin segue o padrão correto
   info                     Mostrar informações do projeto
   help [command]           display help for command
 ```
 
 ---
 
-## 🎨 Comando: `create-plugin` (ou `new`)
+## 🔌 create-plugin (new)
 
-**Descrição:** Cria um novo plugin de forma interativa com estrutura completa.
+Cria um novo plugin interativamente com todos os arquivos necessários.
 
 ### Uso
 
@@ -90,48 +75,57 @@ danger-bot create-plugin
 danger-bot new
 ```
 
-### Fluxo Interativo
+### Processo Interativo
 
-#### 1. Seleção de Plataforma
+1. **Selecionar Plataforma**
+   ```
+   Select platform/language:
+     1. Flutter/Dart
+     2. Node.js
+   Platform (1-2) [1]:
+   ```
+
+2. **Nome do Plugin**
+   ```
+   Plugin name (e.g., "My Custom Plugin"): Code Coverage Checker
+   ```
+
+3. **Descrição**
+   ```
+   Description: Verifica cobertura de testes do projeto
+   ```
+
+4. **Habilitar por Padrão**
+   ```
+   Enable by default? (y/n) [y]: y
+   ```
+
+### Estrutura Criada
+
+```
+src/plugins/flutter/code-coverage-checker/
+├── code-coverage-checker.ts    # Implementação do plugin
+├── index.ts                     # Barrel file
+└── README.md                    # Documentação completa
+```
+
+### Exemplo de Saída
 
 ```
 ============================================================
 CREATE NEW DANGER BOT PLUGIN
 ============================================================
 
-Select platform/language:
-  1. Flutter/Dart
-  2. Node.js
-
-Platform (1-4) [1]:
-```
-
-**Opções:**
-
-- `1` - Flutter/Dart (padrão)
-- `2` - Node.js
-
-#### 2. Informações do Plugin
-
-```
 Selected platform: Flutter/Dart
 
-Plugin name (e.g., "My Custom Plugin"): Test Coverage
-Description: Verifica cobertura de testes mínima
-Enable by default? (y/n) [y]: y
-```
-
-#### 3. Criação Automática
-
-```
 ------------------------------------------------------------
 CREATING PLUGIN...
 ------------------------------------------------------------
 
-[OK] Created plugin folder: flutter/test-coverage/
-[OK] Created plugin file: flutter/test-coverage/test-coverage.ts
-[OK] Created barrel file: flutter/test-coverage/index.ts
-[OK] Created documentation: flutter/test-coverage/README.md
+[OK] Created plugin folder: flutter/code-coverage-checker/
+[OK] Created plugin file: flutter/code-coverage-checker/code-coverage-checker.ts
+[OK] Created barrel file: flutter/code-coverage-checker/index.ts
+[OK] Created documentation: flutter/code-coverage-checker/README.md
 [OK] Export added to flutter/index.ts
 
 ============================================================
@@ -139,110 +133,36 @@ PLUGIN CREATED SUCCESSFULLY!
 ============================================================
 
 Plugin structure:
-  src/plugins/flutter/test-coverage/
-  ├── test-coverage.ts      # Plugin implementation
-  ├── index.ts              # Barrel file
-  └── README.md             # Documentation
+  src/plugins/flutter/code-coverage-checker/
+  ├── code-coverage-checker.ts      # Plugin implementation
+  ├── index.ts                       # Barrel file
+  └── README.md                      # Documentation
 
 Next steps:
-  1. Edit: src/plugins/flutter/test-coverage/test-coverage.ts
-  2. Update documentation: src/plugins/flutter/test-coverage/README.md
+  1. Edit: src/plugins/flutter/code-coverage-checker/code-coverage-checker.ts
+  2. Update documentation: src/plugins/flutter/code-coverage-checker/README.md
   3. Implement the plugin logic
   4. Run: npm run build
-  5. Use: import { testCoveragePlugin } from "@diletta/danger-bot"
+  5. Use: import { codeCoverageCheckerPlugin } from "@diletta/danger-bot"
 ```
 
-### O que é Criado Automaticamente
+### Template Gerado
 
-#### 1. Estrutura de Pastas
+O plugin criado já vem com:
 
-```
-src/plugins/{platform}/{plugin-name}/
-├── {plugin-name}.ts    # Implementação do plugin
-├── index.ts            # Barrel file para exports
-└── README.md           # Documentação completa
-```
-
-#### 2. Arquivo do Plugin
-
-```typescript
-/**
- * TEST COVERAGE PLUGIN
- * ====================
- * Verifica cobertura de testes mínima
- */
-
-import { danger, message, warn, fail } from "danger";
-import { createPlugin } from "@types";
-
-export default createPlugin(
-  {
-    name: "test-coverage",
-    description: "Verifica cobertura de testes mínima",
-    enabled: true,
-  },
-  async () => {
-    // TODO: Implement plugin logic
-
-    // Example: Access Danger data
-    const modifiedFiles = danger.git.modified_files;
-    const createdFiles = danger.git.created_files;
-    const allFiles = [...modifiedFiles, ...createdFiles];
-
-    // Example: Send messages
-    message(`✅ Plugin test-coverage executed successfully!`);
-
-    // Other options:
-    // warn("⚠️ Warning message");
-    // fail("❌ Critical error - this will fail the PR");
-    // message("📝 Informational message");
-  }
-);
-```
-
-#### 3. Barrel File
-
-```typescript
-export { default } from "./test-coverage";
-```
-
-#### 4. README.md
-
-Template completo com seções padrão:
-
-- Overview
-- Purpose
-- How It Works
-- Configuration
-- Example Output
-- Best Practices
-- Customization
-- Platforms Supported
-- Dependencies
-- Related Plugins
-
-#### 5. Export Automático
-
-Adiciona automaticamente no `src/plugins/{platform}/index.ts`:
-
-```typescript
-export { default as testCoveragePlugin } from "./test-coverage";
-```
-
-### Convenções de Nomenclatura
-
-| Input                 | Output                         |
-| --------------------- | ------------------------------ |
-| Nome: "Test Coverage" | Arquivo: `test-coverage.ts`    |
-|                       | Pasta: `test-coverage/`        |
-|                       | Export: `testCoveragePlugin`   |
-|                       | Config name: `"test-coverage"` |
+- ✅ Estrutura básica completa
+- ✅ Imports corretos (`createPlugin`, `getDanger`, helpers)
+- ✅ Configuração (name, description, enabled)
+- ✅ Função run async
+- ✅ Exemplos de uso dos helpers
+- ✅ Documentação completa em PT-BR
+- ✅ Export automático no barrel file da plataforma
 
 ---
 
-## 📋 Comando: `list` (ou `ls`)
+## 📋 list (ls)
 
-**Descrição:** Lista todos os plugins disponíveis organizados por plataforma.
+Lista todos os plugins disponíveis organizados por plataforma.
 
 ### Uso
 
@@ -285,38 +205,169 @@ DANGER BOT PLUGINS
     Status: ENABLED
     Documentation: README.md
 
---- NODEJS ---
-
-[7] API-VALIDATOR
-    Platform: nodejs
-    Folder: api-validator/
-    File: api-validator.ts
-    Description: Valida contratos de API
+[4] SPELL-CHECKER
+    Platform: flutter
+    Folder: spell-checker/
+    File: spell-checker.ts
+    Description: Verifica ortografia em identificadores Dart
     Status: ENABLED
     Documentation: README.md
 
 ============================================================
-Total: 7 plugin(s) across 2 platform(s)
+Total: 7 plugin(s) across 1 platform(s)
 ```
 
 ### Informações Exibidas
 
-Para cada plugin:
-
-- **Número** - Índice sequencial
-- **Nome** - Nome do plugin em maiúsculas
-- **Platform** - Plataforma (flutter, nodejs, etc)
-- **Folder** - Nome da pasta
-- **File** - Nome do arquivo principal
-- **Description** - Descrição extraída do código
-- **Status** - ENABLED ou DISABLED
-- **Documentation** - Se possui README.md
+- **Nome**: Nome do plugin em uppercase
+- **Platform**: Plataforma (flutter, nodejs, etc)
+- **Folder**: Nome da pasta
+- **File**: Arquivo principal
+- **Description**: Descrição do que o plugin faz
+- **Status**: ENABLED ou DISABLED
+- **Documentation**: Se tem README.md
 
 ---
 
-## ℹ️ Comando: `info`
+## 📄 generate-dangerfile (gen)
 
-**Descrição:** Mostra informações gerais do projeto e estatísticas dos plugins.
+Gera um `dangerfile.example.ts` com todos os plugins disponíveis.
+
+### Uso
+
+```bash
+danger-bot generate-dangerfile
+# ou
+danger-bot gen
+```
+
+### Exemplo de Saída
+
+```
+✅ Dangerfile de exemplo criado: dangerfile.example.ts
+
+📝 Para usar:
+   1. Renomeie para dangerfile.ts
+   2. Customize conforme necessário
+```
+
+### Dangerfile Gerado
+
+```typescript
+/**
+ * DANGER BOT - DANGERFILE
+ * ========================
+ * Auto-generated dangerfile with all available plugins
+ */
+
+// Import Danger types and functions
+import { danger, message, warn, fail } from "danger";
+
+// Import Danger Bot plugins
+import {
+  prSizeCheckerPlugin,
+  changelogCheckerPlugin,
+  flutterAnalyzePlugin,
+  flutterArchitecturePlugin,
+  spellCheckerPlugin,
+  portugueseDocumentationPlugin,
+  runPlugins,
+} from "@diletta/danger-bot";
+
+// Configurar plugins ativos
+const plugins = [
+  prSizeCheckerPlugin,
+  changelogCheckerPlugin,
+  flutterAnalyzePlugin,
+  flutterArchitecturePlugin,
+  spellCheckerPlugin,
+  portugueseDocumentationPlugin,
+];
+
+// Executar análise
+(async () => {
+  try {
+    const pr = danger.github?.pr || danger.bitbucket_cloud?.pr || danger.gitlab?.mr;
+    
+    if (pr) {
+      message(
+        `🔍 **Danger CI** executando análise automática\n\n` +
+        `**Título**: ${pr.title}\n` +
+        `📦 Plugins ativos: ${plugins.filter(p => p.config.enabled).length}/${plugins.length}`
+      );
+    }
+    
+    await runPlugins(plugins);
+    message("✅ **Danger CI** - Análise concluída com sucesso!");
+
+  } catch (error) {
+    message("⚠️ **Erro no Danger CI**: Verifique os logs do CI.");
+    throw error;
+  }
+})();
+```
+
+---
+
+## ✅ validate
+
+Valida se um plugin segue o padrão correto do Danger Bot.
+
+### Uso
+
+```bash
+danger-bot validate <caminho-do-arquivo>
+```
+
+### Exemplo
+
+```bash
+danger-bot validate src/plugins/flutter/spell-checker/spell-checker.ts
+```
+
+### Validações Realizadas
+
+#### ❌ Erros (Obrigatórios)
+
+- Import de `createPlugin` presente
+- Export default com `createPlugin`
+- Campo `name` definido
+- Campo `description` definido
+
+#### ⚠️ Avisos (Recomendados)
+
+- Campo `enabled` definido
+- Função run é `async`
+- Documentação JSDoc no topo
+
+### Exemplo de Saída - Plugin Válido
+
+```
+🔍 Validando plugin...
+
+✅ Plugin válido! Nenhum problema encontrado.
+```
+
+### Exemplo de Saída - Com Erros
+
+```
+🔍 Validando plugin...
+
+❌ Erros encontrados:
+   ❌ Falta import do createPlugin
+   ❌ Falta export default createPlugin
+   ❌ Falta campo "name"
+
+⚠️ Avisos:
+   ⚠️ Falta campo "enabled" (será true por padrão)
+   ⚠️ Falta documentação JSDoc no topo do arquivo
+```
+
+---
+
+## ℹ️ info
+
+Mostra informações gerais do projeto Danger Bot.
 
 ### Uso
 
@@ -332,433 +383,198 @@ DANGER BOT - PROJECT INFO
 ============================================================
 
 Name:        @diletta/danger-bot
-Version:     1.0.0
+Version:     1.8.0
 Description: Conjunto modular de plugins Danger JS
 
 Platforms:
 
-  flutter/ (6 plugins)
+  flutter/ (7 plugins)
     - changelog-checker/
     - flutter-analyze/
     - flutter-architecture/
+    - plugin-test/
     - portuguese-documentation/
     - pr-size-checker/
     - spell-checker/
 
-  nodejs/ (2 plugins)
-    - api-validator/
-    - env-checker/
-
-Total: 8 plugin(s) across 2 platform(s)
+Total: 7 plugin(s) across 1 platform(s)
 
 ============================================================
 ```
 
 ---
 
-## 📝 Comando: `generate-dangerfile` (ou `gen`)
-
-**Descrição:** Gera um arquivo `dangerfile.example.ts` com todos os plugins disponíveis.
-
-### Uso
-
-```bash
-danger-bot generate-dangerfile
-# ou
-danger-bot gen
-```
-
-### Exemplo de Saída
-
-```
-Generating dangerfile.example.ts...
-
-✅ dangerfile.example.ts created successfully!
-
-This file includes:
-- All 8 available plugins
-- Proper imports
-- Plugin execution setup
-- Error handling
-
-Next steps:
-1. Review: dangerfile.example.ts
-2. Customize: Enable/disable plugins as needed
-3. Rename: mv dangerfile.example.ts dangerfile.ts
-4. Use: npm run danger:ci
-```
-
-### Arquivo Gerado
-
-```typescript
-/**
- * DANGER BOT - DANGERFILE
- * ========================
- * Auto-generated dangerfile with all available plugins
- */
-
-// Import Danger types and functions
-import { danger, message, warn, fail } from "danger";
-
-// Import Danger Bot plugins
-import {
-  // Flutter plugins
-  changelogCheckerPlugin,
-  flutterAnalyzePlugin,
-  flutterArchitecturePlugin,
-  portugueseDocumentationPlugin,
-  prSizeCheckerPlugin,
-  spellCheckerPlugin,
-
-  // Helpers
-  runPlugins,
-} from "@diletta/danger-bot";
-
-// Configure which plugins to use
-const plugins = [
-  prSizeCheckerPlugin,
-  changelogCheckerPlugin,
-  flutterAnalyzePlugin,
-  flutterArchitecturePlugin,
-  spellCheckerPlugin,
-  portugueseDocumentationPlugin,
-];
-
-// Execute plugins
-(async () => {
-  try {
-    const pr =
-      danger.github?.pr || danger.bitbucket_cloud?.pr || danger.gitlab?.mr;
-
-    if (pr) {
-      message(
-        `🔍 Danger CI - Análise automática\n\n` +
-          `**Título**: ${pr.title}\n` +
-          `📦 Plugins ativos: ${
-            plugins.filter((p) => p.config.enabled).length
-          }/${plugins.length}`
-      );
-    }
-
-    await runPlugins(plugins);
-    message("✅ Danger CI - Análise concluída!");
-  } catch (error) {
-    message("⚠️ Erro no Danger CI");
-    throw error;
-  }
-})();
-```
-
----
-
-## ✅ Comando: `validate`
-
-**Descrição:** Valida se um plugin segue o padrão correto do Danger Bot.
-
-### Uso
-
-```bash
-danger-bot validate <caminho-do-plugin>
-```
-
-### Exemplo
-
-```bash
-$ danger-bot validate src/plugins/flutter/test-coverage/test-coverage.ts
-
-Validating plugin: src/plugins/flutter/test-coverage/test-coverage.ts
-
-✅ Plugin is valid!
-
-Checks:
-- ✅ Has createPlugin import
-- ✅ Has default export
-- ✅ Has 'name' field
-- ✅ Has 'description' field
-- ⚠️  Consider adding 'enabled' field
-
-Plugin details:
-- Name: test-coverage
-- Description: Verifica cobertura de testes
-- Enabled: true (default)
-```
-
-### Validações Realizadas
-
-#### Obrigatórias ✅
-
-1. **Import do createPlugin**
-
-   ```typescript
-   import { createPlugin } from "@types";
-   ```
-
-2. **Export default**
-
-   ```typescript
-   export default createPlugin(...)
-   ```
-
-3. **Campo 'name'**
-
-   ```typescript
-   {
-     name: "plugin-name",
-     // ...
-   }
-   ```
-
-4. **Campo 'description'**
-   ```typescript
-   {
-     description: "Plugin description",
-     // ...
-   }
-   ```
-
-#### Recomendadas ⚠️
-
-5. **Campo 'enabled'**
-
-   ```typescript
-   {
-     enabled: true,
-     // ...
-   }
-   ```
-
-6. **Documentação (README.md)**
-
----
-
 ## 🎯 Casos de Uso
 
-### 1. Criar Plugin Flutter
-
-```bash
-$ danger-bot create-plugin
-
-Platform (1-4) [1]: 1
-Plugin name: Screenshot Validator
-Description: Valida se screenshots foram atualizados
-Enable by default? (y/n) [y]: y
-
-# Resultado:
-# src/plugins/flutter/screenshot-validator/
-```
-
-### 2. Criar Plugin Node.js
-
-```bash
-$ danger-bot create-plugin
-
-Platform (1-4) [1]: 2
-Plugin name: Package Audit
-Description: Executa npm audit e reporta vulnerabilidades
-Enable by default? (y/n) [y]: y
-
-# Resultado:
-# src/plugins/nodejs/package-audit/
-```
-
-### 3. Criar Plugin Customizado
-
-```bash
-$ danger-bot create-plugin
-
-Platform (1-4) [1]: 4
-Platform name: Python
-Plugin name: Pytest Coverage
-Description: Verifica cobertura pytest
-Enable by default? (y/n) [y]: y
-
-# Resultado:
-# src/plugins/python/pytest-coverage/
-```
-
-### 4. Listar Todos os Plugins
-
-```bash
-$ danger-bot list
-
-# Mostra todos os plugins organizados por plataforma
-```
-
-### 5. Verificar Informações do Projeto
-
-```bash
-$ danger-bot info
-
-# Exibe estatísticas e plugins disponíveis
-```
-
-### 6. Gerar Dangerfile Completo
-
-```bash
-$ danger-bot generate-dangerfile
-
-# Cria dangerfile.example.ts com todos os plugins
-```
-
-### 7. Validar Plugin Criado
-
-```bash
-$ danger-bot validate src/plugins/flutter/meu-plugin/meu-plugin.ts
-
-# Verifica se o plugin está correto
-```
-
----
-
-## 🔧 Troubleshooting
-
-### Comando não encontrado
-
-```bash
-$ danger-bot: command not found
-```
-
-**Solução:**
-
-```bash
-cd /path/to/danger-bot
-npm link
-```
-
-### Erro ao criar plugin
-
-```bash
-Error: Plugin already exists
-```
-
-**Solução:**
-
-- Escolha outro nome
-- Ou delete a pasta existente antes de criar
-
-### Plugin não aparece no list
-
-**Verificar:**
-
-1. Plugin está na pasta correta (`src/plugins/{platform}/{plugin}/`)
-2. Arquivo tem extensão `.ts`
-3. Não é `index.ts`
-
-### Erro de importação
-
-```bash
-Cannot find module '@types'
-```
-
-**Solução:**
-
-```bash
-npm run build  # Recompila o projeto
-```
-
----
-
-## 💡 Dicas e Boas Práticas
-
-### 1. Nomenclatura
-
-✅ **Use kebab-case:**
-
-```
-test-coverage
-api-validator
-screenshot-checker
-```
-
-❌ **Evite:**
-
-```
-TestCoverage
-test_coverage
-testCoverage
-```
-
-### 2. Descrições
-
-✅ **Seja claro e objetivo:**
-
-```
-"Verifica cobertura mínima de testes"
-"Valida contratos de API REST"
-```
-
-❌ **Evite descrições vagas:**
-
-```
-"Plugin de teste"
-"Faz validação"
-```
-
-### 3. Organização
-
-✅ **Agrupe por plataforma:**
-
-```
-src/plugins/
-├── flutter/       # Plugins Dart/Flutter
-├── nodejs/        # Plugins Node.js
-```
-
-### 4. Desenvolvimento
+### Criar Plugin Customizado
 
 ```bash
 # 1. Criar plugin
 danger-bot create-plugin
 
 # 2. Implementar lógica
-vim src/plugins/{platform}/{plugin}/{plugin}.ts
+vim src/plugins/flutter/meu-plugin/meu-plugin.ts
 
-# 3. Atualizar documentação
-vim src/plugins/{platform}/{plugin}/README.md
-
-# 4. Validar
-danger-bot validate src/plugins/{platform}/{plugin}/{plugin}.ts
-
-# 5. Build
+# 3. Compilar
 npm run build
 
-# 6. Testar localmente
+# 4. Testar
 npm run danger:local
+```
+
+### Verificar Todos os Plugins
+
+```bash
+# Listar plugins
+danger-bot list
+
+# Ver info geral
+danger-bot info
+```
+
+### Validar Before Commit
+
+```bash
+# Validar plugin modificado
+danger-bot validate src/plugins/flutter/spell-checker/spell-checker.ts
+
+# Se válido, fazer commit
+git add .
+git commit -m "feat(plugin): melhorar spell-checker"
+```
+
+### Gerar Dangerfile Base
+
+```bash
+# Gerar exemplo
+danger-bot gen
+
+# Personalizar
+cp dangerfile.example.ts dangerfile.ts
+vim dangerfile.ts
+```
+
+---
+
+## 🔧 Configuração
+
+### Alias no Shell
+
+Adicione ao seu `.bashrc` ou `.zshrc`:
+
+```bash
+alias db='danger-bot'
+alias db-new='danger-bot create-plugin'
+alias db-ls='danger-bot list'
+alias db-info='danger-bot info'
+```
+
+Uso:
+```bash
+db ls
+db-new
+db-info
+```
+
+### NPM Scripts
+
+Adicione ao `package.json`:
+
+```json
+{
+  "scripts": {
+    "plugin:new": "danger-bot create-plugin",
+    "plugin:list": "danger-bot list",
+    "plugin:validate": "danger-bot validate",
+    "plugin:info": "danger-bot info"
+  }
+}
+```
+
+Uso:
+```bash
+npm run plugin:new
+npm run plugin:list
+```
+
+---
+
+## 🏗️ Arquitetura da CLI
+
+A CLI é modular e bem organizada:
+
+```
+bin/
+├── cli.js                    # Entry point (63 linhas)
+├── commands/                 # Comandos individuais
+│   ├── create-plugin.js
+│   ├── list-plugins.js
+│   ├── generate-dangerfile.js
+│   ├── validate-plugin.js
+│   └── info.js
+├── templates/                # Templates de código
+│   ├── plugin-template.js
+│   ├── readme-template.js
+│   └── dangerfile-template.js
+└── utils/                    # Utilitários
+    ├── string-helpers.js     # kebab-case, camelCase, etc
+    ├── readline-helper.js    # Interação com usuário
+    └── fs-helpers.js         # Operações de arquivo
 ```
 
 ---
 
 ## 📚 Recursos Adicionais
 
-### Documentação Relacionada
-
-- [Guia de Instalação](INSTALLATION.md) - Como instalar o Danger Bot
-- [Arquitetura de Plugins](PLATFORM_ARCHITECTURE.md) - Estrutura por plataforma
-- [Guia de Pipelines](PIPELINE_GUIDE.md) - Configuração CI/CD
-- [README Principal](../README.md) - Visão geral do projeto
-
-### Links Úteis
-
-- [Danger JS Docs](https://danger.systems/js/) - Documentação oficial do Danger
-- [TypeScript Handbook](https://www.typescriptlang.org/docs/) - Referência TypeScript
-- [Commander.js](https://github.com/tj/commander.js) - Biblioteca usada na CLI
+- **[Guia de Plugins](GUIA_PLUGINS.md)** - Como criar plugins manualmente
+- **[API Reference](API.md)** - Funções disponíveis para plugins
+- **[Desenvolvimento](DESENVOLVIMENTO.md)** - Contribuir para o projeto
+- **[Exemplos](EXEMPLOS.md)** - Casos de uso reais
 
 ---
 
-## 🤝 Contribuindo
+## 🐛 Troubleshooting
 
-Encontrou um bug ou tem uma sugestão para a CLI?
+### CLI não encontrada
 
-1. Abra uma issue no repositório
-2. Descreva o problema/sugestão
-3. Se possível, sugira uma solução
+```bash
+# Reinstalar globalmente
+npm uninstall -g @diletta/danger-bot
+npm install -g @diletta/danger-bot@git+https://bitbucket.org/diletta/danger-bot.git
+
+# Ou usar via npx
+npx danger-bot list
+```
+
+### Permissão negada
+
+```bash
+# Dar permissão de execução
+chmod +x ./node_modules/.bin/danger-bot
+```
+
+### Erro ao criar plugin
+
+```bash
+# Verificar se está no diretório correto
+pwd
+# Deve estar na raiz do projeto danger-bot
+
+# Verificar se a pasta src/plugins existe
+ls -la src/plugins
+```
 
 ---
 
 <div align="center">
 
-**CLI do Danger Bot - Desenvolvendo plugins nunca foi tão fácil! 🚀**
+**🎉 Agora você domina a CLI do Danger Bot!**
 
-[Voltar ao Índice](DOCS_INDEX.md) • [Instalação](INSTALLATION.md) • [Arquitetura](PLATFORM_ARCHITECTURE.md)
+[📚 Voltar para Documentação](.) • [🔌 Criar Primeiro Plugin](GUIA_PLUGINS.md) • [⚙️ API Reference](API.md)
+
+---
+
+**Feito com ❤️ pela [Diletta Solutions](https://dilettasolutions.com)**
 
 </div>
+
