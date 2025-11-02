@@ -235,7 +235,7 @@ danger-bot/
 - **[Danger JS 13](https://github.com/danger/danger-js)** - Framework base
 - **[Commander 14](https://github.com/tj/commander.js)** - CLI
 - **[CSpell 9](https://github.com/streetsidesoftware/cspell)** - Spell checking
-- **[cld3-asm 4](https://github.com/dexman545/cld3-asm)** - Language detection
+- **[cld3-asm 4](https://www.npmjs.com/package/cld3-asm)** - Language detection
 - **[Husky 9](https://github.com/typicode/husky)** - Git hooks
 - **[ESLint 9](https://eslint.org/)** - Linting
 - **[Prettier 3](https://prettier.io/)** - Formatting
@@ -252,7 +252,7 @@ danger-bot/
 - ✅ Helpers para facilitar desenvolvimento
 - ✅ Suporte a múltiplas plataformas Git
 - ✅ Cache otimizado em CI/CD
-- ✅ Documentação completa em PT-BR
+- ✅ Documentação completa
 - ✅ Conventional Commits + Husky
 - ✅ ESLint + Prettier configurados
 - ✅ Customizações do Danger JS (patches)
