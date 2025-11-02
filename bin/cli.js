@@ -75,8 +75,7 @@ function generatePluginTemplate(name, description, enabled) {
  * ${description}
  */
 
-import { danger, message, warn, fail } from "danger";
-import { createPlugin } from "@types";
+import { createPlugin, getDanger, sendMessage, sendWarn, sendFail } from "@types";
 
 export default createPlugin(
   {
@@ -87,18 +86,23 @@ export default createPlugin(
   async () => {
     // TODO: Implement plugin logic
     
-    // Example: Access Danger data
-    const modifiedFiles = danger.git.modified_files;
-    const createdFiles = danger.git.created_files;
+    // Acessar dados do Danger
+    const d = getDanger();
+    const modifiedFiles = d.git.modified_files;
+    const createdFiles = d.git.created_files;
     const allFiles = [...modifiedFiles, ...createdFiles];
     
-    // Example: Send messages
-    message(\`✅ Plugin ${kebabName} executed successfully!\`);
+    // Enviar mensagens (com suporte a file e line opcionais)
+    sendMessage(\`✅ Plugin ${kebabName} executed successfully!\`);
     
-    // Other options:
-    // warn("⚠️ Warning message");
-    // fail("❌ Critical error - this will fail the PR");
-    // message("📝 Informational message");
+    // Exemplos com arquivo e linha específicos:
+    // sendMessage("Mensagem específica", "path/to/file.dart", 42);
+    // sendWarn("⚠️ Warning message", "path/to/file.dart", 100);
+    // sendFail("❌ Error message", "path/to/file.dart", 200);
+    
+    // Outras opções:
+    // sendWarn("⚠️ Warning message");
+    // sendFail("❌ This will fail the build");
   }
 );
 `;

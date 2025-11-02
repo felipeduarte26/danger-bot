@@ -4,7 +4,7 @@
  * Verifica o tamanho do PR e alerta se está muito grande
  */
 
-import { createPlugin } from "@types";
+import { createPlugin, getDanger, sendMessage, sendWarn } from "@types";
 
 export default createPlugin(
   {
@@ -13,7 +13,8 @@ export default createPlugin(
     enabled: true,
   },
   async () => {
-    const { additions = 0, deletions = 0 } = danger.github?.pr || danger.bitbucket_cloud?.pr || {};
+    const d = getDanger();
+    const { additions = 0, deletions = 0 } = d.github?.pr || d.bitbucket_cloud?.pr || {};
     const totalChanges = additions + deletions;
 
     // Configurações
@@ -21,7 +22,7 @@ export default createPlugin(
     const VERY_LARGE_PR_THRESHOLD = 1000;
 
     if (totalChanges > VERY_LARGE_PR_THRESHOLD) {
-      warn(
+      sendWarn(
         `🚨 **PR MUITO GRANDE** (${totalChanges} linhas)\n\n` +
         `Este PR tem **${additions} adições** e **${deletions} deleções**.\n\n` +
         `**Recomendação**: Considere dividir em PRs menores para facilitar a revisão.\n\n` +
@@ -31,13 +32,13 @@ export default createPlugin(
         `- ✅ Mais rápidos para merge`
       );
     } else if (totalChanges > LARGE_PR_THRESHOLD) {
-      warn(
+      sendWarn(
         `⚠️ **PR Grande** (${totalChanges} linhas)\n\n` +
         `Este PR tem **${additions} adições** e **${deletions} deleções**.\n\n` +
         `Considere revisar se pode ser dividido em partes menores.`
       );
     } else {
-      message(`✅ **Tamanho do PR**: ${totalChanges} linhas (OK)`);
+      sendMessage(`✅ **Tamanho do PR**: ${totalChanges} linhas (OK)`);
     }
   }
 );

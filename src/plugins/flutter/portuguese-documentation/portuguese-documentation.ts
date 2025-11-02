@@ -11,7 +11,7 @@
  * ✅ Comenta inline no PR
  */
 
-import { createPlugin } from "@types";
+import { createPlugin, getDanger, sendMessage, sendWarn, sendFail } from "@types";
 import * as fs from "fs";
 
 // Importar CLD3 (precisa estar instalado: npm install cld3-asm)
@@ -38,8 +38,8 @@ export default createPlugin(
     }
 
     const dartFiles = [
-      ...danger.git.modified_files,
-      ...danger.git.created_files,
+      ...getDanger().git.modified_files,
+      ...getDanger().git.created_files,
     ].filter((f) => f.endsWith(".dart") && fs.existsSync(f));
 
     if (dartFiles.length === 0) {

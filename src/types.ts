@@ -10,6 +10,9 @@
 // Não importar tipos do Danger - usar 'any' para evitar problemas de ESM
 // O Danger JS injeta o objeto 'danger' em runtime
 
+// Re-exportar helpers para facilitar imports
+export { getDanger, sendMessage, sendWarn, sendFail, sendMarkdown, scheduleTask } from "./helpers";
+
 export interface DangerPluginConfig {
   /** Nome do plugin para identificação em logs */
   name: string;

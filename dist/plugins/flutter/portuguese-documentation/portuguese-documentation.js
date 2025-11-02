@@ -66,8 +66,8 @@ exports.default = (0, _types_1.createPlugin)({
         return;
     }
     const dartFiles = [
-        ...danger.git.modified_files,
-        ...danger.git.created_files,
+        ...(0, _types_1.getDanger)().git.modified_files,
+        ...(0, _types_1.getDanger)().git.created_files,
     ].filter((f) => f.endsWith(".dart") && fs.existsSync(f));
     if (dartFiles.length === 0) {
         message("ℹ️ **Verificação de idioma**: Nenhum arquivo Dart para verificar.");

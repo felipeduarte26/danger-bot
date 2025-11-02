@@ -46,9 +46,10 @@ exports.default = (0, _types_1.createPlugin)({
     description: "Executa flutter analyze e reporta problemas",
     enabled: true,
 }, async () => {
+    const d = (0, _types_1.getDanger)();
     const allFiles = [
-        ...danger.git.modified_files,
-        ...danger.git.created_files,
+        ...d.git.modified_files,
+        ...d.git.created_files,
     ];
     // Filtrar apenas arquivos .dart (excluindo gerados e testes)
     const dartFiles = allFiles.filter((file) => file.endsWith(".dart") &&
@@ -58,10 +59,10 @@ exports.default = (0, _types_1.createPlugin)({
         fs.existsSync(file) // Arquivo existe
     );
     if (dartFiles.length === 0) {
-        message("ℹ️ **Flutter Analyze**: Nenhum arquivo Dart alterado para analisar.");
+        (0, _types_1.sendMessage)("ℹ️ **Flutter Analyze**: Nenhum arquivo Dart alterado para analisar.");
         return;
     }
-    message(`🔍 **Flutter Analyze**: Analisando ${dartFiles.length} arquivo(s)...`);
+    (0, _types_1.sendMessage)(`🔍 **Flutter Analyze**: Analisando ${dartFiles.length} arquivo(s)...`);
     try {
         const analyzeCmd = `flutter analyze ${dartFiles.join(" ")} --no-congratulate --fatal-warnings --fatal-infos`;
         let analyzeOutput = "";

@@ -47,8 +47,8 @@ exports.default = (0, _types_1.createPlugin)({
     enabled: true,
 }, async () => {
     const allFiles = [
-        ...danger.git.modified_files,
-        ...danger.git.created_files,
+        ...(0, _types_1.getDanger)().git.modified_files,
+        ...(0, _types_1.getDanger)().git.created_files,
     ];
     // Filtrar apenas arquivos .dart (exceto testes)
     const dartFiles = allFiles.filter(file => file.endsWith(".dart") && !file.includes(".test.") && !file.includes("_test.dart"));

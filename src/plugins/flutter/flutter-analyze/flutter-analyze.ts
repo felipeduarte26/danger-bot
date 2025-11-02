@@ -6,7 +6,7 @@
 
 import { execSync } from "child_process";
 import * as fs from "fs";
-import { createPlugin } from "@types";
+import { createPlugin, getDanger, sendMessage, sendWarn, sendFail } from "@types";
 
 export default createPlugin(
   {
@@ -15,9 +15,10 @@ export default createPlugin(
     enabled: true,
   },
   async () => {
+    const d = getDanger();
     const allFiles = [
-      ...danger.git.modified_files,
-      ...danger.git.created_files,
+      ...d.git.modified_files,
+      ...d.git.created_files,
     ];
 
     // Filtrar apenas arquivos .dart (excluindo gerados e testes)
@@ -31,11 +32,11 @@ export default createPlugin(
     );
 
     if (dartFiles.length === 0) {
-      message("ℹ️ **Flutter Analyze**: Nenhum arquivo Dart alterado para analisar.");
+      sendMessage("ℹ️ **Flutter Analyze**: Nenhum arquivo Dart alterado para analisar.");
       return;
     }
 
-    message(`🔍 **Flutter Analyze**: Analisando ${dartFiles.length} arquivo(s)...`);
+    sendMessage(`🔍 **Flutter Analyze**: Analisando ${dartFiles.length} arquivo(s)...`);
 
     try {
       const analyzeCmd = `flutter analyze ${dartFiles.join(" ")} --no-congratulate --fatal-warnings --fatal-infos`;

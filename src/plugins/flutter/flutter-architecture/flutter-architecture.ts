@@ -4,7 +4,7 @@
  * Verifica padrões de arquitetura do Flutter/Dart
  */
 
-import { createPlugin } from "@types";
+import { createPlugin, getDanger, sendMessage, sendWarn, sendFail } from "@types";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -16,8 +16,8 @@ export default createPlugin(
   },
   async () => {
     const allFiles = [
-      ...danger.git.modified_files,
-      ...danger.git.created_files,
+      ...getDanger().git.modified_files,
+      ...getDanger().git.created_files,
     ];
 
     // Filtrar apenas arquivos .dart (exceto testes)

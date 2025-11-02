@@ -4,7 +4,7 @@
  * Verifica se o CHANGELOG foi atualizado quando necessário
  */
 
-import { createPlugin } from "@types";
+import { createPlugin, getDanger, sendWarn } from "@types";
 
 export default createPlugin(
   {
@@ -13,8 +13,9 @@ export default createPlugin(
     enabled: true,
   },
   async () => {
-    const modifiedFiles = danger.git.modified_files;
-    const createdFiles = danger.git.created_files;
+    const d = getDanger();
+    const modifiedFiles = d.git.modified_files;
+    const createdFiles = d.git.created_files;
     const allFiles = [...modifiedFiles, ...createdFiles];
 
     // Verificar se CHANGELOG foi modificado
@@ -34,7 +35,7 @@ export default createPlugin(
     });
 
     if (significantChanges.length > 0 && !changelogModified) {
-      warn(
+      sendWarn(
         `📝 **CHANGELOG não atualizado**\n\n` +
         `Este PR modifica **${significantChanges.length} arquivo(s) de código**.\n\n` +
         `**Por favor, atualize o CHANGELOG.md** com:\n` +

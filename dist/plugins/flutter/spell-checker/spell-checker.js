@@ -47,8 +47,8 @@ exports.default = (0, _types_1.createPlugin)({
     enabled: true,
 }, async () => {
     const dartFiles = [
-        ...danger.git.modified_files,
-        ...danger.git.created_files,
+        ...(0, _types_1.getDanger)().git.modified_files,
+        ...(0, _types_1.getDanger)().git.created_files,
     ].filter((f) => f.endsWith(".dart") &&
         !f.includes(".g.dart") &&
         !f.includes(".freezed.dart") &&

@@ -1,21 +1,20 @@
-import { createPlugin } from "@types";
-
-declare const danger: any;
-declare const message: (msg: string) => void;
-declare const warn: (msg: string) => void;
-declare const fail: (msg: string) => void;
+import { createPlugin, getDanger, sendMessage, sendWarn, sendFail } from "@types";
 
 export default createPlugin(
   {
     name: "plugin-test",
     description: "Plugin para teste",
-    enabled: true,
+    enabled: false, // Desabilitado por padrão (apenas para testes)
   },
   async () => {
-    const modifiedFiles = danger.git.modified_files;
-    const createdFiles = danger.git.created_files;
+    const d = getDanger();
+    const modifiedFiles = d.git.modified_files;
+    const createdFiles = d.git.created_files;
     const allFiles = [...modifiedFiles, ...createdFiles];
 
-    message(`✅ ISSO ESTÁ SENDO EXECUTDO PELO PLUGIN-TEST.`);
+    // Exemplos de uso das abstrações
+    sendMessage(`✅ Plugin plugin-test executed successfully!`);
+    sendWarn(`⚠️ This is a warning from plugin-test.`);
+    sendFail(`❌ This is a failure from plugin-test.`);
   }
 );

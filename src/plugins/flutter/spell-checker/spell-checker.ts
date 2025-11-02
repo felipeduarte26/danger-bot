@@ -4,7 +4,7 @@
  * Verifica ortografia em identificadores Dart usando cspell
  */
 
-import { createPlugin } from "@types";
+import { createPlugin, getDanger, sendMessage, sendWarn, sendFail } from "@types";
 import { execSync } from "child_process";
 import * as fs from "fs";
 
@@ -16,8 +16,8 @@ export default createPlugin(
   },
   async () => {
     const dartFiles = [
-      ...danger.git.modified_files,
-      ...danger.git.created_files,
+      ...getDanger().git.modified_files,
+      ...getDanger().git.created_files,
     ].filter(
       (f) =>
         f.endsWith(".dart") &&

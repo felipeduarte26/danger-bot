@@ -8,9 +8,20 @@
  * consistência e facilitar manutenção
  */
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.scheduleTask = exports.sendMarkdown = exports.sendFail = exports.sendWarn = exports.sendMessage = exports.getDanger = void 0;
 exports.createPlugin = createPlugin;
 exports.runPlugins = runPlugins;
 exports.executeDangerBot = executeDangerBot;
+// Não importar tipos do Danger - usar 'any' para evitar problemas de ESM
+// O Danger JS injeta o objeto 'danger' em runtime
+// Re-exportar helpers para facilitar imports
+var helpers_1 = require("./helpers");
+Object.defineProperty(exports, "getDanger", { enumerable: true, get: function () { return helpers_1.getDanger; } });
+Object.defineProperty(exports, "sendMessage", { enumerable: true, get: function () { return helpers_1.sendMessage; } });
+Object.defineProperty(exports, "sendWarn", { enumerable: true, get: function () { return helpers_1.sendWarn; } });
+Object.defineProperty(exports, "sendFail", { enumerable: true, get: function () { return helpers_1.sendFail; } });
+Object.defineProperty(exports, "sendMarkdown", { enumerable: true, get: function () { return helpers_1.sendMarkdown; } });
+Object.defineProperty(exports, "scheduleTask", { enumerable: true, get: function () { return helpers_1.scheduleTask; } });
 /**
  * HELPER: Criar plugin facilmente
  */

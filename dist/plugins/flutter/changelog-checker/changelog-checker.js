@@ -11,8 +11,9 @@ exports.default = (0, _types_1.createPlugin)({
     description: "Verifica se o CHANGELOG.md foi atualizado",
     enabled: true,
 }, async () => {
-    const modifiedFiles = danger.git.modified_files;
-    const createdFiles = danger.git.created_files;
+    const d = (0, _types_1.getDanger)();
+    const modifiedFiles = d.git.modified_files;
+    const createdFiles = d.git.created_files;
     const allFiles = [...modifiedFiles, ...createdFiles];
     // Verificar se CHANGELOG foi modificado
     const changelogModified = allFiles.some(file => file.toLowerCase().includes("changelog"));
@@ -29,7 +30,7 @@ exports.default = (0, _types_1.createPlugin)({
         return file.match(/\.(dart|ts|js|tsx|jsx)$/);
     });
     if (significantChanges.length > 0 && !changelogModified) {
-        warn(`📝 **CHANGELOG não atualizado**\n\n` +
+        (0, _types_1.sendWarn)(`📝 **CHANGELOG não atualizado**\n\n` +
             `Este PR modifica **${significantChanges.length} arquivo(s) de código**.\n\n` +
             `**Por favor, atualize o CHANGELOG.md** com:\n` +
             `- Resumo das mudanças\n` +
