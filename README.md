@@ -18,7 +18,7 @@
 - 🤖 **CLI Integrada** - Crie e gerencie plugins facilmente
 - 🌍 **Multi-Plataforma** - GitHub, Bitbucket, GitLab
 - ⚡ **Zero Config** - Funciona out-of-the-box
-- 📚 **Documentação Completa** - Em português-BR
+- 📚 **Documentação Completa** - Projeto 100% documentado
 - 🎨 **TypeScript** - Type-safe e moderno
 - 🔧 **Customizável** - Crie seus próprios plugins
 - 🚀 **CI/CD Ready** - Guias para Bitrise, Bitbucket Pipelines, GitHub Actions e mais

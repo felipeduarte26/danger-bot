@@ -104,16 +104,60 @@ export default createPlugin(
 
 Executa plugins com callbacks opcionais.
 
+**Parâmetros:**
+
+| Parâmetro | Tipo | Obrigatório | Descrição |
+|-----------|------|-------------|-----------|
+| `plugins` | `DangerPlugin[]` | ✅ Sim | Array de plugins a serem executados |
+| `callbacks` | `DangerBotCallbacks` | ❌ Não | Objeto com callbacks opcionais |
+
+**Callbacks Disponíveis (todos opcionais!):**
+
+| Callback | Parâmetros | Retorno | Quando Executa |
+|----------|------------|---------|----------------|
+| `onBeforeRun` | - | `boolean` | Antes de executar plugins. Retorne `false` para cancelar. |
+| `onSuccess` | - | `void` | Após todos os plugins finalizarem com sucesso. |
+| `onError` | `error: Error` | `void` | Quando algum plugin lança erro. |
+| `onFinally` | - | `void` | Sempre no final (sucesso ou erro). |
+
+**Exemplo Completo:**
+
 ```typescript
-import { executeDangerBot, allFlutterPlugins } from "@diletta/danger-bot";
+import { 
+  executeDangerBot, 
+  allFlutterPlugins, 
+  sendMessage, 
+  sendWarn 
+} from "@diletta/danger-bot";
 
 executeDangerBot(allFlutterPlugins, {
-  onBeforeRun: () => true,
-  onSuccess: () => console.log("✅"),
-  onError: (error) => console.error(error),
-  onFinally: () => console.log("Done")
+  // ❌ Opcional: Executado ANTES
+  onBeforeRun: () => {
+    sendMessage("🚀 Iniciando análise...");
+    return true; // `false` cancela execução
+  },
+  
+  // ❌ Opcional: Executado em SUCESSO
+  onSuccess: () => {
+    sendMessage("✅ Análise concluída!");
+  },
+  
+  // ❌ Opcional: Executado em ERRO
+  onError: (error) => {
+    sendWarn(`⚠️ Erro: ${error.message}`);
+  },
+  
+  // ❌ Opcional: SEMPRE executado no final
+  onFinally: () => {
+    sendMessage("📊 Relatório gerado");
+  }
 });
+
+// ✅ Uso mínimo (sem callbacks):
+executeDangerBot(allFlutterPlugins);
 ```
+
+**Retorno:** `Promise<void>`
 
 ---
 
@@ -137,6 +181,26 @@ interface DangerPlugin {
   run(): Promise<void>;
 }
 ```
+
+### DangerBotCallbacks
+
+```typescript
+interface DangerBotCallbacks {
+  // ❌ Opcional: Executado ANTES de rodar plugins
+  onBeforeRun?: () => boolean;
+  
+  // ❌ Opcional: Executado após SUCESSO de todos os plugins
+  onSuccess?: () => void;
+  
+  // ❌ Opcional: Executado quando ocorre ERRO
+  onError?: (error: Error) => void;
+  
+  // ❌ Opcional: SEMPRE executado no final (sucesso ou erro)
+  onFinally?: () => void;
+}
+```
+
+**Nota:** Todos os callbacks são **opcionais**. Use apenas os que precisar!
 
 ---
 

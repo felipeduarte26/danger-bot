@@ -14,12 +14,22 @@ executeDangerBot(allFlutterPlugins);
 
 ---
 
-## 🎨 Exemplo 2: Com Callbacks
+## 🎨 Exemplo 2: Com Callbacks (Todos Opcionais!)
+
+> ⚠️ **Importante**: Todos os callbacks são **opcionais**. Use apenas os que precisar!
 
 ```typescript
-import { allFlutterPlugins, executeDangerBot, sendMessage, getDanger } from "@diletta/danger-bot";
+import { 
+  allFlutterPlugins, 
+  executeDangerBot, 
+  sendMessage, 
+  sendWarn,
+  getDanger 
+} from "@diletta/danger-bot";
 
 executeDangerBot(allFlutterPlugins, {
+  // 1️⃣ Executado ANTES de rodar os plugins
+  // Retorne `false` para cancelar a execução
   onBeforeRun: () => {
     const d = getDanger();
     const pr = d.github?.pr || d.bitbucket_cloud?.pr || d.gitlab?.mr;
@@ -33,14 +43,48 @@ executeDangerBot(allFlutterPlugins, {
       );
     }
     
-    return true;
+    return true; // `true` = continua / `false` = cancela
   },
   
+  // 2️⃣ Executado quando TODOS os plugins finalizam COM SUCESSO
   onSuccess: () => {
     sendMessage("✅ Análise concluída com sucesso!");
+  },
+  
+  // 3️⃣ Executado quando algum plugin FALHA ou lança ERRO
+  onError: (error) => {
+    sendWarn(
+      `⚠️ **Erro na análise**\n\n` +
+      `${error.message}\n\n` +
+      `Por favor, verifique os logs.`
+    );
+  },
+  
+  // 4️⃣ Executado SEMPRE no final (sucesso ou erro)
+  // Similar ao `finally` do try-catch
+  onFinally: () => {
+    const d = getDanger();
+    const pr = d.github?.pr || d.bitbucket_cloud?.pr || d.gitlab?.mr;
+    
+    if (pr) {
+      sendMessage(
+        `📊 **Estatísticas**\n\n` +
+        `Plugins executados: ${allFlutterPlugins.length}\n` +
+        `Arquivos modificados: ${d.git.modified_files.length}`
+      );
+    }
   }
 });
 ```
+
+### 📋 Resumo dos Callbacks:
+
+| Callback | Quando executa | Parâmetros | Retorno | Obrigatório |
+|----------|----------------|------------|---------|-------------|
+| `onBeforeRun` | Antes de rodar plugins | - | `boolean` (continuar?) | ❌ Opcional |
+| `onSuccess` | Após sucesso de todos | - | - | ❌ Opcional |
+| `onError` | Quando ocorre erro | `error: Error` | - | ❌ Opcional |
+| `onFinally` | Sempre no final | - | - | ❌ Opcional |
 
 ---
 
