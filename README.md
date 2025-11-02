@@ -347,9 +347,7 @@ Precisa de ajuda?
 
 <div align="center">
 
-## ⭐ Star this project!
-
-Se o **Danger Bot** foi útil para você, deixe uma ⭐ no repositório!
+Se o **Danger Bot** foi útil para você, compartilhe com seus colegas de trabalho!
 
 ---
 
