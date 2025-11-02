@@ -102,7 +102,7 @@ function patchExecutor(dangerPath) {
 }
 
 /**
- * Patch 2: Customizar links (danger.systems → GitHub Felipe)
+ * Patch 2: Customizar links (danger.systems → Diletta Solutions)
  */
 function patchLinks(dangerPath) {
   const filesToPatch = [
@@ -134,15 +134,27 @@ function patchLinks(dangerPath) {
       const replacements = [
         {
           search: /(https?:\/\/)?danger\.systems(\/js)?/gi,
-          replace: 'https://github.com/felipeduarte26'
+          replace: 'https://dilettasolutions.com'
+        },
+        {
+          search: /(https?:\/\/)?github\.com\/felipeduarte26/gi,
+          replace: 'https://dilettasolutions.com'
         },
         {
           search: /runtimeName:\s*["']dangerJS["']/gi,
-          replace: 'runtimeName: "Danger Bot"'
+          replace: 'runtimeName: "Diletta Solutions"'
+        },
+        {
+          search: /runtimeName:\s*["']Danger Bot["']/gi,
+          replace: 'runtimeName: "Diletta Solutions"'
         },
         {
           search: /key\s*=\s*["']danger\.systems["']/gi,
-          replace: 'key = "Danger Bot"'
+          replace: 'key = "Diletta Solutions"'
+        },
+        {
+          search: /key\s*=\s*["']Danger Bot["']/gi,
+          replace: 'key = "Diletta Solutions"'
         }
       ];
 
@@ -176,11 +188,11 @@ function createPatchMarker(dangerPath) {
   const markerPath = path.join(dangerPath, '.danger-bot-patched');
   const info = {
     patchedAt: new Date().toISOString(),
-    version: '1.7.0',
+    version: '1.8.0',
     patches: [
       'Removed "All green. Good on \'ya" message',
-      'Changed links from danger.systems to https://github.com/felipeduarte26',
-      'Changed "Danger" to "Danger Bot"'
+      'Changed links from danger.systems to https://dilettasolutions.com',
+      'Changed "dangerJS" to "Diletta Solutions"'
     ]
   };
   fs.writeFileSync(markerPath, JSON.stringify(info, null, 2), 'utf8');
@@ -235,8 +247,8 @@ function main() {
     console.log('');
     console.log('📝 Modificações:');
     console.log('  ❌ "All green. Good on \'ya" → REMOVIDO');
-    console.log('  ✅ danger.systems → https://github.com/felipeduarte26');
-    console.log('  ✅ "Danger" → "Danger Bot"');
+    console.log('  ✅ danger.systems → https://dilettasolutions.com');
+    console.log('  ✅ "dangerJS" → "Diletta Solutions"');
     console.log('');
     createPatchMarker(dangerPath);
   } else {
