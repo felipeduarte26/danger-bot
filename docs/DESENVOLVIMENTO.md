@@ -46,7 +46,7 @@ Este projeto usa **Conventional Commits** + **Husky**.
 git commit -m "feat(plugins): adicionar plugin de cobertura"
 ```
 
-**Ver:** [Guia completo de commits](COMMITS.md) *(em construção)*
+**Ver:** [Guia completo de commits](COMMITS.md)
 
 ---
 
@@ -140,10 +140,3 @@ Adicionar link no `README.md` principal.
 - 💬 felipe.duarte@dilettasolutions.com
 
 ---
-
-<div align="center">
-
-[📚 Docs](.) • [🏗️ Arquitetura](ARQUITETURA.md) • [🔌 Plugins](GUIA_PLUGINS.md)
-
-</div>
-
