@@ -346,15 +346,24 @@ Precisa de ajuda?
 
 <div align="center">
 
+## 💬 Compartilhe!
+
 Se o **Danger Bot** foi útil para você, compartilhe com seus colegas de trabalho!
 
+<br/>
+
 ---
+
+<br/>
 
 **Feito com ❤️ pela [Diletta Solutions](https://dilettasolutions.com)**
 
+<br/>
+
 [![Diletta Solutions](https://img.shields.io/badge/Diletta-Solutions-red.svg?style=for-the-badge)](https://dilettasolutions.com)
 
----
+<br/>
+<br/>
 
 **🤖 Automatize seu code review. Foque no que importa.**
 
