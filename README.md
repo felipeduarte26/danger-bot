@@ -273,7 +273,7 @@ Contribuições são bem-vindas! Veja o [Guia de Desenvolvimento](docs/DESENVOLV
 
 ### Passos
 
-1. Fork o projeto
+1. Clone o projeto
 2. Crie uma branch (`git checkout -b feature/MinhaFeature`)
 3. Commit suas mudanças (`git commit -m 'feat: adicionar feature'`)
 4. Push para a branch (`git push origin feature/MinhaFeature`)

@@ -43,6 +43,7 @@ danger-bot -h
 ```
 
 **Output:**
+
 ```
 Usage: danger-bot [options] [command]
 
@@ -78,6 +79,7 @@ danger-bot new
 ### Processo Interativo
 
 1. **Selecionar Plataforma**
+
    ```
    Select platform/language:
      1. Flutter/Dart
@@ -86,11 +88,13 @@ danger-bot new
    ```
 
 2. **Nome do Plugin**
+
    ```
    Plugin name (e.g., "My Custom Plugin"): Code Coverage Checker
    ```
 
 3. **Descrição**
+
    ```
    Description: Verifica cobertura de testes do projeto
    ```
@@ -155,7 +159,7 @@ O plugin criado já vem com:
 - ✅ Configuração (name, description, enabled)
 - ✅ Função run async
 - ✅ Exemplos de uso dos helpers
-- ✅ Documentação completa em PT-BR
+- ✅ Documentação completa
 - ✅ Export automático no barrel file da plataforma
 
 ---
@@ -288,18 +292,17 @@ const plugins = [
 (async () => {
   try {
     const pr = danger.github?.pr || danger.bitbucket_cloud?.pr || danger.gitlab?.mr;
-    
+
     if (pr) {
       message(
         `🔍 **Danger CI** executando análise automática\n\n` +
-        `**Título**: ${pr.title}\n` +
-        `📦 Plugins ativos: ${plugins.filter(p => p.config.enabled).length}/${plugins.length}`
+          `**Título**: ${pr.title}\n` +
+          `📦 Plugins ativos: ${plugins.filter((p) => p.config.enabled).length}/${plugins.length}`
       );
     }
-    
+
     await runPlugins(plugins);
     message("✅ **Danger CI** - Análise concluída com sucesso!");
-
   } catch (error) {
     message("⚠️ **Erro no Danger CI**: Verifique os logs do CI.");
     throw error;
@@ -470,6 +473,7 @@ alias db-info='danger-bot info'
 ```
 
 Uso:
+
 ```bash
 db ls
 db-new
@@ -492,6 +496,7 @@ Adicione ao `package.json`:
 ```
 
 Uso:
+
 ```bash
 npm run plugin:new
 npm run plugin:list
@@ -577,4 +582,3 @@ ls -la src/plugins
 **Feito com ❤️ pela [Diletta Solutions](https://dilettasolutions.com)**
 
 </div>
-
