@@ -1,6 +1,6 @@
 {
   "name": "@diletta/danger-bot",
-  "version": "1.4.2",
+  "version": "1.4.3",
   "description": "Conjunto modular de plugins Danger JS",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -47,8 +47,10 @@
     "@cspell/dict-software-terms": "^5.1.11",
     "cld3-asm": "^4.0.0",
     "commander": "^14.0.2",
-    "cspell": "^9.2.2",
-    "danger": "^13.0.5"
+    "cspell": "^9.2.2"
+  },
+  "peerDependencies": {
+    "danger": "^13.0.0"
   },
   "engines": {
     "node": ">=22.19.0"
