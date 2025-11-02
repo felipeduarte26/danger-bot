@@ -1,6 +1,6 @@
 {
   "name": "@diletta/danger-bot",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "description": "Conjunto modular de plugins Danger JS",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -18,7 +18,8 @@
   "scripts": {
     "build": "tsc && tsc-alias",
     "watch": "tsc --watch",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "postinstall": "node scripts/patch-danger.js"
   },
   "keywords": [
     "danger",
