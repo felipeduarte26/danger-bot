@@ -25,7 +25,8 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.ts\" \"bin/**/*.js\"",
     "format:check": "prettier --check \"src/**/*.ts\" \"bin/**/*.js\"",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "prepare": "husky"
   },
   "keywords": [
     "danger",
@@ -48,6 +49,8 @@
     "@types/node": "^24.9.2",
     "eslint": "^9.17.0",
     "eslint-config-prettier": "^9.1.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.6",
     "prettier": "^3.4.2",
     "tsc-alias": "^1.8.16",
     "typescript": "^5.9.3",
@@ -66,5 +69,14 @@
   },
   "engines": {
     "node": ">=22.19.0"
+  },
+  "lint-staged": {
+    "*.ts": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.js": [
+      "prettier --write"
+    ]
   }
 }
