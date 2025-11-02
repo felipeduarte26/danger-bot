@@ -4,7 +4,7 @@
  * Verifica ortografia em identificadores Dart usando cspell
  */
 
-import { createPlugin, getDanger, sendMessage, sendWarn, sendFail } from "@types";
+import { createPlugin, getDanger, _sendFail } from "@types";
 import { execSync } from "child_process";
 import * as fs from "fs";
 
@@ -15,10 +15,7 @@ export default createPlugin(
     enabled: true,
   },
   async () => {
-    const dartFiles = [
-      ...getDanger().git.modified_files,
-      ...getDanger().git.created_files,
-    ].filter(
+    const dartFiles = [...getDanger().git.modified_files, ...getDanger().git.created_files].filter(
       (f) =>
         f.endsWith(".dart") &&
         !f.includes(".g.dart") &&
@@ -43,9 +40,11 @@ export default createPlugin(
       // Verificar se scripts existem localmente (projeto sem danger-bot instalado)
       const localSetupScript = "scripts/setup_spell_check.sh";
       const localExtractScript = "scripts/extract_dart_identifiers.js";
-      
+
       const setupScript = fs.existsSync(localSetupScript) ? localSetupScript : setupScriptPath;
-      const extractScript = fs.existsSync(localExtractScript) ? localExtractScript : extractScriptPath;
+      const extractScript = fs.existsSync(localExtractScript)
+        ? localExtractScript
+        : extractScriptPath;
 
       // Setup cspell
       execSync(`bash ${setupScript}`, { stdio: "pipe" });
@@ -76,9 +75,7 @@ export default createPlugin(
       }
 
       // Parse resultados
-      const metadata = JSON.parse(
-        fs.readFileSync("temp_spell_check_metadata.json", "utf-8")
-      );
+      const metadata = JSON.parse(fs.readFileSync("temp_spell_check_metadata.json", "utf-8"));
       const errors = parseCspellOutput(cspellOutput, metadata);
 
       // Reportar erros
@@ -108,9 +105,11 @@ export default createPlugin(
       }
 
       // Cleanup
-      ["temp_identifiers_for_spell_check.txt", "temp_spell_check_metadata.json", "cspell.config.json"].forEach(
-        (f) => fs.existsSync(f) && fs.unlinkSync(f)
-      );
+      [
+        "temp_identifiers_for_spell_check.txt",
+        "temp_spell_check_metadata.json",
+        "cspell.config.json",
+      ].forEach((f) => fs.existsSync(f) && fs.unlinkSync(f));
     } catch (error) {
       message("⚠️ Erro na verificação ortográfica");
     }
@@ -119,16 +118,13 @@ export default createPlugin(
 
 function parseCspellOutput(output: string, metadata: any[]): any[] {
   const errors: any[] = [];
-  const regex =
-    /temp_identifiers_for_spell_check\.txt:\d+:\d+\s*-\s*Unknown word \(([^)]+)\)/;
+  const regex = /temp_identifiers_for_spell_check\.txt:\d+:\d+\s*-\s*Unknown word \(([^)]+)\)/;
 
   for (const line of output.split("\n")) {
     const match = line.match(regex);
     if (match) {
       const word = match[1];
-      const matches = metadata.filter(
-        (m) => m.word.toLowerCase() === word.toLowerCase()
-      );
+      const matches = metadata.filter((m) => m.word.toLowerCase() === word.toLowerCase());
       errors.push(...matches);
     }
   }
@@ -137,11 +133,7 @@ function parseCspellOutput(output: string, metadata: any[]): any[] {
     (e, i, self) =>
       i ===
       self.findIndex(
-        (x) =>
-          x.originalFile === e.originalFile &&
-          x.line === e.line &&
-          x.word === e.word
+        (x) => x.originalFile === e.originalFile && x.line === e.line && x.word === e.word
       )
   );
 }
-

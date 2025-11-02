@@ -36,10 +36,7 @@ export interface DangerPlugin {
 /**
  * HELPER: Criar plugin facilmente
  */
-export function createPlugin(
-  config: DangerPluginConfig,
-  runFn: () => Promise<void>
-): DangerPlugin {
+export function createPlugin(config: DangerPluginConfig, runFn: () => Promise<void>): DangerPlugin {
   return {
     config,
     run: runFn,
@@ -103,7 +100,7 @@ export interface DangerBotCallbacks {
  *
  * @example
  * import { executeDangerBot, getDanger, sendMessage, sendWarn } from "@diletta/danger-bot";
- * 
+ *
  * executeDangerBot([pluginTestPlugin], {
  *   onBeforeRun: () => {
  *     const pr = getDanger().github?.pr;
@@ -114,11 +111,8 @@ export interface DangerBotCallbacks {
  *   onError: (error) => sendWarn(`⚠️ Error: ${error.message}`)
  * });
  */
-export function executeDangerBot(
-  plugins: DangerPlugin[],
-  callbacks?: DangerBotCallbacks
-): void {
-  (async () => {
+export function executeDangerBot(plugins: DangerPlugin[], callbacks?: DangerBotCallbacks): void {
+  void (async () => {
     try {
       if (callbacks?.onBeforeRun) {
         const shouldContinue = await callbacks.onBeforeRun();
@@ -134,9 +128,7 @@ export function executeDangerBot(
       }
     } catch (error) {
       if (callbacks?.onError) {
-        await callbacks.onError(
-          error instanceof Error ? error : new Error(String(error))
-        );
+        await callbacks.onError(error instanceof Error ? error : new Error(String(error)));
       }
       console.error("Danger Bot execution error:", error);
     } finally {

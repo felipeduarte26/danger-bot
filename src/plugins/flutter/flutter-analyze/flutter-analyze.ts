@@ -6,7 +6,7 @@
 
 import { execSync } from "child_process";
 import * as fs from "fs";
-import { createPlugin, getDanger, sendMessage, sendWarn, sendFail } from "@types";
+import { createPlugin, getDanger, sendMessage, _sendFail } from "@types";
 
 export default createPlugin(
   {
@@ -16,10 +16,7 @@ export default createPlugin(
   },
   async () => {
     const d = getDanger();
-    const allFiles = [
-      ...d.git.modified_files,
-      ...d.git.created_files,
-    ];
+    const allFiles = [...d.git.modified_files, ...d.git.created_files];
 
     // Filtrar apenas arquivos .dart (excluindo gerados e testes)
     const dartFiles = allFiles.filter(
@@ -79,15 +76,10 @@ export default createPlugin(
         if (match) {
           const [, severity, rawMessage, filePath, lineNumber, , ruleName] = match;
 
-          const relativePath = filePath
-            .replace(process.cwd() + "/", "")
-            .replace(/^\.\//, "");
+          const relativePath = filePath.replace(process.cwd() + "/", "").replace(/^\.\//, "");
 
           if (dartFiles.includes(relativePath)) {
-            const translatedMessage = translateFlutterAnalyzeMessage(
-              rawMessage,
-              ruleName
-            );
+            const translatedMessage = translateFlutterAnalyzeMessage(rawMessage, ruleName);
 
             const docLink = getDocumentationLink(ruleName);
             const fullMessage =
@@ -108,17 +100,12 @@ export default createPlugin(
         );
       }
     } catch (error) {
-      message(
-        "⚠️ **Flutter Analyze**: Erro ao executar análise. Verifique os logs."
-      );
+      message("⚠️ **Flutter Analyze**: Erro ao executar análise. Verifique os logs.");
     }
   }
 );
 
-function translateFlutterAnalyzeMessage(
-  message: string,
-  ruleName: string
-): string {
+function translateFlutterAnalyzeMessage(message: string, ruleName: string): string {
   const translations: Record<string, string> = {
     // Diagnostic messages
     unused_local_variable: "Variável local não utilizada - remova ou use",
@@ -143,11 +130,9 @@ function translateFlutterAnalyzeMessage(
     undefined_setter: "Setter não definido",
     non_bool_condition: "Condição deve ser booleana",
     deprecated_member_use: "Uso de membro depreciado - considere alternativa",
-    deprecated_member_use_from_same_package:
-      "Uso de membro depreciado do mesmo pacote",
+    deprecated_member_use_from_same_package: "Uso de membro depreciado do mesmo pacote",
     override_on_non_overriding_member: "@override em membro que não sobrescreve",
-    missing_override_of_must_be_overridden:
-      "Faltando override de método obrigatório",
+    missing_override_of_must_be_overridden: "Faltando override de método obrigatório",
 
     // Linter rules - Documentação e APIs públicas
     public_member_api_docs: "Documentação ausente em API pública",
@@ -155,11 +140,9 @@ function translateFlutterAnalyzeMessage(
 
     // Construtores e const
     prefer_const_constructors: "Prefira construtores const quando possível",
-    prefer_const_constructors_in_immutables:
-      "Use construtores const em classes imutáveis",
+    prefer_const_constructors_in_immutables: "Use construtores const em classes imutáveis",
     prefer_const_declarations: "Prefira declarações const para valores constantes",
-    prefer_const_literals_to_create_immutables:
-      "Use const para criar coleções imutáveis",
+    prefer_const_literals_to_create_immutables: "Use const para criar coleções imutáveis",
     unnecessary_const: "Palavra-chave const desnecessária",
     unnecessary_new: "Palavra-chave new desnecessária",
     unnecessary_constructor_name: "Nome de construtor .new desnecessário",
@@ -179,31 +162,26 @@ function translateFlutterAnalyzeMessage(
     prefer_final_in_for_each: "Use final em loops for-each quando possível",
 
     // Null safety
-    unnecessary_null_in_if_null_operators:
-      "Valor null desnecessário em operador ??",
+    unnecessary_null_in_if_null_operators: "Valor null desnecessário em operador ??",
     unnecessary_null_checks: "Verificações null desnecessárias",
     unnecessary_null_aware_assignments: "Atribuição null-aware desnecessária",
-    avoid_null_checks_in_equality_operators:
-      "Evite verificações null em operadores de igualdade",
+    avoid_null_checks_in_equality_operators: "Evite verificações null em operadores de igualdade",
     use_if_null_to_convert_nulls_to_bools: "Use ?? para converter nulls em bools",
 
     // Flutter específico
     sort_child_properties_last: "Propriedade child deve vir por último",
     use_key_in_widget_constructors: "Use key em construtores de widgets",
     must_be_immutable: "Widget deve ser imutável",
-    use_build_context_synchronously:
-      "Não use BuildContext após gaps assíncronos",
+    use_build_context_synchronously: "Não use BuildContext após gaps assíncronos",
     use_colored_box: "Use ColoredBox ao invés de Container com cor",
     use_decorated_box: "Use DecoratedBox ao invés de Container com decoração",
     sized_box_for_whitespace: "Use SizedBox para espaços em branco",
     avoid_web_libraries_in_flutter: "Evite bibliotecas web em aplicações Flutter",
-    use_full_hex_values_for_flutter_colors:
-      "Use valores hex de 8 dígitos para cores",
+    use_full_hex_values_for_flutter_colors: "Use valores hex de 8 dígitos para cores",
 
     // Strings
     prefer_single_quotes: "Prefira aspas simples para strings",
-    unnecessary_brace_in_string_interps:
-      "Chaves desnecessárias na interpolação de strings",
+    unnecessary_brace_in_string_interps: "Chaves desnecessárias na interpolação de strings",
     unnecessary_string_interpolations: "Interpolação de string desnecessária",
     unnecessary_string_escapes: "Escapes desnecessários em strings",
     use_raw_strings: "Use raw strings para evitar escapes",
@@ -213,21 +191,18 @@ function translateFlutterAnalyzeMessage(
     prefer_is_empty: "Use isEmpty ao invés de length == 0",
     prefer_is_not_empty: "Use isNotEmpty ao invés de length > 0",
     prefer_contains: "Use contains() ao invés de indexOf() != -1",
-    prefer_for_elements_to_map_fromIterable:
-      "Prefira for elements ao Map.fromIterable",
+    prefer_for_elements_to_map_fromIterable: "Prefira for elements ao Map.fromIterable",
     prefer_spread_collections: "Use spread operator ao invés de addAll()",
     unnecessary_to_list_in_spreads: "toList() desnecessário em spreads",
 
     // Async/await
-    unawaited_futures:
-      "Futures devem ser aguardados com await ou marcados com unawaited",
+    unawaited_futures: "Futures devem ser aguardados com await ou marcados com unawaited",
     unnecessary_await_in_return: "Await desnecessário no return",
     avoid_returning_null_for_future: "Evite retornar null para Future",
     unnecessary_async: "Função async desnecessária sem await",
 
     // Performance
-    avoid_function_literals_in_foreach_calls:
-      "Evite funções anônimas em forEach - use for-in",
+    avoid_function_literals_in_foreach_calls: "Evite funções anônimas em forEach - use for-in",
     list_remove_unrelated_type: "Tipo não relacionado em list.remove()",
     prefer_iterable_whereType: "Use whereType ao invés de where + is",
 
@@ -266,4 +241,3 @@ function getDocumentationLink(ruleName: string): string | null {
 
   return `https://dart.dev/tools/linter-rules/${ruleName}`;
 }
-

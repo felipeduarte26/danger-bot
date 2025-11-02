@@ -2,7 +2,7 @@
  * 🌐 PORTUGUESE DOCUMENTATION CHECKER PLUGIN
  * ==========================================
  * Detecta documentação em português quando o padrão é inglês
- * 
+ *
  * FUNCIONALIDADES:
  * ✅ Analisa apenas comentários de documentação (///)
  * ✅ Usa cld3 (Compact Language Detector v3) - mesmo do Google Chrome
@@ -11,7 +11,7 @@
  * ✅ Comenta inline no PR
  */
 
-import { createPlugin, getDanger, sendMessage, sendWarn, sendFail } from "@types";
+import { createPlugin, getDanger, _sendWarn } from "@types";
 import * as fs from "fs";
 
 // Importar CLD3 (precisa estar instalado: npm install cld3-asm)
@@ -31,16 +31,13 @@ export default createPlugin(
   async () => {
     // Se CLD3 não está disponível, pular
     if (!cld3) {
-      message(
-        "⚠️ **Verificação de idioma**: cld3 não instalado. Execute: `npm install cld3-asm`"
-      );
+      message("⚠️ **Verificação de idioma**: cld3 não instalado. Execute: `npm install cld3-asm`");
       return;
     }
 
-    const dartFiles = [
-      ...getDanger().git.modified_files,
-      ...getDanger().git.created_files,
-    ].filter((f) => f.endsWith(".dart") && fs.existsSync(f));
+    const dartFiles = [...getDanger().git.modified_files, ...getDanger().git.created_files].filter(
+      (f) => f.endsWith(".dart") && fs.existsSync(f)
+    );
 
     if (dartFiles.length === 0) {
       message("ℹ️ **Verificação de idioma**: Nenhum arquivo Dart para verificar.");
@@ -69,9 +66,7 @@ export default createPlugin(
               `**DOCUMENTAÇÃO EM PORTUGUÊS DETECTADA**\n\n` +
               `Esta documentação está em português, mas o padrão do projeto é comentários em inglês.\n\n` +
               `**Ação**: Traduza para inglês ou justifique o uso de português.\n\n` +
-              (lineCount === 1
-                ? `📝 Comentário único`
-                : `📝 Bloco de ${lineCount} linhas`);
+              (lineCount === 1 ? `📝 Comentário único` : `📝 Bloco de ${lineCount} linhas`);
 
             warn(warningMessage, file, block.startLine);
           }
@@ -82,9 +77,7 @@ export default createPlugin(
     }
 
     if (totalPortugueseBlocks > 0) {
-      message(
-        `🌐 **Documentação em português**: ${totalPortugueseBlocks} bloco(s) detectado(s)`
-      );
+      message(`🌐 **Documentação em português**: ${totalPortugueseBlocks} bloco(s) detectado(s)`);
     } else {
       message("✅ **Documentação**: Todas em inglês (padrão do projeto)");
     }
@@ -94,9 +87,7 @@ export default createPlugin(
 /**
  * Extrai blocos de documentação (///)
  */
-function extractDocumentationBlocks(
-  lines: string[]
-): DocumentationBlock[] {
+function extractDocumentationBlocks(lines: string[]): DocumentationBlock[] {
   const blocks: DocumentationBlock[] = [];
   let currentBlock: DocumentationLine[] = [];
   let startLine = 0;
@@ -207,4 +198,3 @@ interface DocumentationBlock {
   startLine: number;
   endLine: number;
 }
-

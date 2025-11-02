@@ -10,7 +10,7 @@ export default createPlugin(
     const d = getDanger();
     const modifiedFiles = d.git.modified_files;
     const createdFiles = d.git.created_files;
-    const allFiles = [...modifiedFiles, ...createdFiles];
+    const _allFiles = [...modifiedFiles, ...createdFiles];
 
     // Exemplos de uso das abstrações
     sendMessage(`✅ Plugin plugin-test executed successfully!`);
