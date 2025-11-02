@@ -14,7 +14,7 @@
 
 ## ✨ Destaques
 
-- 🔌 **7+ Plugins Prontos** - PR size, changelog, flutter analyze, arquitetura, spell checker e mais
+- 🔌 **Plugins Prontos** - Selecione todos ou somente os plugins que faz sentido para o seu projeto
 - 🤖 **CLI Integrada** - Crie e gerencie plugins facilmente
 - 🌍 **Multi-Plataforma** - GitHub, Bitbucket, GitLab
 - ⚡ **Zero Config** - Funciona out-of-the-box
@@ -50,33 +50,33 @@ npx danger ci
 
 ### 🎯 Para Começar
 
-| Documento | Descrição |
-|-----------|-----------|
-| **[🚀 Início Rápido](docs/INICIO_RAPIDO.md)** | Comece em 5 minutos com TL;DR e guia passo a passo |
-| **[📦 Instalação](docs/INSTALACAO.md)** | Guia completo de instalação (incluindo projetos Flutter sem package.json) |
-| **[❓ FAQ](docs/FAQ.md)** | Perguntas frequentes e troubleshooting |
+| Documento                                     | Descrição                                                                 |
+| --------------------------------------------- | ------------------------------------------------------------------------- |
+| **[🚀 Início Rápido](docs/INICIO_RAPIDO.md)** | Comece em 5 minutos com TL;DR e guia passo a passo                        |
+| **[📦 Instalação](docs/INSTALACAO.md)**       | Guia completo de instalação (incluindo projetos Flutter sem package.json) |
+| **[❓ FAQ](docs/FAQ.md)**                     | Perguntas frequentes e troubleshooting                                    |
 
 ### 🔌 Plugins e API
 
-| Documento | Descrição |
-|-----------|-----------|
-| **[🔌 Guia de Plugins](docs/GUIA_PLUGINS.md)** | Como usar, configurar e criar plugins |
-| **[🔧 API Reference](docs/API.md)** | Referência completa da API (helpers, types, functions) |
-| **[💡 Exemplos](docs/EXEMPLOS.md)** | Casos de uso reais e exemplos práticos |
+| Documento                                      | Descrição                                              |
+| ---------------------------------------------- | ------------------------------------------------------ |
+| **[🔌 Guia de Plugins](docs/GUIA_PLUGINS.md)** | Como usar, configurar e criar plugins                  |
+| **[🔧 API Reference](docs/API.md)**            | Referência completa da API (helpers, types, functions) |
+| **[💡 Exemplos](docs/EXEMPLOS.md)**            | Casos de uso reais e exemplos práticos                 |
 
 ### 🛠️ Ferramentas
 
-| Documento | Descrição |
-|-----------|-----------|
-| **[🤖 CLI](docs/CLI.md)** | Documentação completa da CLI (todos os comandos) |
+| Documento                                | Descrição                                                              |
+| ---------------------------------------- | ---------------------------------------------------------------------- |
+| **[🤖 CLI](docs/CLI.md)**                | Documentação completa da CLI (todos os comandos)                       |
 | **[🚀 CI/CD](docs/pipelines/README.md)** | Guias de configuração por plataforma (Bitrise, Bitbucket, GitHub, etc) |
 
 ### 👨‍💻 Para Desenvolvedores
 
-| Documento | Descrição |
-|-----------|-----------|
-| **[🏗️ Arquitetura](docs/ARQUITETURA.md)** | Entenda como o projeto está organizado |
-| **[🔧 Desenvolvimento](docs/DESENVOLVIMENTO.md)** | Como contribuir e desenvolver |
+| Documento                                         | Descrição                              |
+| ------------------------------------------------- | -------------------------------------- |
+| **[🏗️ Arquitetura](docs/ARQUITETURA.md)**         | Entenda como o projeto está organizado |
+| **[🔧 Desenvolvimento](docs/DESENVOLVIMENTO.md)** | Como contribuir e desenvolver          |
 
 ---
 
@@ -84,17 +84,18 @@ npx danger ci
 
 ### 📦 Plugins Flutter/Dart (7 plugins)
 
-| Plugin | Descrição | Status |
-|--------|-----------|--------|
-| **pr-size-checker** | Alerta sobre PRs muito grandes | ✅ Habilitado |
-| **changelog-checker** | Verifica se CHANGELOG.md foi atualizado | ✅ Habilitado |
-| **flutter-analyze** | Executa `flutter analyze` e reporta problemas | ✅ Habilitado |
-| **flutter-architecture** | Valida padrões Clean Architecture | ✅ Habilitado |
-| **spell-checker** | Verifica ortografia em identificadores Dart | ✅ Habilitado |
-| **portuguese-documentation** | Detecta documentação em português | ✅ Habilitado |
-| **plugin-test** | Plugin de teste/exemplo | 🔶 Desabilitado |
+| Plugin                       | Descrição                                     | Status          |
+| ---------------------------- | --------------------------------------------- | --------------- |
+| **pr-size-checker**          | Alerta sobre PRs muito grandes                | ✅ Habilitado   |
+| **changelog-checker**        | Verifica se CHANGELOG.md foi atualizado       | ✅ Habilitado   |
+| **flutter-analyze**          | Executa `flutter analyze` e reporta problemas | ✅ Habilitado   |
+| **flutter-architecture**     | Valida padrões Clean Architecture             | ✅ Habilitado   |
+| **spell-checker**            | Verifica ortografia em identificadores Dart   | ✅ Habilitado   |
+| **portuguese-documentation** | Detecta documentação em português             | ✅ Habilitado   |
+| **plugin-test**              | Plugin de teste/exemplo                       | 🔶 Desabilitado |
 
 **Importar todos:**
+
 ```typescript
 import { allFlutterPlugins } from "@diletta/danger-bot";
 ```
@@ -136,14 +137,14 @@ danger-bot info
 
 ### CI/CD
 
-| Plataforma | Guia | Dificuldade |
-|------------|------|-------------|
-| **Bitrise** | [📖 Ver guia](docs/pipelines/BITRISE.md) | ⭐⭐ Média |
-| **Bitbucket Pipelines** | [📖 Ver guia](docs/pipelines/BITBUCKET_PIPELINES.md) | ⭐ Fácil |
-| **GitHub Actions** | [📖 Ver guia](docs/pipelines/README.md) | ⭐ Fácil |
-| **GitLab CI** | [📖 Ver guia](docs/pipelines/README.md) | ⭐ Fácil |
-| **CircleCI** | [📖 Ver guia](docs/pipelines/README.md) | ⭐⭐ Média |
-| **Jenkins** | [📖 Ver guia](docs/pipelines/README.md) | ⭐⭐⭐ Difícil |
+| Plataforma              | Guia                                                 | Dificuldade    |
+| ----------------------- | ---------------------------------------------------- | -------------- |
+| **Bitrise**             | [📖 Ver guia](docs/pipelines/BITRISE.md)             | ⭐⭐ Média     |
+| **Bitbucket Pipelines** | [📖 Ver guia](docs/pipelines/BITBUCKET_PIPELINES.md) | ⭐ Fácil       |
+| **GitHub Actions**      | [📖 Ver guia](docs/pipelines/README.md)              | ⭐ Fácil       |
+| **GitLab CI**           | [📖 Ver guia](docs/pipelines/README.md)              | ⭐ Fácil       |
+| **CircleCI**            | [📖 Ver guia](docs/pipelines/README.md)              | ⭐⭐ Média     |
+| **Jenkins**             | [📖 Ver guia](docs/pipelines/README.md)              | ⭐⭐⭐ Difícil |
 
 **Ver todos os guias:** [Documentação CI/CD](docs/pipelines/README.md)
 
@@ -168,17 +169,17 @@ executeDangerBot(allFlutterPlugins, {
   onBeforeRun: () => {
     const d = getDanger();
     const pr = d.bitbucket_cloud?.pr;
-    
+
     if (pr) {
       sendMessage(`**🤖 Análise Automática**\n\n**Título**: ${pr.title}`);
     }
-    
+
     return true;
   },
-  
+
   onSuccess: () => {
     sendMessage("✅ Análise concluída com sucesso!");
-  }
+  },
 });
 ```
 
@@ -189,14 +190,10 @@ import {
   prSizeCheckerPlugin,
   changelogCheckerPlugin,
   flutterAnalyzePlugin,
-  executeDangerBot
+  executeDangerBot,
 } from "@diletta/danger-bot";
 
-executeDangerBot([
-  prSizeCheckerPlugin,
-  changelogCheckerPlugin,
-  flutterAnalyzePlugin,
-]);
+executeDangerBot([prSizeCheckerPlugin, changelogCheckerPlugin, flutterAnalyzePlugin]);
 ```
 
 **Ver mais exemplos:** [Exemplos Práticos](docs/EXEMPLOS.md)
@@ -304,6 +301,7 @@ Este projeto está sob a licença **MIT**. Veja o arquivo [LICENSE](LICENSE) par
 ## 👨‍💻 Autor
 
 **Felipe Duarte Barbosa**
+
 - Email: felipe.duarte@dilettasolutions.com
 - Empresa: [Diletta Solutions](https://dilettasolutions.com)
 
