@@ -6,7 +6,7 @@
 
 import { execSync } from "child_process";
 import * as fs from "fs";
-import { createPlugin, getDanger, sendMessage, _sendFail } from "@types";
+import { createPlugin, getDanger, sendMessage } from "@types";
 
 export default createPlugin(
   {

@@ -4,7 +4,7 @@
  * Verifica ortografia em identificadores Dart usando cspell
  */
 
-import { createPlugin, getDanger, _sendFail } from "@types";
+import { createPlugin, getDanger } from "@types";
 import { execSync } from "child_process";
 import * as fs from "fs";
 

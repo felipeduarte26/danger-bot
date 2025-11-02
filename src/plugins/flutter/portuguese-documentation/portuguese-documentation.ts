@@ -11,7 +11,7 @@
  * ✅ Comenta inline no PR
  */
 
-import { createPlugin, getDanger, _sendWarn } from "@types";
+import { createPlugin, getDanger } from "@types";
 import * as fs from "fs";
 
 // Importar CLD3 (precisa estar instalado: npm install cld3-asm)

@@ -4,7 +4,7 @@
  * Verifica padrões de arquitetura do Flutter/Dart
  */
 
-import { createPlugin, getDanger, _sendFail } from "@types";
+import { createPlugin, getDanger } from "@types";
 import * as fs from "fs";
 import * as path from "path";
 
