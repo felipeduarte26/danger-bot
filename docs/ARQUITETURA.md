@@ -117,10 +117,3 @@ bin/
 - ✅ **Modular Architecture** - Plugins independentes
 
 ---
-
-<div align="center">
-
-[📚 Docs](.) • [🔧 Desenvolvimento](DESENVOLVIMENTO.md) • [🔌 Plugins](GUIA_PLUGINS.md)
-
-</div>
-
