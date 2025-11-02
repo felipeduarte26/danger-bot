@@ -131,6 +131,7 @@ function patchLinks(dangerPath) {
       // runtimeHref: "https://danger.systems/js"
       // url: "http://danger.systems/js"
       // runtimeName: "dangerJS"
+      // signatureEmoji: ":no_entry_sign:"
       const replacements = [
         {
           search: /(https?:\/\/)?danger\.systems(\/js)?/gi,
@@ -155,6 +156,14 @@ function patchLinks(dangerPath) {
         {
           search: /key\s*=\s*["']Danger Bot["']/gi,
           replace: 'key = "Diletta Solutions"'
+        },
+        {
+          search: /:no_entry_sign:/gi,
+          replace: ':rocket:'
+        },
+        {
+          search: /signatureEmoji\s*=\s*["']:no_entry_sign:["']/gi,
+          replace: 'signatureEmoji = ":rocket:"'
         }
       ];
 
@@ -192,7 +201,8 @@ function createPatchMarker(dangerPath) {
     patches: [
       'Removed "All green. Good on \'ya" message',
       'Changed links from danger.systems to https://dilettasolutions.com',
-      'Changed "dangerJS" to "Diletta Solutions"'
+      'Changed "dangerJS" to "Diletta Solutions"',
+      'Changed emoji from :no_entry_sign: to :rocket:'
     ]
   };
   fs.writeFileSync(markerPath, JSON.stringify(info, null, 2), 'utf8');
@@ -249,6 +259,7 @@ function main() {
     console.log('  ❌ "All green. Good on \'ya" → REMOVIDO');
     console.log('  ✅ danger.systems → https://dilettasolutions.com');
     console.log('  ✅ "dangerJS" → "Diletta Solutions"');
+    console.log('  ✅ Emoji: 🚫 (:no_entry_sign:) → 🚀 (:rocket:)');
     console.log('');
     createPatchMarker(dangerPath);
   } else {
