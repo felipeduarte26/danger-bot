@@ -28,7 +28,9 @@ export interface DangerPlugin {
  */
 export declare function createPlugin(config: DangerPluginConfig, runFn: () => Promise<void>): DangerPlugin;
 /**
- * HELPER: Executar múltiplos plugins
+ * HELPER: Execute list of plugins sequentially
+ *
+ * @param plugins - Array of plugins to run
  */
 export declare function runPlugins(plugins: DangerPlugin[]): Promise<void>;
 /**

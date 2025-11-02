@@ -21,7 +21,9 @@ function createPlugin(config, runFn) {
     };
 }
 /**
- * HELPER: Executar múltiplos plugins
+ * HELPER: Execute list of plugins sequentially
+ *
+ * @param plugins - Array of plugins to run
  */
 async function runPlugins(plugins) {
     for (const plugin of plugins) {
@@ -59,29 +61,24 @@ async function runPlugins(plugins) {
 function executeDangerBot(plugins, callbacks) {
     (async () => {
         try {
-            // Call onBeforeRun
             if (callbacks?.onBeforeRun) {
                 const shouldContinue = await callbacks.onBeforeRun();
                 if (shouldContinue === false) {
                     return;
                 }
             }
-            // Run all plugins
             await runPlugins(plugins);
-            // Call onSuccess
             if (callbacks?.onSuccess) {
                 await callbacks.onSuccess();
             }
         }
         catch (error) {
-            // Call onError
             if (callbacks?.onError) {
                 await callbacks.onError(error instanceof Error ? error : new Error(String(error)));
             }
             console.error("Danger Bot execution error:", error);
         }
         finally {
-            // Call onFinally
             if (callbacks?.onFinally) {
                 await callbacks.onFinally();
             }
