@@ -8,7 +8,13 @@
  * consistência e facilitar manutenção
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.scheduleTask = exports.sendMarkdown = exports.sendFail = exports.sendWarn = exports.sendMessage = exports.getDanger = void 0;
+exports.scheduleTask =
+  exports.sendMarkdown =
+  exports.sendFail =
+  exports.sendWarn =
+  exports.sendMessage =
+  exports.getDanger =
+    void 0;
 exports.createPlugin = createPlugin;
 exports.runPlugins = runPlugins;
 exports.executeDangerBot = executeDangerBot;
@@ -16,20 +22,50 @@ exports.executeDangerBot = executeDangerBot;
 // O Danger JS injeta o objeto 'danger' em runtime
 // Re-exportar helpers para facilitar imports
 var helpers_1 = require("./helpers");
-Object.defineProperty(exports, "getDanger", { enumerable: true, get: function () { return helpers_1.getDanger; } });
-Object.defineProperty(exports, "sendMessage", { enumerable: true, get: function () { return helpers_1.sendMessage; } });
-Object.defineProperty(exports, "sendWarn", { enumerable: true, get: function () { return helpers_1.sendWarn; } });
-Object.defineProperty(exports, "sendFail", { enumerable: true, get: function () { return helpers_1.sendFail; } });
-Object.defineProperty(exports, "sendMarkdown", { enumerable: true, get: function () { return helpers_1.sendMarkdown; } });
-Object.defineProperty(exports, "scheduleTask", { enumerable: true, get: function () { return helpers_1.scheduleTask; } });
+Object.defineProperty(exports, "getDanger", {
+  enumerable: true,
+  get: function () {
+    return helpers_1.getDanger;
+  },
+});
+Object.defineProperty(exports, "sendMessage", {
+  enumerable: true,
+  get: function () {
+    return helpers_1.sendMessage;
+  },
+});
+Object.defineProperty(exports, "sendWarn", {
+  enumerable: true,
+  get: function () {
+    return helpers_1.sendWarn;
+  },
+});
+Object.defineProperty(exports, "sendFail", {
+  enumerable: true,
+  get: function () {
+    return helpers_1.sendFail;
+  },
+});
+Object.defineProperty(exports, "sendMarkdown", {
+  enumerable: true,
+  get: function () {
+    return helpers_1.sendMarkdown;
+  },
+});
+Object.defineProperty(exports, "scheduleTask", {
+  enumerable: true,
+  get: function () {
+    return helpers_1.scheduleTask;
+  },
+});
 /**
  * HELPER: Criar plugin facilmente
  */
 function createPlugin(config, runFn) {
-    return {
-        config,
-        run: runFn,
-    };
+  return {
+    config,
+    run: runFn,
+  };
 }
 /**
  * HELPER: Execute list of plugins sequentially
@@ -37,21 +73,20 @@ function createPlugin(config, runFn) {
  * @param plugins - Array of plugins to run
  */
 async function runPlugins(plugins) {
-    for (const plugin of plugins) {
-        if (!plugin.config.enabled) {
-            console.log(`⏭️  Plugin '${plugin.config.name}' está desabilitado`);
-            continue;
-        }
-        try {
-            console.log(`⚡ Executando plugin: ${plugin.config.name}`);
-            await plugin.run();
-            console.log(`✅ Plugin '${plugin.config.name}' executado com sucesso`);
-        }
-        catch (error) {
-            console.error(`❌ Erro no plugin '${plugin.config.name}':`, error);
-            throw error;
-        }
+  for (const plugin of plugins) {
+    if (!plugin.config.enabled) {
+      console.log(`⏭️  Plugin '${plugin.config.name}' está desabilitado`);
+      continue;
     }
+    try {
+      console.log(`⚡ Executando plugin: ${plugin.config.name}`);
+      await plugin.run();
+      console.log(`✅ Plugin '${plugin.config.name}' executado com sucesso`);
+    } catch (error) {
+      console.error(`❌ Erro no plugin '${plugin.config.name}':`, error);
+      throw error;
+    }
+  }
 }
 /**
  * Execute Danger Bot with plugins - Simplifies dangerfile.ts
@@ -73,29 +108,27 @@ async function runPlugins(plugins) {
  * });
  */
 function executeDangerBot(plugins, callbacks) {
-    (async () => {
-        try {
-            if (callbacks?.onBeforeRun) {
-                const shouldContinue = await callbacks.onBeforeRun();
-                if (shouldContinue === false) {
-                    return;
-                }
-            }
-            await runPlugins(plugins);
-            if (callbacks?.onSuccess) {
-                await callbacks.onSuccess();
-            }
+  void (async () => {
+    try {
+      if (callbacks?.onBeforeRun) {
+        const shouldContinue = await callbacks.onBeforeRun();
+        if (shouldContinue === false) {
+          return;
         }
-        catch (error) {
-            if (callbacks?.onError) {
-                await callbacks.onError(error instanceof Error ? error : new Error(String(error)));
-            }
-            console.error("Danger Bot execution error:", error);
-        }
-        finally {
-            if (callbacks?.onFinally) {
-                await callbacks.onFinally();
-            }
-        }
-    })();
+      }
+      await runPlugins(plugins);
+      if (callbacks?.onSuccess) {
+        await callbacks.onSuccess();
+      }
+    } catch (error) {
+      if (callbacks?.onError) {
+        await callbacks.onError(error instanceof Error ? error : new Error(String(error)));
+      }
+      console.error("Danger Bot execution error:", error);
+    } finally {
+      if (callbacks?.onFinally) {
+        await callbacks.onFinally();
+      }
+    }
+  })();
 }
