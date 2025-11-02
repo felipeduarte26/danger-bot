@@ -5,7 +5,6 @@
  */
 export * from "./helpers";
 export * from "./types";
-export * from "./config";
 export * from "./plugins";
 /**
  * All available Flutter plugins in a single array
