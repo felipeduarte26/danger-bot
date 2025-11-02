@@ -2,6 +2,7 @@
   "name": "@diletta/danger-bot",
   "version": "1.8.0",
   "description": "Conjunto modular de plugins Danger JS",
+  "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
@@ -19,7 +20,12 @@
     "build": "tsc && tsc-alias",
     "watch": "tsc --watch",
     "prepublishOnly": "npm run build",
-    "postinstall": "node scripts/patch-danger.js"
+    "postinstall": "node scripts/patch-danger.js",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"src/**/*.ts\" \"bin/**/*.js\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"bin/**/*.js\"",
+    "type-check": "tsc --noEmit"
   },
   "keywords": [
     "danger",
@@ -38,9 +44,14 @@
     "url": "https://felipeDuarteBarbosa@bitbucket.org/diletta/danger-bot.git"
   },
   "devDependencies": {
+    "@eslint/js": "^9.17.0",
     "@types/node": "^24.9.2",
+    "eslint": "^9.17.0",
+    "eslint-config-prettier": "^9.1.0",
+    "prettier": "^3.4.2",
     "tsc-alias": "^1.8.16",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.19.1"
   },
   "dependencies": {
     "@cspell/dict-dart": "^2.3.1",
