@@ -315,7 +315,6 @@ Contribuições são bem-vindas! Veja o [Guia de Desenvolvimento](docs/DESENVOLV
 Precisa de ajuda?
 
 - 📖 **Documentação**: [docs/](docs/)
-- 🐛 **Issues**: [Bitbucket Issues](https://bitbucket.org/diletta/danger-bot/issues)
 - 💬 **Email**: felipe.duarte@dilettasolutions.com
 - 💬 **Slack**: [#danger-bot](https://diletta.slack.com/archives/C09CZAH10J3)
 
