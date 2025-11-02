@@ -4,10 +4,8 @@
  * Main entry point of the package
  */
 
-// Re-export Danger JS for convenience (single import)
-export { danger, message, warn, fail, markdown, schedule } from "danger";
-
 // Export Danger helpers (to avoid conflicts with Danger's import removal)
+// NÃO re-exportar 'danger' diretamente pois o Danger JS detecta e remove!
 export * from "./helpers";
 
 // Export types and helpers
