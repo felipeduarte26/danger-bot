@@ -4,6 +4,7 @@
  * Main entry point of the package
  */
 export { danger, message, warn, fail, markdown, schedule } from "danger";
+export * from "./helpers";
 export * from "./types";
 export * from "./plugins";
 /**

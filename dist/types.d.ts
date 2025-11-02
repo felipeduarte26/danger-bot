@@ -62,13 +62,16 @@ export interface DangerBotCallbacks {
  * @param callbacks - Optional callbacks for lifecycle hooks
  *
  * @example
- * executeDangerBot(allFlutterPlugins, {
+ * import { executeDangerBot, getDanger, sendMessage, sendWarn } from "@diletta/danger-bot";
+ *
+ * executeDangerBot([pluginTestPlugin], {
  *   onBeforeRun: () => {
- *     message("Starting Danger CI...");
+ *     const pr = getDanger().github?.pr;
+ *     sendMessage("Starting Danger CI...");
  *     return true;
  *   },
- *   onSuccess: () => message("✅ Success!"),
- *   onError: (error) => warn(`⚠️ Error: ${error.message}`)
+ *   onSuccess: () => sendMessage("✅ Success!"),
+ *   onError: (error) => sendWarn(`⚠️ Error: ${error.message}`)
  * });
  */
 export declare function executeDangerBot(plugins: DangerPlugin[], callbacks?: DangerBotCallbacks): void;

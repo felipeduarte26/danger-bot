@@ -28,6 +28,8 @@ Object.defineProperty(exports, "warn", { enumerable: true, get: function () { re
 Object.defineProperty(exports, "fail", { enumerable: true, get: function () { return danger_1.fail; } });
 Object.defineProperty(exports, "markdown", { enumerable: true, get: function () { return danger_1.markdown; } });
 Object.defineProperty(exports, "schedule", { enumerable: true, get: function () { return danger_1.schedule; } });
+// Export Danger helpers (to avoid conflicts with Danger's import removal)
+__exportStar(require("./helpers"), exports);
 // Export types and helpers
 __exportStar(require("./types"), exports);
 // Export all plugins (organized by platform)

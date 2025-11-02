@@ -7,6 +7,9 @@
 // Re-export Danger JS for convenience (single import)
 export { danger, message, warn, fail, markdown, schedule } from "danger";
 
+// Export Danger helpers (to avoid conflicts with Danger's import removal)
+export * from "./helpers";
+
 // Export types and helpers
 export * from "./types";
 
