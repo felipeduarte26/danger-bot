@@ -292,12 +292,6 @@ Contribuições são bem-vindas! Veja o [Guia de Desenvolvimento](docs/DESENVOLV
 
 ---
 
-## 📄 License
-
-Este projeto está sob a licença **MIT**. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
-
----
-
 ## 👨‍💻 Autor
 
 **Felipe Duarte Barbosa**
