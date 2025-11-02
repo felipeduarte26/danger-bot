@@ -7,14 +7,17 @@
 /**
  * Customiza as mensagens padrão do Danger JS
  * Deve ser chamado no início do dangerfile
+ * 
+ * @param successMessage Mensagem customizada de sucesso (padrão: "✅ Tudo certo! Nenhum problema encontrado.")
  */
-export function customizeDangerMessages(): void {
+export function customizeDangerMessages(
+  successMessage: string = "✅ Tudo certo! Nenhum problema encontrado."
+): void {
   const d = (global as any).danger || (globalThis as any).danger;
   const results = (global as any).results || (globalThis as any).results;
   
   if (d && d.utils) {
     // Customizar mensagens do Danger
-    // Remover a mensagem "All green. Well done." quando não há problemas
     const originalHref = d.utils.href;
     d.utils.href = (text: string, url: string) => {
       // Substituir "dangerJS" por "Danger Bot" no link
@@ -32,16 +35,23 @@ export function customizeDangerMessages(): void {
     };
   }
   
-  // Suprimir mensagem "All green. Well done."
+  // Substituir mensagem "All green. Well done." por mensagem em português
   if (results) {
     const originalMarkdown = results.markdowns || [];
     Object.defineProperty(results, 'markdowns', {
       get() {
-        return originalMarkdown.filter((m: any) => {
+        // Substituir mensagens de sucesso em inglês por português
+        return originalMarkdown.map((m: any) => {
           const text = m.message || '';
-          return !text.includes('All green') && 
-                 !text.includes('Well done') &&
-                 !text.includes(':tada:');
+          if (text.includes('All green') || 
+              text.includes('Well done') ||
+              text.includes(':tada:')) {
+            return {
+              ...m,
+              message: successMessage
+            };
+          }
+          return m;
         });
       },
       set(value) {
@@ -54,18 +64,28 @@ export function customizeDangerMessages(): void {
 
 /**
  * Configuração customizada para o footer do Danger
- * Remove mensagens padrão e adiciona customizações
+ * Aplica todas as customizações de mensagens
+ * 
+ * @param successMessage Mensagem customizada de sucesso (opcional)
+ * @example
+ * // Usar mensagem padrão em português
+ * setupDangerConfig();
+ * 
+ * // Ou customizar a mensagem
+ * setupDangerConfig("🎉 Análise concluída sem problemas!");
  */
-export function setupDangerConfig(): void {
+export function setupDangerConfig(
+  successMessage?: string
+): void {
   const schedule = (global as any).schedule || (globalThis as any).schedule;
   
   if (schedule) {
     schedule(async () => {
-      customizeDangerMessages();
+      customizeDangerMessages(successMessage);
     });
   } else {
     // Se schedule não estiver disponível, executa imediatamente
-    customizeDangerMessages();
+    customizeDangerMessages(successMessage);
   }
 }
 

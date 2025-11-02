@@ -10,13 +10,14 @@ exports.setupDangerConfig = setupDangerConfig;
 /**
  * Customiza as mensagens padrão do Danger JS
  * Deve ser chamado no início do dangerfile
+ *
+ * @param successMessage Mensagem customizada de sucesso (padrão: "✅ Tudo certo! Nenhum problema encontrado.")
  */
-function customizeDangerMessages() {
+function customizeDangerMessages(successMessage = "✅ Tudo certo! Nenhum problema encontrado.") {
     const d = global.danger || globalThis.danger;
     const results = global.results || globalThis.results;
     if (d && d.utils) {
         // Customizar mensagens do Danger
-        // Remover a mensagem "All green. Well done." quando não há problemas
         const originalHref = d.utils.href;
         d.utils.href = (text, url) => {
             // Substituir "dangerJS" por "Danger Bot" no link
@@ -31,16 +32,23 @@ function customizeDangerMessages() {
             return originalHref(text, url);
         };
     }
-    // Suprimir mensagem "All green. Well done."
+    // Substituir mensagem "All green. Well done." por mensagem em português
     if (results) {
         const originalMarkdown = results.markdowns || [];
         Object.defineProperty(results, 'markdowns', {
             get() {
-                return originalMarkdown.filter((m) => {
+                // Substituir mensagens de sucesso em inglês por português
+                return originalMarkdown.map((m) => {
                     const text = m.message || '';
-                    return !text.includes('All green') &&
-                        !text.includes('Well done') &&
-                        !text.includes(':tada:');
+                    if (text.includes('All green') ||
+                        text.includes('Well done') ||
+                        text.includes(':tada:')) {
+                        return {
+                            ...m,
+                            message: successMessage
+                        };
+                    }
+                    return m;
                 });
             },
             set(value) {
@@ -52,17 +60,25 @@ function customizeDangerMessages() {
 }
 /**
  * Configuração customizada para o footer do Danger
- * Remove mensagens padrão e adiciona customizações
+ * Aplica todas as customizações de mensagens
+ *
+ * @param successMessage Mensagem customizada de sucesso (opcional)
+ * @example
+ * // Usar mensagem padrão em português
+ * setupDangerConfig();
+ *
+ * // Ou customizar a mensagem
+ * setupDangerConfig("🎉 Análise concluída sem problemas!");
  */
-function setupDangerConfig() {
+function setupDangerConfig(successMessage) {
     const schedule = global.schedule || globalThis.schedule;
     if (schedule) {
         schedule(async () => {
-            customizeDangerMessages();
+            customizeDangerMessages(successMessage);
         });
     }
     else {
         // Se schedule não estiver disponível, executa imediatamente
-        customizeDangerMessages();
+        customizeDangerMessages(successMessage);
     }
 }
