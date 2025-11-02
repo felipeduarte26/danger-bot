@@ -133,6 +133,14 @@ executeDangerBot(allFlutterPlugins, {
   
   onSuccess: () => {
     sendMessage("✅ Análise concluída com sucesso!");
+  },
+  
+  onError: (error) => {
+    console.error("❌ Erro:", error);
+  },
+  
+  onFinally: () => {
+    sendMessage("📊 Análise finalizada!");
   }
 });
 EOF

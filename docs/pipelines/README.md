@@ -175,6 +175,10 @@ executeDangerBot(allFlutterPlugins, {
   
   onError: (error) => {
     console.error("❌ Erro:", error);
+  },
+  
+  onFinally: () => {
+    sendMessage("📊 Pipeline finalizado!");
   }
 });
 ```

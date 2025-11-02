@@ -148,6 +148,56 @@ export async function createPlugin() {
     }
   }
 
+  // Atualizar src/index.ts para adicionar no allFlutterPlugins (apenas para Flutter)
+  if (platformFolder === "flutter") {
+    const mainIndexPath = path.join(process.cwd(), "src", "index.ts");
+    if (exists(mainIndexPath)) {
+      let mainIndexContent = readFile(mainIndexPath);
+
+      // 1. Adicionar no import
+      const importRegex = /import\s*\{([^}]+)\}\s*from\s*["']\.\/plugins\/flutter["'];/;
+      const importMatch = mainIndexContent.match(importRegex);
+
+      if (importMatch) {
+        const currentImports = importMatch[1];
+        const newImport = `${camelName}Plugin`;
+
+        // Verificar se já existe
+        if (!currentImports.includes(newImport)) {
+          // Adicionar no final da lista de imports
+          const updatedImports = currentImports.trim() + `,\n  ${newImport}`;
+          mainIndexContent = mainIndexContent.replace(
+            importRegex,
+            `import {\n  ${updatedImports}\n} from "./plugins/flutter";`
+          );
+          console.log(`[OK] Added to imports in src/index.ts`);
+        }
+      }
+
+      // 2. Adicionar no array allFlutterPlugins
+      const arrayRegex = /export const allFlutterPlugins = \[([\s\S]*?)\];/;
+      const arrayMatch = mainIndexContent.match(arrayRegex);
+
+      if (arrayMatch) {
+        const currentPlugins = arrayMatch[1];
+        const newPlugin = `${camelName}Plugin`;
+
+        // Verificar se já existe
+        if (!currentPlugins.includes(newPlugin)) {
+          // Adicionar no final do array
+          const updatedPlugins = currentPlugins.trim() + `,\n  ${newPlugin}`;
+          mainIndexContent = mainIndexContent.replace(
+            arrayRegex,
+            `export const allFlutterPlugins = [\n  ${updatedPlugins}\n];`
+          );
+          console.log(`[OK] Added to allFlutterPlugins in src/index.ts`);
+        }
+      }
+
+      writeFile(mainIndexPath, mainIndexContent);
+    }
+  }
+
   console.log("\n" + "=".repeat(60));
   console.log("PLUGIN CREATED SUCCESSFULLY!");
   console.log("=".repeat(60) + "\n");
@@ -157,6 +207,13 @@ export async function createPlugin() {
   console.log(`  ├── ${fileName}      # Plugin implementation`);
   console.log(`  ├── index.ts        # Barrel file`);
   console.log(`  └── README.md       # Documentation`);
+  console.log();
+  console.log("Automatically updated:");
+  console.log(`  ✅ ${platformFolder}/index.ts - Export added`);
+  if (platformFolder === "flutter") {
+    console.log(`  ✅ src/index.ts - Import added`);
+    console.log(`  ✅ src/index.ts - Added to allFlutterPlugins`);
+  }
   console.log();
   console.log("Next steps:");
   console.log(`  1. Edit: ${filePath}`);

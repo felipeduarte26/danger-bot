@@ -8,6 +8,7 @@
 
 import { program } from "commander";
 import { createPlugin } from "./commands/create-plugin.js";
+import { removePlugin } from "./commands/remove-plugin.js";
 import { listPlugins } from "./commands/list-plugins.js";
 import { generateDangerfile } from "./commands/generate-dangerfile.js";
 import { validatePlugin } from "./commands/validate-plugin.js";
@@ -25,6 +26,13 @@ program
   .alias("new")
   .description("Criar um novo plugin interativamente")
   .action(createPlugin);
+
+// Comando: remover plugin
+program
+  .command("remove-plugin")
+  .alias("rm")
+  .description("Remover um plugin existente")
+  .action(removePlugin);
 
 // Comando: listar plugins
 program

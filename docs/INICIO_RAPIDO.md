@@ -60,11 +60,7 @@ import {
   executeDangerBot,
 } from "@diletta/danger-bot";
 
-executeDangerBot([
-  prSizeCheckerPlugin,
-  changelogCheckerPlugin,
-  flutterAnalyzePlugin,
-]);
+executeDangerBot([prSizeCheckerPlugin, changelogCheckerPlugin, flutterAnalyzePlugin]);
 ```
 
 ---
@@ -113,7 +109,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
-          node-version: '22'
+          node-version: "22"
       - run: npm install
       - run: npm run danger:ci
         env:
@@ -133,15 +129,6 @@ jobs:
 ---
 
 ## 🎯 Plugins Disponíveis
-
-| Plugin | Descrição | Habilitado por Padrão |
-|--------|-----------|----------------------|
-| `prSizeCheckerPlugin` | Verifica tamanho do PR | ✅ Sim |
-| `changelogCheckerPlugin` | Valida CHANGELOG.md | ✅ Sim |
-| `flutterAnalyzePlugin` | Executa flutter analyze | ✅ Sim |
-| `flutterArchitecturePlugin` | Valida arquitetura | ✅ Sim |
-| `spellCheckerPlugin` | Verifica ortografia | ✅ Sim |
-| `portugueseDocumentationPlugin` | Detecta docs em PT | ✅ Sim |
 
 > 📖 **Importar todos**: `import { allFlutterPlugins } from "@diletta/danger-bot";`
 
@@ -170,13 +157,17 @@ executeDangerBot(allFlutterPlugins, {
     sendMessage("🔍 Iniciando análise automática...");
     return true; // Continuar
   },
-  
+
   onSuccess: () => {
     sendMessage("✅ Análise concluída com sucesso!");
   },
-  
+
   onError: (error) => {
     console.error("Erro:", error);
+  },
+  
+  onFinally: () => {
+    sendMessage("📊 Análise finalizada!");
   }
 });
 ```
@@ -263,4 +254,3 @@ console.log(meuPlugin.config.enabled); // deve ser true
 [📚 Ver Documentação Completa](.) • [🔌 Criar Plugin](GUIA_PLUGINS.md#criar-plugin) • [⚙️ Configuração Avançada](API.md)
 
 </div>
-
