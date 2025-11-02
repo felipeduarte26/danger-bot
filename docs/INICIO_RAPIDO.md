@@ -242,7 +242,7 @@ console.log(meuPlugin.config.enabled); // deve ser true
 ## 💬 Suporte
 
 - 📖 **Documentação**: [docs/](.)
-- 🐛 **Issues**: [Bitbucket](https://bitbucket.org/diletta/danger-bot/issues)
+- 💬 **Slack**: [#danger-bot](https://diletta.slack.com/archives/C09CZAH10J3)
 - 💬 **Email**: felipe.duarte@dilettasolutions.com
 
 ---

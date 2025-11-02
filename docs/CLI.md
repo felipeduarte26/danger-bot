@@ -9,6 +9,7 @@
 O Danger Bot inclui uma CLI poderosa que facilita:
 
 - ✅ Criar novos plugins seguindo o padrão
+- ✅ Remover plugins existentes automaticamente
 - ✅ Listar todos os plugins disponíveis
 - ✅ Validar plugins existentes
 - ✅ Gerar dangerfiles de exemplo
@@ -55,6 +56,7 @@ Options:
 
 Commands:
   create-plugin|new        Criar um novo plugin interativamente
+  remove-plugin|rm         Remover um plugin existente
   list|ls                  Listar todos os plugins disponíveis
   generate-dangerfile|gen  Gerar dangerfile de exemplo com todos os plugins
   validate <plugin-file>   Validar se um plugin segue o padrão correto
@@ -161,6 +163,123 @@ O plugin criado já vem com:
 - ✅ Exemplos de uso dos helpers
 - ✅ Documentação completa
 - ✅ Export automático no barrel file da plataforma
+- ✅ **Adicionado automaticamente no `allFlutterPlugins`**
+- ✅ **Import adicionado automaticamente no `src/index.ts`**
+
+---
+
+## 🗑️ remove-plugin (rm)
+
+Remove um plugin existente de forma segura e automática, limpando todas as referências.
+
+### Uso
+
+```bash
+danger-bot remove-plugin
+# ou
+danger-bot rm
+```
+
+### Processo Interativo
+
+1. **Selecionar Plataforma**
+
+   ```
+   Available platforms:
+     1. flutter
+   
+   Select platform (1-1): 1
+   ```
+
+2. **Selecionar Plugin**
+
+   ```
+   Available plugins in flutter:
+     1. pr-size-checker
+     2. changelog-checker
+     3. flutter-analyze
+     4. flutter-architecture
+     5. spell-checker
+     6. portuguese-documentation
+     7. plugin-test
+   
+   Select plugin to remove (1-7): 7
+   ```
+
+3. **Confirmar Remoção**
+
+   ```
+   ⚠️  WARNING: This will permanently delete the plugin "plugin-test"!
+   Are you sure? (yes/no): yes
+   ```
+
+### Exemplo de Saída
+
+```
+============================================================
+REMOVE DANGER BOT PLUGIN
+============================================================
+
+Available platforms:
+  1. flutter
+
+Select platform (1-1): 1
+
+Available plugins in flutter:
+  1. pr-size-checker
+  2. changelog-checker
+  3. plugin-test
+
+Select plugin to remove (1-3): 3
+
+⚠️  WARNING: This will permanently delete the plugin "plugin-test"!
+Are you sure? (yes/no): yes
+
+------------------------------------------------------------
+REMOVING PLUGIN...
+------------------------------------------------------------
+
+[OK] Removed plugin folder: flutter/plugin-test/
+[OK] Removed export from flutter/index.ts
+[OK] Removed from imports in src/index.ts
+[OK] Removed from allFlutterPlugins in src/index.ts
+
+============================================================
+PLUGIN REMOVED SUCCESSFULLY!
+============================================================
+
+Removed:
+  ❌ flutter/plugin-test/ - Plugin folder deleted
+  ❌ flutter/index.ts - Export removed
+  ❌ src/index.ts - Import removed
+  ❌ src/index.ts - Removed from allFlutterPlugins
+
+Next steps:
+  1. Run: npm run build
+  2. Commit the changes
+```
+
+### O que é removido automaticamente
+
+- ✅ **Pasta do plugin** - Deleta `src/plugins/<platform>/<plugin-name>/`
+- ✅ **Export do barrel** - Remove linha do `<platform>/index.ts`
+- ✅ **Import principal** - Remove do import em `src/index.ts`
+- ✅ **Array de plugins** - Remove do `allFlutterPlugins` em `src/index.ts`
+
+### Segurança
+
+- ⚠️ Requer confirmação explícita digitando "yes"
+- ⚠️ Operação irreversível (sem undo)
+- ⚠️ Faz backup automático? Não - use Git para reverter se necessário
+- ✅ Lista todas as mudanças que serão feitas
+- ✅ Não remove se o plugin não existir
+
+### Quando Usar
+
+- ❌ Plugin obsoleto ou não utilizado
+- ❌ Plugin duplicado
+- ❌ Plugin de teste que não é mais necessário
+- ❌ Refatoração da estrutura de plugins
 
 ---
 
@@ -578,7 +697,5 @@ ls -la src/plugins
 [📚 Voltar para Documentação](.) • [🔌 Criar Primeiro Plugin](GUIA_PLUGINS.md) • [⚙️ API Reference](API.md)
 
 ---
-
-**Feito com ❤️ pela [Diletta Solutions](https://dilettasolutions.com)**
 
 </div>

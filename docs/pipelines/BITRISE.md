@@ -450,7 +450,7 @@ executeDangerBot(allFlutterPlugins, {
 ## 💬 Suporte
 
 - 📖 **Docs**: [Documentação completa](../)
-- 🐛 **Issues**: [Bitbucket](https://bitbucket.org/diletta/danger-bot/issues)
+- 💬 **Slack**: [#danger-bot](https://diletta.slack.com/archives/C09CZAH10J3)
 - 💬 **Email**: felipe.duarte@dilettasolutions.com
 
 ---
@@ -462,8 +462,6 @@ executeDangerBot(allFlutterPlugins, {
 [📚 Docs](../) • [🔧 Bitbucket Pipelines](./BITBUCKET_PIPELINES.md) • [🚀 GitHub Actions](./GITHUB_ACTIONS.md)
 
 ---
-
-**Feito com ❤️ pela [Diletta Solutions](https://dilettasolutions.com)**
 
 </div>
 

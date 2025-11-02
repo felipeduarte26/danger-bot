@@ -453,7 +453,6 @@ Após instalar com sucesso:
 Problemas na instalação?
 
 - 📖 **FAQ**: [FAQ.md](FAQ.md)
-- 🐛 **Issues**: [Bitbucket](https://bitbucket.org/diletta/danger-bot/issues)
 - 💬 **Email**: felipe.duarte@dilettasolutions.com
 
 ---
@@ -465,8 +464,6 @@ Problemas na instalação?
 [📚 Docs](.) • [🚀 Início Rápido](INICIO_RAPIDO.md) • [🔌 Plugins](GUIA_PLUGINS.md)
 
 ---
-
-**Feito com ❤️ pela [Diletta Solutions](https://dilettasolutions.com)**
 
 </div>
 
