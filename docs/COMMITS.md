@@ -28,13 +28,13 @@ O Danger Bot usa [Conventional Commits](https://www.conventionalcommits.org/) pa
 
 ### Componentes:
 
-| Componente | Obrigatório | Descrição |
-|------------|-------------|-----------|
-| `type` | ✅ Sim | Tipo da mudança (feat, fix, docs, etc) |
-| `scope` | ❌ Não | Contexto da mudança (cli, plugin, docs, etc) |
-| `subject` | ✅ Sim | Descrição curta em lowercase |
-| `body` | ❌ Não | Descrição detalhada |
-| `footer` | ❌ Não | Breaking changes, issues, etc |
+| Componente | Obrigatório | Descrição                                    |
+| ---------- | ----------- | -------------------------------------------- |
+| `type`     | ✅ Sim      | Tipo da mudança (feat, fix, docs, etc)       |
+| `scope`    | ❌ Não      | Contexto da mudança (cli, plugin, docs, etc) |
+| `subject`  | ✅ Sim      | Descrição curta em lowercase                 |
+| `body`     | ❌ Não      | Descrição detalhada                          |
+| `footer`   | ❌ Não      | Breaking changes, issues, etc                |
 
 ---
 
@@ -42,19 +42,19 @@ O Danger Bot usa [Conventional Commits](https://www.conventionalcommits.org/) pa
 
 ### Tipos Principais
 
-| Type | Quando Usar | Exemplo |
-|------|-------------|---------|
-| `feat` | Nova funcionalidade | `feat(cli): adicionar comando remove-plugin` |
-| `fix` | Correção de bug | `fix(plugin): corrigir spell checker em palavras compostas` |
-| `docs` | Documentação | `docs(readme): atualizar guia de instalação` |
-| `refactor` | Refatoração sem mudar comportamento | `refactor(helpers): simplificar getDanger` |
-| `perf` | Melhoria de performance | `perf(analyze): otimizar processamento de arquivos` |
-| `test` | Adicionar/corrigir testes | `test(plugin): adicionar testes do pr-size-checker` |
-| `build` | Sistema de build/dependências | `build(deps): atualizar danger para v13.0.1` |
-| `ci` | CI/CD | `ci(bitrise): adicionar step de lint` |
-| `chore` | Outras mudanças (configs, scripts) | `chore(husky): configurar pre-commit hook` |
-| `style` | Formatação (sem mudança de código) | `style: formatar com prettier` |
-| `revert` | Reverter commit anterior | `revert: reverter "feat: add new feature"` |
+| Type       | Quando Usar                         | Exemplo                                                     |
+| ---------- | ----------------------------------- | ----------------------------------------------------------- |
+| `feat`     | Nova funcionalidade                 | `feat(cli): adicionar comando remove-plugin`                |
+| `fix`      | Correção de bug                     | `fix(plugin): corrigir spell checker em palavras compostas` |
+| `docs`     | Documentação                        | `docs(readme): atualizar guia de instalação`                |
+| `refactor` | Refatoração sem mudar comportamento | `refactor(helpers): simplificar getDanger`                  |
+| `perf`     | Melhoria de performance             | `perf(analyze): otimizar processamento de arquivos`         |
+| `test`     | Adicionar/corrigir testes           | `test(plugin): adicionar testes do pr-size-checker`         |
+| `build`    | Sistema de build/dependências       | `build(deps): atualizar danger para v13.0.1`                |
+| `ci`       | CI/CD                               | `ci(bitrise): adicionar step de lint`                       |
+| `chore`    | Outras mudanças (configs, scripts)  | `chore(husky): configurar pre-commit hook`                  |
+| `style`    | Formatação (sem mudança de código)  | `style: formatar com prettier`                              |
+| `revert`   | Reverter commit anterior            | `revert: reverter "feat: add new feature"`                  |
 
 ---
 
@@ -63,11 +63,13 @@ O Danger Bot usa [Conventional Commits](https://www.conventionalcommits.org/) pa
 Scopes comuns no Danger Bot:
 
 ### CLI
+
 - `cli` - CLI principal
 - `commands` - Comandos específicos
 - `templates` - Templates de código
 
 ### Plugins
+
 - `plugin` - Plugins em geral
 - `flutter` - Plugins Flutter
 - `nodejs` - Plugins Node.js
@@ -75,17 +77,20 @@ Scopes comuns no Danger Bot:
 - `spell-checker` - Plugin específico
 
 ### Código
+
 - `helpers` - Helper functions
 - `types` - TypeScript types
 - `config` - Configurações
 
 ### Documentação
+
 - `docs` - Documentação geral
 - `readme` - README.md
 - `api` - Documentação da API
 - `guides` - Guias
 
 ### Infraestrutura
+
 - `ci` - CI/CD
 - `deps` - Dependências
 - `build` - Build system
@@ -221,10 +226,23 @@ O projeto já está configurado com:
 export default {
   extends: ["@commitlint/config-conventional"],
   rules: {
-    "type-enum": [2, "always", [
-      "feat", "fix", "docs", "style", "refactor",
-      "perf", "test", "build", "ci", "chore", "revert"
-    ]],
+    "type-enum": [
+      2,
+      "always",
+      [
+        "feat",
+        "fix",
+        "docs",
+        "style",
+        "refactor",
+        "perf",
+        "test",
+        "build",
+        "ci",
+        "chore",
+        "revert",
+      ],
+    ],
     "type-case": [2, "always", "lower-case"],
     "type-empty": [2, "never"],
     "scope-case": [2, "always", "lower-case"],
@@ -433,9 +451,6 @@ git shortlog -sn --no-merges
 
 **📝 Commits consistentes = Histórico limpo = Projeto profissional**
 
-[📚 Docs](.) • [🔧 Desenvolvimento](DESENVOLVIMENTO.md) • [🏗️ Arquitetura](ARQUITETURA.md)
-
 ---
 
 </div>
-
