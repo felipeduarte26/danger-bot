@@ -1,9 +1,8 @@
 # 🤖 Danger Bot
 
-[![Version](https://img.shields.io/badge/version-1.8.0-blue.svg)](https://bitbucket.org/diletta/danger-bot)
+[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://bitbucket.org/diletta/danger-bot)
 [![Node](https://img.shields.io/badge/node-%3E%3D22.19.0-brightgreen.svg)](https://nodejs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue.svg)](https://www.typescriptlang.org/)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Diletta](https://img.shields.io/badge/Made%20by-Diletta%20Solutions-red.svg)](https://dilettasolutions.com)
 
 > 🚀 Conjunto modular e profissional de plugins Danger JS para automação de code review
