@@ -11,6 +11,9 @@ export * from "./helpers";
 // Export types and helpers
 export * from "./types";
 
+// Export configuration
+export * from "./config";
+
 // Export all plugins (organized by platform)
 export * from "./plugins";
 

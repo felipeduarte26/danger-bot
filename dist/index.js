@@ -25,6 +25,8 @@ exports.allFlutterPlugins = void 0;
 __exportStar(require("./helpers"), exports);
 // Export types and helpers
 __exportStar(require("./types"), exports);
+// Export configuration
+__exportStar(require("./config"), exports);
 // Export all plugins (organized by platform)
 __exportStar(require("./plugins"), exports);
 // Export all plugins as a single array (barrel export)
