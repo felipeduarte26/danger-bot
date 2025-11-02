@@ -13,6 +13,7 @@ export default tseslint.config(
       "bin/**/*.js",
       "**/*.d.ts",
       "eslint.config.js", // Ignorar o próprio arquivo de config
+      "commitlint.config.js", // Ignorar config do commitlint
     ],
   },
 
@@ -64,8 +65,8 @@ export default tseslint.config(
       "no-console": "off", // Permitir console.log em plugins e scripts
       "prefer-const": "error",
       "no-var": "error",
-      "eqeqeq": ["error", "always"],
-      "curly": ["error", "all"],
+      eqeqeq: ["error", "always"],
+      curly: ["error", "all"],
       "no-throw-literal": "error",
     },
   },
@@ -73,4 +74,3 @@ export default tseslint.config(
   // Prettier deve ser o último para sobrescrever formatação
   prettier
 );
-
