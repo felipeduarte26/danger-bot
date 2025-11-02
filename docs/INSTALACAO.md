@@ -21,7 +21,7 @@ Antes de começar, certifique-se de ter:
 
 ```bash
 # Instalar Danger Bot
-npm install --save-dev danger @diletta/danger-bot@git+https://bitbucket.org/diletta/danger-bot.git#v1.8.0
+npm install --save-dev danger @diletta/danger-bot@git+https://bitbucket.org/diletta/danger-bot.git#main
 
 # Criar dangerfile.ts
 cat > dangerfile.ts << 'EOF'
@@ -71,7 +71,7 @@ Edite o `package.json` criado:
   },
   "devDependencies": {
     "danger": "^13.0.5",
-    "@diletta/danger-bot": "git+https://bitbucket.org/diletta/danger-bot.git#v1.8.0",
+    "@diletta/danger-bot": "git+https://bitbucket.org/diletta/danger-bot.git#main",
     "@types/node": "^24.9.2",
     "typescript": "^5.9.3"
   }
@@ -197,14 +197,13 @@ executeDangerBot([
 ```json
 {
   "devDependencies": {
-    "@diletta/danger-bot": "git+https://bitbucket.org/diletta/danger-bot.git#v1.8.0"
+    "@diletta/danger-bot": "git+https://bitbucket.org/diletta/danger-bot.git#main"
   }
 }
 ```
 
 **Versões disponíveis:**
-- `#v1.8.0` - Versão estável mais recente
-- `#main` - Versão de desenvolvimento (não recomendado)
+- `#main` - Branch principal (versão mais recente)
 
 ### Instalar via SSH (repositório privado)
 
@@ -226,7 +225,7 @@ executeDangerBot([
 {
   "devDependencies": {
     "danger": "^13.0.5",
-    "@diletta/danger-bot": "git+https://bitbucket.org/diletta/danger-bot.git#v1.8.0"
+    "@diletta/danger-bot": "git+https://bitbucket.org/diletta/danger-bot.git#main"
   }
 }
 ```
@@ -242,7 +241,7 @@ DANGER_GITHUB_API_TOKEN=seu_token_aqui
 {
   "devDependencies": {
     "danger": "^13.0.5",
-    "@diletta/danger-bot": "git+https://bitbucket.org/diletta/danger-bot.git#v1.8.0"
+    "@diletta/danger-bot": "git+https://bitbucket.org/diletta/danger-bot.git#main"
   }
 }
 ```
@@ -258,7 +257,7 @@ DANGER_BITBUCKETCLOUD_REPO_ACCESSTOKEN=seu_token_aqui
 {
   "devDependencies": {
     "danger": "^13.0.5",
-    "@diletta/danger-bot": "git+https://bitbucket.org/diletta/danger-bot.git#v1.8.0"
+    "@diletta/danger-bot": "git+https://bitbucket.org/diletta/danger-bot.git#main"
   }
 }
 ```

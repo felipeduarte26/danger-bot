@@ -8,7 +8,7 @@
 
 **R:** Sim! O `danger` é uma peer dependency. Instale:
 ```bash
-npm install --save-dev danger @diletta/danger-bot@git+https://bitbucket.org/diletta/danger-bot.git#v1.8.0
+npm install --save-dev danger @diletta/danger-bot@git+https://bitbucket.org/diletta/danger-bot.git#main
 ```
 
 ### Q: Funciona em projetos Flutter sem package.json?

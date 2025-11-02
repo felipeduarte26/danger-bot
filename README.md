@@ -8,7 +8,7 @@
 
 > 🚀 Conjunto modular e profissional de plugins Danger JS para automação de code review
 
-**Danger Bot** é uma solução completa para automatizar code review em projetos Flutter/Dart usando Danger JS. Com plugins prontos, CLI integrada e suporte para múltiplas plataformas de CI/CD.
+**Danger Bot** é uma solução completa para automatizar code review em projetos usando Danger JS. Com plugins prontos, CLI integrada e suporte para múltiplas plataformas de CI/CD.
 
 ---
 
@@ -29,7 +29,7 @@
 
 ```bash
 # 1. Instalar
-npm install --save-dev danger @diletta/danger-bot@git+https://bitbucket.org/diletta/danger-bot.git#v1.8.0
+npm install --save-dev danger @diletta/danger-bot@git+https://bitbucket.org/diletta/danger-bot.git#main
 
 # 2. Criar dangerfile.ts
 cat > dangerfile.ts << 'EOF'

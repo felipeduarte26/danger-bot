@@ -8,7 +8,7 @@
 
 ```bash
 # 1. Instalar
-npm install --save-dev danger @diletta/danger-bot@git+https://bitbucket.org/diletta/danger-bot.git#v1.8.0
+npm install --save-dev danger @diletta/danger-bot@git+https://bitbucket.org/diletta/danger-bot.git#main
 
 # 2. Criar dangerfile.ts
 cat > dangerfile.ts << 'EOF'
@@ -33,7 +33,7 @@ npm run danger:ci
 ### 1️⃣ Instalação
 
 ```bash
-npm install --save-dev danger @diletta/danger-bot@git+https://bitbucket.org/diletta/danger-bot.git#v1.8.0
+npm install --save-dev danger @diletta/danger-bot@git+https://bitbucket.org/diletta/danger-bot.git#main
 ```
 
 > **Nota**: Se seu projeto não tem `package.json`, veja o [Guia de Instalação Completo](INSTALACAO.md#projetos-sem-packagejson)

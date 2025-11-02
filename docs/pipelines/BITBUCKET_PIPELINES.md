@@ -86,7 +86,7 @@ pipelines:
                 "version": "1.0.0",
                 "private": true,
                 "devDependencies": {
-                  "@diletta/danger-bot": "git+https://bitbucket.org/diletta/danger-bot.git#v1.8.0",
+                  "@diletta/danger-bot": "git+https://bitbucket.org/diletta/danger-bot.git#main",
                   "danger": "^13.0.5",
                   "@types/node": "^24.9.2",
                   "typescript": "^5.9.3"
@@ -173,7 +173,7 @@ pipelines:
                 "version": "1.0.0",
                 "private": true,
                 "devDependencies": {
-                  "@diletta/danger-bot": "git+https://bitbucket.org/diletta/danger-bot.git#v1.8.0",
+                  "@diletta/danger-bot": "git+https://bitbucket.org/diletta/danger-bot.git#main",
                   "danger": "^13.0.5",
                   "@types/node": "^24.9.2",
                   "typescript": "^5.9.3"
@@ -450,7 +450,7 @@ pipelines:
                 "name": "danger-ci",
                 "private": true,
                 "devDependencies": {
-                  "@diletta/danger-bot": "git+https://bitbucket.org/diletta/danger-bot.git#v1.8.0",
+                  "@diletta/danger-bot": "git+https://bitbucket.org/diletta/danger-bot.git#main",
                   "danger": "^13.0.5"
                 }
               }
