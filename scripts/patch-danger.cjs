@@ -229,6 +229,7 @@ function patchLinks(dangerPath) {
 /**
  * Patch 3: Corrigir template inline do Bitbucket Cloud
  * Remove metadados visíveis que o Bitbucket não esconde corretamente
+ * Usa substituições simples em vez de regex complexa para maior robustez
  */
 function patchBitbucketInlineTemplate(dangerPath) {
   const filePath = path.join(
@@ -249,51 +250,64 @@ function patchBitbucketInlineTemplate(dangerPath) {
     const originalContent = content;
     let patched = false;
 
-    // Substituir a função inlineTemplate completa
-    // O problema: [//]: # não funciona no Bitbucket, aparece visível
-    // Solução: Remover completamente os metadados e mostrar só o conteúdo
-    const inlineTemplateRegex = /function inlineTemplate\(dangerID, results, file, line\) \{[\s\S]*?exports\.inlineTemplate = inlineTemplate;/;
-
-    const newInlineTemplate = `function inlineTemplate(dangerID, results, file, line) {
-    var printViolation = function (defaultEmoji) { return function (violation) {
-        return "".concat(violation.icon || defaultEmoji, " ").concat(violation.message);
-    }; };
-    // DANGER-BOT: Removidos metadados que ficavam visíveis no Bitbucket
-    var parts = [];
-    if (results.fails.length > 0) {
-        parts.push(results.fails.map(printViolation(noEntryEmoji)).join("\\n\\n"));
+    // ESTRATÉGIA DIRETA: Remover APENAS as partes que adicionam metadados
+    // Padrão no arquivo: return "\n[//]: # (".concat((0, exports.dangerIDToString)(dangerID), ")\n[//]: # (").concat((0, exports.fileLineToString)(file, line), ")\n").concat(...
+    
+    if (content.includes('[//]: #')) {
+      const oldContent = content;
+      
+      // Remover: "\n[//]: # (".concat((0, exports.dangerIDToString)(dangerID), ")\n[//]: # (").concat((0, exports.fileLineToString)(file, line), ")\n").concat(
+      // E substituir por return direto com o conteúdo
+      content = content.replace(
+        'return "\\n[//]: # (".concat((0, exports.dangerIDToString)(dangerID), ")\\n[//]: # (").concat((0, exports.fileLineToString)(file, line), ")\\n").concat(',
+        'return // DANGER-BOT: Metadados removidos\n         "'
+        + '".concat('
+      );
+      
+      if (oldContent !== content) {
+        patched = true;
+        console.log("  ✅ bitbucketCloudTemplate.js - Metadados inline removidos");
+      } else {
+        // Tentar buscar o padrão no meio da linha (caso esteja formatado diferente)
+        content = content.replace(
+          '"\\n[//]: # (".concat((0, exports.dangerIDToString)(dangerID), ")\\n[//]: # (").concat((0, exports.fileLineToString)(file, line), ")\\n").concat(',
+          '"".concat( // DANGER-BOT: Metadados removidos\n        '
+        );
+        
+        if (oldContent !== content) {
+          patched = true;
+          console.log("  ✅ bitbucketCloudTemplate.js - Metadados inline removidos (alt)");
+        }
+      }
     }
-    if (results.warnings.length > 0) {
-        parts.push(results.warnings.map(printViolation(warningEmoji)).join("\\n\\n"));
+    
+    // Se já tem comentário DANGER-BOT, assume que já foi patcheado
+    else if (content.includes('// DANGER-BOT: Metadados removidos')) {
+      console.log("  ℹ️  bitbucketCloudTemplate.js já contém patch");
+      return true;
     }
-    if (results.messages.length > 0) {
-        parts.push(results.messages.map(printViolation(messageEmoji)).join("\\n\\n"));
-    }
-    if (results.markdowns.length > 0) {
-        parts.push(results.markdowns.map(function (v) { return v.message; }).join("\\n\\n"));
-    }
-    return parts.join("\\n\\n") + "\\n";
-}
-exports.inlineTemplate = inlineTemplate;`;
-
-    if (inlineTemplateRegex.test(content)) {
-      content = content.replace(inlineTemplateRegex, newInlineTemplate);
-      patched = true;
-    }
-
+    
     if (patched) {
       if (!fs.existsSync(filePath + ".backup")) {
         fs.writeFileSync(filePath + ".backup", originalContent);
       }
       fs.writeFileSync(filePath, content, "utf8");
-      console.log("  ✅ bitbucketCloudTemplate.js - Metadados inline removidos");
       return true;
     } else {
-      console.log("  ⚠️  inlineTemplate não encontrado ou já modificado");
+      console.log("  ⚠️  Padrão de metadados não encontrado no template");
+      console.log("  ℹ️  Verificando conteúdo do inlineTemplate...");
+      
+      // Debug: mostrar o conteúdo da função inlineTemplate
+      const inlineMatch = content.match(/function inlineTemplate[\s\S]{0,500}/);
+      if (inlineMatch) {
+        console.log("  📄 Trecho encontrado:");
+        console.log(inlineMatch[0].substring(0, 200) + "...");
+      }
+      
       return false;
     }
   } catch (error) {
-    console.error(`Erro ao patchear bitbucketCloudTemplate.js:`, error.message);
+    console.error(`❌ Erro ao patchear bitbucketCloudTemplate.js:`, error.message);
     return false;
   }
 }
