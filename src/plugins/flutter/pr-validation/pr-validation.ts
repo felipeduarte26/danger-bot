@@ -126,9 +126,7 @@ Sem changelog, fica difícil:
 
 3. Documente as mudanças desta PR
 
-📖 Referência: [Keep a Changelog](https://keepachangelog.com/)`,
-            "changelog.md",
-            1
+📖 Referência: [Keep a Changelog](https://keepachangelog.com/)`
           );
         } else {
           sendFail(
@@ -167,9 +165,7 @@ Cada PR deve documentar suas mudanças para manter o histórico claro.
 
 4. Commit e push
 
-💡 Dica: Use categorias claras (Added, Fixed, Changed, Security)`,
-            "changelog.md",
-            1
+💡 Dica: Use categorias claras (Added, Fixed, Changed, Security)`
           );
         }
       }
