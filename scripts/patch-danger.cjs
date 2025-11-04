@@ -227,7 +227,79 @@ function patchLinks(dangerPath) {
 }
 
 /**
- * Patch 3: Traduzir mensagens do Danger para Português
+ * Patch 3: Corrigir template inline do Bitbucket Cloud
+ * Remove metadados visíveis que o Bitbucket não esconde corretamente
+ */
+function patchBitbucketInlineTemplate(dangerPath) {
+  const filePath = path.join(
+    dangerPath,
+    "distribution",
+    "runner",
+    "templates",
+    "bitbucketCloudTemplate.js"
+  );
+
+  if (!fs.existsSync(filePath)) {
+    console.log("  ⚠️  bitbucketCloudTemplate.js não encontrado");
+    return false;
+  }
+
+  try {
+    let content = fs.readFileSync(filePath, "utf8");
+    const originalContent = content;
+    let patched = false;
+
+    // Substituir a função inlineTemplate completa
+    // O problema: [//]: # não funciona no Bitbucket, aparece visível
+    // Solução: Remover completamente os metadados e mostrar só o conteúdo
+    const inlineTemplateRegex = /function inlineTemplate\(dangerID, results, file, line\) \{[\s\S]*?exports\.inlineTemplate = inlineTemplate;/;
+
+    const newInlineTemplate = `function inlineTemplate(dangerID, results, file, line) {
+    var printViolation = function (defaultEmoji) { return function (violation) {
+        return "".concat(violation.icon || defaultEmoji, " ").concat(violation.message);
+    }; };
+    // DANGER-BOT: Removidos metadados que ficavam visíveis no Bitbucket
+    var parts = [];
+    if (results.fails.length > 0) {
+        parts.push(results.fails.map(printViolation(noEntryEmoji)).join("\\n\\n"));
+    }
+    if (results.warnings.length > 0) {
+        parts.push(results.warnings.map(printViolation(warningEmoji)).join("\\n\\n"));
+    }
+    if (results.messages.length > 0) {
+        parts.push(results.messages.map(printViolation(messageEmoji)).join("\\n\\n"));
+    }
+    if (results.markdowns.length > 0) {
+        parts.push(results.markdowns.map(function (v) { return v.message; }).join("\\n\\n"));
+    }
+    return parts.join("\\n\\n") + "\\n";
+}
+exports.inlineTemplate = inlineTemplate;`;
+
+    if (inlineTemplateRegex.test(content)) {
+      content = content.replace(inlineTemplateRegex, newInlineTemplate);
+      patched = true;
+    }
+
+    if (patched) {
+      if (!fs.existsSync(filePath + ".backup")) {
+        fs.writeFileSync(filePath + ".backup", originalContent);
+      }
+      fs.writeFileSync(filePath, content, "utf8");
+      console.log("  ✅ bitbucketCloudTemplate.js - Metadados inline removidos");
+      return true;
+    } else {
+      console.log("  ⚠️  inlineTemplate não encontrado ou já modificado");
+      return false;
+    }
+  } catch (error) {
+    console.error(`Erro ao patchear bitbucketCloudTemplate.js:`, error.message);
+    return false;
+  }
+}
+
+/**
+ * Patch 4: Traduzir mensagens do Danger para Português
  */
 function patchMessages(dangerPath) {
   const filesToPatch = [
@@ -347,12 +419,13 @@ function createPatchMarker(dangerPath) {
   const markerPath = path.join(dangerPath, ".danger-bot-patched");
   const info = {
     patchedAt: new Date().toISOString(),
-    version: "2.0.4",
+    version: "2.0.6",
     patches: [
       'Removed "All green. Good on \'ya" message',
       "Changed links from danger.systems to https://dilettasolutions.com",
       'Changed "dangerJS" to "Diletta Solutions"',
       "Changed emoji from :no_entry_sign: to :rocket:",
+      "Fixed Bitbucket inline template metadata visibility",
       "Translated messages to Portuguese (pt-BR)",
     ],
   };
@@ -397,6 +470,7 @@ function main() {
 
   if (patchExecutor(dangerPath)) patchesApplied++;
   if (patchLinks(dangerPath)) patchesApplied++;
+  if (patchBitbucketInlineTemplate(dangerPath)) patchesApplied++;
   if (patchMessages(dangerPath)) patchesApplied++;
 
   console.log("");
@@ -409,6 +483,7 @@ function main() {
     console.log("  ✅ danger.systems → https://dilettasolutions.com");
     console.log('  ✅ "dangerJS" → "Diletta Solutions"');
     console.log("  ✅ Emoji: 🚫 (:no_entry_sign:) → 🚀 (:rocket:)");
+    console.log("  🔧 Metadados inline → Ocultos corretamente");
     console.log("  🇧🇷 Mensagens traduzidas para Português");
     console.log("");
     createPatchMarker(dangerPath);
