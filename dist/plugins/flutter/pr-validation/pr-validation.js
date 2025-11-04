@@ -24,7 +24,7 @@ exports.default = (0, _types_1.createPlugin)(
       (0, _types_1.sendFail)(
         `## 📝 Descrição do PR muito curta
 
-**A descrição tem apenas ${prDescription.length} caracteres (mínimo: ${minDescriptionLength}).**
+A descrição tem apenas ${prDescription.length} caracteres (mínimo: ${minDescriptionLength}).
 
 Descrição atual:
 \`\`\`
@@ -37,10 +37,10 @@ Descrições curtas dificultam a revisão e compreensão das mudanças.
 
 ### O que incluir na descrição?
 
-**1. Contexto** - Por que essa mudança foi necessária?  
-**2. Mudanças** - O que foi alterado?  
-**3. Impacto** - Como isso afeta o sistema/usuários?  
-**4. Testes** - Como foi testado?
+1. **Contexto** - Por que essa mudança foi necessária?
+2. **Mudanças** - O que foi alterado?
+3. **Impacto** - Como isso afeta o sistema/usuários?
+4. **Testes** - Como foi testado?
 
 ### Exemplo:
 
@@ -62,7 +62,7 @@ Usuários com emails longos não conseguiam fazer login.
 - ✅ 15 testes unitários passando
 \`\`\`
 
-💡 **Dica:** Uma boa descrição economiza tempo de revisão!`,
+💡 Dica: Uma boa descrição economiza tempo de revisão!`,
         "README.md",
         1
       );
@@ -84,21 +84,21 @@ Usuários com emails longos não conseguiam fazer login.
           (0, _types_1.sendFail)(
             `## 📋 Changelog não encontrado
 
-**Este projeto não possui um arquivo \`changelog.md\` na raiz.**
+Este projeto não possui um arquivo \`changelog.md\` na raiz.
 
 ### Por que isso é importante?
 
 Sem changelog, fica difícil:
+
 - 🔍 Rastrear histórico de mudanças
-- 🐛 Identificar quando bugs foram introduzidos  
+- 🐛 Identificar quando bugs foram introduzidos
 - 📢 Comunicar mudanças para a equipe
 - ↩️ Fazer rollback seguro
 
 ### O que fazer?
 
-**1. Crie o arquivo \`changelog.md\` na raiz do projeto**
-
-**2. Use este template básico:**
+1. Crie o arquivo \`changelog.md\` na raiz do projeto
+2. Use este template básico:
 
 \`\`\`markdown
 # Changelog
@@ -107,24 +107,21 @@ Sem changelog, fica difícil:
 
 ### Added
 - Nova funcionalidade X
-- Implementado recurso Y
 
 ### Fixed
 - Corrigido bug no login
-- Corrigido crash ao abrir app
 
 ### Changed
-- Melhorada performance da lista
+- Melhorada performance
 
 ## [1.0.0] - 2024-01-15
-
 ### Added
-- Versão inicial do app
+- Versão inicial
 \`\`\`
 
-**3. Documente as mudanças desta PR**
+3. Documente as mudanças desta PR
 
-📖 **Referência:** [Keep a Changelog](https://keepachangelog.com/)`,
+📖 Referência: [Keep a Changelog](https://keepachangelog.com/)`,
             "changelog.md",
             1
           );
@@ -132,7 +129,7 @@ Sem changelog, fica difícil:
           (0, _types_1.sendFail)(
             `## 📋 Changelog não foi atualizado
 
-**O arquivo \`changelog.md\` existe, mas não foi modificado nesta PR.**
+O arquivo \`changelog.md\` existe, mas não foi modificado nesta PR.
 
 ### Por que preciso atualizar?
 
@@ -140,34 +137,32 @@ Cada PR deve documentar suas mudanças para manter o histórico claro.
 
 ### O que fazer?
 
-**1. Abra o arquivo \`changelog.md\`**
-
-**2. Localize a seção \`## [Unreleased]\`**
-
-**3. Adicione suas mudanças nas categorias:**
+1. Abra o arquivo \`changelog.md\`
+2. Localize a seção \`## [Unreleased]\`
+3. Adicione suas mudanças nas categorias:
 
 \`\`\`markdown
 ## [Unreleased]
 
 ### Added
 - Nova tela de configurações
-- Validação de CPF no cadastro
+- Validação de CPF
 
 ### Fixed
 - Corrigido crash ao fazer logout
 - Corrigido bug de validação
 
 ### Changed
-- Melhorada performance da busca (50% mais rápido)
+- Melhorada performance (50% mais rápido)
 - Atualizada UI dos botões
 
 ### Security
 - Corrigida vulnerabilidade no login
 \`\`\`
 
-**4. Commit e push**
+4. Commit e push
 
-💡 **Dica:** Use categorias claras (Added, Fixed, Changed, Security)`,
+💡 Dica: Use categorias claras (Added, Fixed, Changed, Security)`,
             "changelog.md",
             1
           );
@@ -181,37 +176,38 @@ Cada PR deve documentar suas mudanças para manter o histórico claro.
       (0, _types_1.sendFail)(
         `## 📦 pubspec.lock modificado sem pubspec.yaml
 
-**O \`pubspec.lock\` foi alterado mas o \`pubspec.yaml\` não.**
+O \`pubspec.lock\` foi alterado mas o \`pubspec.yaml\` não.
 
 ### Por que isso é um problema?
 
 Pode indicar:
+
 - Dependências desatualizadas
 - Conflitos de versão entre ambientes
 - Inconsistência na resolução de deps
 
 ### O que fazer?
 
-**1. Execute localmente:**
+1. Execute localmente:
 \`\`\`bash
 flutter pub get
 \`\`\`
 
-**2. Verifique diferenças:**
+2. Verifique diferenças:
 \`\`\`bash
 git diff pubspec.lock
 \`\`\`
 
-**3. Se houver diferenças, commite:**
+3. Se houver diferenças, commite:
 \`\`\`bash
 git add pubspec.lock
 git commit -m "chore: sincroniza pubspec.lock"
 git push
 \`\`\`
 
-**4. Se não houver diferenças:** pode ignorar (diferença de plataforma/cache)
+4. Se não houver diferenças: pode ignorar (diferença de plataforma/cache)
 
-💡 **Dica:** Execute \`flutter pub get\` após cada pull!`,
+💡 Dica: Execute \`flutter pub get\` após cada pull!`,
         "pubspec.lock",
         1
       );
