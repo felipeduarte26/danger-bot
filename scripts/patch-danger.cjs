@@ -227,93 +227,7 @@ function patchLinks(dangerPath) {
 }
 
 /**
- * Patch 3: Corrigir template inline do Bitbucket Cloud
- * Remove metadados visíveis que o Bitbucket não esconde corretamente
- * Usa substituições simples em vez de regex complexa para maior robustez
- */
-function patchBitbucketInlineTemplate(dangerPath) {
-  const filePath = path.join(
-    dangerPath,
-    "distribution",
-    "runner",
-    "templates",
-    "bitbucketCloudTemplate.js"
-  );
-
-  if (!fs.existsSync(filePath)) {
-    console.log("  ⚠️  bitbucketCloudTemplate.js não encontrado");
-    return false;
-  }
-
-  try {
-    let content = fs.readFileSync(filePath, "utf8");
-    const originalContent = content;
-    let patched = false;
-
-    // ESTRATÉGIA DIRETA: Remover APENAS as partes que adicionam metadados
-    // Padrão no arquivo: return "\n[//]: # (".concat((0, exports.dangerIDToString)(dangerID), ")\n[//]: # (").concat((0, exports.fileLineToString)(file, line), ")\n").concat(...
-    
-    if (content.includes('[//]: #')) {
-      const oldContent = content;
-      
-      // Remover: "\n[//]: # (".concat((0, exports.dangerIDToString)(dangerID), ")\n[//]: # (").concat((0, exports.fileLineToString)(file, line), ")\n").concat(
-      // E substituir por return direto com o conteúdo
-      content = content.replace(
-        'return "\\n[//]: # (".concat((0, exports.dangerIDToString)(dangerID), ")\\n[//]: # (").concat((0, exports.fileLineToString)(file, line), ")\\n").concat(',
-        'return // DANGER-BOT: Metadados removidos\n         "'
-        + '".concat('
-      );
-      
-      if (oldContent !== content) {
-        patched = true;
-        console.log("  ✅ bitbucketCloudTemplate.js - Metadados inline removidos");
-      } else {
-        // Tentar buscar o padrão no meio da linha (caso esteja formatado diferente)
-        content = content.replace(
-          '"\\n[//]: # (".concat((0, exports.dangerIDToString)(dangerID), ")\\n[//]: # (").concat((0, exports.fileLineToString)(file, line), ")\\n").concat(',
-          '"".concat( // DANGER-BOT: Metadados removidos\n        '
-        );
-        
-        if (oldContent !== content) {
-          patched = true;
-          console.log("  ✅ bitbucketCloudTemplate.js - Metadados inline removidos (alt)");
-        }
-      }
-    }
-    
-    // Se já tem comentário DANGER-BOT, assume que já foi patcheado
-    else if (content.includes('// DANGER-BOT: Metadados removidos')) {
-      console.log("  ℹ️  bitbucketCloudTemplate.js já contém patch");
-      return true;
-    }
-    
-    if (patched) {
-      if (!fs.existsSync(filePath + ".backup")) {
-        fs.writeFileSync(filePath + ".backup", originalContent);
-      }
-      fs.writeFileSync(filePath, content, "utf8");
-      return true;
-    } else {
-      console.log("  ⚠️  Padrão de metadados não encontrado no template");
-      console.log("  ℹ️  Verificando conteúdo do inlineTemplate...");
-      
-      // Debug: mostrar o conteúdo da função inlineTemplate
-      const inlineMatch = content.match(/function inlineTemplate[\s\S]{0,500}/);
-      if (inlineMatch) {
-        console.log("  📄 Trecho encontrado:");
-        console.log(inlineMatch[0].substring(0, 200) + "...");
-      }
-      
-      return false;
-    }
-  } catch (error) {
-    console.error(`❌ Erro ao patchear bitbucketCloudTemplate.js:`, error.message);
-    return false;
-  }
-}
-
-/**
- * Patch 4: Traduzir mensagens do Danger para Português
+ * Patch 3: Traduzir mensagens do Danger para Português
  */
 function patchMessages(dangerPath) {
   const filesToPatch = [
@@ -433,13 +347,12 @@ function createPatchMarker(dangerPath) {
   const markerPath = path.join(dangerPath, ".danger-bot-patched");
   const info = {
     patchedAt: new Date().toISOString(),
-    version: "2.0.8",
+    version: "2.1.0",
     patches: [
       'Removed "All green. Good on \'ya" message',
       "Changed links from danger.systems to https://dilettasolutions.com",
       'Changed "dangerJS" to "Diletta Solutions"',
       "Changed emoji from :no_entry_sign: to :rocket:",
-      "Fixed Bitbucket inline template metadata visibility",
       "Translated messages to Portuguese (pt-BR)",
     ],
   };
@@ -451,7 +364,7 @@ function createPatchMarker(dangerPath) {
  */
 function isPatchApplied(dangerPath) {
   const markerPath = path.join(dangerPath, ".danger-bot-patched");
-  const CURRENT_PATCH_VERSION = "2.0.8";
+  const CURRENT_PATCH_VERSION = "2.1.0";
 
   if (!fs.existsSync(markerPath)) {
     return false;
@@ -506,7 +419,6 @@ function main() {
 
   if (patchExecutor(dangerPath)) patchesApplied++;
   if (patchLinks(dangerPath)) patchesApplied++;
-  if (patchBitbucketInlineTemplate(dangerPath)) patchesApplied++;
   if (patchMessages(dangerPath)) patchesApplied++;
 
   console.log("");
@@ -519,7 +431,6 @@ function main() {
     console.log("  ✅ danger.systems → https://dilettasolutions.com");
     console.log('  ✅ "dangerJS" → "Diletta Solutions"');
     console.log("  ✅ Emoji: 🚫 (:no_entry_sign:) → 🚀 (:rocket:)");
-    console.log("  🔧 Metadados inline → Ocultos corretamente");
     console.log("  🇧🇷 Mensagens traduzidas para Português");
     console.log("");
     createPatchMarker(dangerPath);

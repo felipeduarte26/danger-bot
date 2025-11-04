@@ -113,6 +113,108 @@ export default createPlugin(
 
 ---
 
+## ⚠️ Boas Práticas e Armadilhas Comuns
+
+### 🚨 IMPORTANTE: Evite Inline Comments no Bitbucket
+
+**❌ PROBLEMA:** Usar `file` e `line` cria inline comments que geram metadados visíveis no Bitbucket:
+
+```typescript
+// ❌ EVITE ISSO:
+sendFail("Erro no arquivo", "lib/main.dart", 10);
+//                           ^^^^^^^^^^^^^^  ^^
+//                           Cria inline comment
+```
+
+**Resultado no Bitbucket:**
+```
+<!-- 1 failure: Erro no arquivo...
+DangerID: danger-id-...; File: lib/main.dart; Line: 10; -->
+❌ Erro no arquivo
+```
+
+O Bitbucket adiciona esse preview automaticamente e **não pode ser desabilitado**.
+
+**✅ SOLUÇÃO: Use Comentários Gerais**
+
+```typescript
+// ✅ RECOMENDADO:
+sendFail("Erro no arquivo `lib/main.dart` linha 10");
+// Ou
+sendFail(`## ❌ Erro Encontrado
+
+Problema no arquivo \`lib/main.dart\` (linha 10):
+- Descrição do erro
+- Como corrigir`);
+```
+
+**Resultado no Bitbucket:**
+```
+1 Warnings
+warning - ❌ Erro Encontrado
+Problema no arquivo `lib/main.dart` (linha 10)...
+```
+
+### 📋 Quando Usar Inline vs Comentário Geral?
+
+| Situação | Usar |
+|----------|------|
+| **Arquivo não existe** (ex: changelog ausente) | ✅ Comentário geral |
+| **Validação de padrão** (ex: naming conventions) | ✅ Comentário geral |
+| **PR size, count de arquivos** | ✅ Comentário geral |
+| **Erros de lint/analyze** | ⚠️ Comentário geral (evitar metadados) |
+| **Qualquer mensagem importante** | ✅ Comentário geral |
+
+**Regra geral:** Sempre prefira comentários gerais. Inline comments devem ser raros ou evitados.
+
+### 💡 Exemplos Práticos
+
+**✅ Arquivo Ausente (Changelog):**
+```typescript
+if (!hasChangelog) {
+  sendFail(`## 📋 Changelog não encontrado
+  
+Este projeto não possui \`changelog.md\` na raiz.
+
+### Como resolver:
+1. Crie o arquivo...`);
+  // SEM file/line = comentário geral limpo
+}
+```
+
+**✅ Validação de Padrão:**
+```typescript
+if (wrongNaming) {
+  sendFail(`## 📁 Naming Convention Incorreto
+
+Arquivo \`${file}\` não segue o padrão snake_case.
+
+**Encontrado:** \`MyFile.dart\`  
+**Esperado:** \`my_file.dart\``);
+  // Menciona o arquivo na mensagem, mas não cria inline
+}
+```
+
+**✅ PR Size:**
+```typescript
+if (tooLarge) {
+  sendWarn(`## 🚨 PR Muito Grande
+
+Esta PR altera **${count} arquivos**.  
+Recomendação: quebrar em PRs menores.`);
+}
+```
+
+### 🎯 Checklist de Plugin
+
+- [ ] Usa `sendFail(message)` sem file/line
+- [ ] Mensagens são claras e acionáveis
+- [ ] Inclui exemplos de como corrigir
+- [ ] Menciona arquivos na mensagem (não inline)
+- [ ] Testado no Bitbucket/GitHub
+
+---
+
 ## 📚 Documentação Completa
 
 Cada plugin tem documentação detalhada:

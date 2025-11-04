@@ -68,6 +68,29 @@ danger-bot create-plugin
 
 ---
 
+## ⚠️ Boas Práticas
+
+### 🚨 EVITE Inline Comments
+
+**Sempre use comentários gerais:**
+
+```typescript
+// ✅ CORRETO
+sendFail("Erro encontrado");
+
+// ❌ EVITE (cria metadados visíveis no Bitbucket)
+sendFail("Erro encontrado", "arquivo.dart", 10);
+```
+
+**Por quê?** O Bitbucket adiciona preview com metadados visíveis em inline comments:
+```
+<!-- 1 failure: Erro... DangerID: ...; File: ...; Line: ...; -->
+```
+
+**Documentação completa:** [Guia de Plugins - Boas Práticas](GUIA_PLUGINS.md#️-boas-práticas-e-armadilhas-comuns)
+
+---
+
 ## 🧪 Testar
 
 ### Localmente
