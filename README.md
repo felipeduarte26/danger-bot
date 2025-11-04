@@ -80,12 +80,6 @@ npx danger ci
 
 ## 🔌 Plugins Disponíveis
 
-### 📊 Resumo
-
-- **25 plugins totais** disponíveis para Flutter/Dart
-- Todos seguem o formato padronizado com `createPlugin()`
-- Organizados por categoria: PR, Domain, Data, Presentation, Flutter, Qualidade
-
 ---
 
 | Plugin                       | Descrição                                          | Documentação                                                      |
