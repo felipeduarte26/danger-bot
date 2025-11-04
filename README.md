@@ -1,6 +1,6 @@
 # 🤖 Danger Bot
 
-[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://bitbucket.org/diletta/danger-bot)
+[![Version](https://img.shields.io/badge/version-2.0.1-blue.svg)](https://bitbucket.org/diletta/danger-bot)
 [![Node](https://img.shields.io/badge/node-%3E%3D22.19.0-brightgreen.svg)](https://nodejs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue.svg)](https://www.typescriptlang.org/)
 [![Diletta](https://img.shields.io/badge/Made%20by-Diletta%20Solutions-red.svg)](https://dilettasolutions.com)
@@ -16,7 +16,6 @@
 - 🔌 **Plugins Prontos** - Selecione todos ou somente os plugins que faz sentido para o seu projeto
 - 🤖 **CLI Integrada** - Crie e gerencie plugins facilmente
 - 🌍 **Multi-Plataforma** - GitHub, Bitbucket, GitLab
-- ⚡ **Zero Config** - Funciona out-of-the-box
 - 📚 **Documentação Completa** - Projeto 100% documentado
 - 🎨 **TypeScript** - Type-safe e moderno
 - 🔧 **Customizável** - Crie seus próprios plugins
@@ -89,33 +88,33 @@ npx danger ci
 
 ---
 
-| Plugin | Descrição | Documentação |
-|--------|-----------|--------------|
-| **pr-size-checker** | Alerta sobre PRs muito grandes | [📖 Docs](src/plugins/flutter/pr-size-checker/README.md) |
-| **changelog-checker** | Verifica se CHANGELOG.md foi atualizado | [📖 Docs](src/plugins/flutter/changelog-checker/README.md) |
-| **flutter-analyze** | Executa flutter analyze e reporta problemas | [📖 Docs](src/plugins/flutter/flutter-analyze/README.md) |
-| **spell-checker** | Verifica ortografia em identificadores Dart | [📖 Docs](src/plugins/flutter/spell-checker/README.md) |
-| **portuguese-documentation** | Detecta documentação em português | [📖 Docs](src/plugins/flutter/portuguese-documentation/README.md) |
-| **pr-validation** | Valida descrição, changelog, tamanho da PR | [📖 Docs](src/plugins/flutter/pr-validation/README.md) |
-| **file-naming** | Verifica nomenclatura snake_case em arquivos .dart | [📖 Docs](src/plugins/flutter/file-naming/README.md) |
-| **domain-entities** | Valida entities (final class, const, sufixo) | [📖 Docs](src/plugins/flutter/domain-entities/README.md) |
-| **domain-failures** | Valida failures (sealed class, pattern matching) | [📖 Docs](src/plugins/flutter/domain-failures/README.md) |
-| **domain-repositories** | Valida repository interfaces (abstract interface) | [📖 Docs](src/plugins/flutter/domain-repositories/README.md) |
-| **domain-usecases** | Valida usecases (interface + implementação) | [📖 Docs](src/plugins/flutter/domain-usecases/README.md) |
-| **data-datasources** | Valida datasources (nomenclatura) | [📖 Docs](src/plugins/flutter/data-datasources/README.md) |
-| **data-models** | Valida models (final class, fromJson, toJson) | [📖 Docs](src/plugins/flutter/data-models/README.md) |
-| **data-repositories** | Valida repository implementations | [📖 Docs](src/plugins/flutter/data-repositories/README.md) |
-| **presentation-viewmodels** | Valida ViewModels (usa UseCases, não Repos) | [📖 Docs](src/plugins/flutter/presentation-viewmodels/README.md) |
-| **presentation-states** | Valida States (sealed class) | [📖 Docs](src/plugins/flutter/presentation-states/README.md) |
-| **flutter-performance** | Detecta operações custosas no build() | [📖 Docs](src/plugins/flutter/flutter-performance/README.md) |
-| **flutter-widgets** | Verifica ordem de funções em widgets | [📖 Docs](src/plugins/flutter/flutter-widgets/README.md) |
-| **mediaquery-modern** | Força APIs modernas do MediaQuery (Flutter 3.10+) | [📖 Docs](src/plugins/flutter/mediaquery-modern/README.md) |
-| **clean-architecture** | Detecta violações entre camadas | [📖 Docs](src/plugins/flutter/clean-architecture/README.md) |
-| **late-final-checker** | Detecta uso de late final (sugere alternativas) | [📖 Docs](src/plugins/flutter/late-final-checker/README.md) |
-| **memory-leak-detector** | Detecta Controllers/Timers/Streams sem dispose() | [📖 Docs](src/plugins/flutter/memory-leak-detector/README.md) |
-| **comments-checker** | Proíbe comentários //, força /// | [📖 Docs](src/plugins/flutter/comments-checker/README.md) |
-| **security-checker** | Detecta API keys hardcoded, eval() | [📖 Docs](src/plugins/flutter/security-checker/README.md) |
-| **barrel-files-enforcer** | Força uso de barrel files | [📖 Docs](src/plugins/flutter/barrel-files-enforcer/README.md) |
+| Plugin                       | Descrição                                          | Documentação                                                      |
+| ---------------------------- | -------------------------------------------------- | ----------------------------------------------------------------- |
+| **pr-size-checker**          | Alerta sobre PRs muito grandes                     | [📖 Docs](src/plugins/flutter/pr-size-checker/README.md)          |
+| **changelog-checker**        | Verifica se CHANGELOG.md foi atualizado            | [📖 Docs](src/plugins/flutter/changelog-checker/README.md)        |
+| **flutter-analyze**          | Executa flutter analyze e reporta problemas        | [📖 Docs](src/plugins/flutter/flutter-analyze/README.md)          |
+| **spell-checker**            | Verifica ortografia em identificadores Dart        | [📖 Docs](src/plugins/flutter/spell-checker/README.md)            |
+| **portuguese-documentation** | Detecta documentação em português                  | [📖 Docs](src/plugins/flutter/portuguese-documentation/README.md) |
+| **pr-validation**            | Valida descrição, changelog, tamanho da PR         | [📖 Docs](src/plugins/flutter/pr-validation/README.md)            |
+| **file-naming**              | Verifica nomenclatura snake_case em arquivos .dart | [📖 Docs](src/plugins/flutter/file-naming/README.md)              |
+| **domain-entities**          | Valida entities (final class, const, sufixo)       | [📖 Docs](src/plugins/flutter/domain-entities/README.md)          |
+| **domain-failures**          | Valida failures (sealed class, pattern matching)   | [📖 Docs](src/plugins/flutter/domain-failures/README.md)          |
+| **domain-repositories**      | Valida repository interfaces (abstract interface)  | [📖 Docs](src/plugins/flutter/domain-repositories/README.md)      |
+| **domain-usecases**          | Valida usecases (interface + implementação)        | [📖 Docs](src/plugins/flutter/domain-usecases/README.md)          |
+| **data-datasources**         | Valida datasources (nomenclatura)                  | [📖 Docs](src/plugins/flutter/data-datasources/README.md)         |
+| **data-models**              | Valida models (final class, fromJson, toJson)      | [📖 Docs](src/plugins/flutter/data-models/README.md)              |
+| **data-repositories**        | Valida repository implementations                  | [📖 Docs](src/plugins/flutter/data-repositories/README.md)        |
+| **presentation-viewmodels**  | Valida ViewModels (usa UseCases, não Repos)        | [📖 Docs](src/plugins/flutter/presentation-viewmodels/README.md)  |
+| **presentation-states**      | Valida States (sealed class)                       | [📖 Docs](src/plugins/flutter/presentation-states/README.md)      |
+| **flutter-performance**      | Detecta operações custosas no build()              | [📖 Docs](src/plugins/flutter/flutter-performance/README.md)      |
+| **flutter-widgets**          | Verifica ordem de funções em widgets               | [📖 Docs](src/plugins/flutter/flutter-widgets/README.md)          |
+| **mediaquery-modern**        | Força APIs modernas do MediaQuery (Flutter 3.10+)  | [📖 Docs](src/plugins/flutter/mediaquery-modern/README.md)        |
+| **clean-architecture**       | Detecta violações entre camadas                    | [📖 Docs](src/plugins/flutter/clean-architecture/README.md)       |
+| **late-final-checker**       | Detecta uso de late final (sugere alternativas)    | [📖 Docs](src/plugins/flutter/late-final-checker/README.md)       |
+| **memory-leak-detector**     | Detecta Controllers/Timers/Streams sem dispose()   | [📖 Docs](src/plugins/flutter/memory-leak-detector/README.md)     |
+| **comments-checker**         | Proíbe comentários //, força ///                   | [📖 Docs](src/plugins/flutter/comments-checker/README.md)         |
+| **security-checker**         | Detecta API keys hardcoded, eval()                 | [📖 Docs](src/plugins/flutter/security-checker/README.md)         |
+| **barrel-files-enforcer**    | Força uso de barrel files                          | [📖 Docs](src/plugins/flutter/barrel-files-enforcer/README.md)    |
 
 ---
 
@@ -124,64 +123,53 @@ npx danger ci
 **Todos os plugins (25 plugins):**
 
 ```typescript
-import { allFlutterPlugins, runPlugins } from "@diletta/danger-bot";
+import { allFlutterPlugins, executeDangerBot } from "@diletta/danger-bot";
 
-// Executar todos os 25 plugins
-export default async () => {
-  await runPlugins(allFlutterPlugins);
-};
+executeDangerBot(allFlutterPlugins);
 ```
 
 **Por categoria:**
 
 ```typescript
-import { 
-  domainLayerPlugins,        // 4 plugins Domain
-  dataLayerPlugins,           // 3 plugins Data
-  presentationLayerPlugins,   // 2 plugins Presentation
-  cleanArchitecturePlugins,   // 10 plugins (todas camadas + clean-architecture)
-  codeQualityPlugins,         // 5 plugins de qualidade
-  performancePlugins,         // 2 plugins de performance
-  runPlugins
+import {
+  domainLayerPlugins, // 4 plugins Domain
+  dataLayerPlugins, // 3 plugins Data
+  presentationLayerPlugins, // 2 plugins Presentation
+  cleanArchitecturePlugins, // 10 plugins (todas camadas + clean-architecture)
+  codeQualityPlugins, // 5 plugins de qualidade
+  performancePlugins, // 2 plugins de performance
+  executeDangerBot,
 } from "@diletta/danger-bot";
 
-export default async () => {
-  // Executar apenas plugins de Domain
-  await runPlugins(domainLayerPlugins);
-};
+// Executar apenas plugins de Domain
+executeDangerBot(domainLayerPlugins);
 ```
 
 **Plugins individuais:**
 
 ```typescript
-import { 
+import {
   prValidationPlugin,
   domainEntitiesPlugin,
   cleanArchitecturePlugin,
   memoryLeakDetectorPlugin,
   securityCheckerPlugin,
-  runPlugins
+  executeDangerBot,
 } from "@diletta/danger-bot";
 
-export default async () => {
-  await runPlugins([
-    prValidationPlugin,
-    domainEntitiesPlugin,
-    cleanArchitecturePlugin,
-    memoryLeakDetectorPlugin,
-    securityCheckerPlugin,
-  ]);
-};
+executeDangerBot([
+  prValidationPlugin,
+  domainEntitiesPlugin,
+  cleanArchitecturePlugin,
+  memoryLeakDetectorPlugin,
+  securityCheckerPlugin,
+]);
 ```
 
-**Com a função `executeDangerBot`:**
+**Com callbacks (todos opcionais):**
 
 ```typescript
-import { 
-  executeDangerBot, 
-  allFlutterPlugins, 
-  sendMessage 
-} from "@diletta/danger-bot";
+import { executeDangerBot, allFlutterPlugins, sendMessage } from "@diletta/danger-bot";
 
 executeDangerBot(allFlutterPlugins, {
   onBeforeRun: () => {
@@ -189,7 +177,7 @@ executeDangerBot(allFlutterPlugins, {
     return true;
   },
   onSuccess: () => sendMessage("✅ Verificações concluídas!"),
-  onError: (error) => console.error("❌ Erro:", error)
+  onError: (error) => console.error("❌ Erro:", error),
 });
 ```
 
