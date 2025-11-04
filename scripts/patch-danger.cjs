@@ -433,10 +433,32 @@ function createPatchMarker(dangerPath) {
 }
 
 /**
- * Verificar se patch já foi aplicado
+ * Verificar se patch já foi aplicado e se é a versão correta
  */
 function isPatchApplied(dangerPath) {
-  return fs.existsSync(path.join(dangerPath, ".danger-bot-patched"));
+  const markerPath = path.join(dangerPath, ".danger-bot-patched");
+  const CURRENT_PATCH_VERSION = "2.0.6";
+
+  if (!fs.existsSync(markerPath)) {
+    return false;
+  }
+
+  try {
+    const info = JSON.parse(fs.readFileSync(markerPath, "utf8"));
+    // Verificar se a versão do patch é a mesma ou mais recente
+    if (info.version !== CURRENT_PATCH_VERSION) {
+      console.log(`⚠️  Patch desatualizado (${info.version} → ${CURRENT_PATCH_VERSION})`);
+      console.log("🔄 Removendo marker antigo para reaplicar...");
+      console.log("");
+      // Remover marker antigo para forçar reaplicação
+      fs.unlinkSync(markerPath);
+      return false;
+    }
+    return true;
+  } catch {
+    // Se não conseguir ler, assume que precisa reaplicar
+    return false;
+  }
 }
 
 function main() {
