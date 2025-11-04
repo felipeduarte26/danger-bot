@@ -9,7 +9,7 @@ Garante que todo código use comentários de documentação (`///`) ao invés de
 ## ✅ Uso
 ```typescript
 import { commentsChecker } from '@danger-bot/flutter';
-export default async () => { await commentsChecker()(); };
+export default async () => { await commentsChecker.run(); };
 ```
 
 ## 📚 Referência

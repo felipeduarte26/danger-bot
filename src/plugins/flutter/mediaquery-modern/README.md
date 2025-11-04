@@ -14,5 +14,5 @@ Detecta uso de `MediaQuery.of(context).size` (deprecated) e sugere APIs modernas
 ## 📦 Uso
 ```typescript
 import { mediaqueryModern } from '@danger-bot/flutter';
-export default async () => { await mediaqueryModern()(); };
+export default async () => { await mediaqueryModern.run(); };
 ```

@@ -9,7 +9,7 @@ Verifica se pastas importantes (entities, models, etc) têm barrel files (`entit
 ## ✅ Uso
 ```typescript
 import { barrelFilesEnforcer } from '@danger-bot/flutter';
-export default async () => { await barrelFilesEnforcer()(); };
+export default async () => { await barrelFilesEnforcer.run(); };
 ```
 
 ## 📚 O que é Barrel File?

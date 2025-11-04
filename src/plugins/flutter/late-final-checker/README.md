@@ -9,7 +9,7 @@ O plugin identifica declarações `late final` que podem causar runtime errors e
 ## ✅ Uso
 ```typescript
 import { lateFinalChecker } from '@danger-bot/flutter';
-export default async () => { await lateFinalChecker()(); };
+export default async () => { await lateFinalChecker.run(); };
 ```
 
 ## 📚 Referência

@@ -16,7 +16,7 @@ States representam os diferentes estados da UI (loading, loaded, error, etc). De
 
 \`\`\`typescript
 import { presentationStates } from '@danger-bot/flutter';
-export default async () => { await presentationStates()(); };
+export default async () => { await presentationStates.run(); };
 \`\`\`
 
 ## 💡 Exemplo Correto

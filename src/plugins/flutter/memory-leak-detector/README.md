@@ -14,5 +14,5 @@ Identifica recursos que precisam ser dispostos mas não têm método `dispose()`
 ## 📦 Uso
 ```typescript
 import { memoryLeakDetector } from '@danger-bot/flutter';
-export default async () => { await memoryLeakDetector()(); };
+export default async () => { await memoryLeakDetector.run(); };
 ```

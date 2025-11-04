@@ -8,22 +8,22 @@ Models são DTOs que fazem conversão entre JSON/DB e Entities. Devem ser imutá
 
 ## ✨ Regras
 
-- ✅ Arquivo: \`*_model.dart\`
-- ✅ Classe: \`final class NomeModel\`
-- ✅ Constructor: \`const\`
-- ✅ Campos: \`final\`
-- ✅ Métodos: \`fromJson\`, \`toJson\`, \`toEntity\`
+- ✅ Arquivo: `*_model.dart`
+- ✅ Classe: `final class NomeModel`
+- ✅ Constructor: `const`
+- ✅ Campos: `final`
+- ✅ Métodos: `fromJson`, `toJson`, `toEntity`
 
 ## 📦 Uso
 
-\`\`\`typescript
-import { dataModels } from '@danger-bot/flutter';
-export default async () => { await dataModels()(); };
-\`\`\`
+```typescript
+import { dataModelsPlugin } from '@danger-bot/flutter';
+export default async () => { await dataModelsPlugin.run(); };
+```
 
 ## 💡 Exemplo Correto
 
-\`\`\`dart
+```dart
 // Arquivo: user_model.dart
 import '../../domain/entities/user_entity.dart';
 
@@ -38,8 +38,8 @@ final class UserModel {
     required this.email,
   });
   
-  // JSON → Model
-  factory UserModel.fromJson(Map<String, dynamic> json) {
+  // JSON → Model factory
+  UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
       id: json['id'],
       name: json['name'],
@@ -65,8 +65,8 @@ final class UserModel {
     );
   }
   
-  // Entity → Model
-  factory UserModel.fromEntity(UserEntity entity) {
+  // Entity → Model factory
+  UserModel.fromEntity(UserEntity entity) {
     return UserModel(
       id: entity.id,
       name: entity.name,
@@ -74,14 +74,11 @@ final class UserModel {
     );
   }
 }
-\`\`\`
+```
 
 ## ❌ Exemplo Incorreto
 
-\`\`\`dart
+```dart
 // ❌ Arquivo: user.dart (deveria ser user_model.dart)
-// ❌ Classe mutável
-class UserModel {
-  String name; // ❌ Sem final
-}
-\`\`\`
+// ❌ Classe mutável class UserModel { String name; // ❌ Sem final }
+```

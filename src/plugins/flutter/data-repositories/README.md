@@ -17,7 +17,7 @@ Repositories implementam as interfaces definidas no Domain, usando Datasources.
 
 \`\`\`typescript
 import { dataRepositories } from '@danger-bot/flutter';
-export default async () => { await dataRepositories()(); };
+export default async () => { await dataRepositories.run(); };
 \`\`\`
 
 ## 💡 Exemplo Correto

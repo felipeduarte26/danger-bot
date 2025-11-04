@@ -14,7 +14,7 @@ Identifica API keys hardcoded, uso de `eval()`, e outras vulnerabilidades de seg
 ## 📦 Uso
 ```typescript
 import { securityChecker } from '@danger-bot/flutter';
-export default async () => { await securityChecker()(); };
+export default async () => { await securityChecker.run(); };
 ```
 
 ## 📚 Referência

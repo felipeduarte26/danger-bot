@@ -16,7 +16,7 @@ ViewModels gerenciam estado e lógica de apresentação. Devem depender de UseCa
 
 \`\`\`typescript
 import { presentationViewModels } from '@danger-bot/flutter';
-export default async () => { await presentationViewModels()(); };
+export default async () => { await presentationViewModels.run(); };
 \`\`\`
 
 ## 💡 Exemplo Correto

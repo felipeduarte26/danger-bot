@@ -16,7 +16,7 @@ Datasources fazem chamadas HTTP, acessam database local, etc. Devem seguir nomen
 
 \`\`\`typescript
 import { dataDatasources } from '@danger-bot/flutter';
-export default async () => { await dataDatasources()(); };
+export default async () => { await dataDatasources.run(); };
 \`\`\`
 
 ## 💡 Exemplo Correto
