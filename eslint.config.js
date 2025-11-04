@@ -14,6 +14,7 @@ export default tseslint.config(
       "**/*.d.ts",
       "eslint.config.js", // Ignorar o próprio arquivo de config
       "commitlint.config.js", // Ignorar config do commitlint
+      "dangerfile.example.ts", // Arquivo de exemplo gerado pela CLI
     ],
   },
 

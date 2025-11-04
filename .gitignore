@@ -31,3 +31,6 @@ coverage/
 # Misc
 .env
 .env.local
+
+# Generated files
+dangerfile.example.ts
