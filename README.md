@@ -59,6 +59,7 @@ npx danger ci
 | Documento                                      | Descrição                                              |
 | ---------------------------------------------- | ------------------------------------------------------ |
 | **[🔌 Guia de Plugins](docs/GUIA_PLUGINS.md)** | Como usar, configurar e criar plugins                  |
+| **[🛠️ Helpers Reference](docs/HELPERS.md)**    | Guia completo de todas as funções auxiliares           |
 | **[🔧 API Reference](docs/API.md)**            | Referência completa da API (helpers, types, functions) |
 | **[💡 Exemplos](docs/EXEMPLOS.md)**            | Casos de uso reais e exemplos práticos                 |
 
@@ -409,6 +410,7 @@ Precisa de ajuda?
 
 - [🏗️ Arquitetura](docs/ARQUITETURA.md)
 - [🔧 Desenvolvimento](docs/DESENVOLVIMENTO.md)
+- [🛠️ Helpers Reference](docs/HELPERS.md)
 - [🔧 API Reference](docs/API.md)
 - [💡 Exemplos](docs/EXEMPLOS.md)
 
