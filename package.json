@@ -20,7 +20,7 @@
     "build": "tsc && tsc-alias",
     "watch": "tsc --watch",
     "prepublishOnly": "npm run build",
-    "postinstall": "node scripts/patch-danger.js",
+    "postinstall": "node scripts/patch-danger.cjs",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.ts\" \"bin/**/*.js\"",
@@ -70,7 +70,7 @@
     "danger": "^13.0.0"
   },
   "engines": {
-    "node": ">=22.19.0"
+    "node": ">=22.0.0"
   },
   "lint-staged": {
     "*.ts": [

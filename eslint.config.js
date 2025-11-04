@@ -10,6 +10,7 @@ export default tseslint.config(
       "node_modules/**",
       "coverage/**",
       "scripts/**/*.js",
+      "scripts/**/*.cjs",
       "bin/**/*.js",
       "**/*.d.ts",
       "eslint.config.js", // Ignorar o próprio arquivo de config
