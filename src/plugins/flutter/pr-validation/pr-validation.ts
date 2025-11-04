@@ -1,4 +1,6 @@
 import { createPlugin, getDanger, sendFail, sendMessage, sendWarn } from "@types";
+import * as fs from "fs";
+import * as path from "path";
 
 /**
  * 📋 PR Validation Plugin
@@ -79,11 +81,16 @@ Usuários com emails longos não conseguiam fazer login.
         git.created_files.includes("CHANGELOG.md");
 
       if (!changelogModified) {
-        const hasChangelog = [
-          ...git.modified_files,
-          ...git.created_files,
-          ...git.deleted_files,
-        ].some((f: string) => f.toLowerCase() === "changelog.md");
+        // Verificar se o arquivo existe no repositório (não apenas na PR)
+        const changelogPaths = ["changelog.md", "CHANGELOG.md", "Changelog.md", "CHANGELOG.MD"];
+
+        const hasChangelog = changelogPaths.some((p) => {
+          try {
+            return fs.existsSync(path.join(process.cwd(), p));
+          } catch {
+            return false;
+          }
+        });
 
         if (!hasChangelog) {
           sendFail(
