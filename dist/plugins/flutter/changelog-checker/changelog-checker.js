@@ -11,14 +11,14 @@ exports.default = (0, _types_1.createPlugin)({
     description: "Verifica se o CHANGELOG.md foi atualizado",
     enabled: true,
 }, async () => {
-    const d = (0, _types_1.getDanger)();
-    const modifiedFiles = d.git.modified_files;
-    const createdFiles = d.git.created_files;
+    const danger = (0, _types_1.getDanger)();
+    const modifiedFiles = danger.git.modified_files;
+    const createdFiles = danger.git.created_files;
     const allFiles = [...modifiedFiles, ...createdFiles];
     // Verificar se CHANGELOG foi modificado
-    const changelogModified = allFiles.some(file => file.toLowerCase().includes("changelog"));
+    const changelogModified = allFiles.some((file) => file.toLowerCase().includes("changelog"));
     // Arquivos que requerem atualização do CHANGELOG
-    const significantChanges = allFiles.filter(file => {
+    const significantChanges = allFiles.filter((file) => {
         // Ignorar arquivos de teste, docs, config
         if (file.match(/\.(test|spec)\./))
             return false;
@@ -36,7 +36,7 @@ exports.default = (0, _types_1.createPlugin)({
             `- Resumo das mudanças\n` +
             `- Impacto para usuários/desenvolvedores\n` +
             `- Breaking changes (se houver)\n\n` +
-            `Arquivos modificados:\n${significantChanges.slice(0, 5).map(f => `- ${f}`).join('\n')}` +
+            `Arquivos modificados:\n${significantChanges.slice(0, 5).map((f) => `- ${f}`).join('\n')}` +
             (significantChanges.length > 5 ? `\n- ... e mais ${significantChanges.length - 5} arquivo(s)` : ''));
     }
 });

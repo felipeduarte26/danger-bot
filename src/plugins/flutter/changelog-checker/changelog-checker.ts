@@ -13,18 +13,18 @@ export default createPlugin(
     enabled: true,
   },
   async () => {
-    const d = getDanger();
-    const modifiedFiles = d.git.modified_files;
-    const createdFiles = d.git.created_files;
+    const danger = getDanger();
+    const modifiedFiles = danger.git.modified_files;
+    const createdFiles = danger.git.created_files;
     const allFiles = [...modifiedFiles, ...createdFiles];
 
     // Verificar se CHANGELOG foi modificado
-    const changelogModified = allFiles.some(file => 
+    const changelogModified = allFiles.some((file: string) => 
       file.toLowerCase().includes("changelog")
     );
 
     // Arquivos que requerem atualização do CHANGELOG
-    const significantChanges = allFiles.filter(file => {
+    const significantChanges = allFiles.filter((file: string) => {
       // Ignorar arquivos de teste, docs, config
       if (file.match(/\.(test|spec)\./)) return false;
       if (file.match(/^(docs|test|tests|__tests__)\//)) return false;
@@ -42,7 +42,7 @@ export default createPlugin(
         `- Resumo das mudanças\n` +
         `- Impacto para usuários/desenvolvedores\n` +
         `- Breaking changes (se houver)\n\n` +
-        `Arquivos modificados:\n${significantChanges.slice(0, 5).map(f => `- ${f}`).join('\n')}` +
+        `Arquivos modificados:\n${significantChanges.slice(0, 5).map((f: string) => `- ${f}`).join('\n')}` +
         (significantChanges.length > 5 ? `\n- ... e mais ${significantChanges.length - 5} arquivo(s)` : '')
       );
     }

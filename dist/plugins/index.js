@@ -20,7 +20,3 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 __exportStar(require("./flutter"), exports);
-// Future: Export plugins from other platforms
-// export * from "./nodejs";
-// export * from "./python";
-// export * from "./golang";

@@ -1,8 +1,8 @@
 "use strict";
 /**
- * DANGER-BOT - MAIN EXPORTS
- * ==========================
- * Main entry point of the package
+ * DANGER BOT - MAIN ENTRY POINT
+ * =============================
+ * Exporta todos os plugins, tipos e helpers do pacote @diletta/danger-bot
  */
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -19,26 +19,100 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.allFlutterPlugins = void 0;
-// Export Danger helpers (to avoid conflicts with Danger's import removal)
-// NÃO re-exportar 'danger' diretamente pois o Danger JS detecta e remove!
-__exportStar(require("./helpers"), exports);
-// Export types and helpers
+exports.performancePlugins = exports.codeQualityPlugins = exports.cleanArchitecturePlugins = exports.presentationLayerPlugins = exports.dataLayerPlugins = exports.domainLayerPlugins = exports.allFlutterPlugins = exports.barrelFilesEnforcerPlugin = exports.securityCheckerPlugin = exports.commentsCheckerPlugin = exports.mediaqueryModernPlugin = exports.memoryLeakDetectorPlugin = exports.lateFinalCheckerPlugin = exports.cleanArchitecturePlugin = exports.flutterWidgetsPlugin = exports.flutterPerformancePlugin = exports.presentationStatesPlugin = exports.presentationViewModelsPlugin = exports.dataRepositoriesPlugin = exports.dataModelsPlugin = exports.dataDatasourcesPlugin = exports.domainUseCasesPlugin = exports.domainRepositoriesPlugin = exports.domainFailuresPlugin = exports.domainEntitiesPlugin = exports.fileNamingPlugin = exports.prValidationPlugin = exports.spellCheckerPlugin = exports.portugueseDocumentationPlugin = exports.flutterAnalyzePlugin = exports.changelogCheckerPlugin = exports.prSizeCheckerPlugin = void 0;
+// Export tipos e helpers
 __exportStar(require("./types"), exports);
-// Export all plugins (organized by platform)
-__exportStar(require("./plugins"), exports);
-// Export all plugins as a single array (barrel export)
-const flutter_1 = require("./plugins/flutter");
+__exportStar(require("./helpers"), exports);
+// Export all plugins
+var flutter_1 = require("./plugins/flutter");
+Object.defineProperty(exports, "prSizeCheckerPlugin", { enumerable: true, get: function () { return flutter_1.prSizeCheckerPlugin; } });
+Object.defineProperty(exports, "changelogCheckerPlugin", { enumerable: true, get: function () { return flutter_1.changelogCheckerPlugin; } });
+Object.defineProperty(exports, "flutterAnalyzePlugin", { enumerable: true, get: function () { return flutter_1.flutterAnalyzePlugin; } });
+Object.defineProperty(exports, "portugueseDocumentationPlugin", { enumerable: true, get: function () { return flutter_1.portugueseDocumentationPlugin; } });
+Object.defineProperty(exports, "spellCheckerPlugin", { enumerable: true, get: function () { return flutter_1.spellCheckerPlugin; } });
+Object.defineProperty(exports, "prValidationPlugin", { enumerable: true, get: function () { return flutter_1.prValidationPlugin; } });
+Object.defineProperty(exports, "fileNamingPlugin", { enumerable: true, get: function () { return flutter_1.fileNamingPlugin; } });
+Object.defineProperty(exports, "domainEntitiesPlugin", { enumerable: true, get: function () { return flutter_1.domainEntitiesPlugin; } });
+Object.defineProperty(exports, "domainFailuresPlugin", { enumerable: true, get: function () { return flutter_1.domainFailuresPlugin; } });
+Object.defineProperty(exports, "domainRepositoriesPlugin", { enumerable: true, get: function () { return flutter_1.domainRepositoriesPlugin; } });
+Object.defineProperty(exports, "domainUseCasesPlugin", { enumerable: true, get: function () { return flutter_1.domainUseCasesPlugin; } });
+Object.defineProperty(exports, "dataDatasourcesPlugin", { enumerable: true, get: function () { return flutter_1.dataDatasourcesPlugin; } });
+Object.defineProperty(exports, "dataModelsPlugin", { enumerable: true, get: function () { return flutter_1.dataModelsPlugin; } });
+Object.defineProperty(exports, "dataRepositoriesPlugin", { enumerable: true, get: function () { return flutter_1.dataRepositoriesPlugin; } });
+Object.defineProperty(exports, "presentationViewModelsPlugin", { enumerable: true, get: function () { return flutter_1.presentationViewModelsPlugin; } });
+Object.defineProperty(exports, "presentationStatesPlugin", { enumerable: true, get: function () { return flutter_1.presentationStatesPlugin; } });
+Object.defineProperty(exports, "flutterPerformancePlugin", { enumerable: true, get: function () { return flutter_1.flutterPerformancePlugin; } });
+Object.defineProperty(exports, "flutterWidgetsPlugin", { enumerable: true, get: function () { return flutter_1.flutterWidgetsPlugin; } });
+Object.defineProperty(exports, "cleanArchitecturePlugin", { enumerable: true, get: function () { return flutter_1.cleanArchitecturePlugin; } });
+Object.defineProperty(exports, "lateFinalCheckerPlugin", { enumerable: true, get: function () { return flutter_1.lateFinalCheckerPlugin; } });
+Object.defineProperty(exports, "memoryLeakDetectorPlugin", { enumerable: true, get: function () { return flutter_1.memoryLeakDetectorPlugin; } });
+Object.defineProperty(exports, "mediaqueryModernPlugin", { enumerable: true, get: function () { return flutter_1.mediaqueryModernPlugin; } });
+Object.defineProperty(exports, "commentsCheckerPlugin", { enumerable: true, get: function () { return flutter_1.commentsCheckerPlugin; } });
+Object.defineProperty(exports, "securityCheckerPlugin", { enumerable: true, get: function () { return flutter_1.securityCheckerPlugin; } });
+Object.defineProperty(exports, "barrelFilesEnforcerPlugin", { enumerable: true, get: function () { return flutter_1.barrelFilesEnforcerPlugin; } });
 /**
- * All available Flutter plugins in a single array
+ * All available Flutter plugins in a single array (25 plugins)
  * Use this for quick setup with all plugins enabled
  */
 exports.allFlutterPlugins = [
-    flutter_1.prSizeCheckerPlugin,
-    flutter_1.changelogCheckerPlugin,
-    flutter_1.flutterAnalyzePlugin,
-    flutter_1.flutterArchitecturePlugin,
-    flutter_1.spellCheckerPlugin,
-    flutter_1.portugueseDocumentationPlugin,
-    flutter_1.pluginTestPlugin,
+    // Importar os plugins
+    require("./plugins/flutter/pr-size-checker").default,
+    require("./plugins/flutter/changelog-checker").default,
+    require("./plugins/flutter/flutter-analyze").default,
+    require("./plugins/flutter/portuguese-documentation").default,
+    require("./plugins/flutter/spell-checker").default,
+    require("./plugins/flutter/pr-validation").default,
+    require("./plugins/flutter/file-naming").default,
+    require("./plugins/flutter/domain-entities").default,
+    require("./plugins/flutter/domain-failures").default,
+    require("./plugins/flutter/domain-repositories").default,
+    require("./plugins/flutter/domain-usecases").default,
+    require("./plugins/flutter/data-datasources").default,
+    require("./plugins/flutter/data-models").default,
+    require("./plugins/flutter/data-repositories").default,
+    require("./plugins/flutter/presentation-viewmodels").default,
+    require("./plugins/flutter/presentation-states").default,
+    require("./plugins/flutter/flutter-performance").default,
+    require("./plugins/flutter/flutter-widgets").default,
+    require("./plugins/flutter/clean-architecture").default,
+    require("./plugins/flutter/late-final-checker").default,
+    require("./plugins/flutter/memory-leak-detector").default,
+    require("./plugins/flutter/mediaquery-modern").default,
+    require("./plugins/flutter/comments-checker").default,
+    require("./plugins/flutter/security-checker").default,
+    require("./plugins/flutter/barrel-files-enforcer").default,
+];
+// Export arrays for specific layers/categories
+const flutter_2 = require("./plugins/flutter");
+exports.domainLayerPlugins = [
+    flutter_2.domainEntitiesPlugin,
+    flutter_2.domainFailuresPlugin,
+    flutter_2.domainRepositoriesPlugin,
+    flutter_2.domainUseCasesPlugin,
+];
+exports.dataLayerPlugins = [
+    flutter_2.dataDatasourcesPlugin,
+    flutter_2.dataModelsPlugin,
+    flutter_2.dataRepositoriesPlugin,
+];
+exports.presentationLayerPlugins = [
+    flutter_2.presentationViewModelsPlugin,
+    flutter_2.presentationStatesPlugin,
+];
+exports.cleanArchitecturePlugins = [
+    ...exports.domainLayerPlugins,
+    ...exports.dataLayerPlugins,
+    ...exports.presentationLayerPlugins,
+    flutter_2.cleanArchitecturePlugin,
+];
+exports.codeQualityPlugins = [
+    flutter_2.lateFinalCheckerPlugin,
+    flutter_2.memoryLeakDetectorPlugin,
+    flutter_2.commentsCheckerPlugin,
+    flutter_2.securityCheckerPlugin,
+    flutter_2.barrelFilesEnforcerPlugin,
+];
+exports.performancePlugins = [
+    flutter_2.flutterPerformancePlugin,
+    flutter_2.mediaqueryModernPlugin,
 ];

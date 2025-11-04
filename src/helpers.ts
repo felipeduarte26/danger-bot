@@ -98,3 +98,171 @@ export function scheduleTask(fn: () => Promise<void>): void {
   if (scheduleFn) scheduleFn(fn);
 }
 
+// ============================================================================
+// FILE FILTERING HELPERS
+// ============================================================================
+
+/**
+ * Get all modified and created files from git
+ * Retorna todos os arquivos modificados e criados
+ * 
+ * @returns Array of file paths
+ */
+export function getAllChangedFiles(): string[] {
+  const danger = getDanger();
+  return [...danger.git.modified_files, ...danger.git.created_files];
+}
+
+/**
+ * Get all Dart files that were modified or created
+ * Retorna todos os arquivos .dart modificados ou criados
+ * 
+ * @returns Array of .dart file paths
+ */
+export function getDartFiles(): string[] {
+  return getAllChangedFiles().filter((f: string) => f.endsWith('.dart'));
+}
+
+/**
+ * Get Dart files in a specific directory
+ * Retorna arquivos .dart de um diretório específico
+ * 
+ * @param directory - Directory path (e.g., '/domain/', '/data/')
+ * @returns Array of .dart file paths in the directory
+ */
+export function getDartFilesInDirectory(directory: string): string[] {
+  return getDartFiles().filter((f: string) => f.includes(directory));
+}
+
+/**
+ * Get files matching a pattern
+ * Retorna arquivos que correspondem a um padrão
+ * 
+ * @param pattern - RegExp pattern to match
+ * @returns Array of matching file paths
+ */
+export function getFilesMatching(pattern: RegExp): string[] {
+  return getAllChangedFiles().filter((f: string) => pattern.test(f));
+}
+
+/**
+ * Get Dart files in Domain layer
+ * Retorna arquivos .dart da camada Domain
+ */
+export function getDomainDartFiles(): string[] {
+  return getDartFilesInDirectory('/domain/');
+}
+
+/**
+ * Get Dart files in Data layer
+ * Retorna arquivos .dart da camada Data
+ */
+export function getDataDartFiles(): string[] {
+  return getDartFilesInDirectory('/data/');
+}
+
+/**
+ * Get Dart files in Presentation layer
+ * Retorna arquivos .dart da camada Presentation
+ */
+export function getPresentationDartFiles(): string[] {
+  return getDartFilesInDirectory('/presentation/');
+}
+
+/**
+ * Check if file is in specific Clean Architecture layer
+ * Verifica se arquivo está em camada específica da Clean Architecture
+ * 
+ * @param file - File path
+ * @param layer - Layer name ('domain', 'data', 'presentation')
+ * @returns True if file is in the specified layer
+ */
+export function isInLayer(file: string, layer: 'domain' | 'data' | 'presentation'): boolean {
+  return file.includes(`/${layer}/`);
+}
+
+/**
+ * Read file content from git diff
+ * Lê o conteúdo de um arquivo do diff do git
+ * 
+ * @param file - File path
+ * @returns File content as string, or null if not available
+ */
+export async function getFileContent(file: string): Promise<string | null> {
+  try {
+    const danger = getDanger();
+    const content = await danger.git.structuredDiffForFile(file);
+    if (!content) return null;
+    return content.chunks.map((c: any) => c.content).join('\n');
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
+ * Check if file content matches a pattern
+ * Verifica se o conteúdo do arquivo corresponde a um padrão
+ * 
+ * @param file - File path
+ * @param pattern - RegExp pattern to match
+ * @returns True if pattern matches, false otherwise
+ */
+export async function fileContainsPattern(file: string, pattern: RegExp): Promise<boolean> {
+  const content = await getFileContent(file);
+  return content ? pattern.test(content) : false;
+}
+
+/**
+ * Get files by extension
+ * Retorna arquivos com extensão específica
+ * 
+ * @param extension - File extension (e.g., '.dart', '.yaml', '.md')
+ * @returns Array of file paths with the extension
+ */
+export function getFilesByExtension(extension: string): string[] {
+  return getAllChangedFiles().filter((f: string) => f.endsWith(extension));
+}
+
+/**
+ * Check if any files match a pattern
+ * Verifica se algum arquivo corresponde a um padrão
+ * 
+ * @param pattern - RegExp pattern to match
+ * @returns True if at least one file matches
+ */
+export function hasFilesMatching(pattern: RegExp): boolean {
+  return getAllChangedFiles().some((f: string) => pattern.test(f));
+}
+
+/**
+ * Get PR description
+ * Retorna a descrição da Pull Request
+ * 
+ * @returns PR description or empty string
+ */
+export function getPRDescription(): string {
+  const danger = getDanger();
+  return danger.github?.pr?.body || danger.bitbucket_cloud?.pr?.description || '';
+}
+
+/**
+ * Get PR title
+ * Retorna o título da Pull Request
+ * 
+ * @returns PR title or empty string
+ */
+export function getPRTitle(): string {
+  const danger = getDanger();
+  return danger.github?.pr?.title || danger.bitbucket_cloud?.pr?.title || '';
+}
+
+/**
+ * Get lines changed (insertions + deletions)
+ * Retorna total de linhas alteradas
+ * 
+ * @returns Number of lines changed
+ */
+export function getLinesChanged(): number {
+  const danger = getDanger();
+  return (danger.git.insertions || 0) + (danger.git.deletions || 0);
+}

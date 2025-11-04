@@ -11,8 +11,8 @@ exports.default = (0, _types_1.createPlugin)({
     description: "Verifica se o PR não está muito grande",
     enabled: true,
 }, async () => {
-    const d = (0, _types_1.getDanger)();
-    const { additions = 0, deletions = 0 } = d.github?.pr || d.bitbucket_cloud?.pr || {};
+    const danger = (0, _types_1.getDanger)();
+    const { additions = 0, deletions = 0 } = danger.github?.pr || danger.bitbucket_cloud?.pr || {};
     const totalChanges = additions + deletions;
     // Configurações
     const LARGE_PR_THRESHOLD = 500;

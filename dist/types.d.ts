@@ -6,7 +6,7 @@
  * Cada plugin deve implementar esta interface para garantir
  * consistência e facilitar manutenção
  */
-export { getDanger, sendMessage, sendWarn, sendFail, sendMarkdown, scheduleTask } from "./helpers";
+export { getDanger, sendMessage, sendWarn, sendFail, sendMarkdown, scheduleTask, getAllChangedFiles, getDartFiles, getDartFilesInDirectory, getDomainDartFiles, getDataDartFiles, getPresentationDartFiles, getFilesMatching, getFilesByExtension, hasFilesMatching, getFileContent, fileContainsPattern, getPRDescription, getPRTitle, getLinesChanged, isInLayer, } from "./helpers";
 export interface DangerPluginConfig {
     /** Nome do plugin para identificação em logs */
     name: string;

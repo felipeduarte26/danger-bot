@@ -8,6 +8,10 @@ import { execSync } from "child_process";
 import * as fs from "fs";
 import { createPlugin, getDanger, sendMessage } from "@types";
 
+// Referências às funções globais do Danger
+declare const message: typeof import("danger").message;
+declare const fail: typeof import("danger").fail;
+
 export default createPlugin(
   {
     name: "flutter-analyze",
@@ -15,12 +19,12 @@ export default createPlugin(
     enabled: true,
   },
   async () => {
-    const d = getDanger();
-    const allFiles = [...d.git.modified_files, ...d.git.created_files];
+    const danger = getDanger();
+    const allFiles = [...danger.git.modified_files, ...danger.git.created_files];
 
     // Filtrar apenas arquivos .dart (excluindo gerados e testes)
     const dartFiles = allFiles.filter(
-      (file) =>
+      (file: string) =>
         file.endsWith(".dart") &&
         !file.includes(".g.dart") && // Arquivos gerados
         !file.includes(".freezed.dart") && // Arquivos freezed
@@ -51,7 +55,7 @@ export default createPlugin(
       // Filtrar apenas linhas relevantes (que mencionam os arquivos alterados)
       const filteredLines = analyzeOutput
         .split("\n")
-        .filter((line) => dartFiles.some((file) => line.includes(file)));
+        .filter((line: string) => dartFiles.some((file: string) => line.includes(file)));
 
       if (filteredLines.length === 0) {
         message("✅ **Flutter Analyze**: Nenhum problema encontrado nos arquivos alterados!");

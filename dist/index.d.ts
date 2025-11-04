@@ -1,13 +1,19 @@
 /**
- * DANGER-BOT - MAIN EXPORTS
- * ==========================
- * Main entry point of the package
+ * DANGER BOT - MAIN ENTRY POINT
+ * =============================
+ * Exporta todos os plugins, tipos e helpers do pacote @diletta/danger-bot
  */
-export * from "./helpers";
 export * from "./types";
-export * from "./plugins";
+export * from "./helpers";
+export { prSizeCheckerPlugin, changelogCheckerPlugin, flutterAnalyzePlugin, portugueseDocumentationPlugin, spellCheckerPlugin, prValidationPlugin, fileNamingPlugin, domainEntitiesPlugin, domainFailuresPlugin, domainRepositoriesPlugin, domainUseCasesPlugin, dataDatasourcesPlugin, dataModelsPlugin, dataRepositoriesPlugin, presentationViewModelsPlugin, presentationStatesPlugin, flutterPerformancePlugin, flutterWidgetsPlugin, cleanArchitecturePlugin, lateFinalCheckerPlugin, memoryLeakDetectorPlugin, mediaqueryModernPlugin, commentsCheckerPlugin, securityCheckerPlugin, barrelFilesEnforcerPlugin, } from "./plugins/flutter";
 /**
- * All available Flutter plugins in a single array
+ * All available Flutter plugins in a single array (25 plugins)
  * Use this for quick setup with all plugins enabled
  */
-export declare const allFlutterPlugins: import("./types").DangerPlugin[];
+export declare const allFlutterPlugins: any[];
+export declare const domainLayerPlugins: import("./types").DangerPlugin[];
+export declare const dataLayerPlugins: import("./types").DangerPlugin[];
+export declare const presentationLayerPlugins: import("./types").DangerPlugin[];
+export declare const cleanArchitecturePlugins: import("./types").DangerPlugin[];
+export declare const codeQualityPlugins: import("./types").DangerPlugin[];
+export declare const performancePlugins: import("./types").DangerPlugin[];
