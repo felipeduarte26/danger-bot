@@ -227,18 +227,133 @@ function patchLinks(dangerPath) {
 }
 
 /**
+ * Patch 3: Traduzir mensagens do Danger para Português
+ */
+function patchMessages(dangerPath) {
+  const filesToPatch = [
+    path.join(dangerPath, "distribution", "runner", "Executor.js"),
+    path.join(
+      dangerPath,
+      "distribution",
+      "runner",
+      "templates",
+      "bitbucketCloudTemplate.js"
+    ),
+    path.join(
+      dangerPath,
+      "distribution",
+      "runner",
+      "templates",
+      "githubIssueTemplate.js"
+    ),
+    path.join(
+      dangerPath,
+      "distribution",
+      "runner",
+      "templates",
+      "gitLabNoteTemplate.js"
+    ),
+  ];
+
+  let patchedCount = 0;
+
+  filesToPatch.forEach((filePath) => {
+    if (!fs.existsSync(filePath)) return;
+
+    try {
+      let content = fs.readFileSync(filePath, "utf8");
+      const originalContent = content;
+      let filePatched = false;
+
+      const translations = [
+        // Mensagens de warning
+        {
+          search: /Danger found some issues\.\s*Don't worry, everything is fixable\./gi,
+          replace: "Danger encontrou alguns problemas. Não se preocupe, tudo pode ser corrigido.",
+        },
+        {
+          search: /["']warning["']/g,
+          replace: '"atenção"',
+        },
+        // Mensagens de fail
+        {
+          search: /["']fails?["']/g,
+          replace: '"erro"',
+        },
+        {
+          search: /Failed!/gi,
+          replace: "Erro!",
+        },
+        // Mensagens de mensagem
+        {
+          search: /["']messages?["']/g,
+          replace: '"mensagem"',
+        },
+        // Headers
+        {
+          search: /## Failures/gi,
+          replace: "## Erros",
+        },
+        {
+          search: /## Warnings/gi,
+          replace: "## Avisos",
+        },
+        {
+          search: /## Messages/gi,
+          replace: "## Mensagens",
+        },
+        // Plural
+        {
+          search: /(\d+)\s+failures?/gi,
+          replace: "$1 erro(s)",
+        },
+        {
+          search: /(\d+)\s+warnings?/gi,
+          replace: "$1 aviso(s)",
+        },
+        {
+          search: /(\d+)\s+messages?/gi,
+          replace: "$1 mensagem(ns)",
+        },
+      ];
+
+      translations.forEach(({ search, replace }) => {
+        if (search.test(content)) {
+          content = content.replace(search, replace);
+          filePatched = true;
+        }
+      });
+
+      if (filePatched) {
+        if (!fs.existsSync(filePath + ".backup")) {
+          fs.writeFileSync(filePath + ".backup", originalContent);
+        }
+        fs.writeFileSync(filePath, content, "utf8");
+        patchedCount++;
+        console.log(`  ✅ ${path.basename(filePath)} - Mensagens traduzidas`);
+      }
+    } catch (error) {
+      console.error(`Erro em ${path.basename(filePath)}:`, error.message);
+    }
+  });
+
+  return patchedCount > 0;
+}
+
+/**
  * Criar marcador de patch aplicado
  */
 function createPatchMarker(dangerPath) {
   const markerPath = path.join(dangerPath, ".danger-bot-patched");
   const info = {
     patchedAt: new Date().toISOString(),
-    version: "1.8.0",
+    version: "2.0.4",
     patches: [
       'Removed "All green. Good on \'ya" message',
       "Changed links from danger.systems to https://dilettasolutions.com",
       'Changed "dangerJS" to "Diletta Solutions"',
       "Changed emoji from :no_entry_sign: to :rocket:",
+      "Translated messages to Portuguese (pt-BR)",
     ],
   };
   fs.writeFileSync(markerPath, JSON.stringify(info, null, 2), "utf8");
@@ -282,6 +397,7 @@ function main() {
 
   if (patchExecutor(dangerPath)) patchesApplied++;
   if (patchLinks(dangerPath)) patchesApplied++;
+  if (patchMessages(dangerPath)) patchesApplied++;
 
   console.log("");
 
@@ -293,6 +409,7 @@ function main() {
     console.log("  ✅ danger.systems → https://dilettasolutions.com");
     console.log('  ✅ "dangerJS" → "Diletta Solutions"');
     console.log("  ✅ Emoji: 🚫 (:no_entry_sign:) → 🚀 (:rocket:)");
+    console.log("  🇧🇷 Mensagens traduzidas para Português");
     console.log("");
     createPatchMarker(dangerPath);
   } else {

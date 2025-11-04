@@ -6,306 +6,224 @@ const _types_1 = require("../../../types");
  *
  * Valida aspectos gerais de uma Pull Request para garantir qualidade e documentação adequada.
  */
-exports.default = (0, _types_1.createPlugin)({
-    name: 'pr-validation',
-    description: 'Valida descrição, changelog e aspectos gerais do PR',
+exports.default = (0, _types_1.createPlugin)(
+  {
+    name: "pr-validation",
+    description: "Valida descrição, changelog e aspectos gerais do PR",
     enabled: true,
-}, async () => {
+  },
+  async () => {
     const danger = (0, _types_1.getDanger)();
     const { git } = danger;
     const minDescriptionLength = 15;
     const maxDartFiles = 180;
     const requireChangelog = true;
     // 1. VERIFICAR DESCRIÇÃO DO PR
-    const prDescription = danger.github?.pr?.body || danger.bitbucket_cloud?.pr?.description || '';
+    const prDescription = danger.github?.pr?.body || danger.bitbucket_cloud?.pr?.description || "";
     if (prDescription.length < minDescriptionLength) {
-        (0, _types_1.sendFail)(`## 📝 DESCRIÇÃO DE PR INSUFICIENTE
+      (0, _types_1.sendFail)(
+        `## 📝 Descrição do PR muito curta
 
-A descrição do Pull Request está muito curta (**${prDescription.length} caracteres**, mínimo **${minDescriptionLength}**).
+**A descrição tem apenas ${prDescription.length} caracteres (mínimo: ${minDescriptionLength}).**
 
----
-
-### ⚠️ Problema Identificado
-
-Descrições curtas dificultam a revisão e compreensão das mudanças implementadas.
-
-**📍 Descrição atual:**
+Descrição atual:
 \`\`\`
-${prDescription || '(vazio)'}
+${prDescription || "(vazio)"}
 \`\`\`
 
----
+### Por que isso é importante?
 
-### 🎯 AÇÃO NECESSÁRIA
+Descrições curtas dificultam a revisão e compreensão das mudanças.
 
-Melhore a descrição da PR incluindo:
+### O que incluir na descrição?
 
-| Item | Descrição |
-|------|-----------|
-| **🔍 Contexto** | Por que essa mudança foi necessária? |
-| **🛠️ Mudanças** | Quais alterações foram implementadas? |
-| **💥 Impacto** | Como isso afeta o sistema/usuários? |
-| **⚡ Breaking Changes** | Lista de mudanças que quebram compatibilidade |
+**1. Contexto** - Por que essa mudança foi necessária?  
+**2. Mudanças** - O que foi alterado?  
+**3. Impacto** - Como isso afeta o sistema/usuários?  
+**4. Testes** - Como foi testado?
 
----
-
-### 💡 Exemplo de Boa Descrição
+### Exemplo:
 
 \`\`\`markdown
-## 🔍 Contexto
-Usuários com emails longos não conseguiam fazer login devido a 
-limitação no banco de dados (máximo 50 caracteres).
+## Contexto
+Usuários com emails longos não conseguiam fazer login.
 
-## 🛠️ Mudanças Implementadas
-- ✅ Aumentei limite do campo email de 50 para 255 caracteres
-- ✅ Adicionei migração do banco de dados (v1.2.3)
-- ✅ Atualizei validações no frontend
-- ✅ Adicionei testes para emails longos
+## Mudanças
+- Aumentei limite do campo email para 255 caracteres
+- Atualizei validações no frontend
+- Adicionei testes
 
-## 💥 Impacto
-- ✅ Usuários com emails longos agora conseguem fazer login
-- ✅ Compatível com versões anteriores
-- ⚠️ Requer execução de migração no deploy
+## Impacto
+- Usuários com emails longos agora conseguem fazer login
+- ⚠️ Requer migração no deploy
 
-## 🧪 Testes Realizados
-- ✅ Login com emails de 100+ caracteres funcionando
-- ✅ Login com emails curtos continua funcionando
-- ✅ Validação de email mantida
+## Testes
+- ✅ Login com emails longos funcionando
 - ✅ 15 testes unitários passando
 \`\`\`
 
----
-
-### 🚀 Objetivo
-
-Facilitar revisão e documentar mudanças importantes para toda a equipe.
-
-> **Dica:** Uma boa descrição economiza tempo de revisão e evita perguntas repetidas!`, 'README.md', 1);
+💡 **Dica:** Uma boa descrição economiza tempo de revisão!`,
+        "README.md",
+        1
+      );
     }
     // 2. VERIFICAR CHANGELOG OBRIGATÓRIO
     if (requireChangelog) {
-        const changelogModified = git.modified_files.includes('changelog.md') ||
-            git.modified_files.includes('CHANGELOG.md') ||
-            git.created_files.includes('changelog.md') ||
-            git.created_files.includes('CHANGELOG.md');
-        if (!changelogModified) {
-            const hasChangelog = [...git.modified_files, ...git.created_files, ...git.deleted_files]
-                .some((f) => f.toLowerCase() === 'changelog.md');
-            if (!hasChangelog) {
-                (0, _types_1.sendFail)(`## 📋 CHANGELOG.MD NÃO ENCONTRADO
+      const changelogModified =
+        git.modified_files.includes("changelog.md") ||
+        git.modified_files.includes("CHANGELOG.md") ||
+        git.created_files.includes("changelog.md") ||
+        git.created_files.includes("CHANGELOG.md");
+      if (!changelogModified) {
+        const hasChangelog = [
+          ...git.modified_files,
+          ...git.created_files,
+          ...git.deleted_files,
+        ].some((f) => f.toLowerCase() === "changelog.md");
+        if (!hasChangelog) {
+          (0, _types_1.sendFail)(
+            `## 📋 Changelog não encontrado
 
-Este projeto **não possui** um arquivo \`changelog.md\`.
+**Este projeto não possui um arquivo \`changelog.md\` na raiz.**
 
----
+### Por que isso é importante?
 
-### ⚠️ Problema Identificado
+Sem changelog, fica difícil:
+- 🔍 Rastrear histórico de mudanças
+- 🐛 Identificar quando bugs foram introduzidos  
+- 📢 Comunicar mudanças para a equipe
+- ↩️ Fazer rollback seguro
 
-Sem changelog, mudanças ficam **sem rastreabilidade** e **comunicação** entre a equipe.
+### O que fazer?
 
-**Consequências:**
-- ❌ Dificulta rollback seguro
-- ❌ Desenvolvedores não sabem histórico de mudanças
-- ❌ Usuários não sabem o que foi corrigido/adicionado
-- ❌ Dificulta debug de problemas introduzidos
+**1. Crie o arquivo \`changelog.md\` na raiz do projeto**
 
----
-
-### 🎯 AÇÃO NECESSÁRIA
-
-**Passos para criar o changelog:**
-
-1. **Crie** o arquivo \`changelog.md\` na raiz do projeto
-2. **Use** formato padrão: [Keep a Changelog](https://keepachangelog.com/)
-3. **Documente** mudanças a partir desta PR
-4. **Mantenha** atualizado em cada PR futura
-
----
-
-### 💡 Template do Changelog
+**2. Use este template básico:**
 
 \`\`\`markdown
 # Changelog
 
-Todas as mudanças notáveis deste projeto serão documentadas neste arquivo.
-
-O formato é baseado em [Keep a Changelog](https://keepachangelog.com/),
-e este projeto adere ao [Semantic Versioning](https://semver.org/).
-
 ## [Unreleased]
 
 ### Added
-- Nova tela de configurações do usuário
-- Suporte a tema escuro
-- Integração com notificações push
-
-### Changed  
-- Melhorada performance da lista de produtos (30% mais rápido)
-- Atualizada biblioteca HTTP para v5.0
+- Nova funcionalidade X
+- Implementado recurso Y
 
 ### Fixed
-- Corrigido bug no login com Gmail
-- Corrigido crash ao abrir app sem internet
-- Corrigido vazamento de memória na tela de produtos
+- Corrigido bug no login
+- Corrigido crash ao abrir app
 
-### Security
-- Atualizada dependência com vulnerabilidade CVE-2024-XXXX
+### Changed
+- Melhorada performance da lista
 
-## [1.2.0] - 2024-01-15
+## [1.0.0] - 2024-01-15
 
 ### Added
-- Sistema de autenticação biométrica (iOS e Android)
-- Export de relatórios em PDF
-
-### Fixed
-- Corrigido vazamento de memória na tela de produtos
+- Versão inicial do app
 \`\`\`
 
----
+**3. Documente as mudanças desta PR**
 
-### 🚀 Objetivo
+📖 **Referência:** [Keep a Changelog](https://keepachangelog.com/)`,
+            "changelog.md",
+            1
+          );
+        } else {
+          (0, _types_1.sendFail)(
+            `## 📋 Changelog não foi atualizado
 
-Manter **histórico completo** e **comunicação clara** das mudanças para toda equipe.
+**O arquivo \`changelog.md\` existe, mas não foi modificado nesta PR.**
 
-> **Referência:** [Keep a Changelog](https://keepachangelog.com/) - Guia completo de boas práticas`, 'changelog.md', 1);
-            }
-            else {
-                (0, _types_1.sendFail)(`## 📋 CHANGELOG OBRIGATÓRIO - ATUALIZAÇÃO NECESSÁRIA
+### Por que preciso atualizar?
 
-Esta PR **não inclui** alterações no \`changelog.md\` existente.
+Cada PR deve documentar suas mudanças para manter o histórico claro.
 
----
+### O que fazer?
 
-### ⚠️ Problema Identificado
+**1. Abra o arquivo \`changelog.md\`**
 
-PR com mudanças mas sem documentação no changelog deixa usuários e desenvolvedores sem saber o que foi alterado.
+**2. Localize a seção \`## [Unreleased]\`**
 
-**📊 Situação atual:**
-- ✅ \`changelog.md\` existe no projeto  
-- ❌ \`changelog.md\` **não foi modificado** nesta PR
-
----
-
-### 🎯 AÇÃO NECESSÁRIA
-
-**Passos para atualizar:**
-
-1. **Abra** o arquivo \`changelog.md\` na raiz do projeto
-2. **Localize** a seção \`## [Unreleased]\`
-3. **Adicione** as mudanças desta PR nas categorias apropriadas
-4. **Use** as categorias: \`Added\`, \`Fixed\`, \`Changed\`, \`Security\`
-
----
-
-### 💡 Exemplo de Atualização
+**3. Adicione suas mudanças nas categorias:**
 
 \`\`\`markdown
 ## [Unreleased]
 
 ### Added
-- ✨ Nova tela de perfil do usuário
-- ✨ Validação de CPF no formulário de cadastro
-- ✨ Suporte a upload de múltiplas imagens
+- Nova tela de configurações
+- Validação de CPF no cadastro
 
 ### Fixed
-- 🐛 Corrigido crash ao fazer logout
-- 🐛 Corrigido bug de validação de email
-- 🐛 Corrigido layout quebrado em tablets
+- Corrigido crash ao fazer logout
+- Corrigido bug de validação
 
 ### Changed
-- ⚡ Melhorada performance da busca (50% mais rápido)
-- 🎨 Atualizada UI dos botões principais
-- 📦 Atualizada dependência X para v2.0
+- Melhorada performance da busca (50% mais rápido)
+- Atualizada UI dos botões
 
 ### Security
-- 🔒 Corrigida vulnerabilidade no endpoint de login
+- Corrigida vulnerabilidade no login
 \`\`\`
 
----
+**4. Commit e push**
 
-### 🚀 Objetivo
-
-Manter histórico claro das mudanças para **usuários** e **desenvolvedores**.
-
-> **Lembre-se:** Cada PR deve documentar suas mudanças no changelog!`, 'changelog.md', 1);
-            }
+💡 **Dica:** Use categorias claras (Added, Fixed, Changed, Security)`,
+            "changelog.md",
+            1
+          );
         }
+      }
     }
     // 3. VERIFICAR SINCRONIZAÇÃO PUBSPEC
-    const pubspecYamlChanged = git.modified_files.includes('pubspec.yaml');
-    const pubspecLockChanged = git.modified_files.includes('pubspec.lock');
+    const pubspecYamlChanged = git.modified_files.includes("pubspec.yaml");
+    const pubspecLockChanged = git.modified_files.includes("pubspec.lock");
     if (pubspecLockChanged && !pubspecYamlChanged) {
-        (0, _types_1.sendFail)(`## 📦 PUBSPEC.LOCK MODIFICADO SEM PUBSPEC.YAML
+      (0, _types_1.sendFail)(
+        `## 📦 pubspec.lock modificado sem pubspec.yaml
 
-O arquivo \`pubspec.lock\` foi alterado **sem mudanças** correspondentes no \`pubspec.yaml\`.
+**O \`pubspec.lock\` foi alterado mas o \`pubspec.yaml\` não.**
 
----
+### Por que isso é um problema?
 
-### ⚠️ Problema Identificado
+Pode indicar:
+- Dependências desatualizadas
+- Conflitos de versão entre ambientes
+- Inconsistência na resolução de deps
 
-Isso pode indicar:
-- 🔄 Dependências desatualizadas
-- ⚠️ Conflitos de versão entre ambientes
-- 🐛 Inconsistência na resolução de dependências
+### O que fazer?
 
-**📊 Situação encontrada:**
-- ✅ \`pubspec.lock\` foi modificado
-- ❌ \`pubspec.yaml\` **não foi alterado**
-
----
-
-### 🎯 AÇÃO NECESSÁRIA
-
-**Passos para sincronizar:**
-
-1. **Execute** localmente:
-   \`\`\`bash
-   flutter pub get
-   \`\`\`
-
-2. **Verifique** se o lock gerado é o mesmo da PR:
-   \`\`\`bash
-   git diff pubspec.lock
-   \`\`\`
-
-3. **Se diferente**: Commite a versão local atualizada
-4. **Se igual**: Ignore - pode ser diferença de plataforma/cache
-
----
-
-### 💡 Fluxo Correto
-
+**1. Execute localmente:**
 \`\`\`bash
-# 1️⃣ Atualizar dependências localmente
 flutter pub get
+\`\`\`
 
-# 2️⃣ Verificar se houve mudanças
-git status
+**2. Verifique diferenças:**
+\`\`\`bash
 git diff pubspec.lock
+\`\`\`
 
-# 3️⃣ Se houver diferenças, comitar
+**3. Se houver diferenças, commite:**
+\`\`\`bash
 git add pubspec.lock
 git commit -m "chore: sincroniza pubspec.lock"
-
-# 4️⃣ Push para a PR
 git push
 \`\`\`
 
----
+**4. Se não houver diferenças:** pode ignorar (diferença de plataforma/cache)
 
-### 🚀 Objetivo
-
-Manter **dependências consistentes** entre todos os ambientes de desenvolvimento.
-
-> **Importante:** Sempre execute \`flutter pub get\` após pull de mudanças!`, 'pubspec.lock', 1);
+💡 **Dica:** Execute \`flutter pub get\` após cada pull!`,
+        "pubspec.lock",
+        1
+      );
     }
     // 4. VERIFICAR TAMANHO DA PR (ARQUIVOS DART)
     const dartFiles = git.modified_files
-        .concat(git.created_files)
-        .concat(git.deleted_files)
-        .filter((file) => file.endsWith('.dart'));
+      .concat(git.created_files)
+      .concat(git.deleted_files)
+      .filter((file) => file.endsWith(".dart"));
     if (dartFiles.length > maxDartFiles) {
-        const suggestedPRs = Math.ceil(dartFiles.length / 40);
-        (0, _types_1.sendWarn)(`## 🚨 PR CRÍTICA - MUITOS ARQUIVOS DART
+      const suggestedPRs = Math.ceil(dartFiles.length / 40);
+      (0, _types_1.sendWarn)(`## 🚨 PR CRÍTICA - MUITOS ARQUIVOS DART
 
 Esta PR alterou **${dartFiles.length} arquivos .dart**!
 
@@ -373,31 +291,39 @@ Quebrar em 5 PRs menores:
 Facilitar **code review** de qualidade e reduzir **riscos de bugs**.
 
 > **Regra de ouro:** PRs menores = revisões melhores = menos bugs em produção!`);
-    }
-    else if (dartFiles.length > 80) {
-        (0, _types_1.sendWarn)(`## ⚠️ PR GRANDE\n\nEsta PR alterou **${dartFiles.length} arquivos .dart**. PRs menores (30-40 arquivos) facilitam revisões mais detalhadas.`);
-    }
-    else if (dartFiles.length > 60) {
-        (0, _types_1.sendMessage)(`## 📏 PR MÉDIA-GRANDE\n\nEsta PR alterou **${dartFiles.length} arquivos .dart**. Está no limite aceitável, mas PRs menores são preferíveis.`);
-    }
-    else if (dartFiles.length > 0) {
-        (0, _types_1.sendMessage)(`## ✅ Tamanho Ideal de PR\n\n**${dartFiles.length} arquivo(s) .dart** alterado(s) - excelente tamanho para revisão! 🎉`);
+    } else if (dartFiles.length > 80) {
+      (0, _types_1.sendWarn)(
+        `## ⚠️ PR GRANDE\n\nEsta PR alterou **${dartFiles.length} arquivos .dart**. PRs menores (30-40 arquivos) facilitam revisões mais detalhadas.`
+      );
+    } else if (dartFiles.length > 60) {
+      (0, _types_1.sendMessage)(
+        `## 📏 PR MÉDIA-GRANDE\n\nEsta PR alterou **${dartFiles.length} arquivos .dart**. Está no limite aceitável, mas PRs menores são preferíveis.`
+      );
+    } else if (dartFiles.length > 0) {
+      (0, _types_1.sendMessage)(
+        `## ✅ Tamanho Ideal de PR\n\n**${dartFiles.length} arquivo(s) .dart** alterado(s) - excelente tamanho para revisão! 🎉`
+      );
     }
     // 5. VERIFICAÇÃO DE LINHAS DE CÓDIGO
     const linesChanged = (git.insertions || 0) + (git.deletions || 0);
     if (linesChanged === 0) {
-        (0, _types_1.sendMessage)('ℹ️ Nenhuma linha de código alterada nesta PR');
+      (0, _types_1.sendMessage)("ℹ️ Nenhuma linha de código alterada nesta PR");
+    } else if (linesChanged <= 80) {
+      (0, _types_1.sendMessage)(
+        `✅ **Ótimo**: PR pequeno e focado (**${linesChanged} linhas** alteradas)`
+      );
+    } else if (linesChanged <= 200) {
+      (0, _types_1.sendMessage)(
+        `👍 **Bom**: PR de tamanho médio (**${linesChanged} linhas** alteradas)`
+      );
+    } else if (linesChanged <= 600) {
+      (0, _types_1.sendWarn)(
+        `⚠️ **Atenção**: PR grande (**${linesChanged} linhas** alteradas). Considere quebrar em PRs menores.`
+      );
+    } else {
+      (0, _types_1.sendWarn)(
+        `🚨 **PR Muito Grande**: **${linesChanged} linhas** alteradas! Forte recomendação de quebrar em múltiplos PRs menores.`
+      );
     }
-    else if (linesChanged <= 80) {
-        (0, _types_1.sendMessage)(`✅ **Ótimo**: PR pequeno e focado (**${linesChanged} linhas** alteradas)`);
-    }
-    else if (linesChanged <= 200) {
-        (0, _types_1.sendMessage)(`👍 **Bom**: PR de tamanho médio (**${linesChanged} linhas** alteradas)`);
-    }
-    else if (linesChanged <= 600) {
-        (0, _types_1.sendWarn)(`⚠️ **Atenção**: PR grande (**${linesChanged} linhas** alteradas). Considere quebrar em PRs menores.`);
-    }
-    else {
-        (0, _types_1.sendWarn)(`🚨 **PR Muito Grande**: **${linesChanged} linhas** alteradas! Forte recomendação de quebrar em múltiplos PRs menores.`);
-    }
-});
+  }
+);
