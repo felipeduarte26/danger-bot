@@ -21,7 +21,7 @@ export default createPlugin(
 
     const failureFiles = git.created_files
       .concat(git.modified_files)
-      .filter((file: string) => file.match(/\/domain\/failures\/[^\/]+\.dart$/) && !file.endsWith('failures.dart'));
+      .filter((file: string) => file.match(/\/domain\/failures\/[^/]+\.dart$/) && !file.endsWith('failures.dart'));
 
     for (const file of failureFiles) {
       try {

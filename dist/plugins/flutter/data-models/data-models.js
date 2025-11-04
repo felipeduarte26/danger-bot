@@ -13,7 +13,7 @@ exports.default = (0, _types_1.createPlugin)({
     const { git } = danger;
     const files = git.created_files
         .concat(git.modified_files)
-        .filter((f) => f.match(/\/data\/models\/[^\/]+\.dart$/) && !f.endsWith('models.dart'));
+        .filter((f) => f.match(/\/data\/models\/[^/]+\.dart$/) && !f.endsWith('models.dart'));
     for (const file of files) {
         if (!file.match(/_model\.dart$/)) {
             (0, _types_1.sendFail)(`## 📦 NOMENCLATURA DE MODEL INCORRETA

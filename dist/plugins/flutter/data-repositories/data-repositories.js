@@ -13,7 +13,7 @@ exports.default = (0, _types_1.createPlugin)({
     const { git } = danger;
     const files = git.created_files
         .concat(git.modified_files)
-        .filter((f) => f.match(/\/data\/repositories\/[^\/]+\.dart$/) && !f.endsWith('repositories.dart'));
+        .filter((f) => f.match(/\/data\/repositories\/[^/]+\.dart$/) && !f.endsWith('repositories.dart'));
     for (const file of files) {
         if (!file.match(/_repository\.dart$/)) {
             (0, _types_1.sendFail)(`## 🏪 NOMENCLATURA DE REPOSITORY INCORRETA

@@ -19,7 +19,7 @@ exports.default = (0, _types_1.createPlugin)({
     const { git } = danger;
     const failureFiles = git.created_files
         .concat(git.modified_files)
-        .filter((file) => file.match(/\/domain\/failures\/[^\/]+\.dart$/) && !file.endsWith('failures.dart'));
+        .filter((file) => file.match(/\/domain\/failures\/[^/]+\.dart$/) && !file.endsWith('failures.dart'));
     for (const file of failureFiles) {
         try {
             const content = await danger.git.structuredDiffForFile(file);

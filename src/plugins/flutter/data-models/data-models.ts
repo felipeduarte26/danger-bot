@@ -14,7 +14,7 @@ export default createPlugin(
     const { git } = danger;
     const files = git.created_files
       .concat(git.modified_files)
-      .filter((f: string) => f.match(/\/data\/models\/[^\/]+\.dart$/) && !f.endsWith('models.dart'));
+      .filter((f: string) => f.match(/\/data\/models\/[^/]+\.dart$/) && !f.endsWith('models.dart'));
     
     for (const file of files) {
       if (!file.match(/_model\.dart$/)) {

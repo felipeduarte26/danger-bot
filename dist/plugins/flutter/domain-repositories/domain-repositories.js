@@ -19,7 +19,7 @@ exports.default = (0, _types_1.createPlugin)({
     const { git } = danger;
     const repoFiles = git.created_files
         .concat(git.modified_files)
-        .filter((file) => file.match(/\/domain\/repositories\/[^\/]+\.dart$/) && !file.endsWith('repositories.dart'));
+        .filter((file) => file.match(/\/domain\/repositories\/[^/]+\.dart$/) && !file.endsWith('repositories.dart'));
     for (const file of repoFiles) {
         // Verificar nomenclatura
         if (!file.match(/_repository_interface\.dart$/)) {

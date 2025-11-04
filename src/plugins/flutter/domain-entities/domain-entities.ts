@@ -21,7 +21,7 @@ export default createPlugin(
 
     const entityFiles = git.created_files
       .concat(git.modified_files)
-      .filter((file: string) => file.match(/\/domain\/entities\/[^\/]+\.dart$/) && !file.endsWith('entities.dart'));
+      .filter((file: string) => file.match(/\/domain\/entities\/[^/]+\.dart$/) && !file.endsWith('entities.dart'));
 
     for (const file of entityFiles) {
       // Verificar nomenclatura do arquivo
