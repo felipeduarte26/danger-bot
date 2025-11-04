@@ -433,7 +433,7 @@ function createPatchMarker(dangerPath) {
   const markerPath = path.join(dangerPath, ".danger-bot-patched");
   const info = {
     patchedAt: new Date().toISOString(),
-    version: "2.0.6",
+    version: "2.0.8",
     patches: [
       'Removed "All green. Good on \'ya" message',
       "Changed links from danger.systems to https://dilettasolutions.com",
@@ -451,7 +451,7 @@ function createPatchMarker(dangerPath) {
  */
 function isPatchApplied(dangerPath) {
   const markerPath = path.join(dangerPath, ".danger-bot-patched");
-  const CURRENT_PATCH_VERSION = "2.0.6";
+  const CURRENT_PATCH_VERSION = "2.0.8";
 
   if (!fs.existsSync(markerPath)) {
     return false;
