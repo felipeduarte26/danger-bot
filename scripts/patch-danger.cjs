@@ -374,42 +374,40 @@ function patchBitbucketInlineTemplate(dangerPath) {
     // Substituir os comentários markdown [//]: # que são exibidos no Bitbucket
     // por um link invisível com title (estratégia do Danger Ruby)
     
-    // Verificar se precisa atualizar da versão antiga (sem ;) para a nova (com ;)
-    const oldSignatureWithoutSemicolon = 'var signature = "[](https://dilettasolutions.com \\"danger-id-".concat(dangerID, "\\")");';
-    const newSignatureWithSemicolon = 'var signature = "[](https://dilettasolutions.com \\"danger-id-".concat(dangerID, ";\\")");';
-    
-    if (content.includes(oldSignatureWithoutSemicolon)) {
-      console.log("  🔄 Atualizando patch antigo (sem ;) para novo (com ;)...");
-      content = content.replace(oldSignatureWithoutSemicolon, newSignatureWithSemicolon);
-      fs.writeFileSync(filePath, content, "utf8");
-      console.log("  ✅ Bitbucket inline template atualizado!");
-      return true;
-    }
-    
-    // Verificar se já foi aplicado com a versão correta
-    if (content.includes(newSignatureWithSemicolon)) {
-      console.log("  ℹ️  Inline template já está com a versão correta (com ;)");
+    // Verificar se já foi aplicado com a versão correta (signature NO FINAL)
+    if (content.includes('// DANGER-BOT: Usar estratégia do Danger Ruby - link com title NO FINAL')) {
+      console.log("  ℹ️  Inline template já está com a versão correta (link no final)");
       return false;
     }
     
-    // String replace simples ao invés de regex complexo
-    // O formato original no arquivo é: return "\n[//]: # (".concat(...
-    const oldCode = 'return "\\n[//]: # (".concat((0, exports.dangerIDToString)(dangerID), ")\\n[//]: # (").concat((0, exports.fileLineToString)(file, line), ")\\n").concat(';
+    // Se tem uma versão antiga do patch, precisamos restaurar do backup e reaplicar
+    if (content.includes('// DANGER-BOT:') && fs.existsSync(filePath + '.backup')) {
+      console.log("  🔄 Detectada versão antiga do patch. Restaurando backup...");
+      content = fs.readFileSync(filePath + '.backup', 'utf8');
+    }
     
-    const newCode = `// DANGER-BOT: Usar estratégia do Danger Ruby - link com title ao invés de [//]: #
+    // String replace simples - substituir toda a linha return
+    const oldCode = 'return "\\n[//]: # (".concat((0, exports.dangerIDToString)(dangerID), ")\\n[//]: # (").concat((0, exports.fileLineToString)(file, line), ")\\n").concat(results.fails.map(printViolation(noEntryEmoji)).join("\\n"), "\\n").concat(results.warnings.map(printViolation(warningEmoji)).join("\\n"), "\\n").concat(results.messages.map(printViolation(messageEmoji)).join("\\n"), "\\n").concat(results.markdowns.map(function (v) { return v.message; }).join("\\n\\n"), "\\n  ");';
+    
+    const newCode = `// DANGER-BOT: Usar estratégia do Danger Ruby - link com title NO FINAL
     // O Bitbucket NÃO exibe o atributo "title" de links, mas ele fica no RAW content
-    // IMPORTANTE: Incluir ";" no final do danger-id para o Danger conseguir encontrar e deletar comentários antigos
-    // dangerIDToString retorna: "danger-id-<id>;" - precisamos manter o mesmo formato!
-    var signature = "[](https://dilettasolutions.com \\"danger-id-".concat(dangerID, ";\\")");
-    return signature.concat("\\n\\n").concat(`;
+    // Colocando o link NO FINAL (igual Danger Ruby) evita que Bitbucket crie preview
+    var signature = "\\n\\n[](https://dilettasolutions.com \\"danger-id-".concat(dangerID, ";\\")");
+    return "".concat(results.fails.map(printViolation(noEntryEmoji)).join("\\n"), "\\n").concat(results.warnings.map(printViolation(warningEmoji)).join("\\n"), "\\n").concat(results.messages.map(printViolation(messageEmoji)).join("\\n"), "\\n").concat(results.markdowns.map(function (v) { return v.message; }).join("\\n\\n")).replace(/^\\n+/, "").concat(signature, "\\n  ");`;
     
     if (content.includes(oldCode)) {
+      // Fazer backup antes de aplicar patch (apenas se não existir)
+      if (!fs.existsSync(filePath + '.backup')) {
+        fs.writeFileSync(filePath + '.backup', originalContent, 'utf8');
+      }
+      
       content = content.replace(oldCode, newCode);
       fs.writeFileSync(filePath, content, "utf8");
-      console.log("  ✅ Bitbucket inline template corrigido (estratégia Danger Ruby)");
+      console.log("  ✅ Bitbucket inline template corrigido (link no final, igual Danger Ruby)");
       return true;
     } else {
       console.log("  ⚠️  Inline template: formato não reconhecido");
+      console.log("      Procurando por: return \"\\\\n[//]: # (\"...");
       return false;
     }
   } catch (error) {
@@ -443,7 +441,7 @@ function createPatchMarker(dangerPath) {
  */
 function isPatchApplied(dangerPath) {
   const markerPath = path.join(dangerPath, ".danger-bot-patched");
-  const CURRENT_PATCH_VERSION = "2.2.1"; // Corrigido: incluir ";" no danger-id
+  const CURRENT_PATCH_VERSION = "2.3.0"; // Link NO FINAL para evitar preview
 
   if (!fs.existsSync(markerPath)) {
     return false;
