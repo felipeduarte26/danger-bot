@@ -139,7 +139,8 @@ Usuários com emails longos não conseguiam fazer login.
           }
         });
         if (!hasChangelog) {
-          (0, _types_1.sendFail)(`## 📋 Changelog não encontrado
+          (0, _types_1.sendFail)(
+            `## 📋 Changelog não encontrado
 
 Este projeto não possui um arquivo \`changelog.md\` na raiz.
 
@@ -178,9 +179,13 @@ Sem changelog, fica difícil:
 
 3. Documente as mudanças desta PR
 
-📖 Referência: [Keep a Changelog](https://keepachangelog.com/)`);
+📖 Referência: [Keep a Changelog](https://keepachangelog.com/)`,
+            "changelog.md",
+            1
+          );
         } else {
-          (0, _types_1.sendFail)(`## 📋 Changelog não foi atualizado
+          (0, _types_1.sendFail)(
+            `## 📋 Changelog não foi atualizado
 
 O arquivo \`changelog.md\` existe, mas não foi modificado nesta PR.
 
@@ -215,7 +220,10 @@ Cada PR deve documentar suas mudanças para manter o histórico claro.
 
 4. Commit e push
 
-💡 Dica: Use categorias claras (Added, Fixed, Changed, Security)`);
+💡 Dica: Use categorias claras (Added, Fixed, Changed, Security)`,
+            "changelog.md",
+            1
+          );
         }
       }
     }

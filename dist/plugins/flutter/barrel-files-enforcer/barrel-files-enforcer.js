@@ -21,7 +21,8 @@ exports.default = (0, _types_1.createPlugin)(
       if (filesInFolder.length > 0) {
         const barrelFile = allFiles.find((f) => f.endsWith(`/${folder}/${folder}.dart`));
         if (!barrelFile) {
-          (0, _types_1.sendWarn)(`## 📦 BARREL FILE AUSENTE
+          (0, _types_1.sendWarn)(
+            `## 📦 BARREL FILE AUSENTE
 
 Pasta \`${folder}\` tem arquivos mas sem barrel file.
 
@@ -54,7 +55,10 @@ export 'file3.dart';
 
 Simplificar **imports** e melhorar **organização**.
 
-📖 [Guia completo sobre Barrel Files](https://medium.com/@ugamakelechi501/barrel-files-in-dart-and-flutter-a-guide-to-simplifying-imports-9b245dbe516a)`);
+📖 [Guia completo sobre Barrel Files](https://medium.com/@ugamakelechi501/barrel-files-in-dart-and-flutter-a-guide-to-simplifying-imports-9b245dbe516a)`,
+            "README.md",
+            1
+          );
         }
       }
     }

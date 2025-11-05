@@ -58,7 +58,9 @@ export 'file3.dart';
 
 Simplificar **imports** e melhorar **organização**.
 
-📖 [Guia completo sobre Barrel Files](https://medium.com/@ugamakelechi501/barrel-files-in-dart-and-flutter-a-guide-to-simplifying-imports-9b245dbe516a)`
+📖 [Guia completo sobre Barrel Files](https://medium.com/@ugamakelechi501/barrel-files-in-dart-and-flutter-a-guide-to-simplifying-imports-9b245dbe516a)`,
+            "README.md",
+            1
           );
         }
       }

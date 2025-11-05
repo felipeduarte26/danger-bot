@@ -34,9 +34,8 @@ exports.default = (0, _types_1.createPlugin)(
         if (firstClass) {
           const className = firstClass[1];
           if (!className.endsWith("Failure")) {
-            (0, _types_1.sendFail)(`## 🔥 CLASSE FAILURE SEM SUFIXO
-
-**Arquivo:** \`${file}\`
+            (0, _types_1.sendFail)(
+              `## 🔥 CLASSE FAILURE SEM SUFIXO
 
 A classe \`${className}\` deve terminar com \`Failure\`.
 
@@ -58,13 +57,15 @@ final class LoginErrorFailure extends AuthFailure { }
 
 ### 🚀 Objetivo
 
-Identificar facilmente failures na Domain Layer.`);
+Identificar facilmente failures na Domain Layer.`,
+              file,
+              1
+            );
           }
           // Verificar se primeira classe é sealed
           if (!fileText.match(/sealed\s+class\s+\w+Failure/)) {
-            (0, _types_1.sendFail)(`## 🔥 PRIMEIRA CLASSE DEVE SER SEALED
-
-**Arquivo:** \`${file}\`
+            (0, _types_1.sendFail)(
+              `## 🔥 PRIMEIRA CLASSE DEVE SER SEALED
 
 A primeira classe de Failure deve ser \`sealed class\`.
 
@@ -93,7 +94,10 @@ final class LogoutFailure extends AuthFailure { }
 
 ### 🚀 Objetivo
 
-Garantir **type safety** e **exhaustiveness** no tratamento de erros.`);
+Garantir **type safety** e **exhaustiveness** no tratamento de erros.`,
+              file,
+              1
+            );
           }
         }
       } catch (e) {

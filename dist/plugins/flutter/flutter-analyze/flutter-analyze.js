@@ -126,15 +126,13 @@ exports.default = (0, _types_1.createPlugin)(
             const translatedMessage = translateFlutterAnalyzeMessage(rawMessage, ruleName);
             const docLink = getDocumentationLink(ruleName);
             const fullMessage =
-              `🔍 **Flutter Analyze** (${severity})
-
-**Arquivo:** \`${relativePath}:${lineNumber}\`
-
-${translatedMessage}
-` + (docLink ? `\n📖 [Documentação oficial](${docLink})` : `\n\n**Regra:** \`${ruleName}\``);
-            // ⚠️ Não usar file/line para evitar comentários inline no Bitbucket
-            // Comentários inline mostram metadata visível (DangerID, etc)
-            fail(fullMessage);
+              `🔍 **Flutter Analyze** (${severity})\n\n` +
+              `${translatedMessage}\n` +
+              (docLink
+                ? `\n📖 [Documentação oficial](${docLink})`
+                : `\n**Regra:** \`${ruleName}\``);
+            // Inline comment - 1 comentário por erro
+            fail(fullMessage, relativePath, parseInt(lineNumber, 10));
             issuesFound++;
           }
         }

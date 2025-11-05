@@ -28,9 +28,8 @@ exports.default = (0, _types_1.createPlugin)(
       // Verificar nomenclatura do arquivo
       if (!file.match(/_entity\.dart$/)) {
         const baseName = file.split("/").pop()?.replace(".dart", "") || "";
-        (0, _types_1.sendFail)(`## 🏛️ NOMENCLATURA DE ENTITY INCORRETA
-
-**Arquivo:** \`${file}\`
+        (0, _types_1.sendFail)(
+          `## 🏛️ NOMENCLATURA DE ENTITY INCORRETA
 
 O arquivo deve terminar com \`_entity.dart\`.
 
@@ -41,8 +40,6 @@ Nomenclatura inconsistente dificulta:
 - 🔍 Identificação de entities no projeto
 - 📁 Organização da camada Domain
 - 🤝 Entendimento da Clean Architecture
-
-**📍 Arquivo atual:** \`${file}\`
 
 **📍 Nome correto:** \`${baseName}_entity.dart\`
 
@@ -77,7 +74,10 @@ final class UserEntity {
 
 ### 🚀 Objetivo
 
-Manter **padrões da Clean Architecture** e facilitar identificação de entities.`);
+Manter **padrões da Clean Architecture** e facilitar identificação de entities.`,
+          file,
+          1
+        );
       }
       // Ler conteúdo do arquivo para verificar a classe
       try {
@@ -87,9 +87,8 @@ Manter **padrões da Clean Architecture** e facilitar identificação de entitie
           // Verificar se classe termina com Entity
           const classMatch = fileText.match(/(?:final\s+)?class\s+(\w+)/);
           if (classMatch && !classMatch[1].endsWith("Entity")) {
-            (0, _types_1.sendFail)(`## 🏛️ CLASSE ENTITY SEM SUFIXO
-
-**Arquivo:** \`${file}\`
+            (0, _types_1.sendFail)(
+              `## 🏛️ CLASSE ENTITY SEM SUFIXO
 
 A classe deve terminar com \`Entity\`.
 
@@ -117,13 +116,15 @@ final class ${classMatch[1]}Entity {
 
 ### 🚀 Objetivo
 
-Identificar facilmente entities na camada Domain.`);
+Identificar facilmente entities na camada Domain.`,
+              file,
+              1
+            );
           }
           // Verificar se é final class
           if (!fileText.match(/final\s+class\s+\w+Entity/)) {
-            (0, _types_1.sendFail)(`## 🏛️ ENTITY DEVE SER FINAL CLASS
-
-**Arquivo:** \`${file}\`
+            (0, _types_1.sendFail)(
+              `## 🏛️ ENTITY DEVE SER FINAL CLASS
 
 Entities devem usar \`final class\` para prevenir herança indevida.
 
@@ -149,7 +150,10 @@ final class UserEntity {
 
 ### 🚀 Objetivo
 
-Garantir **imutabilidade** e design correto da Domain Layer.`);
+Garantir **imutabilidade** e design correto da Domain Layer.`,
+              file,
+              1
+            );
           }
         }
       } catch (e) {

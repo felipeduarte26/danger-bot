@@ -87,16 +87,14 @@ export default createPlugin(
 
             const docLink = getDocumentationLink(ruleName);
             const fullMessage =
-              `🔍 **Flutter Analyze** (${severity})
+              `🔍 **Flutter Analyze** (${severity})\n\n` +
+              `${translatedMessage}\n` +
+              (docLink
+                ? `\n📖 [Documentação oficial](${docLink})`
+                : `\n**Regra:** \`${ruleName}\``);
 
-**Arquivo:** \`${relativePath}:${lineNumber}\`
-
-${translatedMessage}
-` + (docLink ? `\n📖 [Documentação oficial](${docLink})` : `\n\n**Regra:** \`${ruleName}\``);
-
-            // ⚠️ Não usar file/line para evitar comentários inline no Bitbucket
-            // Comentários inline mostram metadata visível (DangerID, etc)
-            fail(fullMessage);
+            // Inline comment - 1 comentário por erro
+            fail(fullMessage, relativePath, parseInt(lineNumber, 10));
             issuesFound++;
           }
         }
