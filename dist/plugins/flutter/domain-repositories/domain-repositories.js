@@ -28,8 +28,9 @@ exports.default = (0, _types_1.createPlugin)(
     for (const file of repoFiles) {
       // Verificar nomenclatura
       if (!file.match(/_repository_interface\.dart$/)) {
-        (0, _types_1.sendFail)(
-          `## 📚 NOMENCLATURA DE REPOSITORY INTERFACE INCORRETA
+        (0, _types_1.sendFail)(`## 📚 NOMENCLATURA DE REPOSITORY INTERFACE INCORRETA
+
+**Arquivo:** \`${file}\`
 
 O arquivo deve terminar com \`_repository_interface.dart\`.
 
@@ -54,10 +55,7 @@ domain/repositories/user_repository_interface.dart  // Deixa claro que é interf
 
 ### 🚀 Objetivo
 
-Diferenciar claramente **interfaces** (Domain) de **implementações** (Data).`,
-          file,
-          1
-        );
+Diferenciar claramente **interfaces** (Domain) de **implementações** (Data).`);
       }
       try {
         const content = await danger.git.structuredDiffForFile(file);
@@ -69,8 +67,9 @@ Diferenciar claramente **interfaces** (Domain) de **implementações** (Data).`,
           const className = classMatch[1];
           // Verificar prefixo I
           if (!className.startsWith("I")) {
-            (0, _types_1.sendFail)(
-              `## 📚 REPOSITORY INTERFACE SEM PREFIXO I
+            (0, _types_1.sendFail)(`## 📚 REPOSITORY INTERFACE SEM PREFIXO I
+
+**Arquivo:** \`${file}\`
 
 A classe \`${className}\` deve começar com \`I\`.
 
@@ -94,15 +93,13 @@ abstract interface class IUserRepository {
 
 ### 🚀 Objetivo
 
-Identificar **interfaces** facilmente no código.`,
-              file,
-              1
-            );
+Identificar **interfaces** facilmente no código.`);
           }
           // Verificar abstract interface class
           if (!fileText.match(/abstract\s+interface\s+class/)) {
-            (0, _types_1.sendFail)(
-              `## 📚 REPOSITORY DEVE SER ABSTRACT INTERFACE CLASS
+            (0, _types_1.sendFail)(`## 📚 REPOSITORY DEVE SER ABSTRACT INTERFACE CLASS
+
+**Arquivo:** \`${file}\`
 
 Repository deve ser \`abstract interface class\`.
 
@@ -130,15 +127,13 @@ abstract interface class IUserRepository {
 
 ### 🚀 Objetivo
 
-Definir **contratos puros** que só podem ser implementados.`,
-              file,
-              1
-            );
+Definir **contratos puros** que só podem ser implementados.`);
           }
           // Verificar retorno void
           if (fileText.match(/\s+(?:void|Future<void>)\s+\w+\s*\(/)) {
-            (0, _types_1.sendFail)(
-              `## 📚 REPOSITORY NÃO PODE RETORNAR VOID
+            (0, _types_1.sendFail)(`## 📚 REPOSITORY NÃO PODE RETORNAR VOID
+
+**Arquivo:** \`${file}\`
 
 Repository deve retornar \`Result<Failure, T>\`, nunca \`void\`.
 
@@ -172,10 +167,7 @@ class NoParams extends Equatable {
 
 ### 🚀 Objetivo
 
-Garantir **tratamento adequado de erros** em todas operações.`,
-              file,
-              1
-            );
+Garantir **tratamento adequado de erros** em todas operações.`);
           }
         }
       } catch (e) {

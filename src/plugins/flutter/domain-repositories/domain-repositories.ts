@@ -32,6 +32,8 @@ export default createPlugin(
         sendFail(
           `## 📚 NOMENCLATURA DE REPOSITORY INTERFACE INCORRETA
 
+**Arquivo:** \`${file}\`
+
 O arquivo deve terminar com \`_repository_interface.dart\`.
 
 ### ⚠️ Problema Identificado
@@ -55,9 +57,7 @@ domain/repositories/user_repository_interface.dart  // Deixa claro que é interf
 
 ### 🚀 Objetivo
 
-Diferenciar claramente **interfaces** (Domain) de **implementações** (Data).`,
-          file,
-          1
+Diferenciar claramente **interfaces** (Domain) de **implementações** (Data).`
         );
       }
 
@@ -76,6 +76,8 @@ Diferenciar claramente **interfaces** (Domain) de **implementações** (Data).`,
           if (!className.startsWith("I")) {
             sendFail(
               `## 📚 REPOSITORY INTERFACE SEM PREFIXO I
+
+**Arquivo:** \`${file}\`
 
 A classe \`${className}\` deve começar com \`I\`.
 
@@ -99,9 +101,7 @@ abstract interface class IUserRepository {
 
 ### 🚀 Objetivo
 
-Identificar **interfaces** facilmente no código.`,
-              file,
-              1
+Identificar **interfaces** facilmente no código.`
             );
           }
 
@@ -109,6 +109,8 @@ Identificar **interfaces** facilmente no código.`,
           if (!fileText.match(/abstract\s+interface\s+class/)) {
             sendFail(
               `## 📚 REPOSITORY DEVE SER ABSTRACT INTERFACE CLASS
+
+**Arquivo:** \`${file}\`
 
 Repository deve ser \`abstract interface class\`.
 
@@ -136,9 +138,7 @@ abstract interface class IUserRepository {
 
 ### 🚀 Objetivo
 
-Definir **contratos puros** que só podem ser implementados.`,
-              file,
-              1
+Definir **contratos puros** que só podem ser implementados.`
             );
           }
 
@@ -146,6 +146,8 @@ Definir **contratos puros** que só podem ser implementados.`,
           if (fileText.match(/\s+(?:void|Future<void>)\s+\w+\s*\(/)) {
             sendFail(
               `## 📚 REPOSITORY NÃO PODE RETORNAR VOID
+
+**Arquivo:** \`${file}\`
 
 Repository deve retornar \`Result<Failure, T>\`, nunca \`void\`.
 
@@ -179,9 +181,7 @@ class NoParams extends Equatable {
 
 ### 🚀 Objetivo
 
-Garantir **tratamento adequado de erros** em todas operações.`,
-              file,
-              1
+Garantir **tratamento adequado de erros** em todas operações.`
             );
           }
         }

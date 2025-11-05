@@ -33,6 +33,8 @@ export default createPlugin(
         sendFail(
           `## 🏛️ NOMENCLATURA DE ENTITY INCORRETA
 
+**Arquivo:** \`${file}\`
+
 O arquivo deve terminar com \`_entity.dart\`.
 
 ### ⚠️ Problema Identificado
@@ -76,9 +78,7 @@ final class UserEntity {
 
 ### 🚀 Objetivo
 
-Manter **padrões da Clean Architecture** e facilitar identificação de entities.`,
-          file,
-          1
+Manter **padrões da Clean Architecture** e facilitar identificação de entities.`
         );
       }
 
@@ -93,6 +93,8 @@ Manter **padrões da Clean Architecture** e facilitar identificação de entitie
           if (classMatch && !classMatch[1].endsWith("Entity")) {
             sendFail(
               `## 🏛️ CLASSE ENTITY SEM SUFIXO
+
+**Arquivo:** \`${file}\`
 
 A classe deve terminar com \`Entity\`.
 
@@ -120,9 +122,7 @@ final class ${classMatch[1]}Entity {
 
 ### 🚀 Objetivo
 
-Identificar facilmente entities na camada Domain.`,
-              file,
-              1
+Identificar facilmente entities na camada Domain.`
             );
           }
 
@@ -130,6 +130,8 @@ Identificar facilmente entities na camada Domain.`,
           if (!fileText.match(/final\s+class\s+\w+Entity/)) {
             sendFail(
               `## 🏛️ ENTITY DEVE SER FINAL CLASS
+
+**Arquivo:** \`${file}\`
 
 Entities devem usar \`final class\` para prevenir herança indevida.
 
@@ -155,9 +157,7 @@ final class UserEntity {
 
 ### 🚀 Objetivo
 
-Garantir **imutabilidade** e design correto da Domain Layer.`,
-              file,
-              1
+Garantir **imutabilidade** e design correto da Domain Layer.`
             );
           }
         }
