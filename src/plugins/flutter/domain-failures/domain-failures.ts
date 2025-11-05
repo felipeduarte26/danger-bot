@@ -1,8 +1,8 @@
-import { createPlugin,  getDanger, sendFail  } from '@types';
+import { createPlugin, getDanger, sendFail } from "@types";
 
 /**
  * 🔥 Domain Failures Plugin
- * 
+ *
  * Verifica regras para failures na camada Domain:
  * - Primeira classe: sealed class NomeFailure
  * - Demais classes: final class extends NomeFailure
@@ -11,8 +11,8 @@ import { createPlugin,  getDanger, sendFail  } from '@types';
  */
 export default createPlugin(
   {
-    name: 'domain-failures',
-    description: 'Valida Domain Failures',
+    name: "domain-failures",
+    description: "Valida Domain Failures",
     enabled: true,
   },
   async () => {
@@ -21,33 +21,34 @@ export default createPlugin(
 
     const failureFiles = git.created_files
       .concat(git.modified_files)
-      .filter((file: string) => file.match(/\/domain\/failures\/[^/]+\.dart$/) && !file.endsWith('failures.dart'));
+      .filter(
+        (file: string) =>
+          file.match(/\/domain\/failures\/[^/]+\.dart$/) && !file.endsWith("failures.dart")
+      );
 
     for (const file of failureFiles) {
       try {
         const content = await danger.git.structuredDiffForFile(file);
         if (!content) continue;
-        
-        const fileText = content.chunks.map((c: any) => c.content).join('\n');
+
+        const fileText = content.chunks.map((c: any) => c.content).join("\n");
 
         // Verificar sealed class
         const firstClass = fileText.match(/(?:sealed|final|abstract)\s+class\s+(\w+)/);
         if (firstClass) {
           const className = firstClass[1];
-          
-          if (!className.endsWith('Failure')) {
+
+          if (!className.endsWith("Failure")) {
             sendFail(
               `## 🔥 CLASSE FAILURE SEM SUFIXO
 
-A classe \`${className}\` deve terminar com \`Failure\`.
+**Arquivo:** \`${file}\`
 
----
+A classe \`${className}\` deve terminar com \`Failure\`.
 
 ### ⚠️ Problema Identificado
 
 Sufixo ausente dificulta identificação de failures no projeto.
-
----
 
 ### 🎯 AÇÃO NECESSÁRIA
 
@@ -61,13 +62,9 @@ sealed class AuthFailure { }
 final class LoginErrorFailure extends AuthFailure { }
 \`\`\`
 
----
-
 ### 🚀 Objetivo
 
-Identificar facilmente failures na Domain Layer.`,
-              file,
-              1
+Identificar facilmente failures na Domain Layer.`
             );
           }
 
@@ -76,15 +73,13 @@ Identificar facilmente failures na Domain Layer.`,
             sendFail(
               `## 🔥 PRIMEIRA CLASSE DEVE SER SEALED
 
-A primeira classe de Failure deve ser \`sealed class\`.
+**Arquivo:** \`${file}\`
 
----
+A primeira classe de Failure deve ser \`sealed class\`.
 
 ### ⚠️ Problema Identificado
 
 \`sealed class\` permite pattern matching exaustivo e garante hierarquia fechada.
-
----
 
 ### 🎯 AÇÃO NECESSÁRIA
 
@@ -100,17 +95,14 @@ final class LogoutFailure extends AuthFailure { }
 \`\`\`
 
 **Benefícios do sealed:**
+
 - ✅ Compilador garante que todos os casos são tratados
 - ✅ Pattern matching exaustivo
 - ✅ Hierarquia fechada (não pode estender fora do arquivo)
 
----
-
 ### 🚀 Objetivo
 
-Garantir **type safety** e **exhaustiveness** no tratamento de erros.`,
-              file,
-              1
+Garantir **type safety** e **exhaustiveness** no tratamento de erros.`
             );
           }
         }
@@ -118,5 +110,5 @@ Garantir **type safety** e **exhaustiveness** no tratamento de erros.`,
         // Arquivo pode não ter diff disponível
       }
     }
-    }
+  }
 );

@@ -92,9 +92,7 @@ export default createPlugin(
 **Arquivo:** \`${relativePath}:${lineNumber}\`
 
 ${translatedMessage}
-
-**Regra:** \`${ruleName}\`
-` + (docLink ? `\n📖 [Documentação oficial](${docLink})` : "");
+` + (docLink ? `\n📖 [Documentação oficial](${docLink})` : `\n\n**Regra:** \`${ruleName}\``);
 
             // ⚠️ Não usar file/line para evitar comentários inline no Bitbucket
             // Comentários inline mostram metadata visível (DangerID, etc)

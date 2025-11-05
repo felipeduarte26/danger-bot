@@ -1,8 +1,8 @@
-import { createPlugin,  getDanger, sendFail  } from '@types';
+import { createPlugin, getDanger, sendFail } from "@types";
 
 /**
  * 🏛️ Domain Entities Plugin
- * 
+ *
  * Verifica regras para entities na camada Domain da Clean Architecture:
  * - Nomenclatura: *_entity.dart
  * - Classes: final class NomeEntity
@@ -11,8 +11,8 @@ import { createPlugin,  getDanger, sendFail  } from '@types';
  */
 export default createPlugin(
   {
-    name: 'domain-entities',
-    description: 'Valida Domain Entities',
+    name: "domain-entities",
+    description: "Valida Domain Entities",
     enabled: true,
   },
   async () => {
@@ -21,41 +21,39 @@ export default createPlugin(
 
     const entityFiles = git.created_files
       .concat(git.modified_files)
-      .filter((file: string) => file.match(/\/domain\/entities\/[^/]+\.dart$/) && !file.endsWith('entities.dart'));
+      .filter(
+        (file: string) =>
+          file.match(/\/domain\/entities\/[^/]+\.dart$/) && !file.endsWith("entities.dart")
+      );
 
     for (const file of entityFiles) {
       // Verificar nomenclatura do arquivo
       if (!file.match(/_entity\.dart$/)) {
-        const baseName = file.split('/').pop()?.replace('.dart', '') || '';
+        const baseName = file.split("/").pop()?.replace(".dart", "") || "";
         sendFail(
           `## 🏛️ NOMENCLATURA DE ENTITY INCORRETA
 
-O arquivo \`${file}\` deve terminar com \`_entity.dart\`.
+**Arquivo:** \`${file}\`
 
----
+O arquivo deve terminar com \`_entity.dart\`.
 
 ### ⚠️ Problema Identificado
 
 Nomenclatura inconsistente dificulta:
+
 - 🔍 Identificação de entities no projeto
 - 📁 Organização da camada Domain
 - 🤝 Entendimento da Clean Architecture
 
-**📍 Arquivo atual:**
-\`${file}\`
+**📍 Arquivo atual:** \`${file}\`
 
-**📍 Nome correto:**
-\`${baseName}_entity.dart\`
-
----
+**📍 Nome correto:** \`${baseName}_entity.dart\`
 
 ### 🎯 AÇÃO NECESSÁRIA
 
 1. **Renomeie** o arquivo para \`${baseName}_entity.dart\`
 2. **Atualize** todos os imports que referenciam este arquivo
 3. **Verifique** se a classe também segue o padrão
-
----
 
 ### 💡 Exemplo Correto
 
@@ -80,13 +78,9 @@ final class UserEntity {
 }
 \`\`\`
 
----
-
 ### 🚀 Objetivo
 
-Manter **padrões da Clean Architecture** e facilitar identificação de entities.`,
-          file,
-          1
+Manter **padrões da Clean Architecture** e facilitar identificação de entities.`
         );
       }
 
@@ -94,24 +88,23 @@ Manter **padrões da Clean Architecture** e facilitar identificação de entitie
       try {
         const content = await danger.git.structuredDiffForFile(file);
         if (content) {
-          const fileText = content.chunks.map((c: any) => c.content).join('\n');
-          
+          const fileText = content.chunks.map((c: any) => c.content).join("\n");
+
           // Verificar se classe termina com Entity
           const classMatch = fileText.match(/(?:final\s+)?class\s+(\w+)/);
-          if (classMatch && !classMatch[1].endsWith('Entity')) {
+          if (classMatch && !classMatch[1].endsWith("Entity")) {
             sendFail(
               `## 🏛️ CLASSE ENTITY SEM SUFIXO
 
-A classe no arquivo \`${file}\` deve terminar com \`Entity\`.
+**Arquivo:** \`${file}\`
 
----
+A classe deve terminar com \`Entity\`.
 
 ### ⚠️ Problema Identificado
 
 **📍 Classe encontrada:** \`${classMatch[1]}\`
-**📍 Classe esperada:** \`${classMatch[1]}Entity\`
 
----
+**📍 Classe esperada:** \`${classMatch[1]}Entity\`
 
 ### 🎯 AÇÃO NECESSÁRIA
 
@@ -129,13 +122,9 @@ final class ${classMatch[1]}Entity {
 }
 \`\`\`
 
----
-
 ### 🚀 Objetivo
 
-Identificar facilmente entities na camada Domain.`,
-              file,
-              1
+Identificar facilmente entities na camada Domain.`
             );
           }
 
@@ -144,15 +133,13 @@ Identificar facilmente entities na camada Domain.`,
             sendFail(
               `## 🏛️ ENTITY DEVE SER FINAL CLASS
 
-Entities devem usar \`final class\` para prevenir herança indevida.
+**Arquivo:** \`${file}\`
 
----
+Entities devem usar \`final class\` para prevenir herança indevida.
 
 ### ⚠️ Problema Identificado
 
 Classe sem \`final\` pode ser estendida, quebrando princípios da Domain Layer.
-
----
 
 ### 🎯 AÇÃO NECESSÁRIA
 
@@ -170,13 +157,9 @@ final class UserEntity {
 }
 \`\`\`
 
----
-
 ### 🚀 Objetivo
 
-Garantir **imutabilidade** e design correto da Domain Layer.`,
-              file,
-              1
+Garantir **imutabilidade** e design correto da Domain Layer.`
             );
           }
         }
@@ -184,5 +167,5 @@ Garantir **imutabilidade** e design correto da Domain Layer.`,
         // Arquivo pode não ter diff disponível
       }
     }
-    }
+  }
 );
