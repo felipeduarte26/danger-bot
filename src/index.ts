@@ -10,6 +10,7 @@ export * from "./helpers";
 
 // Export all plugins
 export {
+  prSummaryPlugin,
   prSizeCheckerPlugin,
   changelogCheckerPlugin,
   flutterAnalyzePlugin,
@@ -38,10 +39,13 @@ export {
 } from "./plugins/flutter";
 
 /**
- * All available Flutter plugins in a single array (25 plugins)
+ * All available Flutter plugins in a single array (26 plugins)
  * Use this for quick setup with all plugins enabled
  */
 export const allFlutterPlugins = [
+  // Sumário deve ser PRIMEIRO para aparecer no topo
+  require("./plugins/flutter/pr-summary").default,
+
   // Importar os plugins
   require("./plugins/flutter/pr-size-checker").default,
   require("./plugins/flutter/changelog-checker").default,
@@ -98,16 +102,9 @@ export const domainLayerPlugins = [
   domainUseCasesPlugin,
 ];
 
-export const dataLayerPlugins = [
-  dataDatasourcesPlugin,
-  dataModelsPlugin,
-  dataRepositoriesPlugin,
-];
+export const dataLayerPlugins = [dataDatasourcesPlugin, dataModelsPlugin, dataRepositoriesPlugin];
 
-export const presentationLayerPlugins = [
-  presentationViewModelsPlugin,
-  presentationStatesPlugin,
-];
+export const presentationLayerPlugins = [presentationViewModelsPlugin, presentationStatesPlugin];
 
 export const cleanArchitecturePlugins = [
   ...domainLayerPlugins,
@@ -124,7 +121,4 @@ export const codeQualityPlugins = [
   barrelFilesEnforcerPlugin,
 ];
 
-export const performancePlugins = [
-  flutterPerformancePlugin,
-  mediaqueryModernPlugin,
-];
+export const performancePlugins = [flutterPerformancePlugin, mediaqueryModernPlugin];

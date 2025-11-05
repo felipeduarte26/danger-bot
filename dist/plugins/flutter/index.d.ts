@@ -3,6 +3,7 @@
  * ==============================
  * Exporta todos os plugins relacionados ao Flutter/Dart
  */
+export { default as prSummaryPlugin } from "./pr-summary";
 export { default as prSizeCheckerPlugin } from "./pr-size-checker";
 export { default as changelogCheckerPlugin } from "./changelog-checker";
 export { default as flutterAnalyzePlugin } from "./flutter-analyze";

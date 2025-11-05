@@ -88,7 +88,7 @@ exports.getLinesChanged = getLinesChanged;
  * O objeto danger contém todas as informações sobre o PR/MR, arquivos modificados,
  * commits, e outras informações relevantes do sistema de versionamento.
  *
- * @returns O objeto danger com todas as informações do contexto
+ * @returns O objeto danger com todas as informações do contexto (tipado com ExtendedDangerDSLType)
  * @category Danger Core
  * @since 1.0.0
  *
@@ -96,17 +96,28 @@ exports.getLinesChanged = getLinesChanged;
  * ```typescript
  * const danger = getDanger();
  *
- * // Acessar PR no GitHub
+ * // Acessar PR no GitHub (com autocomplete!)
  * const pr = danger.github?.pr;
  * console.log(`PR #${pr?.number}: ${pr?.title}`);
  *
- * // Acessar PR no Bitbucket
+ * // Acessar PR no Bitbucket (com autocomplete!)
  * const bbPR = danger.bitbucket_cloud?.pr;
  * console.log(`PR: ${bbPR?.title}`);
  *
- * // Acessar arquivos modificados
+ * // Acessar arquivos modificados (com autocomplete!)
  * const files = danger.git.modified_files;
  * console.log(`${files.length} arquivos modificados`);
+ *
+ * // Agora com IntelliSense completo! 🎉
+ * // - danger.git.created_files
+ * // - danger.git.modified_files
+ * // - danger.git.deleted_files
+ * // - danger.git.commits
+ * // - danger.git.insertions ← TIPADO!
+ * // - danger.git.deletions ← TIPADO!
+ * // - danger.github.pr
+ * // - danger.bitbucket_cloud.pr
+ * // - etc...
  * ```
  */
 function getDanger() {

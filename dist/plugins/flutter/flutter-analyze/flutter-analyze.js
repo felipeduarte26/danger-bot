@@ -1,9 +1,4 @@
 "use strict";
-/**
- * 🔍 FLUTTER ANALYZE PLUGIN
- * ========================
- * Executa flutter analyze e reporta problemas
- */
 var __createBinding =
   (this && this.__createBinding) ||
   (Object.create

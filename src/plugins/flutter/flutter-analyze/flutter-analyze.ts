@@ -1,9 +1,3 @@
-/**
- * 🔍 FLUTTER ANALYZE PLUGIN
- * ========================
- * Executa flutter analyze e reporta problemas
- */
-
 import { execSync } from "child_process";
 import * as fs from "fs";
 import { createPlugin, getDanger, sendMessage } from "@types";
@@ -20,6 +14,7 @@ export default createPlugin(
   },
   async () => {
     const danger = getDanger();
+
     const allFiles = [...danger.git.modified_files, ...danger.git.created_files];
 
     // Filtrar apenas arquivos .dart (excluindo gerados e testes)
