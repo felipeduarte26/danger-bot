@@ -341,19 +341,84 @@ function patchMessages(dangerPath) {
 }
 
 /**
+ * Patch 4: Corrigir inline comments do Bitbucket usando estratégia do Danger Ruby
+ * 
+ * PROBLEMA: Bitbucket Cloud exibe comentários HTML na preview de inline comments
+ * Aparece: <!-- 1 failure: ## 📋 Changelog n... 0 atenção: DangerID: danger-id-xxx -->
+ * 
+ * SOLUÇÃO DO DANGER RUBY: Usar atributo title de link markdown ao invés de HTML comment
+ * O title está no RAW mas é invisível no render do Bitbucket!
+ * 
+ * Exemplo Ruby: [Danger](https://danger.systems/ "generated_by_danger")
+ *                                                  ^^^^^^^^^^^^^^^^^^^^^^
+ *                                                  Invisível mas no RAW!
+ */
+function patchBitbucketInlineTemplate(dangerPath) {
+  const filePath = path.join(
+    dangerPath,
+    "distribution",
+    "runner",
+    "templates",
+    "bitbucketCloudTemplate.js"
+  );
+
+  if (!fs.existsSync(filePath)) {
+    console.log("  ⚠️  bitbucketCloudTemplate.js não encontrado");
+    return false;
+  }
+
+  try {
+    let content = fs.readFileSync(filePath, "utf8");
+    const originalContent = content;
+
+    // Substituir os comentários markdown [//]: # que são exibidos no Bitbucket
+    // por um link invisível com title (estratégia do Danger Ruby)
+    
+    // Verificar se já foi aplicado
+    if (content.includes('DANGER-BOT: Usar estratégia do Danger Ruby')) {
+      console.log("  ℹ️  Inline template já está modificado (estratégia Danger Ruby aplicada)");
+      return false;
+    }
+    
+    // String replace simples ao invés de regex complexo
+    // O formato no arquivo é: return "\n[//]: # (".concat(...
+    const oldCode = 'return "\\n[//]: # (".concat((0, exports.dangerIDToString)(dangerID), ")\\n[//]: # (").concat((0, exports.fileLineToString)(file, line), ")\\n").concat(';
+    
+    const newCode = `// DANGER-BOT: Usar estratégia do Danger Ruby - link com title ao invés de [//]: #
+    // O Bitbucket NÃO exibe o atributo "title" de links, mas ele fica no RAW content
+    var signature = "[](https://dilettasolutions.com \\"danger-id-".concat(dangerID, "\\")");
+    return signature.concat("\\n\\n").concat(`;
+    
+    if (content.includes(oldCode)) {
+      content = content.replace(oldCode, newCode);
+      fs.writeFileSync(filePath, content, "utf8");
+      console.log("  ✅ Bitbucket inline template corrigido (estratégia Danger Ruby)");
+      return true;
+    } else {
+      console.log("  ⚠️  Inline template: formato não reconhecido ou já modificado");
+      return false;
+    }
+  } catch (error) {
+    console.log(`  ❌ Erro ao aplicar patch: ${error.message}`);
+    return false;
+  }
+}
+
+/**
  * Criar marcador de patch aplicado
  */
 function createPatchMarker(dangerPath) {
   const markerPath = path.join(dangerPath, ".danger-bot-patched");
   const info = {
     patchedAt: new Date().toISOString(),
-    version: "2.1.1",
+    version: "2.2.0", // Atualizado para refletir novo patch
     patches: [
       'Removed "All green. Good on \'ya" message',
       "Changed links from danger.systems to https://dilettasolutions.com",
       'Changed "dangerJS" to "Diletta Solutions"',
       "Changed emoji from :no_entry_sign: to :rocket:",
       "Translated messages to Portuguese (pt-BR)",
+      "Fixed Bitbucket inline comments metadata visibility (Danger Ruby strategy)",
     ],
   };
   fs.writeFileSync(markerPath, JSON.stringify(info, null, 2), "utf8");
@@ -364,7 +429,7 @@ function createPatchMarker(dangerPath) {
  */
 function isPatchApplied(dangerPath) {
   const markerPath = path.join(dangerPath, ".danger-bot-patched");
-  const CURRENT_PATCH_VERSION = "2.1.1";
+  const CURRENT_PATCH_VERSION = "2.2.0"; // Atualizado para nova versão
 
   if (!fs.existsSync(markerPath)) {
     return false;
@@ -420,6 +485,7 @@ function main() {
   if (patchExecutor(dangerPath)) patchesApplied++;
   if (patchLinks(dangerPath)) patchesApplied++;
   if (patchMessages(dangerPath)) patchesApplied++;
+  if (patchBitbucketInlineTemplate(dangerPath)) patchesApplied++;
 
   console.log("");
 
@@ -432,6 +498,7 @@ function main() {
     console.log('  ✅ "dangerJS" → "Diletta Solutions"');
     console.log("  ✅ Emoji: 🚫 (:no_entry_sign:) → 🚀 (:rocket:)");
     console.log("  🇧🇷 Mensagens traduzidas para Português");
+    console.log("  🔧 Bitbucket inline comments corrigidos (estratégia Danger Ruby)");
     console.log("");
     createPatchMarker(dangerPath);
   } else {

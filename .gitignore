@@ -35,3 +35,4 @@ coverage/
 # Generated files
 dangerfile.example.ts
 bitrise.yml
+danger-ruby/
