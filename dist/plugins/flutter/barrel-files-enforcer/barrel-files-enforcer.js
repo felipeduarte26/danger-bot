@@ -26,7 +26,7 @@ exports.default = (0, _types_1.createPlugin)(
 
 Pasta \`${folder}\` tem arquivos mas sem barrel file.
 
-### ⚠️ Problema Identificado
+### Problema Identificado
 
 Sem barrel file, imports ficam verbosos:
 

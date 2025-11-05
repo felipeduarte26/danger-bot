@@ -29,7 +29,7 @@ export default createPlugin(
 
 Pasta \`${folder}\` tem arquivos mas sem barrel file.
 
-### ⚠️ Problema Identificado
+### Problema Identificado
 
 Sem barrel file, imports ficam verbosos:
 
