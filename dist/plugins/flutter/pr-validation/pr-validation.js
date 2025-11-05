@@ -360,23 +360,32 @@ Facilitar **code review** de qualidade e reduzir **riscos de bugs**.
     }
     // 5. VERIFICAÇÃO DE LINHAS DE CÓDIGO
     const linesChanged = (git.insertions || 0) + (git.deletions || 0);
-    if (linesChanged === 0) {
+    const filesCreated = git.created_files.length;
+    const filesModified = git.modified_files.length;
+    const filesDeleted = git.deleted_files.length;
+    const totalFiles = filesCreated + filesModified + filesDeleted;
+    // Se não há linhas alteradas mas há arquivos criados, considerar as linhas
+    if (linesChanged === 0 && totalFiles === 0) {
       (0, _types_1.sendMessage)("ℹ️ Nenhuma linha de código alterada nesta PR");
+    } else if (linesChanged === 0 && totalFiles > 0) {
+      (0, _types_1.sendMessage)(
+        `ℹ️ **${totalFiles} arquivo(s) alterado(s)** (arquivos vazios ou binários)`
+      );
     } else if (linesChanged <= 80) {
       (0, _types_1.sendMessage)(
-        `✅ **Ótimo**: PR pequeno e focado (**${linesChanged} linhas** alteradas)`
+        `✅ **Ótimo**: PR pequeno e focado (**${linesChanged} linhas** em ${totalFiles} arquivo(s))`
       );
     } else if (linesChanged <= 200) {
       (0, _types_1.sendMessage)(
-        `👍 **Bom**: PR de tamanho médio (**${linesChanged} linhas** alteradas)`
+        `👍 **Bom**: PR de tamanho médio (**${linesChanged} linhas** em ${totalFiles} arquivo(s))`
       );
     } else if (linesChanged <= 600) {
       (0, _types_1.sendWarn)(
-        `⚠️ **Atenção**: PR grande (**${linesChanged} linhas** alteradas). Considere quebrar em PRs menores.`
+        `⚠️ **Atenção**: PR grande (**${linesChanged} linhas** em ${totalFiles} arquivo(s)). Considere quebrar em PRs menores.`
       );
     } else {
       (0, _types_1.sendWarn)(
-        `🚨 **PR Muito Grande**: **${linesChanged} linhas** alteradas! Forte recomendação de quebrar em múltiplos PRs menores.`
+        `🚨 **PR Muito Grande**: **${linesChanged} linhas** em ${totalFiles} arquivo(s)! Forte recomendação de quebrar em múltiplos PRs menores.`
       );
     }
   }
