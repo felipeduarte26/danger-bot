@@ -1,119 +1,204 @@
-# 🏗️ Arquitetura do Projeto
+# Arquitetura
 
-> Entenda como o Danger Bot está organizado
+Estrutura interna do projeto Danger Bot.
 
 ---
 
-## 📁 Estrutura de Diretórios
+## Visao geral
 
 ```
 danger-bot/
-├── src/
-│   ├── plugins/              # Plugins organizados por plataforma
-│   │   └── flutter/          # Plugins Flutter/Dart
-│   │       ├── pr-size-checker/
-│   │       ├── changelog-checker/
-│   │       ├── flutter-analyze/
-│   │       ├── flutter-architecture/
-│   │       ├── spell-checker/
-│   │       └── portuguese-documentation/
-│   ├── helpers.ts            # Helper functions (getDanger, sendMessage, etc)
-│   ├── types.ts              # Types e interfaces
-│   └── index.ts              # Barrel file principal
-├── bin/
-│   ├── cli.js                # CLI entry point
-│   ├── commands/             # Comandos da CLI
-│   ├── templates/            # Templates de código
-│   └── utils/                # Utilitários
-├── scripts/
-│   ├── patch-danger.js       # Customizações do Danger JS
-│   ├── setup_spell_check.sh # Setup spell checker
-│   └── extract_dart_identifiers.js
-├── docs/                     # Documentação
-│   ├── pipelines/            # Guias CI/CD por plataforma
-│   └── *.md                  # Guias gerais
-└── dist/                     # Build output (TypeScript compilado)
+├── src/                    # Codigo fonte TypeScript
+│   ├── index.ts            # Entry point - exports principais
+│   ├── types.ts            # Interfaces, tipos e funcoes core
+│   ├── helpers.ts          # Funcoes auxiliares
+│   └── plugins/
+│       ├── index.ts        # Barrel file de plataformas
+│       └── flutter/        # Plugins Flutter/Dart
+│           ├── index.ts    # Barrel file - exporta todos os plugins
+│           ├── pr-summary/
+│           │   ├── pr-summary.ts
+│           │   ├── index.ts
+│           │   └── README.md
+│           ├── security-checker/
+│           └── ... (26 plugins)
+├── bin/                    # CLI
+│   ├── cli.js              # Entry point da CLI (Commander)
+│   ├── commands/           # Implementacao dos comandos
+│   │   ├── create-plugin.js
+│   │   ├── remove-plugin.js
+│   │   ├── list-plugins.js
+│   │   ├── generate-dangerfile.js
+│   │   ├── validate-plugin.js
+│   │   └── info.js
+│   ├── templates/          # Templates para geracao de codigo
+│   │   ├── plugin-template.js
+│   │   ├── dangerfile-template.js
+│   │   └── readme-template.js
+│   └── utils/              # Utilitarios da CLI
+│       ├── fs-helpers.js
+│       ├── string-helpers.js
+│       └── readline-helper.js
+├── scripts/                # Scripts de build e setup
+│   ├── patch-danger.cjs    # Patches no Danger JS (postinstall)
+│   ├── extract_dart_identifiers.js
+│   └── setup_spell_check.sh
+├── dist/                   # Build output (commitado)
+└── docs/                   # Documentacao
 ```
 
 ---
 
-## 🔌 Arquitetura de Plugins
-
-### Padrão de Plugin
-
-Cada plugin segue esta estrutura:
+## Fluxo de execucao
 
 ```
-src/plugins/{plataforma}/{nome-plugin}/
-├── {nome-plugin}.ts    # Implementação
-├── index.ts            # Barrel file
-└── README.md           # Documentação
+1. Usuario cria dangerfile.ts
+   └── import { allFlutterPlugins, executeDangerBot } from "@felipeduarte26/danger-bot"
+
+2. CI/CD executa `npx danger ci`
+   └── Danger JS carrega dangerfile.ts
+
+3. executeDangerBot(plugins, callbacks?)
+   ├── callbacks.onBeforeRun() → false cancela
+   ├── runPlugins(plugins)
+   │   └── Para cada plugin habilitado:
+   │       └── plugin.run()
+   │           └── Usa helpers (getDartFiles, sendWarn, etc.)
+   ├── callbacks.onSuccess() ou callbacks.onError()
+   └── callbacks.onFinally()
+
+4. Danger JS posta comentarios no PR
 ```
 
-### Interface DangerPlugin
+---
+
+## Modulos principais
+
+### src/index.ts
+
+Entry point do pacote. Responsavel por:
+- Re-exportar tipos e helpers
+- Exportar todos os plugins individuais
+- Definir arrays de plugins por categoria (`allFlutterPlugins`, `domainLayerPlugins`, etc.)
+
+### src/types.ts
+
+Define as interfaces core do sistema de plugins:
+- `DangerPluginConfig` - configuracao de um plugin (name, description, enabled)
+- `DangerPlugin` - interface de um plugin (config + run)
+- `DangerBotCallbacks` - callbacks do ciclo de vida
+- `createPlugin()` - factory para criar plugins
+- `runPlugins()` - executa plugins sequencialmente
+- `executeDangerBot()` - funcao principal com callbacks
+
+### src/helpers.ts
+
+Funcoes auxiliares organizadas em categorias:
+- **Danger Core**: `getDanger()`
+- **Mensagens**: `sendMessage`, `sendWarn`, `sendFail`, `sendMarkdown`, `scheduleTask`
+- **Filtros de arquivos**: `getAllChangedFiles`, `getDartFiles`, `getFilesMatching`, etc.
+- **Clean Architecture**: `getDomainDartFiles`, `getDataDartFiles`, `isInLayer`, etc.
+- **Info do PR**: `getPRDescription`, `getPRTitle`, `getLinesChanged`
+
+### src/plugins/flutter/
+
+Cada plugin segue a mesma estrutura:
+
+```
+plugin-name/
+├── plugin-name.ts    # Logica do plugin usando createPlugin()
+├── index.ts          # export { default } from "./plugin-name"
+└── README.md         # Documentacao especifica
+```
+
+---
+
+## Sistema de plugins
+
+### Interface
 
 ```typescript
 interface DangerPlugin {
-  config: {
-    name: string;
-    description: string;
-    enabled: boolean;
-  };
+  config: DangerPluginConfig;
   run(): Promise<void>;
+}
+
+interface DangerPluginConfig {
+  name: string;
+  description: string;
+  enabled: boolean;
 }
 ```
 
----
+### Factory
 
-## 🔄 Fluxo de Execução
+```typescript
+function createPlugin(config: DangerPluginConfig, runFn: () => Promise<void>): DangerPlugin
+```
 
-```
-dangerfile.ts
-    ↓
-executeDangerBot()
-    ↓
-onBeforeRun() [opcional]
-    ↓
-Para cada plugin:
-    ├→ Verificar se enabled
-    ├→ Executar plugin.run()
-    └→ Capturar erros
-    ↓
-onSuccess() / onError() [opcional]
-    ↓
-onFinally() [opcional]
-```
+### Execucao
+
+Os plugins sao executados **sequencialmente** por `runPlugins()`. Se um plugin lanca erro, a execucao para e `onError` e chamado.
+
+Plugins com `config.enabled = false` sao pulados automaticamente.
 
 ---
 
-## 🛠️ CLI Modular
+## CLI
 
-```
-bin/
-├── cli.js (63 linhas)        # Entry point minimalista
-├── commands/                 # Cada comando em seu arquivo
-│   ├── create-plugin.js
-│   ├── list-plugins.js
-│   ├── generate-dangerfile.js
-│   ├── validate-plugin.js
-│   └── info.js
-├── templates/                # Templates de código
-│   ├── plugin-template.js
-│   ├── readme-template.js
-│   └── dangerfile-template.js
-└── utils/                    # Funções compartilhadas
-    ├── string-helpers.js     # Conversões de string
-    ├── readline-helper.js    # Interação com usuário
-    └── fs-helpers.js         # Operações de arquivo
-```
+A CLI usa [Commander](https://github.com/tj/commander.js) e esta em `bin/cli.js`.
+
+Cada comando e um modulo separado em `bin/commands/`. Os comandos manipulam o filesystem para criar/remover plugins e atualizar barrel files automaticamente.
+
+Templates em `bin/templates/` geram codigo para novos plugins, dangerfiles e READMEs.
 
 ---
 
-## 🎯 Padrões Aplicados
+## Scripts
 
-- ✅ **Separation of Concerns** - Cada módulo tem responsabilidade única
-- ✅ **Single Responsibility** - Um arquivo, uma função
-- ✅ **DRY** - Código reutilizável em utils/
-- ✅ **Modular Architecture** - Plugins independentes
+### patch-danger.cjs
+
+Executado automaticamente no `postinstall`. Modifica o Danger JS para:
+- Remover mensagem "All green. Good on 'ya"
+- Customizar links e nomes de runtime
+- Traduzir mensagens para portugues
+- Corrigir inline comments no Bitbucket Cloud
+
+Usa um sistema de versionamento de patches (`.danger-bot-patched`) para evitar reaplicacao.
+
+### extract_dart_identifiers.js
+
+Extrai identificadores (classes, metodos, variaveis) de arquivos Dart e quebra nomes camelCase em palavras individuais para verificacao ortografica com cspell.
+
+### setup_spell_check.sh
+
+Configura o cspell para CI/CD, extraindo palavras customizadas do `.vscode/settings.json` e gerando `cspell.config.json`.
 
 ---
+
+## Build
+
+O projeto usa TypeScript com `tsc` e `tsc-alias` para resolver path aliases:
+
+```json
+{
+  "paths": {
+    "@types": ["types"],
+    "@plugins/*": ["plugins/*"]
+  }
+}
+```
+
+O `dist/` e commitado no repositorio para permitir instalacao via Git (que nao executa `npm run build`).
+
+---
+
+## Qualidade de codigo
+
+- **ESLint 9** com TypeScript type-checked rules
+- **Prettier** para formatacao
+- **Husky** com hooks:
+  - `pre-commit`: lint-staged (ESLint + Prettier nos arquivos staged)
+  - `commit-msg`: commitlint (Conventional Commits)
+  - `pre-push`: lint + type-check + build completo
+- **Commitlint** com config conventional

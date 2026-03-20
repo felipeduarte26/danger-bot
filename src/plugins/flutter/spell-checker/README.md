@@ -31,7 +31,7 @@ Ortografia correta no código é essencial para:
 ## 🚀 Configuração
 
 ```typescript
-import { spellCheckerPlugin } from "@diletta/danger-bot";
+import { spellCheckerPlugin } from "@felipeduarte26/danger-bot";
 
 const plugins = [
   spellCheckerPlugin,  // Habilitado por padrão
@@ -176,7 +176,6 @@ Edite `.cspell-words.txt`:
 
 ```txt
 # Termos específicos do projeto
-Diletta
 Esfera
 UserDto
 ProductEntity

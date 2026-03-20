@@ -31,7 +31,7 @@ Manter documentação em inglês é importante para:
 ## 🚀 Configuração
 
 ```typescript
-import { portugueseDocumentationPlugin } from "@diletta/danger-bot";
+import { portugueseDocumentationPlugin } from "@felipeduarte26/danger-bot";
 
 const plugins = [
   portugueseDocumentationPlugin,  // Habilitado por padrão

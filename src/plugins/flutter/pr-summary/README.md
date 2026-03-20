@@ -18,8 +18,8 @@ Gera automaticamente um comentário no topo da PR com estatísticas consolidadas
 ## 📦 Instalação
 
 ```typescript
-import { prSummaryPlugin } from '@diletta/danger-bot';
-import { executeDangerBot } from '@diletta/danger-bot';
+import { prSummaryPlugin } from '@felipeduarte26/danger-bot';
+import { executeDangerBot } from '@felipeduarte26/danger-bot';
 
 // Sumário deve ser o primeiro plugin para aparecer no topo
 executeDangerBot([
@@ -33,7 +33,7 @@ executeDangerBot([
 ### Exemplo Básico (Recomendado)
 
 ```typescript
-import { allFlutterPlugins, executeDangerBot } from '@diletta/danger-bot';
+import { allFlutterPlugins, executeDangerBot } from '@felipeduarte26/danger-bot';
 
 // O prSummaryPlugin já está incluído no allFlutterPlugins
 // e é automaticamente executado primeiro
@@ -43,7 +43,7 @@ executeDangerBot(allFlutterPlugins);
 ### Exemplo: Apenas Sumário
 
 ```typescript
-import { prSummaryPlugin, executeDangerBot } from '@diletta/danger-bot';
+import { prSummaryPlugin, executeDangerBot } from '@felipeduarte26/danger-bot';
 
 executeDangerBot([prSummaryPlugin]);
 ```
@@ -56,7 +56,7 @@ import {
   flutterAnalyzePlugin,
   spellCheckerPlugin,
   executeDangerBot
-} from '@diletta/danger-bot';
+} from '@felipeduarte26/danger-bot';
 
 // Sumário sempre no topo
 executeDangerBot([
@@ -280,7 +280,7 @@ import {
   prSummaryPlugin,
   prValidationPlugin,
   executeDangerBot
-} from '@diletta/danger-bot';
+} from '@felipeduarte26/danger-bot';
 
 // Sumário + validação detalhada
 executeDangerBot([
@@ -294,7 +294,7 @@ executeDangerBot([
 ### Stack Completo de Revisão
 
 ```typescript
-import { allFlutterPlugins, executeDangerBot } from '@diletta/danger-bot';
+import { allFlutterPlugins, executeDangerBot } from '@felipeduarte26/danger-bot';
 
 // Ordem otimizada para melhor UX
 executeDangerBot(allFlutterPlugins);

@@ -1,104 +1,112 @@
-# 🚀 Início Rápido
+# Inicio Rapido
 
-> Comece a usar o Danger Bot em menos de 5 minutos!
+Comece a usar o Danger Bot em menos de 5 minutos.
 
 ---
 
-## ⚡ TL;DR
+## TL;DR
 
 ```bash
-# 1. Instalar
-npm install --save-dev danger @diletta/danger-bot@git+https://bitbucket.org/diletta/danger-bot.git#main
-
-# 2. Criar dangerfile.ts
-cat > dangerfile.ts << 'EOF'
-import { allFlutterPlugins, executeDangerBot } from "@diletta/danger-bot";
-
-executeDangerBot(allFlutterPlugins);
-EOF
-
-# 3. Adicionar ao package.json
-npm pkg set scripts.danger:ci="danger ci"
-
-# 4. Executar
-npm run danger:ci
+npm install --save-dev danger @felipeduarte26/danger-bot
 ```
-
-**Pronto! 🎉**
-
----
-
-## 📋 Passo a Passo Detalhado
-
-### 1️⃣ Instalação
-
-```bash
-npm install --save-dev danger @diletta/danger-bot@git+https://bitbucket.org/diletta/danger-bot.git#main
-```
-
-> **Nota**: Se seu projeto não tem `package.json`, veja o [Guia de Instalação Completo](INSTALACAO.md#projetos-sem-packagejson)
-
----
-
-### 2️⃣ Criar Dangerfile
-
-Crie um arquivo `dangerfile.ts` na raiz do projeto:
 
 ```typescript
-import { allFlutterPlugins, executeDangerBot } from "@diletta/danger-bot";
+// dangerfile.ts
+import { allFlutterPlugins, executeDangerBot } from "@felipeduarte26/danger-bot";
 
 executeDangerBot(allFlutterPlugins);
 ```
 
-**Ou com plugins específicos:**
+```bash
+npx danger ci
+```
+
+---
+
+## Passo a Passo
+
+### 1. Instalar dependencias
+
+```bash
+npm install --save-dev danger @felipeduarte26/danger-bot
+```
+
+Se seu projeto Flutter nao tem `package.json`, crie um primeiro:
+
+```bash
+npm init -y
+npm install --save-dev danger @felipeduarte26/danger-bot
+```
+
+> Para instalacao via Git (sem npm registry), veja [Instalacao](INSTALACAO.md).
+
+### 2. Criar o dangerfile
+
+Crie `dangerfile.ts` na raiz do projeto:
+
+**Opcao A - Todos os plugins (26 plugins):**
+
+```typescript
+import { allFlutterPlugins, executeDangerBot } from "@felipeduarte26/danger-bot";
+
+executeDangerBot(allFlutterPlugins);
+```
+
+**Opcao B - Plugins selecionados:**
 
 ```typescript
 import {
   prSizeCheckerPlugin,
   changelogCheckerPlugin,
-  flutterAnalyzePlugin,
+  securityCheckerPlugin,
+  cleanArchitecturePlugin,
   executeDangerBot,
-} from "@diletta/danger-bot";
+} from "@felipeduarte26/danger-bot";
 
-executeDangerBot([prSizeCheckerPlugin, changelogCheckerPlugin, flutterAnalyzePlugin]);
+executeDangerBot([
+  prSizeCheckerPlugin,
+  changelogCheckerPlugin,
+  securityCheckerPlugin,
+  cleanArchitecturePlugin,
+]);
 ```
 
----
+**Opcao C - Por categoria:**
 
-### 3️⃣ Configurar Scripts
+```typescript
+import {
+  cleanArchitecturePlugins,
+  codeQualityPlugins,
+  executeDangerBot,
+} from "@felipeduarte26/danger-bot";
 
-Adicione ao `package.json`:
+executeDangerBot([...cleanArchitecturePlugins, ...codeQualityPlugins]);
+```
+
+### 3. Configurar scripts no package.json
 
 ```json
 {
   "scripts": {
     "danger:ci": "danger ci",
-    "danger:pr": "danger pr https://github.com/user/repo/pull/123",
     "danger:local": "danger local"
   }
 }
 ```
 
----
-
-### 4️⃣ Testar Localmente
+### 4. Testar localmente
 
 ```bash
-# Testar sem fazer commit
-npm run danger:local
-
-# Testar em um PR específico
-npm run danger:pr
+npx danger local
 ```
 
----
-
-### 5️⃣ Configurar CI/CD
+### 5. Configurar no CI/CD
 
 #### GitHub Actions
 
+Crie `.github/workflows/danger.yml`:
+
 ```yaml
-# .github/workflows/danger.yml
 name: Danger
 on: [pull_request]
 
@@ -106,151 +114,93 @@ jobs:
   danger:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - run: npm install
-      - run: npm run danger:ci
+      - run: npm ci
+      - run: npx danger ci
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 #### Bitbucket Pipelines
 
+Adicione ao `bitbucket-pipelines.yml`:
+
 ```yaml
-# bitrise.yml (adicione ao workflow existente)
-- npm install
-- npm run danger:ci
+pipelines:
+  pull-requests:
+    '**':
+      - step:
+          name: Danger Bot
+          image: node:22
+          script:
+            - npm ci
+            - npx danger ci
 ```
 
-> 📚 **Ver guia completo**: [Configuração de Pipelines](PIPELINES.md)
+> Guias completos: [CI/CD](pipelines/README.md) | [Bitrise](pipelines/BITRISE.md) | [Bitbucket](pipelines/BITBUCKET_PIPELINES.md)
 
 ---
 
-## 🎯 Plugins Disponíveis
+## Personalizacao
 
-> 📖 **Importar todos**: `import { allFlutterPlugins } from "@diletta/danger-bot";`
-
----
-
-## ⚙️ Personalização Rápida
-
-### Desabilitar um Plugin
+### Desabilitar um plugin
 
 ```typescript
-import { flutterAnalyzePlugin, executeDangerBot } from "@diletta/danger-bot";
+import { allFlutterPlugins, executeDangerBot } from "@felipeduarte26/danger-bot";
 
-// Desabilitar temporariamente
-flutterAnalyzePlugin.config.enabled = false;
+// Desabilitar o spell-checker
+const plugins = allFlutterPlugins.map(p => {
+  if (p.config.name === "spell-checker") {
+    p.config.enabled = false;
+  }
+  return p;
+});
 
-executeDangerBot([flutterAnalyzePlugin]);
+executeDangerBot(plugins);
 ```
 
-### Com Callbacks
+### Usar callbacks
 
 ```typescript
-import { allFlutterPlugins, executeDangerBot, sendMessage } from "@diletta/danger-bot";
+import { allFlutterPlugins, executeDangerBot, sendMessage } from "@felipeduarte26/danger-bot";
 
 executeDangerBot(allFlutterPlugins, {
   onBeforeRun: () => {
-    sendMessage("🔍 Iniciando análise automática...");
-    return true; // Continuar
+    sendMessage("Iniciando analise...");
+    return true;
   },
-
-  onSuccess: () => {
-    sendMessage("✅ Análise concluída com sucesso!");
-  },
-
-  onError: (error) => {
-    console.error("Erro:", error);
-  },
-  
-  onFinally: () => {
-    sendMessage("📊 Análise finalizada!");
-  }
+  onSuccess: () => sendMessage("Analise concluida!"),
+  onError: (error) => console.error("Erro:", error.message),
 });
 ```
 
 ---
 
-## 🛠️ CLI do Danger Bot
+## Problemas comuns
 
-O Danger Bot vem com uma CLI integrada:
-
-```bash
-# Listar todos os plugins disponíveis
-danger-bot list
-
-# Ver informações do projeto
-danger-bot info
-
-# Criar um novo plugin
-danger-bot create-plugin
-
-# Gerar dangerfile de exemplo
-danger-bot gen
-
-# Validar um plugin
-danger-bot validate src/plugins/meu-plugin/meu-plugin.ts
-```
-
-> 📚 **Documentação completa**: [Guia da CLI](CLI.md)
-
----
-
-## 🎓 Próximos Passos
-
-Agora que você já tem o básico funcionando:
-
-1. 📖 **[Guia de Plugins](GUIA_PLUGINS.md)** - Aprenda a usar e criar plugins
-2. 🔧 **[API Reference](API.md)** - Conheça todas as funções disponíveis
-3. 💡 **[Exemplos](EXEMPLOS.md)** - Veja casos de uso reais
-4. 🚀 **[Pipelines](PIPELINES.md)** - Configure seu CI/CD
-5. 📝 **[Commits](COMMITS.md)** - Aprenda sobre Conventional Commits
-
----
-
-## ❓ Problemas Comuns
-
-### Erro: "Module not found"
+**"Module not found"** - Reinstale as dependencias:
 
 ```bash
-# Reinstalar dependências
 rm -rf node_modules package-lock.json
 npm install
 ```
 
-### Erro: "danger is not defined"
+**"danger is not defined"** - Instale o Danger como peer dependency:
 
 ```bash
-# Instalar Danger como peer dependency
 npm install --save-dev danger
 ```
 
-### Plugin não está executando
-
-```typescript
-// Verificar se o plugin está habilitado
-console.log(meuPlugin.config.enabled); // deve ser true
-```
-
-> 🐛 **Mais soluções**: [FAQ](FAQ.md)
+> Mais solucoes: [FAQ](FAQ.md)
 
 ---
 
-## 💬 Suporte
+## Proximos passos
 
-- 📖 **Documentação**: [docs/](.)
-- 💬 **Slack**: [#danger-bot](https://diletta.slack.com/archives/C09CZAH10J3)
-- 💬 **Email**: felipe.duarte@dilettasolutions.com
-
----
-
-<div align="center">
-
-**🎉 Parabéns! Você está pronto para usar o Danger Bot!**
-
-[📚 Ver Documentação Completa](.) • [🔌 Criar Plugin](GUIA_PLUGINS.md#criar-plugin) • [⚙️ Configuração Avançada](API.md)
-
-</div>
+- [Guia de Plugins](GUIA_PLUGINS.md) - Entenda cada plugin e como configurar
+- [API Reference](API.md) - Funcoes e tipos disponiveis
+- [Exemplos](EXEMPLOS.md) - Casos de uso praticos
+- [CI/CD](pipelines/README.md) - Configure sua pipeline

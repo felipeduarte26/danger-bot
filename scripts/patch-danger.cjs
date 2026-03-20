@@ -115,7 +115,7 @@ function patchExecutor(dangerPath) {
 }
 
 /**
- * Patch 2: Customizar links (danger.systems → Diletta Solutions)
+ * Patch 2: Customizar links (danger.systems → Danger Bot / repositório)
  */
 function patchLinks(dangerPath) {
   const filesToPatch = [
@@ -171,27 +171,15 @@ function patchLinks(dangerPath) {
       const replacements = [
         {
           search: /(https?:\/\/)?danger\.systems(\/js)?/gi,
-          replace: "https://dilettasolutions.com",
-        },
-        {
-          search: /(https?:\/\/)?github\.com\/felipeduarte26/gi,
-          replace: "https://dilettasolutions.com",
+          replace: "https://github.com/felipeduarte26/danger-bot",
         },
         {
           search: /runtimeName:\s*["']dangerJS["']/gi,
-          replace: 'runtimeName: "Diletta Solutions"',
-        },
-        {
-          search: /runtimeName:\s*["']Danger Bot["']/gi,
-          replace: 'runtimeName: "Diletta Solutions"',
+          replace: 'runtimeName: "Danger Bot"',
         },
         {
           search: /key\s*=\s*["']danger\.systems["']/gi,
-          replace: 'key = "Diletta Solutions"',
-        },
-        {
-          search: /key\s*=\s*["']Danger Bot["']/gi,
-          replace: 'key = "Diletta Solutions"',
+          replace: 'key = "Danger Bot"',
         },
         {
           search: /:no_entry_sign:/gi,
@@ -392,7 +380,7 @@ function patchBitbucketInlineTemplate(dangerPath) {
     const newCode = `// DANGER-BOT: Usar estratégia do Danger Ruby - link com title NO FINAL
     // O Bitbucket NÃO exibe o atributo "title" de links, mas ele fica no RAW content
     // Colocando o link NO FINAL (igual Danger Ruby) evita que Bitbucket crie preview
-    var signature = "\\n\\n[](https://dilettasolutions.com \\"danger-id-".concat(dangerID, ";\\")");
+    var signature = "\\n\\n[](https://github.com/felipeduarte26/danger-bot \\"danger-id-".concat(dangerID, ";\\")");
     return "".concat(results.fails.map(printViolation(noEntryEmoji)).join("\\n"), "\\n").concat(results.warnings.map(printViolation(warningEmoji)).join("\\n"), "\\n").concat(results.messages.map(printViolation(messageEmoji)).join("\\n"), "\\n").concat(results.markdowns.map(function (v) { return v.message; }).join("\\n\\n")).replace(/^\\n+/, "").concat(signature, "\\n  ");`;
     
     if (content.includes(oldCode)) {
@@ -423,11 +411,11 @@ function createPatchMarker(dangerPath) {
   const markerPath = path.join(dangerPath, ".danger-bot-patched");
   const info = {
     patchedAt: new Date().toISOString(),
-    version: "2.2.0", // Atualizado para refletir novo patch
+    version: "2.4.0", // Alinhar com CURRENT_PATCH_VERSION em isPatchApplied
     patches: [
       'Removed "All green. Good on \'ya" message',
-      "Changed links from danger.systems to https://dilettasolutions.com",
-      'Changed "dangerJS" to "Diletta Solutions"',
+      "Changed links from danger.systems to https://github.com/felipeduarte26/danger-bot",
+      'Changed "dangerJS" to "Danger Bot"',
       "Changed emoji from :no_entry_sign: to :rocket:",
       "Translated messages to Portuguese (pt-BR)",
       "Fixed Bitbucket inline comments metadata visibility (Danger Ruby strategy)",
@@ -441,7 +429,7 @@ function createPatchMarker(dangerPath) {
  */
 function isPatchApplied(dangerPath) {
   const markerPath = path.join(dangerPath, ".danger-bot-patched");
-  const CURRENT_PATCH_VERSION = "2.3.0"; // Link NO FINAL para evitar preview
+  const CURRENT_PATCH_VERSION = "2.4.0"; // Links e branding Danger Bot / GitHub
 
   if (!fs.existsSync(markerPath)) {
     return false;
@@ -506,8 +494,8 @@ function main() {
     console.log("");
     console.log("📝 Modificações:");
     console.log('  ❌ "All green. Good on \'ya" → REMOVIDO');
-    console.log("  ✅ danger.systems → https://dilettasolutions.com");
-    console.log('  ✅ "dangerJS" → "Diletta Solutions"');
+    console.log("  ✅ danger.systems → https://github.com/felipeduarte26/danger-bot");
+    console.log('  ✅ "dangerJS" → "Danger Bot"');
     console.log("  ✅ Emoji: 🚫 (:no_entry_sign:) → 🚀 (:rocket:)");
     console.log("  🇧🇷 Mensagens traduzidas para Português");
     console.log("  🔧 Bitbucket inline comments corrigidos (estratégia Danger Ruby)");

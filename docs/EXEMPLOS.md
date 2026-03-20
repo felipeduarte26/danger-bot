@@ -1,136 +1,173 @@
-# 💡 Exemplos Práticos
+# Exemplos
 
-> Casos de uso reais do Danger Bot
+Casos de uso praticos do Danger Bot.
 
 ---
 
-## 🎯 Exemplo 1: Setup Básico
+## Basico - Todos os plugins
 
 ```typescript
-import { allFlutterPlugins, executeDangerBot } from "@diletta/danger-bot";
+import { allFlutterPlugins, executeDangerBot } from "@felipeduarte26/danger-bot";
 
 executeDangerBot(allFlutterPlugins);
 ```
 
 ---
 
-## 🎨 Exemplo 2: Com Callbacks (Todos Opcionais!)
-
-> ⚠️ **Importante**: Todos os callbacks são **opcionais**. Use apenas os que precisar!
-
-```typescript
-import {
-  allFlutterPlugins,
-  executeDangerBot,
-  sendMessage,
-  sendWarn,
-  getDanger,
-} from "@diletta/danger-bot";
-
-executeDangerBot(allFlutterPlugins, {
-  // 1️⃣ Executado ANTES de rodar os plugins
-  // Retorne `false` para cancelar a execução
-  onBeforeRun: () => {
-    const d = getDanger();
-    const pr = d.github?.pr || d.bitbucket_cloud?.pr || d.gitlab?.mr;
-
-    if (pr) {
-      sendMessage(
-        `**🤖 Análise Automática**\n\n` +
-          `**Título**: ${pr.title}\n` +
-          `**Autor**: ${pr.user?.login || pr.author?.display_name}\n` +
-          `**Plugins**: ${allFlutterPlugins.length} ativos`
-      );
-    }
-
-    return true; // `true` = continua / `false` = cancela
-  },
-
-  // 2️⃣ Executado quando TODOS os plugins finalizam COM SUCESSO
-  onSuccess: () => {
-    sendMessage("✅ Análise concluída com sucesso!");
-  },
-
-  // 3️⃣ Executado quando algum plugin FALHA ou lança ERRO
-  onError: (error) => {
-    sendWarn(
-      `⚠️ **Erro na análise**\n\n` + `${error.message}\n\n` + `Por favor, verifique os logs.`
-    );
-  },
-
-  // 4️⃣ Executado SEMPRE no final (sucesso ou erro)
-  // Similar ao `finally` do try-catch
-  onFinally: () => {
-    const d = getDanger();
-    const pr = d.github?.pr || d.bitbucket_cloud?.pr || d.gitlab?.mr;
-
-    if (pr) {
-      sendMessage(
-        `📊 **Estatísticas**\n\n` +
-          `Plugins executados: ${allFlutterPlugins.length}\n` +
-          `Arquivos modificados: ${d.git.modified_files.length}`
-      );
-    }
-  },
-});
-```
-
-### 📋 Resumo dos Callbacks:
-
-| Callback      | Quando executa         | Parâmetros     | Retorno                | Obrigatório |
-| ------------- | ---------------------- | -------------- | ---------------------- | ----------- |
-| `onBeforeRun` | Antes de rodar plugins | -              | `boolean` (continuar?) | ❌ Opcional |
-| `onSuccess`   | Após sucesso de todos  | -              | -                      | ❌ Opcional |
-| `onError`     | Quando ocorre erro     | `error: Error` | -                      | ❌ Opcional |
-| `onFinally`   | Sempre no final        | -              | -                      | ❌ Opcional |
-
----
-
-## 🔧 Exemplo 3: Plugins Seletivos
+## Plugins selecionados
 
 ```typescript
 import {
   prSizeCheckerPlugin,
   changelogCheckerPlugin,
   flutterAnalyzePlugin,
+  securityCheckerPlugin,
   executeDangerBot,
-} from "@diletta/danger-bot";
+} from "@felipeduarte26/danger-bot";
 
-executeDangerBot([prSizeCheckerPlugin, changelogCheckerPlugin, flutterAnalyzePlugin]);
+executeDangerBot([
+  prSizeCheckerPlugin,
+  changelogCheckerPlugin,
+  flutterAnalyzePlugin,
+  securityCheckerPlugin,
+]);
 ```
 
 ---
 
-## 🎯 Exemplo 4: Desabilitar Plugin
+## Por categoria
 
 ```typescript
-import { allFlutterPlugins, spellCheckerPlugin, executeDangerBot } from "@diletta/danger-bot";
+import {
+  cleanArchitecturePlugins,
+  codeQualityPlugins,
+  performancePlugins,
+  executeDangerBot,
+} from "@felipeduarte26/danger-bot";
 
-// Desabilitar spell checker
-spellCheckerPlugin.config.enabled = false;
-
-executeDangerBot(allFlutterPlugins);
+executeDangerBot([
+  ...cleanArchitecturePlugins,
+  ...codeQualityPlugins,
+  ...performancePlugins,
+]);
 ```
 
 ---
 
-## 🌍 Exemplo 5: Multi-Plataforma
+## Com callbacks completos
 
 ```typescript
-import { allFlutterPlugins, executeDangerBot, sendMessage, getDanger } from "@diletta/danger-bot";
+import {
+  allFlutterPlugins,
+  executeDangerBot,
+  sendMessage,
+  getDanger,
+} from "@felipeduarte26/danger-bot";
 
 executeDangerBot(allFlutterPlugins, {
   onBeforeRun: () => {
     const d = getDanger();
-    const platform = d.github
-      ? "GitHub"
-      : d.bitbucket_cloud
-        ? "Bitbucket"
-        : d.gitlab
-          ? "GitLab"
-          : "Unknown";
+    const pr = d.github?.pr || d.bitbucket_cloud?.pr || d.gitlab?.mr;
+    const platform = d.github ? "GitHub" :
+                     d.bitbucket_cloud ? "Bitbucket" :
+                     d.gitlab ? "GitLab" : "Desconhecido";
 
-    sendMessage(`🌍 Plataforma: **${platform}**`);
+    if (pr) {
+      sendMessage(
+        `**Analise Automatica**\n\n` +
+        `**Plataforma**: ${platform}\n` +
+        `**Titulo**: ${pr.title}\n` +
+        `**Plugins**: ${allFlutterPlugins.filter(p => p.config.enabled).length}`
+      );
+    }
+
+    return true;
+  },
+
+  onSuccess: () => {
+    sendMessage("Analise concluida com sucesso!");
+  },
+
+  onError: (error) => {
+    console.error("Erro durante analise:", error.message);
+  },
+
+  onFinally: () => {
+    sendMessage("Pipeline finalizado.");
+  },
+});
+```
+
+---
+
+## Desabilitando plugins especificos
+
+```typescript
+import { allFlutterPlugins, executeDangerBot } from "@felipeduarte26/danger-bot";
+
+const disabled = ["spell-checker", "portuguese-documentation"];
+
+const plugins = allFlutterPlugins.map(p => {
+  if (disabled.includes(p.config.name)) {
+    p.config.enabled = false;
+  }
+  return p;
+});
+
+executeDangerBot(plugins);
+```
+
+---
+
+## Apenas Clean Architecture
+
+```typescript
+import {
+  cleanArchitecturePlugins,
+  prValidationPlugin,
+  executeDangerBot,
+  sendMessage,
+} from "@felipeduarte26/danger-bot";
+
+executeDangerBot([prValidationPlugin, ...cleanArchitecturePlugins], {
+  onSuccess: () => sendMessage("Arquitetura validada!"),
+});
+```
+
+---
+
+## Usando helpers diretamente
+
+```typescript
+import {
+  allFlutterPlugins,
+  executeDangerBot,
+  getDanger,
+  getDartFiles,
+  getLinesChanged,
+  sendMessage,
+  sendWarn,
+  sendMarkdown,
+} from "@felipeduarte26/danger-bot";
+
+executeDangerBot(allFlutterPlugins, {
+  onBeforeRun: () => {
+    const dartFiles = getDartFiles();
+    const lines = getLinesChanged();
+
+    sendMarkdown(`
+## Resumo do PR
+
+| Metrica | Valor |
+|---------|-------|
+| Arquivos Dart | ${dartFiles.length} |
+| Linhas alteradas | ${lines} |
+    `);
+
+    if (lines > 1000) {
+      sendWarn("PR muito grande. Considere dividir em PRs menores.");
+    }
+
     return true;
   },
 });
@@ -138,32 +175,60 @@ executeDangerBot(allFlutterPlugins, {
 
 ---
 
-## 🔌 Exemplo 6: Plugin Customizado
+## Plugin customizado inline
+
+Voce pode criar plugins diretamente no dangerfile sem precisar de arquivos separados:
 
 ```typescript
-import { createPlugin, getDanger, sendWarn, sendMessage } from "@types";
+import {
+  allFlutterPlugins,
+  executeDangerBot,
+  createPlugin,
+  getDartFiles,
+  getFileContent,
+  sendWarn,
+} from "@felipeduarte26/danger-bot";
 
-export default createPlugin(
+const noTodoPlugin = createPlugin(
   {
-    name: "test-coverage",
-    description: "Verifica cobertura de testes",
+    name: "no-todo-comments",
+    description: "Detecta comentarios TODO no codigo",
     enabled: true,
   },
   async () => {
-    const d = getDanger();
-    const modifiedFiles = d.git.modified_files;
-
-    const hasCode = modifiedFiles.some((f) => f.endsWith(".dart") && !f.includes("_test.dart"));
-
-    const hasTests = modifiedFiles.some((f) => f.includes("_test.dart"));
-
-    if (hasCode && !hasTests) {
-      sendWarn("⚠️ **Código sem testes**\n\nConsidere adicionar testes!");
-    } else if (hasTests) {
-      sendMessage("✅ Testes incluídos no PR");
+    const files = getDartFiles();
+    for (const file of files) {
+      const content = await getFileContent(file);
+      if (content?.includes("// TODO")) {
+        sendWarn(`TODO encontrado em ${file}. Crie uma issue.`);
+      }
     }
   }
 );
+
+executeDangerBot([...allFlutterPlugins, noTodoPlugin]);
 ```
 
 ---
+
+## Condicional por branch
+
+```typescript
+import {
+  allFlutterPlugins,
+  codeQualityPlugins,
+  executeDangerBot,
+  getDanger,
+} from "@felipeduarte26/danger-bot";
+
+const d = getDanger();
+const targetBranch = d.github?.pr?.base?.ref || d.bitbucket_cloud?.pr?.destination?.branch?.name;
+
+if (targetBranch === "main" || targetBranch === "master") {
+  // Analise completa para PRs para main
+  executeDangerBot(allFlutterPlugins);
+} else {
+  // Analise leve para branches de desenvolvimento
+  executeDangerBot(codeQualityPlugins);
+}
+```

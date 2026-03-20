@@ -16,7 +16,7 @@ export function generateDangerfileTemplate(plugins) {
  * Auto-generated dangerfile with all available plugins
  */
 
-import { allFlutterPlugins, executeDangerBot } from "@diletta/danger-bot";
+import { allFlutterPlugins, executeDangerBot } from "@felipeduarte26/danger-bot";
 
 executeDangerBot(allFlutterPlugins);
 `;

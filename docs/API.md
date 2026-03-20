@@ -1,162 +1,306 @@
-# 🔧 API Reference
+# API Reference
 
-> Referência completa da API do Danger Bot
+Referencia completa da API publica do Danger Bot.
 
 ---
 
-## 📦 Exports Principais
+## Exports Principais
 
 ```typescript
-// Helpers
+// Funcao principal
+export { executeDangerBot } from "@felipeduarte26/danger-bot";
+
+// Helpers de mensagem
 export { getDanger, sendMessage, sendWarn, sendFail, sendMarkdown, scheduleTask };
 
-// Types
+// Helpers de arquivos
+export {
+  getAllChangedFiles,
+  getDartFiles,
+  getDartFilesInDirectory,
+  getFilesMatching,
+  getFilesByExtension,
+  hasFilesMatching,
+  getFileContent,
+  fileContainsPattern,
+};
+
+// Helpers de Clean Architecture
+export { getDomainDartFiles, getDataDartFiles, getPresentationDartFiles, isInLayer };
+
+// Helpers de PR
+export { getPRDescription, getPRTitle, getLinesChanged };
+
+// Tipos
 export { DangerPlugin, DangerPluginConfig, DangerBotCallbacks };
 
-// Functions
-export { createPlugin, runPlugins, executeDangerBot };
+// Factory
+export { createPlugin, runPlugins };
 
-// Plugins (Flutter)
+// Plugins individuais (26)
+export { allFlutterPlugins, prSummaryPlugin, prSizeCheckerPlugin /* ... */ };
+
+// Plugins por categoria
 export {
-  prSizeCheckerPlugin,
-  changelogCheckerPlugin,
-  flutterAnalyzePlugin,
-  flutterArchitecturePlugin,
-  spellCheckerPlugin,
-  portugueseDocumentationPlugin,
-  allFlutterPlugins,
+  domainLayerPlugins,
+  dataLayerPlugins,
+  presentationLayerPlugins,
+  cleanArchitecturePlugins,
+  codeQualityPlugins,
+  performancePlugins,
 };
 ```
 
 ---
 
-## 🎯 Helpers
+## executeDangerBot
+
+Funcao principal que executa uma lista de plugins com callbacks opcionais.
+
+```typescript
+function executeDangerBot(plugins: DangerPlugin[], callbacks?: DangerBotCallbacks): void
+```
+
+**Parametros:**
+
+| Parametro | Tipo | Obrigatorio | Descricao |
+|-----------|------|-------------|-----------|
+| `plugins` | `DangerPlugin[]` | Sim | Array de plugins para executar |
+| `callbacks` | `DangerBotCallbacks` | Nao | Callbacks do ciclo de vida |
+
+**Exemplo:**
+
+```typescript
+import { allFlutterPlugins, executeDangerBot, sendMessage } from "@felipeduarte26/danger-bot";
+
+executeDangerBot(allFlutterPlugins, {
+  onBeforeRun: () => {
+    sendMessage("Iniciando analise...");
+    return true;
+  },
+  onSuccess: () => sendMessage("Concluido!"),
+  onError: (error) => console.error(error),
+  onFinally: () => sendMessage("Finalizado."),
+});
+```
+
+---
+
+## DangerBotCallbacks
+
+Todos os callbacks sao opcionais.
+
+```typescript
+interface DangerBotCallbacks {
+  onBeforeRun?: () => boolean | Promise<boolean>;
+  onSuccess?: () => void | Promise<void>;
+  onError?: (error: Error) => void | Promise<void>;
+  onFinally?: () => void | Promise<void>;
+}
+```
+
+| Callback | Quando executa | Retorno |
+|----------|----------------|---------|
+| `onBeforeRun` | Antes de executar plugins | `false` cancela a execucao |
+| `onSuccess` | Apos todos os plugins finalizarem com sucesso | - |
+| `onError` | Quando algum plugin lanca erro | - |
+| `onFinally` | Sempre no final (sucesso ou erro) | - |
+
+---
+
+## Helpers de Mensagem
 
 ### getDanger()
 
-Retorna o objeto `danger` com acesso a dados do PR/MR.
+Retorna o objeto `danger` injetado globalmente pelo Danger JS. Tipado com `ExtendedDangerDSLType` que inclui `insertions` e `deletions`.
 
 ```typescript
-import { getDanger } from "@diletta/danger-bot";
-
 const d = getDanger();
 const pr = d.github?.pr || d.bitbucket_cloud?.pr || d.gitlab?.mr;
-const modifiedFiles = d.git.modified_files;
+const files = d.git.modified_files;
+const insertions = d.git.insertions; // tipado!
 ```
 
-### sendMessage(message, file?, line?)
+### sendMessage(msg, file?, line?)
 
-Envia mensagem informativa no PR.
+Envia mensagem informativa no PR. Nao afeta o status do build.
 
 ```typescript
-import { sendMessage } from "@diletta/danger-bot";
-
-sendMessage("✅ Tudo certo!");
-sendMessage("Arquivo modificado", "lib/main.dart", 42);
+sendMessage("Tudo certo!");
+sendMessage("Boa pratica aqui!", "lib/user.dart", 42);
 ```
 
-### sendWarn(warning, file?, line?)
+### sendWarn(msg, file?, line?)
 
-Envia aviso (não falha o build).
+Envia aviso no PR. Nao falha o build.
 
 ```typescript
-import { sendWarn } from "@diletta/danger-bot";
-
-sendWarn("⚠️ PR muito grande");
-sendWarn("Refatore esta função", "lib/utils.dart", 100);
+sendWarn("PR muito grande: 500 linhas");
+sendWarn("Considere usar const", "lib/config.dart", 15);
 ```
 
-### sendFail(error, file?, line?)
+### sendFail(msg, file?, line?)
 
-Envia erro (falha o build).
+Envia erro no PR. **Falha o build.**
 
 ```typescript
-import { sendFail } from "@diletta/danger-bot";
-
-sendFail("❌ Testes falhando");
-sendFail("Código não compila", "lib/broken.dart", 50);
+sendFail("Testes falhando");
+sendFail("API key hardcoded!", "lib/config.dart", 8);
 ```
 
----
+### sendMarkdown(msg, file?, line?)
 
-## 🔌 Plugin API
-
-### createPlugin(config, runFn)
-
-Cria um novo plugin.
+Envia conteudo markdown formatado no PR.
 
 ```typescript
-import { createPlugin, getDanger, sendMessage } from "@types";
+sendMarkdown(`
+## Analise de Codigo
 
-export default createPlugin(
-  {
-    name: "meu-plugin",
-    description: "Descrição",
-    enabled: true,
-  },
-  async () => {
-    // Lógica do plugin
+| Metrica | Valor |
+|---------|-------|
+| Arquivos | 15 |
+| Linhas | +250 / -100 |
+`);
+```
+
+### scheduleTask(fn)
+
+Agenda uma tarefa assincrona para execucao pelo Danger.
+
+```typescript
+scheduleTask(async () => {
+  const output = execSync("flutter analyze").toString();
+  if (output.includes("error")) {
+    sendFail("Flutter analyze encontrou erros");
   }
-);
-```
-
-### executeDangerBot(plugins, callbacks?)
-
-Executa plugins com callbacks opcionais.
-
-**Parâmetros:**
-
-| Parâmetro   | Tipo                 | Obrigatório | Descrição                           |
-| ----------- | -------------------- | ----------- | ----------------------------------- |
-| `plugins`   | `DangerPlugin[]`     | ✅ Sim      | Array de plugins a serem executados |
-| `callbacks` | `DangerBotCallbacks` | ❌ Não      | Objeto com callbacks opcionais      |
-
-**Callbacks Disponíveis (todos opcionais!):**
-
-| Callback      | Parâmetros     | Retorno   | Quando Executa                                            |
-| ------------- | -------------- | --------- | --------------------------------------------------------- |
-| `onBeforeRun` | -              | `boolean` | Antes de executar plugins. Retorne `false` para cancelar. |
-| `onSuccess`   | -              | `void`    | Após todos os plugins finalizarem com sucesso.            |
-| `onError`     | `error: Error` | `void`    | Quando algum plugin lança erro.                           |
-| `onFinally`   | -              | `void`    | Sempre no final (sucesso ou erro).                        |
-
-**Exemplo Completo:**
-
-```typescript
-import { executeDangerBot, allFlutterPlugins, sendMessage, sendWarn } from "@diletta/danger-bot";
-
-executeDangerBot(allFlutterPlugins, {
-  // ❌ Opcional: Executado ANTES
-  onBeforeRun: () => {
-    sendMessage("🚀 Iniciando análise...");
-    return true; // `false` cancela execução
-  },
-
-  // ❌ Opcional: Executado em SUCESSO
-  onSuccess: () => {
-    sendMessage("✅ Análise concluída!");
-  },
-
-  // ❌ Opcional: Executado em ERRO
-  onError: (error) => {
-    sendWarn(`⚠️ Erro: ${error.message}`);
-  },
-
-  // ❌ Opcional: SEMPRE executado no final
-  onFinally: () => {
-    sendMessage("📊 Relatório gerado");
-  },
 });
-
-// ✅ Uso mínimo (sem callbacks):
-executeDangerBot(allFlutterPlugins);
 ```
-
-**Retorno:** `Promise<void>`
 
 ---
 
-## 📚 Types
+## Helpers de Arquivos
+
+### getAllChangedFiles()
+
+Retorna todos os arquivos modificados e criados no PR (exclui deletados).
+
+```typescript
+const files = getAllChangedFiles();
+```
+
+### getDartFiles()
+
+Retorna apenas arquivos `.dart` modificados ou criados.
+
+```typescript
+const dartFiles = getDartFiles();
+const codeFiles = dartFiles.filter(f => !f.includes("_test.dart"));
+const testFiles = dartFiles.filter(f => f.includes("_test.dart"));
+```
+
+### getDartFilesInDirectory(directory)
+
+Retorna arquivos `.dart` de um diretorio especifico.
+
+```typescript
+const authFiles = getDartFilesInDirectory("/core/auth/");
+```
+
+### getFilesMatching(pattern)
+
+Retorna arquivos que correspondem a um padrao RegExp.
+
+```typescript
+const configFiles = getFilesMatching(/\.(yaml|json)$/);
+const testFiles = getFilesMatching(/_test\.dart$/);
+```
+
+### getFilesByExtension(extension)
+
+Retorna arquivos com extensao especifica.
+
+```typescript
+const yamlFiles = getFilesByExtension(".yaml");
+```
+
+### hasFilesMatching(pattern)
+
+Verifica se algum arquivo corresponde ao padrao.
+
+```typescript
+if (hasFilesMatching(/pubspec\.yaml$/)) {
+  sendMessage("pubspec.yaml foi modificado");
+}
+```
+
+### getFileContent(file)
+
+Le o conteudo de um arquivo do diff do git.
+
+```typescript
+const content = await getFileContent("lib/main.dart");
+```
+
+### fileContainsPattern(file, pattern)
+
+Verifica se o conteudo de um arquivo corresponde a um padrao.
+
+```typescript
+const hasEval = await fileContainsPattern("lib/utils.dart", /eval\(/);
+```
+
+---
+
+## Helpers de Clean Architecture
+
+### getDomainDartFiles()
+
+Atalho para `getDartFilesInDirectory("/domain/")`.
+
+### getDataDartFiles()
+
+Atalho para `getDartFilesInDirectory("/data/")`.
+
+### getPresentationDartFiles()
+
+Atalho para `getDartFilesInDirectory("/presentation/")`.
+
+### isInLayer(file, layer)
+
+Verifica se um arquivo pertence a uma camada especifica.
+
+```typescript
+if (isInLayer(file, "domain") && file.includes("viewmodel")) {
+  sendFail("ViewModel encontrado na camada Domain!");
+}
+```
+
+---
+
+## Helpers de PR
+
+### getPRDescription()
+
+Retorna a descricao do PR (funciona com GitHub, Bitbucket e GitLab).
+
+### getPRTitle()
+
+Retorna o titulo do PR.
+
+### getLinesChanged()
+
+Retorna o total de linhas alteradas (insertions + deletions).
+
+```typescript
+const lines = getLinesChanged();
+if (lines > 500) {
+  sendWarn(`PR muito grande: ${lines} linhas`);
+}
+```
+
+---
+
+## Tipos
 
 ### DangerPluginConfig
 
@@ -177,24 +321,40 @@ interface DangerPlugin {
 }
 ```
 
-### DangerBotCallbacks
+---
+
+## createPlugin
+
+Factory para criar plugins customizados.
 
 ```typescript
-interface DangerBotCallbacks {
-  // ❌ Opcional: Executado ANTES de rodar plugins
-  onBeforeRun?: () => boolean;
+import { createPlugin, getDartFiles, sendWarn } from "@felipeduarte26/danger-bot";
 
-  // ❌ Opcional: Executado após SUCESSO de todos os plugins
-  onSuccess?: () => void;
-
-  // ❌ Opcional: Executado quando ocorre ERRO
-  onError?: (error: Error) => void;
-
-  // ❌ Opcional: SEMPRE executado no final (sucesso ou erro)
-  onFinally?: () => void;
-}
+export default createPlugin(
+  {
+    name: "meu-plugin",
+    description: "Descricao do plugin",
+    enabled: true,
+  },
+  async () => {
+    const files = getDartFiles();
+    if (files.length > 20) {
+      sendWarn("Muitos arquivos Dart modificados!");
+    }
+  }
+);
 ```
 
-**Nota:** Todos os callbacks são **opcionais**. Use apenas os que precisar!
-
 ---
+
+## Arrays de Plugins
+
+| Export | Plugins incluidos | Quantidade |
+|--------|-------------------|------------|
+| `allFlutterPlugins` | Todos os 26 plugins | 26 |
+| `domainLayerPlugins` | entities, failures, repositories, usecases | 4 |
+| `dataLayerPlugins` | datasources, models, repositories | 3 |
+| `presentationLayerPlugins` | viewmodels, states | 2 |
+| `cleanArchitecturePlugins` | domain + data + presentation + clean-architecture | 10 |
+| `codeQualityPlugins` | late-final, memory-leak, comments, security, barrel | 5 |
+| `performancePlugins` | flutter-performance, mediaquery-modern | 2 |

@@ -11,12 +11,12 @@
 // O Danger JS injeta o objeto 'danger' em runtime
 
 // Re-exportar helpers para facilitar imports
-export { 
-  getDanger, 
-  sendMessage, 
-  sendWarn, 
-  sendFail, 
-  sendMarkdown, 
+export {
+  getDanger,
+  sendMessage,
+  sendWarn,
+  sendFail,
+  sendMarkdown,
   scheduleTask,
   getAllChangedFiles,
   getDartFiles,
@@ -121,7 +121,7 @@ export interface DangerBotCallbacks {
  * @param callbacks - Optional callbacks for lifecycle hooks
  *
  * @example
- * import { executeDangerBot, getDanger, sendMessage, sendWarn } from "@diletta/danger-bot";
+ * import { executeDangerBot, getDanger, sendMessage, sendWarn } from "@felipeduarte26/danger-bot";
  *
  * executeDangerBot([pluginTestPlugin], {
  *   onBeforeRun: () => {

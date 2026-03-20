@@ -34,7 +34,7 @@ O plugin analisa o número de adições e deleções no PR e fornece avisos base
 ### Uso Básico
 
 ```typescript
-import { prSizeCheckerPlugin } from "@diletta/danger-bot";
+import { prSizeCheckerPlugin } from "@felipeduarte26/danger-bot";
 
 const plugins = [
   prSizeCheckerPlugin,  // Habilitado por padrão

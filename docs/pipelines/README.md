@@ -1,206 +1,208 @@
-# 🚀 Configuração de CI/CD - Guias por Plataforma
+# CI/CD
 
-> Documentação completa para integrar o Danger Bot em diferentes plataformas de CI/CD
-
----
-
-## 📋 Plataformas Disponíveis
-
-Escolha sua plataforma e siga o guia específico:
-
-### ☁️ Cloud CI/CD
-
-| Plataforma | Documentação | Dificuldade | Tempo Setup |
-|------------|--------------|-------------|-------------|
-| **Bitrise** | [📖 BITRISE.md](./BITRISE.md) | ⭐⭐ Média | ~15 min |
-| **Bitbucket Pipelines** | [📖 BITBUCKET_PIPELINES.md](./BITBUCKET_PIPELINES.md) | ⭐ Fácil | ~10 min |
-| **GitHub Actions** | [📖 GITHUB_ACTIONS.md](./GITHUB_ACTIONS.md) | ⭐ Fácil | ~10 min |
-| **GitLab CI** | [📖 GITLAB_CI.md](./GITLAB_CI.md) | ⭐ Fácil | ~10 min |
-| **CircleCI** | [📖 CIRCLE_CI.md](./CIRCLE_CI.md) | ⭐⭐ Média | ~15 min |
-
-### 🏢 Self-Hosted
-
-| Plataforma | Documentação | Dificuldade | Tempo Setup |
-|------------|--------------|-------------|-------------|
-| **Jenkins** | [📖 JENKINS.md](./JENKINS.md) | ⭐⭐⭐ Difícil | ~30 min |
-| **Travis CI** | [📖 TRAVIS_CI.md](./TRAVIS_CI.md) | ⭐⭐ Média | ~15 min |
+Guias de configuracao do Danger Bot em diferentes plataformas de CI/CD.
 
 ---
 
-## 🎯 Escolher Plataforma
+## Plataformas
 
-### Você já usa Bitbucket?
-
-**✅ Use [Bitbucket Pipelines](./BITBUCKET_PIPELINES.md)**
-- Integração nativa
-- Variáveis de ambiente automáticas
-- Setup mais simples
-
-**ou [Bitrise](./BITRISE.md)**
-- Mais recursos para mobile
-- Interface visual
-- Cache otimizado
-
-### Você usa GitHub?
-
-**✅ Use [GitHub Actions](./GITHUB_ACTIONS.md)**
-- Integração perfeita
-- Marketplace de actions
-- Gratuito para repositórios públicos
-
-### Você usa GitLab?
-
-**✅ Use [GitLab CI](./GITLAB_CI.md)**
-- Integração nativa
-- Runners compartilhados
-- CI/CD incluído
+| Plataforma | Guia | Dificuldade | Tempo |
+|------------|------|-------------|-------|
+| **GitHub Actions** | Abaixo | Facil | ~10 min |
+| **Bitbucket Pipelines** | [BITBUCKET_PIPELINES.md](./BITBUCKET_PIPELINES.md) | Facil | ~10 min |
+| **Bitrise** | [BITRISE.md](./BITRISE.md) | Media | ~15 min |
+| **GitLab CI** | Abaixo | Facil | ~10 min |
+| **CircleCI** | Abaixo | Media | ~15 min |
 
 ---
 
-## 📦 Requisitos Gerais
+## Requisitos gerais
 
-Todas as plataformas precisam:
-
-1. **Node.js 22+** instalado
-2. **Access Token** do Git provider (para comentar em PRs)
-3. **dangerfile.ts** no repositório
-4. **Variáveis de ambiente** configuradas
+1. **Node.js 22+** instalado no CI
+2. **Access Token** do git provider (para comentar em PRs)
+3. **dangerfile.ts** commitado no repositorio
+4. **Variavel de ambiente** com o token configurada
 
 ---
 
-## 🔐 Configuração de Tokens
-
-### Bitbucket Cloud
-
-```bash
-# Nome da variável
-DANGER_BITBUCKETCLOUD_REPO_ACCESSTOKEN
-
-# Permissões necessárias
-- Repositories: Read, Write
-- Pull requests: Read, Write
-```
-
-**Como criar:**
-1. Bitbucket → Personal Settings → App passwords
-2. Create app password
-3. Selecionar permissões
-4. Copiar token
+## Tokens
 
 ### GitHub
 
-```bash
-# Nome da variável
-DANGER_GITHUB_API_TOKEN
+Variavel: `GITHUB_TOKEN` ou `DANGER_GITHUB_API_TOKEN`
 
-# Permissões necessárias
-- repo (Full control)
-- write:discussion
-```
+Permissoes: `repo` (Full control)
 
-**Como criar:**
-1. GitHub → Settings → Developer settings → Personal access tokens
-2. Generate new token
-3. Selecionar scopes
-4. Copiar token
+O `GITHUB_TOKEN` e fornecido automaticamente pelo GitHub Actions.
+
+### Bitbucket Cloud
+
+Variavel: `DANGER_BITBUCKETCLOUD_REPO_ACCESSTOKEN`
+
+Como criar:
+1. Bitbucket → Personal Settings → App passwords
+2. Create app password
+3. Permissoes: Repositories (Read, Write) + Pull requests (Read, Write)
 
 ### GitLab
 
-```bash
-# Nome da variável
-DANGER_GITLAB_API_TOKEN
+Variavel: `DANGER_GITLAB_API_TOKEN`
 
-# Permissões necessárias
-- api
-- write_repository
-```
-
-**Como criar:**
+Como criar:
 1. GitLab → User Settings → Access Tokens
-2. Add new token
-3. Selecionar scopes
-4. Copiar token
+2. Scopes: `api`, `write_repository`
 
 ---
 
-## 📁 Estrutura Base
+## GitHub Actions
 
-Independente da plataforma, você precisa:
+Crie `.github/workflows/danger.yml`:
 
+```yaml
+name: Danger
+on: [pull_request]
+
+jobs:
+  danger:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm ci
+      - run: npx danger ci
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
-seu-projeto/
-├── dangerfile.ts           # ✅ Configuração do Danger Bot
-├── .github/                # (Se usar GitHub Actions)
-│   └── workflows/
-│       └── danger.yml
-├── .gitlab-ci.yml          # (Se usar GitLab CI)
-├── bitbucket-pipelines.yml # (Se usar Bitbucket Pipelines)
-└── bitrise.yml             # (Se usar Bitrise)
+
+### Com cache
+
+```yaml
+name: Danger
+on: [pull_request]
+
+jobs:
+  danger:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+      - run: npm ci
+      - run: npx danger ci
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 ---
 
-## 🎯 Exemplo Universal de dangerfile.ts
+## GitLab CI
+
+Adicione ao `.gitlab-ci.yml`:
+
+```yaml
+danger:
+  image: node:22
+  stage: test
+  only:
+    - merge_requests
+  script:
+    - npm ci
+    - npx danger ci
+  variables:
+    DANGER_GITLAB_API_TOKEN: $DANGER_GITLAB_API_TOKEN
+  cache:
+    paths:
+      - node_modules/
+```
+
+---
+
+## CircleCI
+
+Adicione ao `.circleci/config.yml`:
+
+```yaml
+version: 2.1
+
+jobs:
+  danger:
+    docker:
+      - image: cimg/node:22.0
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - npm-deps-{{ checksum "package-lock.json" }}
+      - run: npm ci
+      - save_cache:
+          paths:
+            - node_modules
+          key: npm-deps-{{ checksum "package-lock.json" }}
+      - run: npx danger ci
+
+workflows:
+  pr-check:
+    jobs:
+      - danger:
+          filters:
+            branches:
+              ignore: main
+```
+
+---
+
+## dangerfile.ts universal
 
 Este exemplo funciona em todas as plataformas:
 
 ```typescript
-import { allFlutterPlugins, executeDangerBot, sendMessage, getDanger } from "@diletta/danger-bot";
+import {
+  allFlutterPlugins,
+  executeDangerBot,
+  sendMessage,
+  getDanger,
+} from "@felipeduarte26/danger-bot";
 
 executeDangerBot(allFlutterPlugins, {
   onBeforeRun: () => {
     const d = getDanger();
-    
-    // Detectar plataforma automaticamente
     const pr = d.github?.pr || d.bitbucket_cloud?.pr || d.gitlab?.mr;
-    const platform = d.github ? 'GitHub' : 
-                    d.bitbucket_cloud ? 'Bitbucket' : 
-                    d.gitlab ? 'GitLab' : 'Unknown';
-    
+    const platform = d.github ? "GitHub" :
+                     d.bitbucket_cloud ? "Bitbucket" :
+                     d.gitlab ? "GitLab" : "Desconhecido";
+
     if (pr) {
       sendMessage(
-        `**🤖 Danger Bot - Análise Automática**\n\n` +
+        `**Danger Bot**\n\n` +
         `**Plataforma**: ${platform}\n` +
-        `**Título**: ${pr.title}\n` +
-        `**Plugins ativos**: ${allFlutterPlugins.filter(p => p.config.enabled).length}/${allFlutterPlugins.length}`
+        `**Plugins**: ${allFlutterPlugins.filter(p => p.config.enabled).length}`
       );
     }
-    
     return true;
   },
-  
-  onSuccess: () => {
-    sendMessage("✅ Análise concluída com sucesso!");
-  },
-  
-  onError: (error) => {
-    console.error("❌ Erro:", error);
-  },
-  
-  onFinally: () => {
-    sendMessage("📊 Pipeline finalizado!");
-  }
+  onSuccess: () => sendMessage("Analise concluida!"),
 });
 ```
 
 ---
 
-## ⚡ Otimizações Comuns
+## Otimizacoes
 
 ### Cache de node_modules
 
-Todas as plataformas suportam cache:
-
 ```yaml
+# GitHub Actions
+- uses: actions/setup-node@v4
+  with:
+    cache: "npm"
+
 # Bitbucket Pipelines
 caches:
   - node
-
-# GitHub Actions
-- uses: actions/cache@v3
-  with:
-    path: node_modules
-    key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
 
 # GitLab CI
 cache:
@@ -208,17 +210,17 @@ cache:
     - node_modules/
 ```
 
-### Executar Apenas em PRs
+### Executar apenas em PRs
 
 ```yaml
-# Bitbucket Pipelines
-pull-requests:
-  '**':
-    - step: ...
-
 # GitHub Actions
-on:
-  pull_request:
+on: [pull_request]
+
+# Bitbucket Pipelines
+pipelines:
+  pull-requests:
+    '**':
+      - step: ...
 
 # GitLab CI
 only:
@@ -227,92 +229,43 @@ only:
 
 ---
 
-## 🐛 Troubleshooting Geral
+## Troubleshooting
 
-### Problema: Token não funciona
+### Token nao funciona
 
-**Verificar:**
-1. ✅ Token tem permissões corretas?
-2. ✅ Variável está configurada no CI?
-3. ✅ Variável está **secured/protected**?
-4. ✅ Nome da variável está correto?
+1. Verifique se o token tem permissoes de escrita em PRs
+2. Verifique se a variavel esta configurada no CI
+3. Verifique se o token nao expirou
+4. Verifique o nome exato da variavel
 
-### Problema: dangerfile.ts not found
+### dangerfile.ts not found
 
-**Solução:**
 ```bash
-# Verificar se o arquivo existe
 ls -la dangerfile.ts
-
-# Verificar se não está no .gitignore
-cat .gitignore | grep dangerfile
 ```
 
-### Problema: "Unable to post comment"
+Verifique se o arquivo esta commitado e nao esta no `.gitignore`.
 
-**Causas comuns:**
-- Token sem permissões de write
+### "Unable to post comment"
+
+Causas comuns:
+- Token sem permissoes de write
 - Token expirado
-- Workspace/Repo incorreto
+- Repositorio incorreto na configuracao
 
-### Problema: Build muito lento
+### Build lento
 
-**Otimizações:**
-1. ✅ Habilitar cache de node_modules
-2. ✅ Usar versão específica do danger-bot (tag)
-3. ✅ Instalar apenas dependências necessárias
-
----
-
-## 📊 Comparação de Plataformas
-
-| Recurso | Bitbucket<br/>Pipelines | GitHub<br/>Actions | GitLab<br/>CI | Bitrise | CircleCI |
-|---------|-------------------------|---------------------|---------------|---------|----------|
-| **Setup** | ⭐⭐ Fácil | ⭐⭐ Fácil | ⭐⭐ Fácil | ⭐ Média | ⭐ Média |
-| **Cache** | ✅ Sim | ✅ Sim | ✅ Sim | ✅ Sim | ✅ Sim |
-| **Grátis** | 50 min/mês | ✅ Ilimitado<br/>(público) | ✅ 400 min/mês | 🔶 Limited | 🔶 Limited |
-| **Mobile** | 🔶 OK | ✅ Bom | ✅ Bom | ✅ Excelente | ✅ Excelente |
-| **Docs** | ✅ Boas | ✅ Excelentes | ✅ Boas | ✅ Boas | ✅ Boas |
+1. Habilite cache de `node_modules`
+2. Use versao especifica do danger-bot (tag)
+3. Use `npm ci` ao inves de `npm install`
 
 ---
 
-## 📚 Recursos Adicionais
+## Comparacao
 
-### Documentação Oficial
-
-- **[Bitbucket Pipelines](https://support.atlassian.com/bitbucket-cloud/docs/get-started-with-bitbucket-pipelines/)**
-- **[GitHub Actions](https://docs.github.com/actions)**
-- **[GitLab CI](https://docs.gitlab.com/ee/ci/)**
-- **[Bitrise](https://devcenter.bitrise.io/)**
-- **[CircleCI](https://circleci.com/docs/)**
-- **[Jenkins](https://www.jenkins.io/doc/)**
-
-### Guias do Danger Bot
-
-- 📖 **[Guia de Instalação](../INSTALACAO.md)**
-- 🚀 **[Início Rápido](../INICIO_RAPIDO.md)**
-- 🔌 **[Guia de Plugins](../GUIA_PLUGINS.md)**
-- 💡 **[Exemplos](../EXEMPLOS.md)**
-
----
-
-## 💬 Suporte
-
-Precisa de ajuda com sua plataforma específica?
-
-- 📖 **Docs**: [Documentação completa](../)
-- 💬 **Slack**: [#danger-bot](https://diletta.slack.com/archives/C09CZAH10J3)
-- 💬 **Email**: felipe.duarte@dilettasolutions.com
-
----
-
-<div align="center">
-
-**🚀 Escolha sua plataforma e comece agora!**
-
-[🔧 Bitrise](./BITRISE.md) • [☁️ Bitbucket Pipelines](./BITBUCKET_PIPELINES.md) • [🐙 GitHub Actions](./GITHUB_ACTIONS.md)
-
----
-
-</div>
-
+| Recurso | GitHub Actions | Bitbucket Pipelines | GitLab CI | Bitrise |
+|---------|---------------|-------------------|-----------|---------|
+| Setup | Facil | Facil | Facil | Media |
+| Cache | Sim | Sim | Sim | Sim |
+| Gratuito | Ilimitado (publico) | 50 min/mes | 400 min/mes | Limitado |
+| Mobile | Bom | OK | Bom | Excelente |

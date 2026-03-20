@@ -220,5 +220,5 @@ export async function createPlugin() {
   console.log(`  2. Update documentation: ${readmePath}`);
   console.log(`  3. Implement the plugin logic`);
   console.log(`  4. Run: npm run build`);
-  console.log(`  5. Use: import { ${camelName}Plugin } from "@diletta/danger-bot"\n`);
+  console.log(`  5. Use: import { ${camelName}Plugin } from "@felipeduarte26/danger-bot"\n`);
 }

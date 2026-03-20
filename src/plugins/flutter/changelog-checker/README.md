@@ -60,7 +60,7 @@ __tests__/
 ### Uso Básico
 
 ```typescript
-import { changelogCheckerPlugin } from "@diletta/danger-bot";
+import { changelogCheckerPlugin } from "@felipeduarte26/danger-bot";
 
 const plugins = [
   changelogCheckerPlugin, // Habilitado por padrão

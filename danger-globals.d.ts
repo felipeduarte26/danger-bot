@@ -1,13 +1,13 @@
 /**
  * Declarações globais do Danger JS
- * 
+ *
  * O Danger JS injeta essas variáveis automaticamente no runtime.
  * Este arquivo permite que o TypeScript reconheça essas variáveis globais
  * sem precisar importá-las (o que causaria conflito com o Danger JS).
- * 
- * Quando você instala @diletta/danger-bot, este arquivo é incluído
+ *
+ * Quando você instala @felipeduarte26/danger-bot, este arquivo é incluído
  * automaticamente e o TypeScript reconhece as variáveis globais.
- * 
+ *
  * @see https://danger.systems/js/usage/culture.html
  */
 
@@ -21,4 +21,3 @@ declare global {
 }
 
 export {};
-

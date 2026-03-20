@@ -1,242 +1,245 @@
-# 🔌 Guia de Plugins
+# Guia de Plugins
 
-> Como usar, configurar e criar plugins personalizados
-
----
-
-## 📋 Plugins Disponíveis
-
-### 📦 Plugins Flutter/Dart
-
-| Plugin | Descrição | Padrão |
-|--------|-----------|--------|
-| **pr-size-checker** | Verifica tamanho do PR | ✅ Habilitado |
-| **changelog-checker** | Valida CHANGELOG.md | ✅ Habilitado |
-| **flutter-analyze** | Executa `flutter analyze` | ✅ Habilitado |
-| **flutter-architecture** | Valida arquitetura Clean | ✅ Habilitado |
-| **spell-checker** | Verifica ortografia | ✅ Habilitado |
-| **portuguese-documentation** | Detecta docs em PT | ✅ Habilitado |
+Como usar, configurar e criar plugins no Danger Bot.
 
 ---
 
-## 🚀 Uso Básico
+## Usando plugins
 
-### Importar Todos os Plugins
+### Todos os plugins
 
 ```typescript
-import { allFlutterPlugins, executeDangerBot } from "@diletta/danger-bot";
+import { allFlutterPlugins, executeDangerBot } from "@felipeduarte26/danger-bot";
 
 executeDangerBot(allFlutterPlugins);
 ```
 
-### Importar Plugins Específicos
+### Por categoria
 
 ```typescript
 import {
-  prSizeCheckerPlugin,
-  changelogCheckerPlugin,
-  flutterAnalyzePlugin,
-  executeDangerBot
-} from "@diletta/danger-bot";
+  domainLayerPlugins,
+  dataLayerPlugins,
+  presentationLayerPlugins,
+  cleanArchitecturePlugins,
+  codeQualityPlugins,
+  performancePlugins,
+  executeDangerBot,
+} from "@felipeduarte26/danger-bot";
 
-executeDangerBot([
-  prSizeCheckerPlugin,
-  changelogCheckerPlugin,
+// Apenas plugins de Clean Architecture (10 plugins)
+executeDangerBot(cleanArchitecturePlugins);
+
+// Combinar categorias
+executeDangerBot([...codeQualityPlugins, ...performancePlugins]);
+```
+
+### Plugins individuais
+
+```typescript
+import {
+  prValidationPlugin,
+  securityCheckerPlugin,
   flutterAnalyzePlugin,
-]);
+  executeDangerBot,
+} from "@felipeduarte26/danger-bot";
+
+executeDangerBot([prValidationPlugin, securityCheckerPlugin, flutterAnalyzePlugin]);
 ```
 
 ---
 
-## ⚙️ Configuração
+## Configurando plugins
 
-### Desabilitar Plugin
+### Desabilitar um plugin
 
 ```typescript
-import { flutterAnalyzePlugin } from "@diletta/danger-bot";
+import { allFlutterPlugins, executeDangerBot } from "@felipeduarte26/danger-bot";
 
-// Desabilitar temporariamente
-flutterAnalyzePlugin.config.enabled = false;
+const plugins = allFlutterPlugins.map(p => {
+  if (p.config.name === "spell-checker") {
+    p.config.enabled = false;
+  }
+  return p;
+});
+
+executeDangerBot(plugins);
 ```
 
-### Habilitar Condicionalmente
+### Desabilitar varios plugins
 
 ```typescript
-import { getDanger, spellCheckerPlugin } from "@diletta/danger-bot";
+const disabled = ["spell-checker", "portuguese-documentation", "comments-checker"];
 
-const d = getDanger();
-const isMainBranch = d.github?.pr?.base?.ref === "main";
+const plugins = allFlutterPlugins.map(p => {
+  if (disabled.includes(p.config.name)) {
+    p.config.enabled = false;
+  }
+  return p;
+});
 
-// Spell checker apenas em PRs para main
-spellCheckerPlugin.config.enabled = isMainBranch;
+executeDangerBot(plugins);
 ```
 
 ---
 
-## 🎨 Criar Plugin Personalizado
+## Lista completa de plugins
 
-### Método 1: Via CLI (Recomendado)
+### Pull Request
+
+| Plugin | Nome interno | Descricao |
+|--------|-------------|-----------|
+| `prSummaryPlugin` | `pr-summary` | Gera sumario automatico com estatisticas do PR |
+| `prSizeCheckerPlugin` | `pr-size-checker` | Alerta quando o PR tem muitas linhas alteradas |
+| `prValidationPlugin` | `pr-validation` | Valida descricao, titulo e formato do PR |
+| `changelogCheckerPlugin` | `changelog-checker` | Verifica se CHANGELOG.md foi atualizado |
+
+### Clean Architecture - Domain
+
+| Plugin | Nome interno | Descricao |
+|--------|-------------|-----------|
+| `domainEntitiesPlugin` | `domain-entities` | Valida entities: `final class`, constructor `const`, sufixo `Entity` |
+| `domainFailuresPlugin` | `domain-failures` | Valida failures: `sealed class`, pattern matching |
+| `domainRepositoriesPlugin` | `domain-repositories` | Valida interfaces: `abstract interface class` |
+| `domainUseCasesPlugin` | `domain-usecases` | Valida usecases: interface + implementacao, metodo `call()` |
+
+### Clean Architecture - Data
+
+| Plugin | Nome interno | Descricao |
+|--------|-------------|-----------|
+| `dataDatasourcesPlugin` | `data-datasources` | Valida nomenclatura: sufixo `Datasource`, interface + impl |
+| `dataModelsPlugin` | `data-models` | Valida models: `final class`, `fromJson`, `toJson`, `toEntity` |
+| `dataRepositoriesPlugin` | `data-repositories` | Valida que implementam interface do Domain |
+
+### Clean Architecture - Presentation
+
+| Plugin | Nome interno | Descricao |
+|--------|-------------|-----------|
+| `presentationViewModelsPlugin` | `presentation-viewmodels` | Valida que ViewModels usem UseCases, nao Repositories |
+| `presentationStatesPlugin` | `presentation-states` | Valida States: `sealed class` com subclasses `final` |
+
+### Qualidade de Codigo
+
+| Plugin | Nome interno | Descricao |
+|--------|-------------|-----------|
+| `cleanArchitecturePlugin` | `clean-architecture` | Detecta imports entre camadas (Domain nao pode importar Data, etc.) |
+| `fileNamingPlugin` | `file-naming` | Verifica `snake_case` em nomes de arquivos `.dart` |
+| `commentsCheckerPlugin` | `comments-checker` | Forca `///` (doc comments) ao inves de `//` |
+| `lateFinalCheckerPlugin` | `late-final-checker` | Detecta `late final` e sugere alternativas seguras |
+| `barrelFilesEnforcerPlugin` | `barrel-files-enforcer` | Forca barrel files para organizar exports |
+| `securityCheckerPlugin` | `security-checker` | Detecta API keys hardcoded, `eval()`, secrets |
+| `spellCheckerPlugin` | `spell-checker` | Verifica ortografia em identificadores Dart com cspell |
+
+### Performance e Flutter
+
+| Plugin | Nome interno | Descricao |
+|--------|-------------|-----------|
+| `flutterAnalyzePlugin` | `flutter-analyze` | Executa `flutter analyze` e reporta problemas |
+| `flutterPerformancePlugin` | `flutter-performance` | Detecta operacoes custosas dentro de `build()` |
+| `flutterWidgetsPlugin` | `flutter-widgets` | Verifica ordem de funcoes em widgets Flutter |
+| `mediaqueryModernPlugin` | `mediaquery-modern` | Forca APIs modernas do MediaQuery (Flutter 3.10+) |
+| `memoryLeakDetectorPlugin` | `memory-leak-detector` | Detecta Controllers/Timers/Streams sem `dispose()` |
+
+### Documentacao
+
+| Plugin | Nome interno | Descricao |
+|--------|-------------|-----------|
+| `portugueseDocumentationPlugin` | `portuguese-documentation` | Detecta documentacao em portugues no codigo |
+
+---
+
+## Criando um plugin customizado
+
+### Usando a CLI
 
 ```bash
 danger-bot create-plugin
 ```
 
-Siga o wizard interativo!
+A CLI pergunta nome e descricao, e gera automaticamente:
+- Arquivo do plugin com `createPlugin`
+- `index.ts` com export
+- `README.md` com documentacao
+- Atualiza barrel files e `allFlutterPlugins`
 
-### Método 2: Manual
+### Manualmente
+
+Crie uma pasta em `src/plugins/flutter/meu-plugin/`:
+
+**`meu-plugin.ts`:**
 
 ```typescript
-// src/plugins/flutter/meu-plugin/meu-plugin.ts
-import { createPlugin, getDanger, sendMessage, sendWarn } from "@types";
+import { createPlugin, getDartFiles, sendWarn, sendMessage } from "@felipeduarte26/danger-bot";
 
 export default createPlugin(
   {
     name: "meu-plugin",
-    description: "Minha validação customizada",
+    description: "Descricao do que o plugin faz",
     enabled: true,
   },
   async () => {
-    const d = getDanger();
-    const modifiedFiles = d.git.modified_files;
-    
-    // Sua lógica aqui
-    const hasTests = modifiedFiles.some(f => f.includes("_test.dart"));
-    
-    if (!hasTests) {
-      sendWarn("⚠️ PR sem testes!");
-    } else {
-      sendMessage("✅ Testes incluídos!");
+    const dartFiles = getDartFiles();
+
+    if (dartFiles.length === 0) {
+      return; // nada para verificar
     }
+
+    for (const file of dartFiles) {
+      // sua logica aqui
+    }
+
+    sendMessage(`Verificados ${dartFiles.length} arquivos`);
   }
 );
 ```
 
----
-
-## ⚠️ Boas Práticas e Armadilhas Comuns
-
-### 🚨 IMPORTANTE: Evite Inline Comments no Bitbucket
-
-**❌ PROBLEMA:** Usar `file` e `line` cria inline comments que geram metadados visíveis no Bitbucket:
+**`index.ts`:**
 
 ```typescript
-// ❌ EVITE ISSO:
-sendFail("Erro no arquivo", "lib/main.dart", 10);
-//                           ^^^^^^^^^^^^^^  ^^
-//                           Cria inline comment
+export { default } from "./meu-plugin";
 ```
 
-**Resultado no Bitbucket:**
-```
-<!-- 1 failure: Erro no arquivo...
-DangerID: danger-id-...; File: lib/main.dart; Line: 10; -->
-❌ Erro no arquivo
-```
+Depois, adicione o export em `src/plugins/flutter/index.ts` e no array `allFlutterPlugins` em `src/index.ts`.
 
-O Bitbucket adiciona esse preview automaticamente e **não pode ser desabilitado**.
+### Validar o plugin
 
-**✅ SOLUÇÃO: Use Comentários Gerais**
-
-```typescript
-// ✅ RECOMENDADO:
-sendFail("Erro no arquivo `lib/main.dart` linha 10");
-// Ou
-sendFail(`## ❌ Erro Encontrado
-
-Problema no arquivo \`lib/main.dart\` (linha 10):
-- Descrição do erro
-- Como corrigir`);
+```bash
+danger-bot validate src/plugins/flutter/meu-plugin/meu-plugin.ts
 ```
 
-**Resultado no Bitbucket:**
-```
-1 Warnings
-warning - ❌ Erro Encontrado
-Problema no arquivo `lib/main.dart` (linha 10)...
-```
-
-### 📋 Quando Usar Inline vs Comentário Geral?
-
-| Situação | Usar |
-|----------|------|
-| **Arquivo não existe** (ex: changelog ausente) | ✅ Comentário geral |
-| **Validação de padrão** (ex: naming conventions) | ✅ Comentário geral |
-| **PR size, count de arquivos** | ✅ Comentário geral |
-| **Erros de lint/analyze** | ⚠️ Comentário geral (evitar metadados) |
-| **Qualquer mensagem importante** | ✅ Comentário geral |
-
-**Regra geral:** Sempre prefira comentários gerais. Inline comments devem ser raros ou evitados.
-
-### 💡 Exemplos Práticos
-
-**✅ Arquivo Ausente (Changelog):**
-```typescript
-if (!hasChangelog) {
-  sendFail(`## 📋 Changelog não encontrado
-  
-Este projeto não possui \`changelog.md\` na raiz.
-
-### Como resolver:
-1. Crie o arquivo...`);
-  // SEM file/line = comentário geral limpo
-}
-```
-
-**✅ Validação de Padrão:**
-```typescript
-if (wrongNaming) {
-  sendFail(`## 📁 Naming Convention Incorreto
-
-Arquivo \`${file}\` não segue o padrão snake_case.
-
-**Encontrado:** \`MyFile.dart\`  
-**Esperado:** \`my_file.dart\``);
-  // Menciona o arquivo na mensagem, mas não cria inline
-}
-```
-
-**✅ PR Size:**
-```typescript
-if (tooLarge) {
-  sendWarn(`## 🚨 PR Muito Grande
-
-Esta PR altera **${count} arquivos**.  
-Recomendação: quebrar em PRs menores.`);
-}
-```
-
-### 🎯 Checklist de Plugin
-
-- [ ] Usa `sendFail(message)` sem file/line
-- [ ] Mensagens são claras e acionáveis
-- [ ] Inclui exemplos de como corrigir
-- [ ] Menciona arquivos na mensagem (não inline)
-- [ ] Testado no Bitbucket/GitHub
+O validador verifica:
+- Import do `createPlugin`
+- Export default
+- Campos `name` e `description`
+- Campo `enabled`
+- Funcao async
+- Documentacao JSDoc
 
 ---
 
-## 📚 Documentação Completa
+## Helpers disponiveis para plugins
 
-Cada plugin tem documentação detalhada:
+Todos os helpers podem ser importados de `@felipeduarte26/danger-bot`:
 
-- [pr-size-checker](../src/plugins/flutter/pr-size-checker/README.md)
-- [changelog-checker](../src/plugins/flutter/changelog-checker/README.md)
-- [flutter-analyze](../src/plugins/flutter/flutter-analyze/README.md)
-- [flutter-architecture](../src/plugins/flutter/flutter-architecture/README.md)
-- [spell-checker](../src/plugins/flutter/spell-checker/README.md)
-- [portuguese-documentation](../src/plugins/flutter/portuguese-documentation/README.md)
+```typescript
+import {
+  // Danger core
+  getDanger,
 
----
+  // Mensagens
+  sendMessage, sendWarn, sendFail, sendMarkdown, scheduleTask,
 
-## 💡 Exemplos Avançados
+  // Arquivos
+  getAllChangedFiles, getDartFiles, getDartFilesInDirectory,
+  getFilesMatching, getFilesByExtension, hasFilesMatching,
+  getFileContent, fileContainsPattern,
 
-Ver: [EXEMPLOS.md](EXEMPLOS.md)
+  // Clean Architecture
+  getDomainDartFiles, getDataDartFiles, getPresentationDartFiles, isInLayer,
 
----
+  // PR info
+  getPRDescription, getPRTitle, getLinesChanged,
+} from "@felipeduarte26/danger-bot";
+```
 
-<div align="center">
-
-[📚 Docs](.) • [🤖 CLI](CLI.md) • [💡 Exemplos](EXEMPLOS.md)
-
-</div>
-
+> Referencia completa: [Helpers](HELPERS.md) | [API](API.md)

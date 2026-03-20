@@ -33,7 +33,7 @@ export default createPlugin(
 
     try {
       // Encontrar o caminho dos scripts do danger-bot
-      const dangerBotPath = require.resolve("@diletta/danger-bot").replace(/dist.*$/, "");
+      const dangerBotPath = require.resolve("@felipeduarte26/danger-bot").replace(/dist.*$/, "");
       const setupScriptPath = `${dangerBotPath}scripts/setup_spell_check.sh`;
       const extractScriptPath = `${dangerBotPath}scripts/extract_dart_identifiers.js`;
 

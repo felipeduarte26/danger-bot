@@ -1,435 +1,302 @@
-# 🤖 Danger Bot
+<p align="center">
+  <h1 align="center">Danger Bot</h1>
+  <p align="center">
+    Automação inteligente de code review para projetos Flutter/Dart com Danger JS
+  </p>
+</p>
 
-[![Version](https://img.shields.io/badge/version-2.0.1-blue.svg)](https://bitbucket.org/diletta/danger-bot)
-[![Node](https://img.shields.io/badge/node-%3E%3D22.19.0-brightgreen.svg)](https://nodejs.org)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue.svg)](https://www.typescriptlang.org/)
-[![Diletta](https://img.shields.io/badge/Made%20by-Diletta%20Solutions-red.svg)](https://dilettasolutions.com)
-
-> 🚀 Conjunto modular e profissional de plugins Danger JS para automação de code review
-
-**Danger Bot** é uma solução completa para automatizar code review em projetos usando Danger JS. Com plugins prontos, CLI integrada e suporte para múltiplas plataformas de CI/CD.
-
----
-
-## ✨ Destaques
-
-- 🔌 **Plugins Prontos** - Selecione todos ou somente os plugins que faz sentido para o seu projeto
-- 🤖 **CLI Integrada** - Crie e gerencie plugins facilmente
-- 🌍 **Multi-Plataforma** - GitHub, Bitbucket, GitLab
-- 📚 **Documentação Completa** - Projeto 100% documentado
-- 🎨 **TypeScript** - Type-safe e moderno
-- 🔧 **Customizável** - Crie seus próprios plugins
-- 🚀 **CI/CD Ready** - Guias para Bitrise, Bitbucket Pipelines, GitHub Actions e mais
+<p align="center">
+  <a href="https://github.com/felipeduarte26/danger-bot"><img src="https://img.shields.io/badge/version-1.8.0-blue.svg" alt="Version"></a>
+  <a href="https://nodejs.org"><img src="https://img.shields.io/badge/node-%3E%3D25.2.1-brightgreen.svg" alt="Node"></a>
+  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.9-blue.svg" alt="TypeScript"></a>
+  <a href="https://github.com/felipeduarte26/danger-bot/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License"></a>
+  <a href="https://github.com/danger/danger-js"><img src="https://img.shields.io/badge/Danger%20JS-13+-orange.svg" alt="Danger JS"></a>
+</p>
 
 ---
 
-## 🚀 Início Rápido
+**Danger Bot** e um conjunto modular de **26 plugins** para o [Danger JS](https://danger.systems/js/), focado em projetos **Flutter/Dart** com Clean Architecture. Ele analisa Pull Requests automaticamente durante o CI/CD e deixa comentarios com avisos, erros e sugestoes diretamente no PR.
+
+## Por que usar?
+
+- **26 plugins prontos** cobrindo arquitetura, performance, seguranca, nomenclatura e mais
+- **Zero configuracao** - funciona com uma unica linha de codigo
+- **Multi-plataforma** - GitHub, Bitbucket Cloud, Bitbucket Server, GitLab
+- **CLI integrada** - crie e gerencie plugins pelo terminal
+- **TypeScript** - type-safe com IntelliSense completo
+- **Extensivel** - crie seus proprios plugins com a API simples
+
+---
+
+## Inicio Rapido
 
 ```bash
-# 1. Instalar
-npm install --save-dev danger @diletta/danger-bot@git+https://bitbucket.org/diletta/danger-bot.git#main
+npm install --save-dev danger @felipeduarte26/danger-bot
+```
 
-# 2. Criar dangerfile.ts
-cat > dangerfile.ts << 'EOF'
-import { allFlutterPlugins, executeDangerBot } from "@diletta/danger-bot";
+Crie um arquivo `dangerfile.ts` na raiz do projeto:
+
+```typescript
+import { allFlutterPlugins, executeDangerBot } from "@felipeduarte26/danger-bot";
 
 executeDangerBot(allFlutterPlugins);
-EOF
+```
 
-# 3. Executar
+Execute:
+
+```bash
 npx danger ci
 ```
 
-**Pronto! 🎉** Veja o [Guia de Início Rápido](docs/INICIO_RAPIDO.md) para mais detalhes.
+> Para instalacao via Git, veja o [Guia de Instalacao](docs/INSTALACAO.md).
 
 ---
 
-## 📚 Documentação
+## Plugins
 
-### 🎯 Para Começar
+O Danger Bot inclui 26 plugins organizados em categorias:
 
-| Documento                                     | Descrição                                                                 |
-| --------------------------------------------- | ------------------------------------------------------------------------- |
-| **[🚀 Início Rápido](docs/INICIO_RAPIDO.md)** | Comece em 5 minutos com TL;DR e guia passo a passo                        |
-| **[📦 Instalação](docs/INSTALACAO.md)**       | Guia completo de instalação (incluindo projetos Flutter sem package.json) |
-| **[❓ FAQ](docs/FAQ.md)**                     | Perguntas frequentes e troubleshooting                                    |
+### Pull Request
 
-### 🔌 Plugins e API
+| Plugin | Descricao |
+|--------|-----------|
+| **pr-summary** | Gera sumario automatico do PR com estatisticas |
+| **pr-size-checker** | Alerta sobre PRs muito grandes |
+| **pr-validation** | Valida descricao, titulo e formato do PR |
+| **changelog-checker** | Verifica se o CHANGELOG.md foi atualizado |
 
-| Documento                                      | Descrição                                              |
-| ---------------------------------------------- | ------------------------------------------------------ |
-| **[🔌 Guia de Plugins](docs/GUIA_PLUGINS.md)** | Como usar, configurar e criar plugins                  |
-| **[🛠️ Helpers Reference](docs/HELPERS.md)**    | Guia completo de todas as funções auxiliares           |
-| **[🔧 API Reference](docs/API.md)**            | Referência completa da API (helpers, types, functions) |
-| **[💡 Exemplos](docs/EXEMPLOS.md)**            | Casos de uso reais e exemplos práticos                 |
+### Clean Architecture - Domain
 
-### 🛠️ Ferramentas
+| Plugin | Descricao |
+|--------|-----------|
+| **domain-entities** | Valida entities (`final class`, `const`, sufixo correto) |
+| **domain-failures** | Valida failures (`sealed class`, pattern matching) |
+| **domain-repositories** | Valida interfaces de repository (`abstract interface`) |
+| **domain-usecases** | Valida usecases (interface + implementacao) |
 
-| Documento                                | Descrição                                                              |
-| ---------------------------------------- | ---------------------------------------------------------------------- |
-| **[🤖 CLI](docs/CLI.md)**                | Documentação completa da CLI (todos os comandos)                       |
-| **[🚀 CI/CD](docs/pipelines/README.md)** | Guias de configuração por plataforma (Bitrise, Bitbucket, GitHub, etc) |
+### Clean Architecture - Data
 
-### 👨‍💻 Para Desenvolvedores
+| Plugin | Descricao |
+|--------|-----------|
+| **data-datasources** | Valida nomenclatura de datasources |
+| **data-models** | Valida models (`final class`, `fromJson`, `toJson`) |
+| **data-repositories** | Valida implementacoes de repository |
 
-| Documento                                         | Descrição                              |
-| ------------------------------------------------- | -------------------------------------- |
-| **[🏗️ Arquitetura](docs/ARQUITETURA.md)**         | Entenda como o projeto está organizado |
-| **[🔧 Desenvolvimento](docs/DESENVOLVIMENTO.md)** | Como contribuir e desenvolver          |
+### Clean Architecture - Presentation
 
----
+| Plugin | Descricao |
+|--------|-----------|
+| **presentation-viewmodels** | Valida que ViewModels usem UseCases, nao Repositories |
+| **presentation-states** | Valida States (`sealed class`) |
 
-## 🔌 Plugins Disponíveis
+### Qualidade de Codigo
 
----
+| Plugin | Descricao |
+|--------|-----------|
+| **clean-architecture** | Detecta violacoes entre camadas (imports indevidos) |
+| **file-naming** | Verifica nomenclatura `snake_case` em arquivos `.dart` |
+| **comments-checker** | Forca uso de `///` ao inves de `//` |
+| **late-final-checker** | Detecta `late final` e sugere alternativas |
+| **barrel-files-enforcer** | Forca uso de barrel files para organizar exports |
+| **security-checker** | Detecta API keys hardcoded, `eval()` e vulnerabilidades |
+| **spell-checker** | Verifica ortografia em identificadores Dart |
 
-| Plugin                       | Descrição                                          | Documentação                                                      |
-| ---------------------------- | -------------------------------------------------- | ----------------------------------------------------------------- |
-| **pr-size-checker**          | Alerta sobre PRs muito grandes                     | [📖 Docs](src/plugins/flutter/pr-size-checker/README.md)          |
-| **changelog-checker**        | Verifica se CHANGELOG.md foi atualizado            | [📖 Docs](src/plugins/flutter/changelog-checker/README.md)        |
-| **flutter-analyze**          | Executa flutter analyze e reporta problemas        | [📖 Docs](src/plugins/flutter/flutter-analyze/README.md)          |
-| **spell-checker**            | Verifica ortografia em identificadores Dart        | [📖 Docs](src/plugins/flutter/spell-checker/README.md)            |
-| **portuguese-documentation** | Detecta documentação em português                  | [📖 Docs](src/plugins/flutter/portuguese-documentation/README.md) |
-| **pr-validation**            | Valida descrição, changelog, tamanho da PR         | [📖 Docs](src/plugins/flutter/pr-validation/README.md)            |
-| **file-naming**              | Verifica nomenclatura snake_case em arquivos .dart | [📖 Docs](src/plugins/flutter/file-naming/README.md)              |
-| **domain-entities**          | Valida entities (final class, const, sufixo)       | [📖 Docs](src/plugins/flutter/domain-entities/README.md)          |
-| **domain-failures**          | Valida failures (sealed class, pattern matching)   | [📖 Docs](src/plugins/flutter/domain-failures/README.md)          |
-| **domain-repositories**      | Valida repository interfaces (abstract interface)  | [📖 Docs](src/plugins/flutter/domain-repositories/README.md)      |
-| **domain-usecases**          | Valida usecases (interface + implementação)        | [📖 Docs](src/plugins/flutter/domain-usecases/README.md)          |
-| **data-datasources**         | Valida datasources (nomenclatura)                  | [📖 Docs](src/plugins/flutter/data-datasources/README.md)         |
-| **data-models**              | Valida models (final class, fromJson, toJson)      | [📖 Docs](src/plugins/flutter/data-models/README.md)              |
-| **data-repositories**        | Valida repository implementations                  | [📖 Docs](src/plugins/flutter/data-repositories/README.md)        |
-| **presentation-viewmodels**  | Valida ViewModels (usa UseCases, não Repos)        | [📖 Docs](src/plugins/flutter/presentation-viewmodels/README.md)  |
-| **presentation-states**      | Valida States (sealed class)                       | [📖 Docs](src/plugins/flutter/presentation-states/README.md)      |
-| **flutter-performance**      | Detecta operações custosas no build()              | [📖 Docs](src/plugins/flutter/flutter-performance/README.md)      |
-| **flutter-widgets**          | Verifica ordem de funções em widgets               | [📖 Docs](src/plugins/flutter/flutter-widgets/README.md)          |
-| **mediaquery-modern**        | Força APIs modernas do MediaQuery (Flutter 3.10+)  | [📖 Docs](src/plugins/flutter/mediaquery-modern/README.md)        |
-| **clean-architecture**       | Detecta violações entre camadas                    | [📖 Docs](src/plugins/flutter/clean-architecture/README.md)       |
-| **late-final-checker**       | Detecta uso de late final (sugere alternativas)    | [📖 Docs](src/plugins/flutter/late-final-checker/README.md)       |
-| **memory-leak-detector**     | Detecta Controllers/Timers/Streams sem dispose()   | [📖 Docs](src/plugins/flutter/memory-leak-detector/README.md)     |
-| **comments-checker**         | Proíbe comentários //, força ///                   | [📖 Docs](src/plugins/flutter/comments-checker/README.md)         |
-| **security-checker**         | Detecta API keys hardcoded, eval()                 | [📖 Docs](src/plugins/flutter/security-checker/README.md)         |
-| **barrel-files-enforcer**    | Força uso de barrel files                          | [📖 Docs](src/plugins/flutter/barrel-files-enforcer/README.md)    |
+### Performance e Flutter
+
+| Plugin | Descricao |
+|--------|-----------|
+| **flutter-analyze** | Executa `flutter analyze` e reporta problemas |
+| **flutter-performance** | Detecta operacoes custosas no `build()` |
+| **flutter-widgets** | Verifica ordem de funcoes em widgets |
+| **mediaquery-modern** | Forca APIs modernas do MediaQuery (Flutter 3.10+) |
+| **memory-leak-detector** | Detecta Controllers/Timers/Streams sem `dispose()` |
+
+### Documentacao
+
+| Plugin | Descricao |
+|--------|-----------|
+| **portuguese-documentation** | Detecta documentacao em portugues no codigo |
 
 ---
 
-### 📚 Como Importar
+## Importacao por Categoria
 
-**Todos os plugins (25 plugins):**
-
-```typescript
-import { allFlutterPlugins, executeDangerBot } from "@diletta/danger-bot";
-
-executeDangerBot(allFlutterPlugins);
-```
-
-**Por categoria:**
+Alem de `allFlutterPlugins`, voce pode importar plugins por categoria:
 
 ```typescript
 import {
-  domainLayerPlugins, // 4 plugins Domain
-  dataLayerPlugins, // 3 plugins Data
-  presentationLayerPlugins, // 2 plugins Presentation
-  cleanArchitecturePlugins, // 10 plugins (todas camadas + clean-architecture)
-  codeQualityPlugins, // 5 plugins de qualidade
-  performancePlugins, // 2 plugins de performance
+  domainLayerPlugins,         // 4 plugins (entities, failures, repositories, usecases)
+  dataLayerPlugins,           // 3 plugins (datasources, models, repositories)
+  presentationLayerPlugins,   // 2 plugins (viewmodels, states)
+  cleanArchitecturePlugins,   // 10 plugins (todas as camadas + validacao cross-layer)
+  codeQualityPlugins,         // 5 plugins (late-final, memory-leak, comments, security, barrel)
+  performancePlugins,         // 2 plugins (flutter-performance, mediaquery-modern)
   executeDangerBot,
-} from "@diletta/danger-bot";
+} from "@felipeduarte26/danger-bot";
 
-// Executar apenas plugins de Domain
 executeDangerBot(domainLayerPlugins);
 ```
 
-**Plugins individuais:**
+Ou selecione plugins individuais:
 
 ```typescript
 import {
   prValidationPlugin,
-  domainEntitiesPlugin,
-  cleanArchitecturePlugin,
-  memoryLeakDetectorPlugin,
   securityCheckerPlugin,
+  cleanArchitecturePlugin,
   executeDangerBot,
-} from "@diletta/danger-bot";
+} from "@felipeduarte26/danger-bot";
 
-executeDangerBot([
-  prValidationPlugin,
-  domainEntitiesPlugin,
-  cleanArchitecturePlugin,
-  memoryLeakDetectorPlugin,
-  securityCheckerPlugin,
-]);
+executeDangerBot([prValidationPlugin, securityCheckerPlugin, cleanArchitecturePlugin]);
 ```
-
-**Com callbacks (todos opcionais):**
-
-```typescript
-import { executeDangerBot, allFlutterPlugins, sendMessage } from "@diletta/danger-bot";
-
-executeDangerBot(allFlutterPlugins, {
-  onBeforeRun: () => {
-    sendMessage("🚀 Iniciando Danger CI...");
-    return true;
-  },
-  onSuccess: () => sendMessage("✅ Verificações concluídas!"),
-  onError: (error) => console.error("❌ Erro:", error),
-});
-```
-
-**Ver documentação completa:** [Guia de Plugins](docs/GUIA_PLUGINS.md)
 
 ---
 
-## 🤖 CLI Integrada
+## Callbacks
 
-Gerencie plugins facilmente com a CLI:
+O `executeDangerBot` aceita callbacks opcionais para controlar o ciclo de vida:
+
+```typescript
+import { allFlutterPlugins, executeDangerBot, sendMessage } from "@felipeduarte26/danger-bot";
+
+executeDangerBot(allFlutterPlugins, {
+  onBeforeRun: () => {
+    sendMessage("Iniciando analise automatica...");
+    return true; // false cancela a execucao
+  },
+  onSuccess: () => sendMessage("Analise concluida com sucesso!"),
+  onError: (error) => console.error("Erro:", error.message),
+  onFinally: () => sendMessage("Pipeline finalizado."),
+});
+```
+
+---
+
+## CLI
+
+O pacote inclui uma CLI para gerenciamento de plugins:
 
 ```bash
-# Listar todos os plugins
-danger-bot list
-
-# Criar novo plugin
-danger-bot create-plugin
-
-# Gerar dangerfile de exemplo
-danger-bot gen
-
-# Validar plugin
-danger-bot validate src/plugins/flutter/meu-plugin/meu-plugin.ts
-
-# Ver informações do projeto
-danger-bot info
+danger-bot list              # Listar todos os plugins
+danger-bot create-plugin     # Criar novo plugin interativamente
+danger-bot gen               # Gerar dangerfile de exemplo
+danger-bot validate <file>   # Validar estrutura de um plugin
+danger-bot info              # Informacoes do projeto
 ```
 
-**Ver documentação completa:** [Guia da CLI](docs/CLI.md)
+> Documentacao completa: [CLI](docs/CLI.md)
 
 ---
 
-## 🌍 Plataformas Suportadas
+## Plataformas de CI/CD
 
-### Git Providers
-
-✅ **GitHub** • ✅ **Bitbucket Cloud** • ✅ **Bitbucket Server** • ✅ **GitLab**
-
-### CI/CD
-
-| Plataforma              | Guia                                                 | Dificuldade    |
-| ----------------------- | ---------------------------------------------------- | -------------- |
-| **Bitrise**             | [📖 Ver guia](docs/pipelines/BITRISE.md)             | ⭐⭐ Média     |
-| **Bitbucket Pipelines** | [📖 Ver guia](docs/pipelines/BITBUCKET_PIPELINES.md) | ⭐ Fácil       |
-| **GitHub Actions**      | [📖 Ver guia](docs/pipelines/README.md)              | ⭐ Fácil       |
-| **GitLab CI**           | [📖 Ver guia](docs/pipelines/README.md)              | ⭐ Fácil       |
-| **CircleCI**            | [📖 Ver guia](docs/pipelines/README.md)              | ⭐⭐ Média     |
-| **Jenkins**             | [📖 Ver guia](docs/pipelines/README.md)              | ⭐⭐⭐ Difícil |
-
-**Ver todos os guias:** [Documentação CI/CD](docs/pipelines/README.md)
+| Plataforma | Guia | Dificuldade |
+|------------|------|-------------|
+| GitHub Actions | [Ver guia](docs/pipelines/README.md) | Facil |
+| Bitbucket Pipelines | [Ver guia](docs/pipelines/BITBUCKET_PIPELINES.md) | Facil |
+| Bitrise | [Ver guia](docs/pipelines/BITRISE.md) | Media |
+| GitLab CI | [Ver guia](docs/pipelines/README.md) | Facil |
+| CircleCI | [Ver guia](docs/pipelines/README.md) | Media |
 
 ---
 
-## 💡 Exemplos de Uso
+## Documentacao
 
-### Básico
-
-```typescript
-import { allFlutterPlugins, executeDangerBot } from "@diletta/danger-bot";
-
-executeDangerBot(allFlutterPlugins);
-```
-
-### Com Callbacks
-
-```typescript
-import { allFlutterPlugins, executeDangerBot, sendMessage, getDanger } from "@diletta/danger-bot";
-
-executeDangerBot(allFlutterPlugins, {
-  onBeforeRun: () => {
-    const d = getDanger();
-    const pr = d.bitbucket_cloud?.pr;
-
-    if (pr) {
-      sendMessage(`**🤖 Análise Automática**\n\n**Título**: ${pr.title}`);
-    }
-
-    return true;
-  },
-
-  onSuccess: () => {
-    sendMessage("✅ Análise concluída com sucesso!");
-  },
-});
-```
-
-### Plugins Seletivos
-
-```typescript
-import {
-  prSizeCheckerPlugin,
-  changelogCheckerPlugin,
-  flutterAnalyzePlugin,
-  executeDangerBot,
-} from "@diletta/danger-bot";
-
-executeDangerBot([prSizeCheckerPlugin, changelogCheckerPlugin, flutterAnalyzePlugin]);
-```
-
-**Ver mais exemplos:** [Exemplos Práticos](docs/EXEMPLOS.md)
+| Documento | Descricao |
+|-----------|-----------|
+| [Inicio Rapido](docs/INICIO_RAPIDO.md) | Comece em 5 minutos |
+| [Instalacao](docs/INSTALACAO.md) | Guia completo de instalacao |
+| [Guia de Plugins](docs/GUIA_PLUGINS.md) | Como usar, configurar e criar plugins |
+| [API Reference](docs/API.md) | Referencia completa da API |
+| [Helpers](docs/HELPERS.md) | Funcoes auxiliares disponiveis |
+| [CLI](docs/CLI.md) | Comandos da CLI |
+| [Exemplos](docs/EXEMPLOS.md) | Casos de uso praticos |
+| [Arquitetura](docs/ARQUITETURA.md) | Estrutura interna do projeto |
+| [Desenvolvimento](docs/DESENVOLVIMENTO.md) | Como contribuir |
+| [Commits](docs/COMMITS.md) | Padrao de Conventional Commits |
+| [FAQ](docs/FAQ.md) | Perguntas frequentes |
+| [CI/CD](docs/pipelines/README.md) | Guias de configuracao por plataforma |
 
 ---
 
-## 📁 Estrutura do Projeto
+## Estrutura do Projeto
 
 ```
 danger-bot/
 ├── src/
-│   ├── plugins/              # Plugins organizados por plataforma
-│   │   └── flutter/          # 7 plugins Flutter/Dart
-│   ├── helpers.ts            # Helper functions
-│   ├── types.ts              # Types e interfaces
-│   └── index.ts              # Exports principais
+│   ├── index.ts              # Exports principais
+│   ├── types.ts              # Interfaces e tipos
+│   ├── helpers.ts            # Funcoes auxiliares
+│   └── plugins/
+│       └── flutter/          # 26 plugins Flutter/Dart
+│           ├── pr-summary/
+│           ├── pr-size-checker/
+│           ├── clean-architecture/
+│           ├── security-checker/
+│           └── ...
 ├── bin/
-│   ├── cli.js                # CLI entry point
-│   ├── commands/             # Comandos da CLI
-│   ├── templates/            # Templates de código
-│   └── utils/                # Utilitários
+│   ├── cli.js                # Entry point da CLI
+│   ├── commands/             # Comandos (create, remove, list, etc.)
+│   ├── templates/            # Templates de codigo
+│   └── utils/                # Utilitarios
 ├── scripts/
-│   ├── patch-danger.js       # Customizações Danger JS
-│   └── ...                   # Scripts auxiliares
-├── docs/                     # 📚 Documentação completa
-│   ├── pipelines/            # Guias CI/CD
-│   └── *.md                  # Guias gerais
-├── dist/                     # Build output (TypeScript → JavaScript)
-└── README.md                 # Este arquivo
+│   ├── patch-danger.cjs      # Patches no Danger JS (postinstall)
+│   ├── extract_dart_identifiers.js
+│   └── setup_spell_check.sh
+├── dist/                     # Build output (commitado para install via git)
+└── docs/                     # Documentacao completa
 ```
 
-**Ver arquitetura completa:** [Arquitetura](docs/ARQUITETURA.md)
-
 ---
 
-## 🛠️ Tecnologias
+## Requisitos
 
-- **[TypeScript 5.9](https://www.typescriptlang.org/)** - Linguagem
-- **[Danger JS 13](https://github.com/danger/danger-js)** - Framework base
-- **[Commander 14](https://github.com/tj/commander.js)** - CLI
-- **[CSpell 9](https://github.com/streetsidesoftware/cspell)** - Spell checking
-- **[cld3-asm 4](https://www.npmjs.com/package/cld3-asm)** - Language detection
-- **[Husky 9](https://github.com/typicode/husky)** - Git hooks
-- **[ESLint 9](https://eslint.org/)** - Linting
-- **[Prettier 3](https://prettier.io/)** - Formatting
-
----
-
-## 🎯 Recursos
-
-### ✨ Funcionalidades
-
-- ✅ Plugins modulares e reutilizáveis
-- ✅ CLI para criar e gerenciar plugins
-- ✅ TypeScript com types completos
-- ✅ Helpers para facilitar desenvolvimento
-- ✅ Suporte a múltiplas plataformas Git
-- ✅ Cache otimizado em CI/CD
-- ✅ Documentação completa
-- ✅ Conventional Commits + Husky
-- ✅ ESLint + Prettier configurados
-- ✅ Customizações do Danger JS (patches)
-
-### 🔒 Qualidade
-
-- ✅ **Git Hooks** - pre-commit, commit-msg, pre-push
-- ✅ **ESLint** - Zero warnings permitidos
-- ✅ **Prettier** - Código formatado automaticamente
-- ✅ **TypeScript** - Type checking rigoroso
-- ✅ **Conventional Commits** - Commits padronizados
-
----
-
-## 🤝 Contribuindo
-
-Contribuições são bem-vindas! Veja o [Guia de Desenvolvimento](docs/DESENVOLVIMENTO.md).
-
-### Passos
-
-1. Clone o projeto
-2. Crie uma branch (`git checkout -b feature/MinhaFeature`)
-3. Commit suas mudanças (`git commit -m 'feat: adicionar feature'`)
-4. Push para a branch (`git push origin feature/MinhaFeature`)
-5. Abra um Pull Request
-
-**Lembre-se:** Usamos [Conventional Commits](docs/DESENVOLVIMENTO.md#conventional-commits)
-
----
-
-## 📋 Requisitos
-
-- **Node.js** ≥ 22.19.0
-- **npm** ou **yarn**
+- **Node.js** >= 25.2.1
+- **Danger JS** >= 13.0.7 (peer dependency)
 - **TypeScript** 5.9+ (instalado automaticamente)
-- **Danger JS** 13+ (peer dependency)
 
 ---
 
-## 👨‍💻 Autor
+## Tecnologias
+
+| Tecnologia | Versao | Uso |
+|------------|--------|-----|
+| [TypeScript](https://www.typescriptlang.org/) | 5.9 | Linguagem principal |
+| [Danger JS](https://github.com/danger/danger-js) | 13+ | Framework de code review |
+| [Commander](https://github.com/tj/commander.js) | 14 | CLI |
+| [CSpell](https://github.com/streetsidesoftware/cspell) | 9 | Spell checking |
+| [cld3-asm](https://www.npmjs.com/package/cld3-asm) | 4 | Deteccao de idioma |
+| [ESLint](https://eslint.org/) | 9 | Linting |
+| [Prettier](https://prettier.io/) | 3 | Formatacao |
+| [Husky](https://github.com/typicode/husky) | 9 | Git hooks |
+
+---
+
+## Contribuindo
+
+1. Clone o repositorio
+2. Instale as dependencias: `npm install`
+3. Crie uma branch: `git checkout -b feat/minha-feature`
+4. Faca suas alteracoes
+5. Commit seguindo [Conventional Commits](docs/COMMITS.md): `git commit -m "feat: descricao"`
+6. Push: `git push origin feat/minha-feature`
+7. Abra um Pull Request
+
+> Veja o [Guia de Desenvolvimento](docs/DESENVOLVIMENTO.md) para detalhes.
+
+---
+
+## Autor
 
 **Felipe Duarte Barbosa**
 
-- Email: felipe.duarte@dilettasolutions.com
-- Empresa: [Diletta Solutions](https://dilettasolutions.com)
+- GitHub: [felipeduarte26](https://github.com/felipeduarte26)
 
----
+## Licenca
 
-## 🙏 Agradecimentos
+[MIT](LICENSE)
 
-- [Danger JS](https://github.com/danger/danger-js) - Framework base incrível
-- [cld3-asm](https://github.com/dexman545/cld3-asm) - Language detection
-- [cspell](https://github.com/streetsidesoftware/cspell) - Spell checking
-- Todos os contribuidores e usuários! ❤️
+## Suporte
 
----
-
-## 📞 Suporte
-
-Precisa de ajuda?
-
-- 📖 **Documentação**: [docs/](docs/)
-- 💬 **Email**: felipe.duarte@dilettasolutions.com
-- 💬 **Slack**: [#danger-bot](https://diletta.slack.com/archives/C09CZAH10J3)
-
----
-
-## 🔗 Links Rápidos
-
-### Documentação Essencial
-
-- [🚀 Início Rápido](docs/INICIO_RAPIDO.md)
-- [📦 Instalação](docs/INSTALACAO.md)
-- [🔌 Guia de Plugins](docs/GUIA_PLUGINS.md)
-- [🤖 CLI](docs/CLI.md)
-- [🚀 CI/CD](docs/pipelines/README.md)
-
-### Para Desenvolvedores
-
-- [🏗️ Arquitetura](docs/ARQUITETURA.md)
-- [🔧 Desenvolvimento](docs/DESENVOLVIMENTO.md)
-- [🛠️ Helpers Reference](docs/HELPERS.md)
-- [🔧 API Reference](docs/API.md)
-- [💡 Exemplos](docs/EXEMPLOS.md)
-
-### Suporte
-
-- [❓ FAQ](docs/FAQ.md)
-- [💬 Slack - #danger-bot](https://diletta.slack.com/archives/C09CZAH10J3)
-
----
-
-<div align="center">
-
-## 💬 Compartilhe!
-
-Se o **Danger Bot** foi útil para você, compartilhe com seus colegas de trabalho!
-
-<br/>
-<br/>
-
-**🤖 Automatize seu code review. Foque no que importa.**
-
-</div>
+- [Documentacao](docs/)
+- [GitHub Issues](https://github.com/felipeduarte26/danger-bot/issues)

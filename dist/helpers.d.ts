@@ -46,7 +46,7 @@
  *
  * @example
  * ```typescript
- * import { getDanger, sendMessage, getDartFiles } from "@diletta/danger-bot";
+ * import { getDanger, sendMessage, getDartFiles } from "@felipeduarte26/danger-bot";
  *
  * const danger = getDanger();
  * const dartFiles = getDartFiles();

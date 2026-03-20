@@ -49,14 +49,14 @@ O plugin analisa automaticamente as mudanças no Pull Request e fornece feedback
 ### Importação
 
 \`\`\`typescript
-import { ${camelName}Plugin } from "@diletta/danger-bot";
+import { ${camelName}Plugin } from "@felipeduarte26/danger-bot";
 \`\`\`
 
 ### Uso Básico
 
 \`\`\`typescript
 // dangerfile.ts
-import { ${camelName}Plugin, executeDangerBot } from "@diletta/danger-bot";
+import { ${camelName}Plugin, executeDangerBot } from "@felipeduarte26/danger-bot";
 
 executeDangerBot([
   ${camelName}Plugin, // Habilitado por padrão
@@ -132,7 +132,7 @@ import {
   prSizeCheckerPlugin,
   changelogCheckerPlugin,
   executeDangerBot
-} from "@diletta/danger-bot";
+} from "@felipeduarte26/danger-bot";
 
 executeDangerBot([
   prSizeCheckerPlugin,
@@ -159,7 +159,7 @@ executeDangerBot([
 | Pacote | Versão | Uso |
 |--------|--------|-----|
 | \`danger\` | ^13.0.0 | Framework base (peer dependency) |
-| \`@diletta/danger-bot\` | latest | Helpers e tipos |
+| \`@felipeduarte26/danger-bot\` | latest | Helpers e tipos |
 
 ---
 
@@ -203,9 +203,9 @@ Nenhum problema conhecido no momento.
 
 <div align="center">
 
-**Feito com ❤️ pela [Diletta Solutions](https://dilettasolutions.com)**
+**[Danger Bot](https://github.com/felipeduarte26/danger-bot)**
 
-[![Danger Bot](https://img.shields.io/badge/Danger-Bot-success)](https://bitbucket.org/diletta/danger-bot)
+[![Danger Bot](https://img.shields.io/badge/Danger-Bot-success)](https://github.com/felipeduarte26/danger-bot)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](../../LICENSE)
 
 </div>

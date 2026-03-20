@@ -1,165 +1,182 @@
-# 🔧 Guia de Desenvolvimento
+# Desenvolvimento
 
-> Como contribuir e desenvolver o Danger Bot
+Como configurar o ambiente e contribuir com o Danger Bot.
 
 ---
 
-## 🚀 Setup do Ambiente
+## Pre-requisitos
 
-### 1. Clonar Repositório
+- Node.js >= 25.2.1
+- npm
+- Git
+
+---
+
+## Setup
 
 ```bash
-git clone https://bitbucket.org/diletta/danger-bot.git
+# Clonar o repositorio
+git clone https://github.com/felipeduarte26/danger-bot.git
 cd danger-bot
+
+# Instalar dependencias
+npm install
+
+# Verificar se tudo funciona
+npm run build
+npm run lint
+npm run type-check
 ```
 
-### 2. Instalar Dependências
+---
+
+## Scripts disponiveis
+
+| Script | Comando | Descricao |
+|--------|---------|-----------|
+| `build` | `tsc && tsc-alias` | Compila TypeScript para `dist/` |
+| `watch` | `tsc --watch` | Compila em modo watch |
+| `lint` | `eslint . --max-warnings 0` | Verifica erros de lint |
+| `lint:fix` | `eslint . --fix` | Corrige erros automaticamente |
+| `format` | `prettier --write "src/**/*.ts" "bin/**/*.js"` | Formata codigo |
+| `format:check` | `prettier --check "src/**/*.ts" "bin/**/*.js"` | Verifica formatacao |
+| `type-check` | `tsc --noEmit` | Verifica tipos sem gerar arquivos |
+| `prepare` | `husky` | Configura git hooks |
+
+---
+
+## Workflow de desenvolvimento
+
+### 1. Criar branch
 
 ```bash
-npm install
+git checkout -b feat/minha-feature
 ```
 
-### 3. Compilar
+### 2. Fazer alteracoes
+
+Edite os arquivos em `src/`. Para criar um novo plugin, use a CLI:
+
+```bash
+npx danger-bot create-plugin
+```
+
+### 3. Verificar
+
+```bash
+npm run lint
+npm run type-check
+npm run build
+```
+
+### 4. Commit
+
+Use [Conventional Commits](COMMITS.md):
+
+```bash
+git add .
+git commit -m "feat(plugin): adicionar meu-plugin"
+```
+
+Os git hooks executam automaticamente:
+- **pre-commit**: lint-staged (ESLint + Prettier nos arquivos staged)
+- **commit-msg**: commitlint (valida formato da mensagem)
+
+### 5. Push
+
+```bash
+git push origin feat/minha-feature
+```
+
+O hook **pre-push** executa automaticamente:
+- ESLint
+- Type check
+- Build completo
+
+### 6. Pull Request
+
+Abra um PR no GitHub.
+
+---
+
+## Criando um plugin
+
+### Via CLI (recomendado)
+
+```bash
+npx danger-bot create-plugin
+```
+
+### Manualmente
+
+1. Crie a pasta `src/plugins/flutter/meu-plugin/`
+2. Crie `meu-plugin.ts` com `createPlugin()`
+3. Crie `index.ts` com `export { default } from "./meu-plugin"`
+4. Adicione export em `src/plugins/flutter/index.ts`
+5. Adicione no array `allFlutterPlugins` em `src/index.ts`
+6. Build: `npm run build`
+7. Valide: `npx danger-bot validate src/plugins/flutter/meu-plugin/meu-plugin.ts`
+
+---
+
+## Estrutura de um plugin
+
+```typescript
+import { createPlugin, getDartFiles, sendWarn } from "@felipeduarte26/danger-bot";
+
+export default createPlugin(
+  {
+    name: "meu-plugin",
+    description: "O que o plugin faz",
+    enabled: true,
+  },
+  async () => {
+    const files = getDartFiles();
+    // logica do plugin
+  }
+);
+```
+
+---
+
+## Build e dist
+
+O `dist/` e commitado no repositorio para permitir instalacao via Git. Apos alteracoes em `src/`, sempre execute:
 
 ```bash
 npm run build
 ```
 
+E inclua as mudancas do `dist/` no commit.
+
 ---
 
-## 📝 Conventional Commits
-
-Este projeto usa **Conventional Commits** + **Husky**.
-
-### Tipos Permitidos
-
-- `feat` - Nova funcionalidade
-- `fix` - Correção de bug
-- `docs` - Documentação
-- `refactor` - Refatoração
-- `test` - Testes
-- `chore` - Outros
-
-### Exemplo
+## Versionamento
 
 ```bash
-git commit -m "feat(plugins): adicionar plugin de cobertura"
-```
+# Atualizar versao no package.json
+npm version patch  # 1.8.0 → 1.8.1
+npm version minor  # 1.8.0 → 1.9.0
+npm version major  # 1.8.0 → 2.0.0
 
-**Ver:** [Guia completo de commits](COMMITS.md)
-
----
-
-## 🔌 Criar Plugin
-
-### Via CLI
-
-```bash
-danger-bot create-plugin
-```
-
-### Manual
-
-1. Criar pasta: `src/plugins/flutter/meu-plugin/`
-2. Criar `meu-plugin.ts`
-3. Criar `index.ts` (barrel)
-4. Criar `README.md`
-5. Exportar em `src/plugins/flutter/index.ts`
-
----
-
-## ⚠️ Boas Práticas
-
-### 🚨 EVITE Inline Comments
-
-**Sempre use comentários gerais:**
-
-```typescript
-// ✅ CORRETO
-sendFail("Erro encontrado");
-
-// ❌ EVITE (cria metadados visíveis no Bitbucket)
-sendFail("Erro encontrado", "arquivo.dart", 10);
-```
-
-**Por quê?** O Bitbucket adiciona preview com metadados visíveis em inline comments:
-```
-<!-- 1 failure: Erro... DangerID: ...; File: ...; Line: ...; -->
-```
-
-**Documentação completa:** [Guia de Plugins - Boas Práticas](GUIA_PLUGINS.md#️-boas-práticas-e-armadilhas-comuns)
-
----
-
-## 🧪 Testar
-
-### Localmente
-
-```bash
-cd /path/to/projeto-teste
-npm link /path/to/danger-bot
-npm run danger:local
-```
-
-### Em PR Real
-
-```bash
-npm run danger:pr https://github.com/user/repo/pull/123
-```
-
----
-
-## 📦 Scripts NPM
-
-```bash
-npm run build         # Compilar TypeScript
-npm run watch         # Watch mode
-npm run lint          # ESLint
-npm run lint:fix      # ESLint --fix
-npm run format        # Prettier
-npm run type-check    # TypeScript check
-```
-
----
-
-## 🎣 Git Hooks
-
-- **pre-commit**: ESLint + Prettier nos arquivos staged
-- **commit-msg**: Validação Conventional Commits
-- **pre-push**: lint + type-check + build completo
-
----
-
-## 🏷️ Versioning
-
-```bash
-# Criar nova versão
+# Criar tag
 git tag v1.9.0
 git push origin v1.9.0
 ```
 
 ---
 
-## 📚 Documentação
+## Documentacao
 
-Toda documentação em `docs/` deve ser em **PT-BR**.
+Toda documentacao fica em `docs/` e deve ser mantida atualizada.
 
-### Criar Nova Doc
+Ao criar um novo plugin, inclua um `README.md` na pasta do plugin.
 
-```bash
-touch docs/MINHA_DOC.md
-```
-
-### Atualizar README
-
-Adicionar link no `README.md` principal.
+Ao adicionar funcionalidades, atualize os docs relevantes (API, Helpers, etc.).
 
 ---
 
-## 💬 Suporte
+## Suporte
 
-- 📖 [Arquitetura](ARQUITETURA.md)
-- 💬 [Slack - #danger-bot](https://diletta.slack.com/archives/C09CZAH10J3)
-- 💬 felipe.duarte@dilettasolutions.com
-
----
+- [Arquitetura](ARQUITETURA.md)
+- [GitHub Issues](https://github.com/felipeduarte26/danger-bot/issues)

@@ -51,7 +51,7 @@ Análise estática automatizada de código Dart para:
 ### Uso Básico
 
 ```typescript
-import { flutterAnalyzePlugin } from "@diletta/danger-bot";
+import { flutterAnalyzePlugin } from "@felipeduarte26/danger-bot";
 
 const plugins = [
   flutterAnalyzePlugin,  // Habilitado por padrão

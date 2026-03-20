@@ -1,7 +1,7 @@
 /**
  * DANGER BOT - MAIN ENTRY POINT
  * =============================
- * Exporta todos os plugins, tipos e helpers do pacote @diletta/danger-bot
+ * Exporta todos os plugins, tipos e helpers do pacote @felipeduarte26/danger-bot
  */
 export * from "./types";
 export * from "./helpers";
