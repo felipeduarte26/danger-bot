@@ -1,5 +1,5 @@
 {
-  "name": "@diletta/danger-bot",
+  "name": "@felipeduarte26/danger-bot",
   "version": "1.8.0",
   "description": "Conjunto modular de plugins Danger JS",
   "type": "module",
@@ -42,7 +42,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://felipeDuarteBarbosa@bitbucket.org/diletta/danger-bot.git"
+    "url": "https://github.com/felipeduarte26/danger-bot"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.1.0",
@@ -53,24 +53,24 @@
     "eslint-config-prettier": "^9.1.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.6",
-    "prettier": "^3.4.2",
+    "prettier": "^3.8.1",
     "tsc-alias": "^1.8.16",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.19.1"
+    "typescript-eslint": "^8.57.1"
   },
   "dependencies": {
-    "@cspell/dict-dart": "^2.3.1",
+    "@cspell/dict-dart": "^2.3.2",
     "@cspell/dict-flutter": "^1.1.1",
-    "@cspell/dict-software-terms": "^5.1.11",
+    "@cspell/dict-software-terms": "^5.2.0",
     "cld3-asm": "^4.0.0",
-    "commander": "^14.0.2",
-    "cspell": "^9.2.2"
+    "commander": "^14.0.3",
+    "cspell": "^9.7.0"
   },
   "peerDependencies": {
-    "danger": "^13.0.5"
+    "danger": "^13.0.7"
   },
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=25.2.1"
   },
   "lint-staged": {
     "*.ts": [
