@@ -3,7 +3,7 @@
  * Detecta nomes de classes, métodos e variáveis em português.
  * O padrão do projeto é código 100% em inglês.
  */
-import { createPlugin, getDanger, sendWarn } from "@types";
+import { createPlugin, getDanger, sendFail } from "@types";
 import * as fs from "fs";
 
 const PT_WORDS = new Set([
@@ -522,7 +522,7 @@ export default createPlugin(
       if (seen.has(key)) continue;
       seen.add(key);
 
-      sendWarn(
+      sendFail(
         `IDENTIFICADOR EM PORTUGUÊS
 
 \`${m.identifier}\` (${m.kind}) — palavras: **${m.ptWords.join(", ")}**

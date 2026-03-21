@@ -80,6 +80,7 @@ exports.getPRDescription = getPRDescription;
 exports.getPRTitle = getPRTitle;
 exports.getLinesChanged = getLinesChanged;
 const _sentMessages = new Set();
+const _inlineSlots = new Set();
 function dedupKey(type, msg, file, line) {
   return `${type}::${file ?? ""}::${line ?? ""}::${msg}`;
 }
@@ -88,6 +89,21 @@ function isDuplicate(type, msg, file, line) {
   if (_sentMessages.has(key)) return true;
   _sentMessages.add(key);
   return false;
+}
+/**
+ * Quando duas ou mais violacoes caem no mesmo arquivo+linha,
+ * o Danger agrupa tudo em um unico comentario inline.
+ * Para separar visualmente, adicionamos um `---` antes da
+ * segunda violacao em diante.
+ */
+function withSeparator(msg, file, line) {
+  if (!file || line === undefined) return msg;
+  const slot = `${file}::${line}`;
+  if (_inlineSlots.has(slot)) {
+    return `---\n\n${msg}`;
+  }
+  _inlineSlots.add(slot);
+  return msg;
 }
 // ============================================================================
 // DANGER CORE
@@ -162,12 +178,13 @@ function getDanger() {
  */
 function sendMessage(msg, file, line) {
   if (isDuplicate("message", msg, file, line)) return;
+  const formatted = withSeparator(msg, file, line);
   const messageFn = global.message || globalThis.message;
   if (messageFn) {
     if (file && line !== undefined) {
-      messageFn(msg, file, line);
+      messageFn(formatted, file, line);
     } else {
-      messageFn(msg);
+      messageFn(formatted);
     }
   }
 }
@@ -197,12 +214,13 @@ function sendMessage(msg, file, line) {
  */
 function sendWarn(msg, file, line) {
   if (isDuplicate("warn", msg, file, line)) return;
+  const formatted = withSeparator(msg, file, line);
   const warnFn = global.warn || globalThis.warn;
   if (warnFn) {
     if (file && line !== undefined) {
-      warnFn(msg, file, line);
+      warnFn(formatted, file, line);
     } else {
-      warnFn(msg);
+      warnFn(formatted);
     }
   }
 }
@@ -232,12 +250,13 @@ function sendWarn(msg, file, line) {
  */
 function sendFail(msg, file, line) {
   if (isDuplicate("fail", msg, file, line)) return;
+  const formatted = withSeparator(msg, file, line);
   const failFn = global.fail || globalThis.fail;
   if (failFn) {
     if (file && line !== undefined) {
-      failFn(msg, file, line);
+      failFn(formatted, file, line);
     } else {
-      failFn(msg);
+      failFn(formatted);
     }
   }
 }
