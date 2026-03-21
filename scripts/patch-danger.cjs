@@ -14,7 +14,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const PATCH_VERSION = "3.1.0";
+const PATCH_VERSION = "3.2.0";
 const REPO_URL = "https://github.com/felipeduarte26/danger-bot";
 const BRAND_NAME = "Danger Bot";
 
@@ -214,8 +214,9 @@ function main() {
       'return "\\n[//]: # (".concat((0, exports.dangerIDToString)(dangerID), ")\\n[//]: # (").concat((0, exports.fileLineToString)(file, line), ")\\n").concat(results.fails.map(printViolation(noEntryEmoji)).join("\\n"), "\\n").concat(results.warnings.map(printViolation(warningEmoji)).join("\\n"), "\\n").concat(results.messages.map(printViolation(messageEmoji)).join("\\n"), "\\n").concat(results.markdowns.map(function (v) { return v.message; }).join("\\n\\n"), "\\n  ");';
 
     if (content.includes(oldInlineReturn)) {
-      const newInlineReturn = `// DANGER-BOT: Estrategia Danger Ruby - link com title no final (invisivel no render)
-    var signature = "\\n\\n[](${REPO_URL} \\"danger-id-".concat(dangerID, ";\\")");
+      const newInlineReturn = `// DANGER-BOT: Link invisivel com dangerID + file/line no title para matching
+    var metadata = (0, exports.dangerIDToString)(dangerID) + "  File: " + file + ";\\n  Line: " + line + ";";
+    var signature = "\\n\\n[](${REPO_URL} \\"" + metadata + "\\")";
     return "".concat(results.fails.map(printViolation(noEntryEmoji)).join("\\n"), "\\n").concat(results.warnings.map(printViolation(warningEmoji)).join("\\n"), "\\n").concat(results.messages.map(printViolation(messageEmoji)).join("\\n"), "\\n").concat(results.markdowns.map(function (v) { return v.message; }).join("\\n\\n")).replace(/^\\n+/, "").concat(signature, "\\n  ");`;
 
       content = content.replace(oldInlineReturn, newInlineReturn);

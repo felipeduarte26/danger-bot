@@ -60,7 +60,6 @@
 import type { DangerDSLType, GitDSL } from "danger";
 
 const _sentMessages = new Set<string>();
-const _inlineSlots = new Set<string>();
 
 function dedupKey(type: string, msg: string, file?: string, line?: number): string {
   return `${type}::${file ?? ""}::${line ?? ""}::${msg}`;
@@ -74,20 +73,14 @@ function isDuplicate(type: string, msg: string, file?: string, line?: number): b
 }
 
 /**
- * Quando duas ou mais violacoes caem no mesmo arquivo+linha,
- * o Danger agrupa tudo em um unico comentario inline.
- * Para separar visualmente, adicionamos um `---` antes da
- * segunda violacao em diante.
+ * Mensagens inline que caem no mesmo arquivo+linha sao agrupadas
+ * pelo Danger em um unico comentario. Para evitar que o final de
+ * uma regra e o inicio da proxima fiquem colados na mesma linha,
+ * adicionamos quebras de linha no final de cada mensagem inline.
  */
-function withSeparator(msg: string, file?: string, line?: number): string {
+function ensureTrailingBreak(msg: string, file?: string, line?: number): string {
   if (!file || line === undefined) return msg;
-
-  const slot = `${file}::${line}`;
-  if (_inlineSlots.has(slot)) {
-    return `---\n\n${msg}`;
-  }
-  _inlineSlots.add(slot);
-  return msg;
+  return msg.trimEnd() + "\n\n&#8203;";
 }
 
 /**
@@ -192,7 +185,7 @@ export function getDanger(): ExtendedDangerDSLType {
  */
 export function sendMessage(msg: string, file?: string, line?: number): void {
   if (isDuplicate("message", msg, file, line)) return;
-  const formatted = withSeparator(msg, file, line);
+  const formatted = ensureTrailingBreak(msg, file, line);
   const messageFn = (global as any).message || (globalThis as any).message;
   if (messageFn) {
     if (file && line !== undefined) {
@@ -229,7 +222,7 @@ export function sendMessage(msg: string, file?: string, line?: number): void {
  */
 export function sendWarn(msg: string, file?: string, line?: number): void {
   if (isDuplicate("warn", msg, file, line)) return;
-  const formatted = withSeparator(msg, file, line);
+  const formatted = ensureTrailingBreak(msg, file, line);
   const warnFn = (global as any).warn || (globalThis as any).warn;
   if (warnFn) {
     if (file && line !== undefined) {
@@ -266,7 +259,7 @@ export function sendWarn(msg: string, file?: string, line?: number): void {
  */
 export function sendFail(msg: string, file?: string, line?: number): void {
   if (isDuplicate("fail", msg, file, line)) return;
-  const formatted = withSeparator(msg, file, line);
+  const formatted = ensureTrailingBreak(msg, file, line);
   const failFn = (global as any).fail || (globalThis as any).fail;
   if (failFn) {
     if (file && line !== undefined) {
