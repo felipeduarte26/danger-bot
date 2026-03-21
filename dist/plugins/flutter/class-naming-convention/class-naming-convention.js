@@ -341,7 +341,7 @@ exports.default = (0, _types_1.createPlugin)(
     for (const v of violations) {
       const verbs = v.verbWords.map((w) => `\`${w}\``).join(", ");
       const suggestion = buildSuggestion(v.className, v.verbWords);
-      (0, _types_1.sendFail)(
+      await (0, _types_1.sendFail)(
         `CLASSE COM VERBO NO NOME
 
 **${v.layer}:** \`${v.className}\`

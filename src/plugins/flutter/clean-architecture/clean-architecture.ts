@@ -1,30 +1,30 @@
 /**
  * Detecta violações de Clean Architecture
  */
-import { createPlugin,  getDanger, sendFail, getAllChangedFiles  } from '@types';
+import { createPlugin, getDanger, sendFail, getAllChangedFiles } from "@types";
 
 export default createPlugin(
   {
-    name: 'clean-architecture',
-    description: 'Detecta violações de Clean Architecture',
+    name: "clean-architecture",
+    description: "Detecta violações de Clean Architecture",
     enabled: true,
   },
   async () => {
     const danger = getDanger();
     const allFiles = getAllChangedFiles();
-    
+
     for (const file of allFiles) {
-      if (!file.endsWith('.dart')) continue;
-      
+      if (!file.endsWith(".dart")) continue;
+
       try {
         const content = await danger.git.structuredDiffForFile(file);
         if (!content) continue;
-        const fileText = content.chunks.map((c: any) => c.content).join('\n');
-        
+        const fileText = content.chunks.map((c: any) => c.content).join("\n");
+
         // Domain não pode importar Data ou Presentation
-        if (file.includes('/domain/')) {
+        if (file.includes("/domain/")) {
           if (fileText.match(/import.*\/data\//)) {
-            sendFail(
+            await sendFail(
               `## 🏛️ VIOLAÇÃO CLEAN ARCHITECTURE - DOMAIN → DATA
 
 Domain Layer **não pode** importar Data Layer.
@@ -55,7 +55,7 @@ Manter **independência** da Domain Layer.`,
             );
           }
           if (fileText.match(/import.*\/presentation\//)) {
-            sendFail(
+            await sendFail(
               `## 🏛️ VIOLAÇÃO CLEAN ARCHITECTURE - DOMAIN → PRESENTATION
 
 Domain Layer **não pode** importar Presentation Layer.
@@ -69,11 +69,11 @@ Remova imports de arquivos da pasta /presentation/.`,
             );
           }
         }
-        
+
         // Data não pode importar Presentation
-        if (file.includes('/data/')) {
+        if (file.includes("/data/")) {
           if (fileText.match(/import.*\/presentation\//)) {
-            sendFail(
+            await sendFail(
               `## 🏪 VIOLAÇÃO CLEAN ARCHITECTURE - DATA → PRESENTATION
 
 Data Layer **não pode** importar Presentation Layer.
@@ -92,11 +92,11 @@ Remova imports de arquivos da pasta /presentation/.`,
             );
           }
         }
-        
+
         // Presentation não pode importar Data diretamente (deve usar Domain)
-        if (file.includes('/presentation/') && file.match(/_viewmodel\.dart$/)) {
+        if (file.includes("/presentation/") && file.match(/_viewmodel\.dart$/)) {
           if (fileText.match(/I\w*Repository/)) {
-            sendFail(
+            await sendFail(
               `## 🎨 VIOLAÇÃO - VIEWMODEL USA REPOSITORY
 
 ViewModel deve usar **UseCases**, não Repositories.
@@ -125,5 +125,5 @@ class UserViewModel {
         // Ignore
       }
     }
-    }
+  }
 );

@@ -1,31 +1,31 @@
 /**
  * Verifica uso correto de comentários
  */
-import { createPlugin,  getDanger, sendFail, getDartFiles  } from '@types';
+import { createPlugin, getDanger, sendFail, getDartFiles } from "@types";
 
 export default createPlugin(
   {
-    name: 'comments-checker',
-    description: 'Verifica uso correto de comentários',
+    name: "comments-checker",
+    description: "Verifica uso correto de comentários",
     enabled: true,
   },
   async () => {
     const danger = getDanger();
     const dartFiles = getDartFiles();
-    
+
     for (const file of dartFiles) {
       try {
         const content = await danger.git.structuredDiffForFile(file);
         if (!content) continue;
-        const fileText = content.chunks.map((c: any) => c.content).join('\n');
-        
-        const lines = fileText.split('\n');
+        const fileText = content.chunks.map((c: any) => c.content).join("\n");
+
+        const lines = fileText.split("\n");
         for (let i = 0; i < lines.length; i++) {
           const line = lines[i].trim();
-          
+
           // Detectar comentário // (mas não ///)
           if (line.match(/^\/\/(?!\/)/)) {
-            sendFail(
+            await sendFail(
               `## 💬 COMENTÁRIO // PROIBIDO
 
 Comentário \`//\` encontrado na linha ${i + 1}.
@@ -87,5 +87,5 @@ Gerar **documentação automática** com DartDoc.
         // Ignore
       }
     }
-    }
+  }
 );

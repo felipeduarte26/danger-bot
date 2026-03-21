@@ -39,7 +39,7 @@ export default createPlugin(
           const className = firstClass[1];
 
           if (!className.endsWith("Failure")) {
-            sendFail(
+            await sendFail(
               `## 🔥 CLASSE FAILURE SEM SUFIXO
 
 **Arquivo:** \`${file}\`
@@ -70,7 +70,7 @@ Identificar facilmente failures na Domain Layer.`
 
           // Verificar se primeira classe é sealed
           if (!fileText.match(/sealed\s+class\s+\w+Failure/)) {
-            sendFail(
+            await sendFail(
               `## 🔥 PRIMEIRA CLASSE DEVE SER SEALED
 
 **Arquivo:** \`${file}\`

@@ -4,25 +4,27 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * Valida Presentation ViewModels
  */
 const _types_1 = require("../../../types");
-exports.default = (0, _types_1.createPlugin)({
-    name: 'presentation-viewmodels',
-    description: 'Valida Presentation ViewModels',
+exports.default = (0, _types_1.createPlugin)(
+  {
+    name: "presentation-viewmodels",
+    description: "Valida Presentation ViewModels",
     enabled: true,
-}, async () => {
+  },
+  async () => {
     const danger = (0, _types_1.getDanger)();
     const { git } = danger;
     const files = git.created_files
-        .concat(git.modified_files)
-        .filter((f) => f.match(/_viewmodel\.dart$/));
+      .concat(git.modified_files)
+      .filter((f) => f.match(/_viewmodel\.dart$/));
     for (const file of files) {
-        try {
-            const content = await danger.git.structuredDiffForFile(file);
-            if (!content)
-                continue;
-            const fileText = content.chunks.map((c) => c.content).join('\n');
-            // Verificar se ViewModel usa Repository diretamente
-            if (fileText.match(/I\w*Repository\w*\s+\w+/)) {
-                (0, _types_1.sendFail)(`## 🎮 VIEWMODEL NÃO PODE USAR REPOSITORY DIRETAMENTE
+      try {
+        const content = await danger.git.structuredDiffForFile(file);
+        if (!content) continue;
+        const fileText = content.chunks.map((c) => c.content).join("\n");
+        // Verificar se ViewModel usa Repository diretamente
+        if (fileText.match(/I\w*Repository\w*\s+\w+/)) {
+          await (0, _types_1.sendFail)(
+            `## 🎮 VIEWMODEL NÃO PODE USAR REPOSITORY DIRETAMENTE
 
 ViewModel deve depender de **UseCases**, não Repositories.
 
@@ -50,11 +52,14 @@ final class ProductViewModel {
 ---
 
 ### 🚀 Objetivo
-Manter **separação de responsabilidades**.`, file, 1);
-            }
+Manter **separação de responsabilidades**.`,
+            file,
+            1
+          );
         }
-        catch (e) {
-            // Ignore
-        }
+      } catch (e) {
+        // Ignore
+      }
     }
-});
+  }
+);

@@ -5,20 +5,30 @@ const _types_1 = require("../../../types");
  * 📁 File Naming Plugin
  * Verifica se os arquivos .dart seguem a convenção snake_case
  */
-exports.default = (0, _types_1.createPlugin)({
-    name: 'file-naming',
-    description: 'Verifica nomenclatura de arquivos Dart (snake_case)',
+exports.default = (0, _types_1.createPlugin)(
+  {
+    name: "file-naming",
+    description: "Verifica nomenclatura de arquivos Dart (snake_case)",
     enabled: true,
-}, async () => {
+  },
+  async () => {
     const danger = (0, _types_1.getDanger)();
     const { git } = danger;
-    const dartFilesAdded = git.created_files.filter((file) => file.startsWith('lib/') && file.endsWith('.dart'));
+    const dartFilesAdded = git.created_files.filter(
+      (file) => file.startsWith("lib/") && file.endsWith(".dart")
+    );
     for (const file of dartFilesAdded) {
-        const fileName = file.split('/').pop() || '';
-        const validPattern = /^[a-z0-9_]+\.dart$/;
-        if (!validPattern.test(fileName)) {
-            const suggestion = fileName.replace(/([A-Z])/g, '_$1').replace(/[-\s]+/g, '_').toLowerCase().replace(/^_/, '').replace(/_+/g, '_');
-            (0, _types_1.sendFail)(`## 📁 NOMENCLATURA DE ARQUIVO INCORRETA
+      const fileName = file.split("/").pop() || "";
+      const validPattern = /^[a-z0-9_]+\.dart$/;
+      if (!validPattern.test(fileName)) {
+        const suggestion = fileName
+          .replace(/([A-Z])/g, "_$1")
+          .replace(/[-\s]+/g, "_")
+          .toLowerCase()
+          .replace(/^_/, "")
+          .replace(/_+/g, "_");
+        await (0, _types_1.sendFail)(
+          `## 📁 NOMENCLATURA DE ARQUIVO INCORRETA
 
 O arquivo \`${file}\` **não segue** a convenção de nomenclatura do Dart.
 
@@ -76,7 +86,11 @@ lib/
 
 Manter **consistência** com padrões oficiais do Dart/Flutter e facilitar colaboração.
 
-> **Referência:** [Effective Dart: Style Guide](https://dart.dev/guides/language/effective-dart/style)`, file, 1);
-        }
+> **Referência:** [Effective Dart: Style Guide](https://dart.dev/guides/language/effective-dart/style)`,
+          file,
+          1
+        );
+      }
     }
-});
+  }
+);

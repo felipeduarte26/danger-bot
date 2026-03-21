@@ -1,34 +1,34 @@
 /**
  * Detecta problemas de segurança
  */
-import { createPlugin,  getDanger, sendFail, getDartFiles  } from '@types';
+import { createPlugin, getDanger, sendFail, getDartFiles } from "@types";
 
 export default createPlugin(
   {
-    name: 'security-checker',
-    description: 'Detecta problemas de segurança',
+    name: "security-checker",
+    description: "Detecta problemas de segurança",
     enabled: true,
   },
   async () => {
     const danger = getDanger();
     const dartFiles = getDartFiles();
-    
+
     for (const file of dartFiles) {
       try {
         const content = await danger.git.structuredDiffForFile(file);
         if (!content) continue;
-        const fileText = content.chunks.map((c: any) => c.content).join('\n');
-        
+        const fileText = content.chunks.map((c: any) => c.content).join("\n");
+
         // Detectar API keys hardcoded
         const apiKeyPatterns = [
-          /['"]AIza[0-9A-Za-z-_]{35}['"]/,  // Google API
-          /['"]sk-[A-Za-z0-9]{48}['"]/,     // OpenAI
-          /['"]AKIA[0-9A-Z]{16}['"]/,       // AWS
+          /['"]AIza[0-9A-Za-z-_]{35}['"]/, // Google API
+          /['"]sk-[A-Za-z0-9]{48}['"]/, // OpenAI
+          /['"]AKIA[0-9A-Z]{16}['"]/, // AWS
         ];
-        
+
         for (const pattern of apiKeyPatterns) {
           if (fileText.match(pattern)) {
-            sendFail(
+            await sendFail(
               `## 🔒 SEGURANÇA - API KEY HARDCODED
 
 API Key detectada no código fonte!
@@ -97,10 +97,10 @@ Proteger **credenciais** e evitar **vazamentos de segurança**.
             );
           }
         }
-        
+
         // Detectar eval()
-        if (fileText.includes('eval(')) {
-          sendFail(
+        if (fileText.includes("eval(")) {
+          await sendFail(
             `## 🔒 SEGURANÇA - USO DE EVAL()
 
 Uso de \`eval()\` detectado - **ALTO RISCO**.
@@ -145,5 +145,5 @@ Prevenir **injeção de código** e manter app **seguro**.`,
         // Ignore
       }
     }
-    }
+  }
 );

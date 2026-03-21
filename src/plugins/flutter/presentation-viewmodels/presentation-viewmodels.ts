@@ -1,12 +1,12 @@
 /**
  * Valida Presentation ViewModels
  */
-import { createPlugin,  getDanger, sendFail  } from '@types';
+import { createPlugin, getDanger, sendFail } from "@types";
 
 export default createPlugin(
   {
-    name: 'presentation-viewmodels',
-    description: 'Valida Presentation ViewModels',
+    name: "presentation-viewmodels",
+    description: "Valida Presentation ViewModels",
     enabled: true,
   },
   async () => {
@@ -15,16 +15,16 @@ export default createPlugin(
     const files = git.created_files
       .concat(git.modified_files)
       .filter((f: string) => f.match(/_viewmodel\.dart$/));
-    
+
     for (const file of files) {
       try {
         const content = await danger.git.structuredDiffForFile(file);
         if (!content) continue;
-        const fileText = content.chunks.map((c: any) => c.content).join('\n');
-        
+        const fileText = content.chunks.map((c: any) => c.content).join("\n");
+
         // Verificar se ViewModel usa Repository diretamente
         if (fileText.match(/I\w*Repository\w*\s+\w+/)) {
-          sendFail(
+          await sendFail(
             `## 🎮 VIEWMODEL NÃO PODE USAR REPOSITORY DIRETAMENTE
 
 ViewModel deve depender de **UseCases**, não Repositories.
@@ -62,5 +62,5 @@ Manter **separação de responsabilidades**.`,
         // Ignore
       }
     }
-    }
+  }
 );

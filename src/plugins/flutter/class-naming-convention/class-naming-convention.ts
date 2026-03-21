@@ -323,7 +323,7 @@ export default createPlugin(
       const verbs = v.verbWords.map((w) => `\`${w}\``).join(", ");
       const suggestion = buildSuggestion(v.className, v.verbWords);
 
-      sendFail(
+      await sendFail(
         `CLASSE COM VERBO NO NOME
 
 **${v.layer}:** \`${v.className}\`

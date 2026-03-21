@@ -1,28 +1,28 @@
 /**
  * Detecta possíveis memory leaks
  */
-import { createPlugin,  getDanger, sendFail, sendWarn, getDartFiles  } from '@types';
+import { createPlugin, getDanger, sendFail, sendWarn, getDartFiles } from "@types";
 
 export default createPlugin(
   {
-    name: 'memory-leak-detector',
-    description: 'Detecta possíveis memory leaks',
+    name: "memory-leak-detector",
+    description: "Detecta possíveis memory leaks",
     enabled: true,
   },
   async () => {
     const danger = getDanger();
     const dartFiles = getDartFiles();
-    
+
     for (const file of dartFiles) {
       try {
         const content = await danger.git.structuredDiffForFile(file);
         if (!content) continue;
-        const fileText = content.chunks.map((c: any) => c.content).join('\n');
-        
+        const fileText = content.chunks.map((c: any) => c.content).join("\n");
+
         // Detectar Controllers sem dispose
-        if (fileText.match(/\w+Controller\s+\w+/) && fileText.includes('State<')) {
-          if (!fileText.includes('dispose()') || !fileText.includes('.dispose()')) {
-            sendFail(
+        if (fileText.match(/\w+Controller\s+\w+/) && fileText.includes("State<")) {
+          if (!fileText.includes("dispose()") || !fileText.includes(".dispose()")) {
+            await sendFail(
               `## 💧 VAZAMENTO DE MEMÓRIA - CONTROLLER SEM DISPOSE
 
 Controller detectado mas sem \`dispose()\` correspondente.
@@ -83,11 +83,11 @@ Prevenir **vazamentos de memória** e manter app **performático**.
             );
           }
         }
-        
+
         // Detectar Timer sem cancel
-        if (fileText.includes('Timer.periodic') || fileText.includes('Timer(')) {
-          if (!fileText.includes('.cancel()')) {
-            sendWarn(
+        if (fileText.includes("Timer.periodic") || fileText.includes("Timer(")) {
+          if (!fileText.includes(".cancel()")) {
+            await sendWarn(
               `## 💧 VAZAMENTO - TIMER SEM CANCEL
 
 Timer detectado sem \`.cancel()\` correspondente.
@@ -128,11 +128,11 @@ class MyState extends State<MyWidget> {
             );
           }
         }
-        
+
         // Detectar StreamSubscription sem cancel
-        if (fileText.includes('StreamSubscription')) {
-          if (!fileText.includes('.cancel()')) {
-            sendWarn(
+        if (fileText.includes("StreamSubscription")) {
+          if (!fileText.includes(".cancel()")) {
+            await sendWarn(
               `## 💧 VAZAMENTO - STREAM SEM CANCEL
 
 StreamSubscription sem \`.cancel()\`.
@@ -170,5 +170,5 @@ class MyState extends State<MyWidget> {
         // Ignore
       }
     }
-    }
+  }
 );

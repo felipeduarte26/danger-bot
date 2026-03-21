@@ -28,7 +28,7 @@ exports.default = (0, _types_1.createPlugin)(
     for (const file of repoFiles) {
       // Verificar nomenclatura
       if (!file.match(/_repository_interface\.dart$/)) {
-        (0, _types_1.sendFail)(`## 📚 NOMENCLATURA DE REPOSITORY INTERFACE INCORRETA
+        await (0, _types_1.sendFail)(`## 📚 NOMENCLATURA DE REPOSITORY INTERFACE INCORRETA
 
 **Arquivo:** \`${file}\`
 
@@ -67,7 +67,7 @@ Diferenciar claramente **interfaces** (Domain) de **implementações** (Data).`)
           const className = classMatch[1];
           // Verificar prefixo I
           if (!className.startsWith("I")) {
-            (0, _types_1.sendFail)(`## 📚 REPOSITORY INTERFACE SEM PREFIXO I
+            await (0, _types_1.sendFail)(`## 📚 REPOSITORY INTERFACE SEM PREFIXO I
 
 **Arquivo:** \`${file}\`
 
@@ -97,7 +97,7 @@ Identificar **interfaces** facilmente no código.`);
           }
           // Verificar abstract interface class
           if (!fileText.match(/abstract\s+interface\s+class/)) {
-            (0, _types_1.sendFail)(`## 📚 REPOSITORY DEVE SER ABSTRACT INTERFACE CLASS
+            await (0, _types_1.sendFail)(`## 📚 REPOSITORY DEVE SER ABSTRACT INTERFACE CLASS
 
 **Arquivo:** \`${file}\`
 
@@ -131,7 +131,7 @@ Definir **contratos puros** que só podem ser implementados.`);
           }
           // Verificar retorno void
           if (fileText.match(/\s+(?:void|Future<void>)\s+\w+\s*\(/)) {
-            (0, _types_1.sendFail)(`## 📚 REPOSITORY NÃO PODE RETORNAR VOID
+            await (0, _types_1.sendFail)(`## 📚 REPOSITORY NÃO PODE RETORNAR VOID
 
 **Arquivo:** \`${file}\`
 

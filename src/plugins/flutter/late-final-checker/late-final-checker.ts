@@ -1,28 +1,28 @@
 /**
  * Detecta uso de late final
  */
-import { createPlugin,  getDanger, sendWarn, getDartFiles  } from '@types';
+import { createPlugin, getDanger, sendWarn, getDartFiles } from "@types";
 
 export default createPlugin(
   {
-    name: 'late-final-checker',
-    description: 'Detecta uso de late final',
+    name: "late-final-checker",
+    description: "Detecta uso de late final",
     enabled: true,
   },
   async () => {
     const danger = getDanger();
     const dartFiles = getDartFiles();
-    
+
     for (const file of dartFiles) {
       try {
         const content = await danger.git.structuredDiffForFile(file);
         if (!content) continue;
-        const fileText = content.chunks.map((c: any) => c.content).join('\n');
-        
+        const fileText = content.chunks.map((c: any) => c.content).join("\n");
+
         // Detectar late final sem inicialização
         const lateMatches = fileText.matchAll(/late\s+final\s+(\w+)\s+(\w+);/g);
         for (const match of lateMatches) {
-          sendWarn(
+          await sendWarn(
             `## ⚠️ USO DE LATE FINAL DETECTADO
 
 Uso de \`late final\` encontrado: \`${match[0]}\`
@@ -96,5 +96,5 @@ Evitar **runtime errors** e tornar código mais **previsível**.
         // Ignore
       }
     }
-    }
+  }
 );

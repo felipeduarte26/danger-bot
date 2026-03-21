@@ -1,4 +1,4 @@
-import { createPlugin, getDanger, sendFail } from '@types';
+import { createPlugin, getDanger, sendFail } from "@types";
 
 /**
  * 📁 File Naming Plugin
@@ -6,24 +6,29 @@ import { createPlugin, getDanger, sendFail } from '@types';
  */
 export default createPlugin(
   {
-    name: 'file-naming',
-    description: 'Verifica nomenclatura de arquivos Dart (snake_case)',
+    name: "file-naming",
+    description: "Verifica nomenclatura de arquivos Dart (snake_case)",
     enabled: true,
   },
   async () => {
     const danger = getDanger();
     const { git } = danger;
-    const dartFilesAdded = git.created_files.filter((file: string) => 
-      file.startsWith('lib/') && file.endsWith('.dart')
+    const dartFilesAdded = git.created_files.filter(
+      (file: string) => file.startsWith("lib/") && file.endsWith(".dart")
     );
 
     for (const file of dartFilesAdded) {
-      const fileName = file.split('/').pop() || '';
+      const fileName = file.split("/").pop() || "";
       const validPattern = /^[a-z0-9_]+\.dart$/;
 
       if (!validPattern.test(fileName)) {
-        const suggestion = fileName.replace(/([A-Z])/g, '_$1').replace(/[-\s]+/g, '_').toLowerCase().replace(/^_/, '').replace(/_+/g, '_');
-        sendFail(
+        const suggestion = fileName
+          .replace(/([A-Z])/g, "_$1")
+          .replace(/[-\s]+/g, "_")
+          .toLowerCase()
+          .replace(/^_/, "")
+          .replace(/_+/g, "_");
+        await sendFail(
           `## 📁 NOMENCLATURA DE ARQUIVO INCORRETA
 
 O arquivo \`${file}\` **não segue** a convenção de nomenclatura do Dart.

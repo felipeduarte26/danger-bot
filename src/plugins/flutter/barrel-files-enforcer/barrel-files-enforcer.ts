@@ -26,7 +26,7 @@ export default createPlugin(
 
       const targetFile = filesInFolder[0];
 
-      sendFail(
+      await sendFail(
         `BARREL FILE AUSENTE
 
 Pasta \`${folder}\` tem arquivos mas sem barrel file.

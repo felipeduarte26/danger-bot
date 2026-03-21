@@ -1,12 +1,12 @@
 /**
  * Valida Data Repository implementations
  */
-import { createPlugin,  getDanger, sendFail  } from '@types';
+import { createPlugin, getDanger, sendFail } from "@types";
 
 export default createPlugin(
   {
-    name: 'data-repositories',
-    description: 'Valida Data Repository implementations',
+    name: "data-repositories",
+    description: "Valida Data Repository implementations",
     enabled: true,
   },
   async () => {
@@ -14,11 +14,14 @@ export default createPlugin(
     const { git } = danger;
     const files = git.created_files
       .concat(git.modified_files)
-      .filter((f: string) => f.match(/\/data\/repositories\/[^/]+\.dart$/) && !f.endsWith('repositories.dart'));
-    
+      .filter(
+        (f: string) =>
+          f.match(/\/data\/repositories\/[^/]+\.dart$/) && !f.endsWith("repositories.dart")
+      );
+
     for (const file of files) {
       if (!file.match(/_repository\.dart$/)) {
-        sendFail(
+        await sendFail(
           `## 🏪 NOMENCLATURA DE REPOSITORY INCORRETA
 
 Arquivo deve terminar com \`_repository.dart\` (implementação, não interface).
@@ -36,5 +39,5 @@ Arquivo deve terminar com \`_repository.dart\` (implementação, não interface)
         );
       }
     }
-    }
+  }
 );

@@ -11,20 +11,25 @@ const _types_1 = require("../../../types");
  * - Sufixo: UseCase (não Usecase)
  * - Usa implements, não extends
  */
-exports.default = (0, _types_1.createPlugin)({
-    name: 'domain-usecases',
-    description: 'Valida Domain Use Cases',
+exports.default = (0, _types_1.createPlugin)(
+  {
+    name: "domain-usecases",
+    description: "Valida Domain Use Cases",
     enabled: true,
-}, async () => {
+  },
+  async () => {
     const danger = (0, _types_1.getDanger)();
     const { git } = danger;
     const usecaseFiles = git.created_files
-        .concat(git.modified_files)
-        .filter((file) => file.match(/\/domain\/usecases\/.*\.dart$/) && !file.endsWith('usecases.dart'));
+      .concat(git.modified_files)
+      .filter(
+        (file) => file.match(/\/domain\/usecases\/.*\.dart$/) && !file.endsWith("usecases.dart")
+      );
     for (const file of usecaseFiles) {
-        // Verificar nomenclatura
-        if (!file.match(/_usecase\.dart$/)) {
-            (0, _types_1.sendFail)(`## ⚡ NOMENCLATURA DE USECASE INCORRETA
+      // Verificar nomenclatura
+      if (!file.match(/_usecase\.dart$/)) {
+        await (0, _types_1.sendFail)(
+          `## ⚡ NOMENCLATURA DE USECASE INCORRETA
 
 O arquivo deve terminar com \`_usecase.dart\`.
 
@@ -49,16 +54,19 @@ Renomeie para: \`*_usecase.dart\`
 
 ### 🚀 Objetivo
 
-Identificar **usecases** facilmente no projeto.`, file, 1);
-        }
-        try {
-            const content = await danger.git.structuredDiffForFile(file);
-            if (!content)
-                continue;
-            const fileText = content.chunks.map((c) => c.content).join('\n');
-            // Verificar sufixo UseCase (não Usecase)
-            if (fileText.match(/class\s+\w+Usecase(?!ase)\b/)) {
-                (0, _types_1.sendFail)(`## ⚡ SUFIXO USECASE INCORRETO
+Identificar **usecases** facilmente no projeto.`,
+          file,
+          1
+        );
+      }
+      try {
+        const content = await danger.git.structuredDiffForFile(file);
+        if (!content) continue;
+        const fileText = content.chunks.map((c) => c.content).join("\n");
+        // Verificar sufixo UseCase (não Usecase)
+        if (fileText.match(/class\s+\w+Usecase(?!ase)\b/)) {
+          await (0, _types_1.sendFail)(
+            `## ⚡ SUFIXO USECASE INCORRETO
 
 UseCase deve ter sufixo \`UseCase\` (com 'C' maiúsculo), não \`Usecase\`.
 
@@ -84,11 +92,15 @@ class GetUserUseCase implements IGetUserUseCase { }
 
 ### 🚀 Objetivo
 
-Manter **PascalCase** correto para nomes compostos.`, file, 1);
-            }
-            // Verificar uso de extends ao invés de implements
-            if (fileText.match(/final\s+class\s+\w*UseCase\s+extends\s+I\w+/)) {
-                (0, _types_1.sendFail)(`## ⚡ USECASE COM EXTENDS INCORRETO
+Manter **PascalCase** correto para nomes compostos.`,
+            file,
+            1
+          );
+        }
+        // Verificar uso de extends ao invés de implements
+        if (fileText.match(/final\s+class\s+\w*UseCase\s+extends\s+I\w+/)) {
+          await (0, _types_1.sendFail)(
+            `## ⚡ USECASE COM EXTENDS INCORRETO
 
 UseCase deve usar \`implements\`, não \`extends\`.
 
@@ -130,13 +142,17 @@ final class GetUserUseCase implements IGetUserUseCase {
 
 ### 🚀 Objetivo
 
-Usar corretamente **herança** vs **implementação** de interfaces.`, file, 1);
-            }
-            // Verificar se tem interface e implementação
-            const hasInterface = fileText.match(/abstract\s+interface\s+class\s+I\w+UseCase/);
-            const hasImplementation = fileText.match(/final\s+class\s+\w+UseCase\s+implements/);
-            if (!hasInterface) {
-                (0, _types_1.sendFail)(`## ⚡ USECASE SEM INTERFACE
+Usar corretamente **herança** vs **implementação** de interfaces.`,
+            file,
+            1
+          );
+        }
+        // Verificar se tem interface e implementação
+        const hasInterface = fileText.match(/abstract\s+interface\s+class\s+I\w+UseCase/);
+        const hasImplementation = fileText.match(/final\s+class\s+\w+UseCase\s+implements/);
+        if (!hasInterface) {
+          await (0, _types_1.sendFail)(
+            `## ⚡ USECASE SEM INTERFACE
 
 Arquivo deve ter uma interface \`abstract interface class INomeUseCase\`.
 
@@ -176,10 +192,14 @@ final class GetUserUseCase implements IGetUserUseCase {
 
 ### 🚀 Objetivo
 
-Permitir **injeção de dependência** e **testes** eficientes.`, file, 1);
-            }
-            if (!hasImplementation) {
-                (0, _types_1.sendFail)(`## ⚡ USECASE SEM IMPLEMENTAÇÃO
+Permitir **injeção de dependência** e **testes** eficientes.`,
+            file,
+            1
+          );
+        }
+        if (!hasImplementation) {
+          await (0, _types_1.sendFail)(
+            `## ⚡ USECASE SEM IMPLEMENTAÇÃO
 
 Arquivo deve ter implementação \`final class NomeUseCase implements INomeUseCase\`.
 
@@ -214,11 +234,14 @@ final class GetUserUseCase implements IGetUserUseCase {
 
 ### 🚀 Objetivo
 
-Ter **implementação concreta** do caso de uso.`, file, 1);
-            }
+Ter **implementação concreta** do caso de uso.`,
+            file,
+            1
+          );
         }
-        catch (e) {
-            // Arquivo pode não ter diff disponível
-        }
+      } catch (e) {
+        // Arquivo pode não ter diff disponível
+      }
     }
-});
+  }
+);

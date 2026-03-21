@@ -4,22 +4,24 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * Força uso de APIs modernas do MediaQuery
  */
 const _types_1 = require("../../../types");
-exports.default = (0, _types_1.createPlugin)({
-    name: 'mediaquery-modern',
-    description: 'Força uso de APIs modernas do MediaQuery',
+exports.default = (0, _types_1.createPlugin)(
+  {
+    name: "mediaquery-modern",
+    description: "Força uso de APIs modernas do MediaQuery",
     enabled: true,
-}, async () => {
+  },
+  async () => {
     const danger = (0, _types_1.getDanger)();
     const dartFiles = (0, _types_1.getDartFiles)();
     for (const file of dartFiles) {
-        try {
-            const content = await danger.git.structuredDiffForFile(file);
-            if (!content)
-                continue;
-            const fileText = content.chunks.map((c) => c.content).join('\n');
-            // Detectar MediaQuery.of(context).size DEPRECATED
-            if (fileText.match(/MediaQuery\.of\(context\)\.size/)) {
-                (0, _types_1.sendFail)(`## 📱 MEDIAQUERY DEPRECATED
+      try {
+        const content = await danger.git.structuredDiffForFile(file);
+        if (!content) continue;
+        const fileText = content.chunks.map((c) => c.content).join("\n");
+        // Detectar MediaQuery.of(context).size DEPRECATED
+        if (fileText.match(/MediaQuery\.of\(context\)\.size/)) {
+          await (0, _types_1.sendFail)(
+            `## 📱 MEDIAQUERY DEPRECATED
 
 Uso de \`MediaQuery.of(context).size\` **deprecated**.
 
@@ -65,11 +67,14 @@ final padding = MediaQuery.paddingOf(context);
 
 Usar **APIs modernas** do Flutter para melhor **performance**.
 
-> **Migração:** Substitua \`MediaQuery.of(context)\` pelas APIs específicas!`, file, 1);
-            }
+> **Migração:** Substitua \`MediaQuery.of(context)\` pelas APIs específicas!`,
+            file,
+            1
+          );
         }
-        catch (e) {
-            // Ignore
-        }
+      } catch (e) {
+        // Ignore
+      }
     }
-});
+  }
+);

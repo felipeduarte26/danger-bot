@@ -29,7 +29,7 @@ export default createPlugin(
     for (const file of repoFiles) {
       // Verificar nomenclatura
       if (!file.match(/_repository_interface\.dart$/)) {
-        sendFail(
+        await sendFail(
           `## 📚 NOMENCLATURA DE REPOSITORY INTERFACE INCORRETA
 
 **Arquivo:** \`${file}\`
@@ -74,7 +74,7 @@ Diferenciar claramente **interfaces** (Domain) de **implementações** (Data).`
 
           // Verificar prefixo I
           if (!className.startsWith("I")) {
-            sendFail(
+            await sendFail(
               `## 📚 REPOSITORY INTERFACE SEM PREFIXO I
 
 **Arquivo:** \`${file}\`
@@ -107,7 +107,7 @@ Identificar **interfaces** facilmente no código.`
 
           // Verificar abstract interface class
           if (!fileText.match(/abstract\s+interface\s+class/)) {
-            sendFail(
+            await sendFail(
               `## 📚 REPOSITORY DEVE SER ABSTRACT INTERFACE CLASS
 
 **Arquivo:** \`${file}\`
@@ -144,7 +144,7 @@ Definir **contratos puros** que só podem ser implementados.`
 
           // Verificar retorno void
           if (fileText.match(/\s+(?:void|Future<void>)\s+\w+\s*\(/)) {
-            sendFail(
+            await sendFail(
               `## 📚 REPOSITORY NÃO PODE RETORNAR VOID
 
 **Arquivo:** \`${file}\`

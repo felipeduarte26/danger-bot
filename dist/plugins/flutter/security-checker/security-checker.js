@@ -4,28 +4,30 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * Detecta problemas de segurança
  */
 const _types_1 = require("../../../types");
-exports.default = (0, _types_1.createPlugin)({
-    name: 'security-checker',
-    description: 'Detecta problemas de segurança',
+exports.default = (0, _types_1.createPlugin)(
+  {
+    name: "security-checker",
+    description: "Detecta problemas de segurança",
     enabled: true,
-}, async () => {
+  },
+  async () => {
     const danger = (0, _types_1.getDanger)();
     const dartFiles = (0, _types_1.getDartFiles)();
     for (const file of dartFiles) {
-        try {
-            const content = await danger.git.structuredDiffForFile(file);
-            if (!content)
-                continue;
-            const fileText = content.chunks.map((c) => c.content).join('\n');
-            // Detectar API keys hardcoded
-            const apiKeyPatterns = [
-                /['"]AIza[0-9A-Za-z-_]{35}['"]/, // Google API
-                /['"]sk-[A-Za-z0-9]{48}['"]/, // OpenAI
-                /['"]AKIA[0-9A-Z]{16}['"]/, // AWS
-            ];
-            for (const pattern of apiKeyPatterns) {
-                if (fileText.match(pattern)) {
-                    (0, _types_1.sendFail)(`## 🔒 SEGURANÇA - API KEY HARDCODED
+      try {
+        const content = await danger.git.structuredDiffForFile(file);
+        if (!content) continue;
+        const fileText = content.chunks.map((c) => c.content).join("\n");
+        // Detectar API keys hardcoded
+        const apiKeyPatterns = [
+          /['"]AIza[0-9A-Za-z-_]{35}['"]/, // Google API
+          /['"]sk-[A-Za-z0-9]{48}['"]/, // OpenAI
+          /['"]AKIA[0-9A-Z]{16}['"]/, // AWS
+        ];
+        for (const pattern of apiKeyPatterns) {
+          if (fileText.match(pattern)) {
+            await (0, _types_1.sendFail)(
+              `## 🔒 SEGURANÇA - API KEY HARDCODED
 
 API Key detectada no código fonte!
 
@@ -87,12 +89,16 @@ SECRET_KEY=sk-...
 
 Proteger **credenciais** e evitar **vazamentos de segurança**.
 
-> **IMPORTANTE:** Trate keys hardcoded como **incident de segurança**!`, file, 1);
-                }
-            }
-            // Detectar eval()
-            if (fileText.includes('eval(')) {
-                (0, _types_1.sendFail)(`## 🔒 SEGURANÇA - USO DE EVAL()
+> **IMPORTANTE:** Trate keys hardcoded como **incident de segurança**!`,
+              file,
+              1
+            );
+          }
+        }
+        // Detectar eval()
+        if (fileText.includes("eval(")) {
+          await (0, _types_1.sendFail)(
+            `## 🔒 SEGURANÇA - USO DE EVAL()
 
 Uso de \`eval()\` detectado - **ALTO RISCO**.
 
@@ -127,11 +133,14 @@ final result = allowedOperations[operation]?.call(a, b);
 
 ### 🚀 Objetivo
 
-Prevenir **injeção de código** e manter app **seguro**.`, file, 1);
-            }
+Prevenir **injeção de código** e manter app **seguro**.`,
+            file,
+            1
+          );
         }
-        catch (e) {
-            // Ignore
-        }
+      } catch (e) {
+        // Ignore
+      }
     }
-});
+  }
+);

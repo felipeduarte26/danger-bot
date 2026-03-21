@@ -4,23 +4,25 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * Detecta uso de late final
  */
 const _types_1 = require("../../../types");
-exports.default = (0, _types_1.createPlugin)({
-    name: 'late-final-checker',
-    description: 'Detecta uso de late final',
+exports.default = (0, _types_1.createPlugin)(
+  {
+    name: "late-final-checker",
+    description: "Detecta uso de late final",
     enabled: true,
-}, async () => {
+  },
+  async () => {
     const danger = (0, _types_1.getDanger)();
     const dartFiles = (0, _types_1.getDartFiles)();
     for (const file of dartFiles) {
-        try {
-            const content = await danger.git.structuredDiffForFile(file);
-            if (!content)
-                continue;
-            const fileText = content.chunks.map((c) => c.content).join('\n');
-            // Detectar late final sem inicialização
-            const lateMatches = fileText.matchAll(/late\s+final\s+(\w+)\s+(\w+);/g);
-            for (const match of lateMatches) {
-                (0, _types_1.sendWarn)(`## ⚠️ USO DE LATE FINAL DETECTADO
+      try {
+        const content = await danger.git.structuredDiffForFile(file);
+        if (!content) continue;
+        const fileText = content.chunks.map((c) => c.content).join("\n");
+        // Detectar late final sem inicialização
+        const lateMatches = fileText.matchAll(/late\s+final\s+(\w+)\s+(\w+);/g);
+        for (const match of lateMatches) {
+          await (0, _types_1.sendWarn)(
+            `## ⚠️ USO DE LATE FINAL DETECTADO
 
 Uso de \`late final\` encontrado: \`${match[0]}\`
 
@@ -84,11 +86,14 @@ class _MyWidgetState extends State<MyWidget> {
 
 Evitar **runtime errors** e tornar código mais **previsível**.
 
-> **Dica:** Use \`late final\` apenas quando absolutamente necessário!`, file, 1);
-            }
+> **Dica:** Use \`late final\` apenas quando absolutamente necessário!`,
+            file,
+            1
+          );
         }
-        catch (e) {
-            // Ignore
-        }
+      } catch (e) {
+        // Ignore
+      }
     }
-});
+  }
+);

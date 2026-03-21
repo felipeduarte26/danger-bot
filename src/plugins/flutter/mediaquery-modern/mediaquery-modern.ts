@@ -1,27 +1,27 @@
 /**
  * Força uso de APIs modernas do MediaQuery
  */
-import { createPlugin,  getDanger, sendFail, getDartFiles  } from '@types';
+import { createPlugin, getDanger, sendFail, getDartFiles } from "@types";
 
 export default createPlugin(
   {
-    name: 'mediaquery-modern',
-    description: 'Força uso de APIs modernas do MediaQuery',
+    name: "mediaquery-modern",
+    description: "Força uso de APIs modernas do MediaQuery",
     enabled: true,
   },
   async () => {
     const danger = getDanger();
     const dartFiles = getDartFiles();
-    
+
     for (const file of dartFiles) {
       try {
         const content = await danger.git.structuredDiffForFile(file);
         if (!content) continue;
-        const fileText = content.chunks.map((c: any) => c.content).join('\n');
-        
+        const fileText = content.chunks.map((c: any) => c.content).join("\n");
+
         // Detectar MediaQuery.of(context).size DEPRECATED
         if (fileText.match(/MediaQuery\.of\(context\)\.size/)) {
-          sendFail(
+          await sendFail(
             `## 📱 MEDIAQUERY DEPRECATED
 
 Uso de \`MediaQuery.of(context).size\` **deprecated**.
@@ -77,5 +77,5 @@ Usar **APIs modernas** do Flutter para melhor **performance**.
         // Ignore
       }
     }
-    }
+  }
 );

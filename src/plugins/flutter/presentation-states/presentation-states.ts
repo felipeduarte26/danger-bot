@@ -1,12 +1,12 @@
 /**
  * Valida Presentation States
  */
-import { createPlugin,  getDanger, sendFail  } from '@types';
+import { createPlugin, getDanger, sendFail } from "@types";
 
 export default createPlugin(
   {
-    name: 'presentation-states',
-    description: 'Valida Presentation States',
+    name: "presentation-states",
+    description: "Valida Presentation States",
     enabled: true,
   },
   async () => {
@@ -15,15 +15,15 @@ export default createPlugin(
     const files = git.created_files
       .concat(git.modified_files)
       .filter((f: string) => f.match(/_state\.dart$/) && f.match(/\/presentation\//));
-    
+
     for (const file of files) {
       try {
         const content = await danger.git.structuredDiffForFile(file);
         if (!content) continue;
-        const fileText = content.chunks.map((c: any) => c.content).join('\n');
-        
+        const fileText = content.chunks.map((c: any) => c.content).join("\n");
+
         if (!fileText.match(/sealed\s+class\s+\w+State/)) {
-          sendFail(
+          await sendFail(
             `## 🎨 STATE DEVE SER SEALED CLASS
 
 Primeira classe do state deve ser \`sealed class\`.
@@ -46,5 +46,5 @@ final class ProductLoadedState extends ProductState {}
         // Ignore
       }
     }
-    }
+  }
 );

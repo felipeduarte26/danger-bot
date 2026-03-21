@@ -21,7 +21,7 @@ exports.default = (0, _types_1.createPlugin)(
       const barrelFile = allFiles.find((f) => f.endsWith(`/${folder}/${folder}.dart`));
       if (barrelFile) continue;
       const targetFile = filesInFolder[0];
-      (0, _types_1.sendFail)(
+      await (0, _types_1.sendFail)(
         `BARREL FILE AUSENTE
 
 Pasta \`${folder}\` tem arquivos mas sem barrel file.

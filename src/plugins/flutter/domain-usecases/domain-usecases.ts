@@ -1,8 +1,8 @@
-import { createPlugin,  getDanger, sendFail  } from '@types';
+import { createPlugin, getDanger, sendFail } from "@types";
 
 /**
  * ⚡ Domain UseCases Plugin
- * 
+ *
  * Verifica regras para usecases na camada Domain:
  * - Nomenclatura: *_usecase.dart
  * - Interface: abstract interface class INomeUseCase
@@ -12,8 +12,8 @@ import { createPlugin,  getDanger, sendFail  } from '@types';
  */
 export default createPlugin(
   {
-    name: 'domain-usecases',
-    description: 'Valida Domain Use Cases',
+    name: "domain-usecases",
+    description: "Valida Domain Use Cases",
     enabled: true,
   },
   async () => {
@@ -22,12 +22,15 @@ export default createPlugin(
 
     const usecaseFiles = git.created_files
       .concat(git.modified_files)
-      .filter((file: string) => file.match(/\/domain\/usecases\/.*\.dart$/) && !file.endsWith('usecases.dart'));
+      .filter(
+        (file: string) =>
+          file.match(/\/domain\/usecases\/.*\.dart$/) && !file.endsWith("usecases.dart")
+      );
 
     for (const file of usecaseFiles) {
       // Verificar nomenclatura
       if (!file.match(/_usecase\.dart$/)) {
-        sendFail(
+        await sendFail(
           `## ⚡ NOMENCLATURA DE USECASE INCORRETA
 
 O arquivo deve terminar com \`_usecase.dart\`.
@@ -62,12 +65,12 @@ Identificar **usecases** facilmente no projeto.`,
       try {
         const content = await danger.git.structuredDiffForFile(file);
         if (!content) continue;
-        
-        const fileText = content.chunks.map((c: any) => c.content).join('\n');
+
+        const fileText = content.chunks.map((c: any) => c.content).join("\n");
 
         // Verificar sufixo UseCase (não Usecase)
         if (fileText.match(/class\s+\w+Usecase(?!ase)\b/)) {
-          sendFail(
+          await sendFail(
             `## ⚡ SUFIXO USECASE INCORRETO
 
 UseCase deve ter sufixo \`UseCase\` (com 'C' maiúsculo), não \`Usecase\`.
@@ -102,7 +105,7 @@ Manter **PascalCase** correto para nomes compostos.`,
 
         // Verificar uso de extends ao invés de implements
         if (fileText.match(/final\s+class\s+\w*UseCase\s+extends\s+I\w+/)) {
-          sendFail(
+          await sendFail(
             `## ⚡ USECASE COM EXTENDS INCORRETO
 
 UseCase deve usar \`implements\`, não \`extends\`.
@@ -156,7 +159,7 @@ Usar corretamente **herança** vs **implementação** de interfaces.`,
         const hasImplementation = fileText.match(/final\s+class\s+\w+UseCase\s+implements/);
 
         if (!hasInterface) {
-          sendFail(
+          await sendFail(
             `## ⚡ USECASE SEM INTERFACE
 
 Arquivo deve ter uma interface \`abstract interface class INomeUseCase\`.
@@ -204,7 +207,7 @@ Permitir **injeção de dependência** e **testes** eficientes.`,
         }
 
         if (!hasImplementation) {
-          sendFail(
+          await sendFail(
             `## ⚡ USECASE SEM IMPLEMENTAÇÃO
 
 Arquivo deve ter implementação \`final class NomeUseCase implements INomeUseCase\`.
@@ -249,5 +252,5 @@ Ter **implementação concreta** do caso de uso.`,
         // Arquivo pode não ter diff disponível
       }
     }
-    }
+  }
 );

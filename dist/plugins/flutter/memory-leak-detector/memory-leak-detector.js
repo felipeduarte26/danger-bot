@@ -4,23 +4,25 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * Detecta possíveis memory leaks
  */
 const _types_1 = require("../../../types");
-exports.default = (0, _types_1.createPlugin)({
-    name: 'memory-leak-detector',
-    description: 'Detecta possíveis memory leaks',
+exports.default = (0, _types_1.createPlugin)(
+  {
+    name: "memory-leak-detector",
+    description: "Detecta possíveis memory leaks",
     enabled: true,
-}, async () => {
+  },
+  async () => {
     const danger = (0, _types_1.getDanger)();
     const dartFiles = (0, _types_1.getDartFiles)();
     for (const file of dartFiles) {
-        try {
-            const content = await danger.git.structuredDiffForFile(file);
-            if (!content)
-                continue;
-            const fileText = content.chunks.map((c) => c.content).join('\n');
-            // Detectar Controllers sem dispose
-            if (fileText.match(/\w+Controller\s+\w+/) && fileText.includes('State<')) {
-                if (!fileText.includes('dispose()') || !fileText.includes('.dispose()')) {
-                    (0, _types_1.sendFail)(`## 💧 VAZAMENTO DE MEMÓRIA - CONTROLLER SEM DISPOSE
+      try {
+        const content = await danger.git.structuredDiffForFile(file);
+        if (!content) continue;
+        const fileText = content.chunks.map((c) => c.content).join("\n");
+        // Detectar Controllers sem dispose
+        if (fileText.match(/\w+Controller\s+\w+/) && fileText.includes("State<")) {
+          if (!fileText.includes("dispose()") || !fileText.includes(".dispose()")) {
+            await (0, _types_1.sendFail)(
+              `## 💧 VAZAMENTO DE MEMÓRIA - CONTROLLER SEM DISPOSE
 
 Controller detectado mas sem \`dispose()\` correspondente.
 
@@ -74,13 +76,17 @@ class MyPageState extends State<MyPage> {
 
 Prevenir **vazamentos de memória** e manter app **performático**.
 
-> **Regra:** Todo Controller/Stream/Timer deve ter dispose()!`, file, 1);
-                }
-            }
-            // Detectar Timer sem cancel
-            if (fileText.includes('Timer.periodic') || fileText.includes('Timer(')) {
-                if (!fileText.includes('.cancel()')) {
-                    (0, _types_1.sendWarn)(`## 💧 VAZAMENTO - TIMER SEM CANCEL
+> **Regra:** Todo Controller/Stream/Timer deve ter dispose()!`,
+              file,
+              1
+            );
+          }
+        }
+        // Detectar Timer sem cancel
+        if (fileText.includes("Timer.periodic") || fileText.includes("Timer(")) {
+          if (!fileText.includes(".cancel()")) {
+            await (0, _types_1.sendWarn)(
+              `## 💧 VAZAMENTO - TIMER SEM CANCEL
 
 Timer detectado sem \`.cancel()\` correspondente.
 
@@ -114,13 +120,17 @@ class MyState extends State<MyWidget> {
     super.dispose();
   }
 }
-\`\`\``, file, 1);
-                }
-            }
-            // Detectar StreamSubscription sem cancel
-            if (fileText.includes('StreamSubscription')) {
-                if (!fileText.includes('.cancel()')) {
-                    (0, _types_1.sendWarn)(`## 💧 VAZAMENTO - STREAM SEM CANCEL
+\`\`\``,
+              file,
+              1
+            );
+          }
+        }
+        // Detectar StreamSubscription sem cancel
+        if (fileText.includes("StreamSubscription")) {
+          if (!fileText.includes(".cancel()")) {
+            await (0, _types_1.sendWarn)(
+              `## 💧 VAZAMENTO - STREAM SEM CANCEL
 
 StreamSubscription sem \`.cancel()\`.
 
@@ -147,12 +157,15 @@ class MyState extends State<MyWidget> {
     super.dispose();
   }
 }
-\`\`\``, file, 1);
-                }
-            }
+\`\`\``,
+              file,
+              1
+            );
+          }
         }
-        catch (e) {
-            // Ignore
-        }
+      } catch (e) {
+        // Ignore
+      }
     }
-});
+  }
+);

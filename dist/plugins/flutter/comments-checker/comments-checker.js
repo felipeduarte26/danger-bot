@@ -4,25 +4,27 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * Verifica uso correto de comentários
  */
 const _types_1 = require("../../../types");
-exports.default = (0, _types_1.createPlugin)({
-    name: 'comments-checker',
-    description: 'Verifica uso correto de comentários',
+exports.default = (0, _types_1.createPlugin)(
+  {
+    name: "comments-checker",
+    description: "Verifica uso correto de comentários",
     enabled: true,
-}, async () => {
+  },
+  async () => {
     const danger = (0, _types_1.getDanger)();
     const dartFiles = (0, _types_1.getDartFiles)();
     for (const file of dartFiles) {
-        try {
-            const content = await danger.git.structuredDiffForFile(file);
-            if (!content)
-                continue;
-            const fileText = content.chunks.map((c) => c.content).join('\n');
-            const lines = fileText.split('\n');
-            for (let i = 0; i < lines.length; i++) {
-                const line = lines[i].trim();
-                // Detectar comentário // (mas não ///)
-                if (line.match(/^\/\/(?!\/)/)) {
-                    (0, _types_1.sendFail)(`## 💬 COMENTÁRIO // PROIBIDO
+      try {
+        const content = await danger.git.structuredDiffForFile(file);
+        if (!content) continue;
+        const fileText = content.chunks.map((c) => c.content).join("\n");
+        const lines = fileText.split("\n");
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i].trim();
+          // Detectar comentário // (mas não ///)
+          if (line.match(/^\/\/(?!\/)/)) {
+            await (0, _types_1.sendFail)(
+              `## 💬 COMENTÁRIO // PROIBIDO
 
 Comentário \`//\` encontrado na linha ${i + 1}.
 
@@ -73,12 +75,15 @@ double calculateTotal(List<double> values) {
 
 Gerar **documentação automática** com DartDoc.
 
-> **Regra:** Sempre use \`///\` para documentar código público!`, file, i + 1);
-                }
-            }
+> **Regra:** Sempre use \`///\` para documentar código público!`,
+              file,
+              i + 1
+            );
+          }
         }
-        catch (e) {
-            // Ignore
-        }
+      } catch (e) {
+        // Ignore
+      }
     }
-});
+  }
+);
