@@ -3,27 +3,31 @@
 /**
  * DANGER BOT - POST INSTALL PATCH
  * ================================
- * Script que modifica o código do Danger JS após instalação
- * para customizar mensagens e links
+ * Modifica o Danger JS após npm install para:
+ * - Traduzir mensagens para Português (pt-BR)
+ * - Customizar branding (links, nomes, emojis)
+ * - Corrigir inline comments do Bitbucket Cloud
  *
- * Executa automaticamente após npm install
+ * Executa automaticamente via "postinstall" no package.json
  */
 
 const fs = require("fs");
 const path = require("path");
 
-console.log("🔧 Danger Bot: Aplicando patches no Danger JS...");
+const PATCH_VERSION = "3.1.0";
+const REPO_URL = "https://github.com/felipeduarte26/danger-bot";
+const BRAND_NAME = "Danger Bot";
 
-/**
- * Encontra o diretório do Danger JS
- */
+console.log("");
+console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+console.log("🤖 DANGER BOT - POST INSTALL PATCH v" + PATCH_VERSION);
+console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+console.log("");
+
 function findDangerPath() {
   const possiblePaths = [
-    // No projeto que instalou danger-bot
     path.join(process.cwd(), "..", "danger"),
-    // No próprio danger-bot (dev)
     path.join(process.cwd(), "node_modules", "danger"),
-    // Quando instalado como dependência
     path.join(process.cwd(), "..", "..", "danger"),
   ];
 
@@ -32,439 +36,89 @@ function findDangerPath() {
       return p;
     }
   }
-
   return null;
 }
 
-/**
- * Patch 1: Remover mensagem "All green. Good on 'ya"
- */
-function patchExecutor(dangerPath) {
-  const filesToPatch = [
-    path.join(dangerPath, "distribution", "runner", "Executor.js"),
-    path.join(
-      dangerPath,
-      "distribution",
-      "runner",
-      "templates",
-      "bitbucketCloudTemplate.js"
-    ),
-    path.join(
-      dangerPath,
-      "distribution",
-      "runner",
-      "templates",
-      "gitHubIssueTemplate.js"
-    ),
-    path.join(
-      dangerPath,
-      "distribution",
-      "runner",
-      "templates",
-      "gitLabNoteTemplate.js"
-    ),
-  ];
-
-  let patchedCount = 0;
-
-  filesToPatch.forEach((filePath) => {
-    if (!fs.existsSync(filePath)) return;
-
-    try {
-      let content = fs.readFileSync(filePath, "utf8");
-      const originalContent = content;
-
-      const replacements = [
-        {
-          pattern: /return\s+["'`]All green\.\s+["'`]\.concat\([^)]+\);?/g,
-          replacement: 'return ""; // DANGER-BOT: Mensagem removida',
-        },
-        {
-          pattern:
-            /summaryMessage\s*=\s*["'`]["'`]\.concat\([^)]*All green[^;]+;?/g,
-          replacement: 'summaryMessage = ""; // DANGER-BOT: Mensagem removida',
-        },
-        {
-          pattern: /["'`][^"'`]*All green[^"'`]*["'`]/g,
-          replacement: '""',
-        },
-      ];
-
-      let patched = false;
-      replacements.forEach(({ pattern, replacement }) => {
-        if (pattern.test(content)) {
-          content = content.replace(pattern, replacement);
-          patched = true;
-        }
-      });
-
-      if (patched) {
-        if (!fs.existsSync(filePath + ".backup")) {
-          fs.writeFileSync(filePath + ".backup", originalContent);
-        }
-        fs.writeFileSync(filePath, content, "utf8");
-        patchedCount++;
-        console.log(`${path.basename(filePath)} patched`);
-      }
-    } catch (error) {
-      console.error(`Erro em ${path.basename(filePath)}:`, error.message);
-    }
-  });
-
-  return patchedCount > 0;
-}
-
-/**
- * Patch 2: Customizar links (danger.systems → Danger Bot / repositório)
- */
-function patchLinks(dangerPath) {
-  const filesToPatch = [
-    path.join(
-      dangerPath,
-      "distribution",
-      "runner",
-      "templates",
-      "bitbucketCloudTemplate.js"
-    ),
-    path.join(
-      dangerPath,
-      "distribution",
-      "runner",
-      "templates",
-      "githubIssueTemplate.js"
-    ),
-    path.join(
-      dangerPath,
-      "distribution",
-      "runner",
-      "templates",
-      "bitbucketServerTemplate.js"
-    ),
-    path.join(
-      dangerPath,
-      "distribution",
-      "runner",
-      "templates",
-      "gitLabNoteTemplate.js"
-    ),
-    path.join(dangerPath, "distribution", "platforms", "BitBucketCloud.js"),
-    path.join(dangerPath, "distribution", "platforms", "BitBucketServer.js"),
-    path.join(
-      dangerPath,
-      "distribution",
-      "platforms",
-      "github",
-      "GitHubAPI.js"
-    ),
-  ];
-
-  let patchedCount = 0;
-
-  filesToPatch.forEach((filePath) => {
-    if (!fs.existsSync(filePath)) return;
-
-    try {
-      let content = fs.readFileSync(filePath, "utf8");
-      const originalContent = content;
-      let filePatched = false;
-
-      const replacements = [
-        {
-          search: /(https?:\/\/)?danger\.systems(\/js)?/gi,
-          replace: "https://github.com/felipeduarte26/danger-bot",
-        },
-        {
-          search: /runtimeName:\s*["']dangerJS["']/gi,
-          replace: 'runtimeName: "Danger Bot"',
-        },
-        {
-          search: /key\s*=\s*["']danger\.systems["']/gi,
-          replace: 'key = "Danger Bot"',
-        },
-        {
-          search: /:no_entry_sign:/gi,
-          replace: ":rocket:",
-        },
-        {
-          search: /signatureEmoji\s*=\s*["']:no_entry_sign:["']/gi,
-          replace: 'signatureEmoji = ":rocket:"',
-        },
-      ];
-
-      replacements.forEach(({ search, replace }) => {
-        if (search.test(content)) {
-          content = content.replace(search, replace);
-          filePatched = true;
-        }
-      });
-
-      if (filePatched) {
-        if (!fs.existsSync(filePath + ".backup")) {
-          fs.writeFileSync(filePath + ".backup", originalContent);
-        }
-        fs.writeFileSync(filePath, content, "utf8");
-        patchedCount++;
-        console.log(`${path.basename(filePath)} patched`);
-      }
-    } catch (error) {
-      console.error(`Erro em ${path.basename(filePath)}:`, error.message);
-    }
-  });
-
-  return patchedCount > 0;
-}
-
-/**
- * Patch 3: Traduzir mensagens do Danger para Português
- */
-function patchMessages(dangerPath) {
-  const filesToPatch = [
-    path.join(dangerPath, "distribution", "runner", "Executor.js"),
-    path.join(
-      dangerPath,
-      "distribution",
-      "runner",
-      "templates",
-      "bitbucketCloudTemplate.js"
-    ),
-    path.join(
-      dangerPath,
-      "distribution",
-      "runner",
-      "templates",
-      "githubIssueTemplate.js"
-    ),
-    path.join(
-      dangerPath,
-      "distribution",
-      "runner",
-      "templates",
-      "gitLabNoteTemplate.js"
-    ),
-  ];
-
-  let patchedCount = 0;
-
-  filesToPatch.forEach((filePath) => {
-    if (!fs.existsSync(filePath)) return;
-
-    try {
-      let content = fs.readFileSync(filePath, "utf8");
-      const originalContent = content;
-      let filePatched = false;
-
-      const translations = [
-        // Mensagens de warning
-        {
-          search: /Danger found some issues\.\s*Don't worry, everything is fixable\./gi,
-          replace: "Danger encontrou alguns problemas. Não se preocupe, tudo pode ser corrigido.",
-        },
-        {
-          search: /["']warning["']/g,
-          replace: '"atenção"',
-        },
-        // Mensagens de fail
-        {
-          search: /["']fails?["']/g,
-          replace: '"erro"',
-        },
-        {
-          search: /Failed!/gi,
-          replace: "Erro!",
-        },
-        // Mensagens de mensagem
-        {
-          search: /["']messages?["']/g,
-          replace: '"mensagem"',
-        },
-        // Headers
-        {
-          search: /## Failures/gi,
-          replace: "## Erros",
-        },
-        {
-          search: /## Warnings/gi,
-          replace: "## Avisos",
-        },
-        {
-          search: /## Messages/gi,
-          replace: "## Mensagens",
-        },
-        // Plural
-        {
-          search: /(\d+)\s+failures?/gi,
-          replace: "$1 erro(s)",
-        },
-        {
-          search: /(\d+)\s+warnings?/gi,
-          replace: "$1 aviso(s)",
-        },
-        {
-          search: /(\d+)\s+messages?/gi,
-          replace: "$1 mensagem(ns)",
-        },
-      ];
-
-      translations.forEach(({ search, replace }) => {
-        if (search.test(content)) {
-          content = content.replace(search, replace);
-          filePatched = true;
-        }
-      });
-
-      if (filePatched) {
-        if (!fs.existsSync(filePath + ".backup")) {
-          fs.writeFileSync(filePath + ".backup", originalContent);
-        }
-        fs.writeFileSync(filePath, content, "utf8");
-        patchedCount++;
-        console.log(`  ✅ ${path.basename(filePath)} - Mensagens traduzidas`);
-      }
-    } catch (error) {
-      console.error(`Erro em ${path.basename(filePath)}:`, error.message);
-    }
-  });
-
-  return patchedCount > 0;
-}
-
-/**
- * Patch 4: Corrigir inline comments do Bitbucket usando estratégia do Danger Ruby
- * 
- * PROBLEMA: Bitbucket Cloud exibe comentários HTML na preview de inline comments
- * Aparece: <!-- 1 failure: ## 📋 Changelog n... 0 atenção: DangerID: danger-id-xxx -->
- * 
- * SOLUÇÃO DO DANGER RUBY: Usar atributo title de link markdown ao invés de HTML comment
- * O title está no RAW mas é invisível no render do Bitbucket!
- * 
- * Exemplo Ruby: [Danger](https://danger.systems/ "generated_by_danger")
- *                                                  ^^^^^^^^^^^^^^^^^^^^^^
- *                                                  Invisível mas no RAW!
- */
-function patchBitbucketInlineTemplate(dangerPath) {
-  const filePath = path.join(
-    dangerPath,
-    "distribution",
-    "runner",
-    "templates",
-    "bitbucketCloudTemplate.js"
-  );
-
-  if (!fs.existsSync(filePath)) {
-    console.log("  ⚠️  bitbucketCloudTemplate.js não encontrado");
-    return false;
-  }
-
-  try {
-    let content = fs.readFileSync(filePath, "utf8");
-    const originalContent = content;
-
-    // Substituir os comentários markdown [//]: # que são exibidos no Bitbucket
-    // por um link invisível com title (estratégia do Danger Ruby)
-    
-    // Verificar se já foi aplicado com a versão correta (signature NO FINAL)
-    if (content.includes('// DANGER-BOT: Usar estratégia do Danger Ruby - link com title NO FINAL')) {
-      console.log("  ℹ️  Inline template já está com a versão correta (link no final)");
-      return false;
-    }
-    
-    // Se tem uma versão antiga do patch, precisamos restaurar do backup e reaplicar
-    if (content.includes('// DANGER-BOT:') && fs.existsSync(filePath + '.backup')) {
-      console.log("  🔄 Detectada versão antiga do patch. Restaurando backup...");
-      content = fs.readFileSync(filePath + '.backup', 'utf8');
-    }
-    
-    // String replace simples - substituir toda a linha return
-    const oldCode = 'return "\\n[//]: # (".concat((0, exports.dangerIDToString)(dangerID), ")\\n[//]: # (").concat((0, exports.fileLineToString)(file, line), ")\\n").concat(results.fails.map(printViolation(noEntryEmoji)).join("\\n"), "\\n").concat(results.warnings.map(printViolation(warningEmoji)).join("\\n"), "\\n").concat(results.messages.map(printViolation(messageEmoji)).join("\\n"), "\\n").concat(results.markdowns.map(function (v) { return v.message; }).join("\\n\\n"), "\\n  ");';
-    
-    const newCode = `// DANGER-BOT: Usar estratégia do Danger Ruby - link com title NO FINAL
-    // O Bitbucket NÃO exibe o atributo "title" de links, mas ele fica no RAW content
-    // Colocando o link NO FINAL (igual Danger Ruby) evita que Bitbucket crie preview
-    var signature = "\\n\\n[](https://github.com/felipeduarte26/danger-bot \\"danger-id-".concat(dangerID, ";\\")");
-    return "".concat(results.fails.map(printViolation(noEntryEmoji)).join("\\n"), "\\n").concat(results.warnings.map(printViolation(warningEmoji)).join("\\n"), "\\n").concat(results.messages.map(printViolation(messageEmoji)).join("\\n"), "\\n").concat(results.markdowns.map(function (v) { return v.message; }).join("\\n\\n")).replace(/^\\n+/, "").concat(signature, "\\n  ");`;
-    
-    if (content.includes(oldCode)) {
-      // Fazer backup antes de aplicar patch (apenas se não existir)
-      if (!fs.existsSync(filePath + '.backup')) {
-        fs.writeFileSync(filePath + '.backup', originalContent, 'utf8');
-      }
-      
-      content = content.replace(oldCode, newCode);
-      fs.writeFileSync(filePath, content, "utf8");
-      console.log("  ✅ Bitbucket inline template corrigido (link no final, igual Danger Ruby)");
-      return true;
-    } else {
-      console.log("  ⚠️  Inline template: formato não reconhecido");
-      console.log("      Procurando por: return \"\\\\n[//]: # (\"...");
-      return false;
-    }
-  } catch (error) {
-    console.log(`  ❌ Erro ao aplicar patch: ${error.message}`);
-    return false;
-  }
-}
-
-/**
- * Criar marcador de patch aplicado
- */
-function createPatchMarker(dangerPath) {
-  const markerPath = path.join(dangerPath, ".danger-bot-patched");
-  const info = {
-    patchedAt: new Date().toISOString(),
-    version: "2.4.0", // Alinhar com CURRENT_PATCH_VERSION em isPatchApplied
-    patches: [
-      'Removed "All green. Good on \'ya" message',
-      "Changed links from danger.systems to https://github.com/felipeduarte26/danger-bot",
-      'Changed "dangerJS" to "Danger Bot"',
-      "Changed emoji from :no_entry_sign: to :rocket:",
-      "Translated messages to Portuguese (pt-BR)",
-      "Fixed Bitbucket inline comments metadata visibility (Danger Ruby strategy)",
-    ],
-  };
-  fs.writeFileSync(markerPath, JSON.stringify(info, null, 2), "utf8");
-}
-
-/**
- * Verificar se patch já foi aplicado e se é a versão correta
- */
 function isPatchApplied(dangerPath) {
   const markerPath = path.join(dangerPath, ".danger-bot-patched");
-  const CURRENT_PATCH_VERSION = "2.4.0"; // Links e branding Danger Bot / GitHub
-
-  if (!fs.existsSync(markerPath)) {
-    return false;
-  }
+  if (!fs.existsSync(markerPath)) return false;
 
   try {
     const info = JSON.parse(fs.readFileSync(markerPath, "utf8"));
-    // Verificar se a versão do patch é a mesma ou mais recente
-    if (info.version !== CURRENT_PATCH_VERSION) {
-      console.log(`⚠️  Patch desatualizado (${info.version} → ${CURRENT_PATCH_VERSION})`);
-      console.log("🔄 Removendo marker antigo para reaplicar...");
-      console.log("");
-      // Remover marker antigo para forçar reaplicação
-      fs.unlinkSync(markerPath);
-      return false;
+    if (info.version === PATCH_VERSION) {
+      return true;
     }
-    return true;
+    console.log(`⚠️  Patch desatualizado (${info.version} → ${PATCH_VERSION})`);
+    fs.unlinkSync(markerPath);
+    return false;
   } catch {
-    // Se não conseguir ler, assume que precisa reaplicar
     return false;
   }
 }
 
-function main() {
-  console.log("");
-  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-  console.log("🤖 DANGER BOT - POST INSTALL");
-  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-  console.log("");
+function createPatchMarker(dangerPath) {
+  const markerPath = path.join(dangerPath, ".danger-bot-patched");
+  fs.writeFileSync(
+    markerPath,
+    JSON.stringify(
+      {
+        patchedAt: new Date().toISOString(),
+        version: PATCH_VERSION,
+        patches: [
+          "Branding: Danger Bot + GitHub repo URL",
+          "Tradução: mensagens em pt-BR",
+          "Bitbucket Cloud: inline comments corrigidos (estratégia Danger Ruby)",
+          "Bitbucket Cloud: build status key/url corrigidos",
+          "Removida mensagem 'All green'",
+        ],
+      },
+      null,
+      2
+    ),
+    "utf8"
+  );
+}
 
+/**
+ * Aplica substituicoes em um arquivo.
+ * Cada substituicao e um par [textoOriginal, textoNovo].
+ * Usa string replace exato (nao regex) para maxima confiabilidade.
+ */
+function patchFile(filePath, replacements, label) {
+  if (!fs.existsSync(filePath)) {
+    console.log(`  ⏭️  ${label}: arquivo nao encontrado`);
+    return false;
+  }
+
+  let content = fs.readFileSync(filePath, "utf8");
+  const original = content;
+  let patchCount = 0;
+
+  for (const [oldText, newText] of replacements) {
+    if (content.includes(oldText)) {
+      content = content.split(oldText).join(newText);
+      patchCount++;
+    }
+  }
+
+  if (patchCount > 0) {
+    if (!fs.existsSync(filePath + ".backup")) {
+      fs.writeFileSync(filePath + ".backup", original, "utf8");
+    }
+    fs.writeFileSync(filePath, content, "utf8");
+    console.log(`  ✅ ${label}: ${patchCount} substituicao(oes)`);
+    return true;
+  }
+
+  console.log(`  ℹ️  ${label}: nenhuma substituicao necessaria`);
+  return false;
+}
+
+function main() {
   const dangerPath = findDangerPath();
 
   if (!dangerPath) {
-    console.log("⚠️  Danger JS não encontrado.");
-    console.log("ℹ️  Patches serão aplicados quando instalar o Danger.");
+    console.log("⚠️  Danger JS nao encontrado. Patches serao aplicados quando instalar.");
     console.log("");
     return;
   }
@@ -472,7 +126,7 @@ function main() {
   console.log(`📦 Danger JS: ${dangerPath}`);
 
   if (isPatchApplied(dangerPath)) {
-    console.log("✅ Patches já aplicados anteriormente.");
+    console.log("✅ Patches ja aplicados (v" + PATCH_VERSION + ")");
     console.log("");
     return;
   }
@@ -480,32 +134,377 @@ function main() {
   console.log("🔨 Aplicando patches...");
   console.log("");
 
-  let patchesApplied = 0;
+  const dist = path.join(dangerPath, "distribution");
+  let totalPatched = 0;
 
-  if (patchExecutor(dangerPath)) patchesApplied++;
-  if (patchLinks(dangerPath)) patchesApplied++;
-  if (patchMessages(dangerPath)) patchesApplied++;
-  if (patchBitbucketInlineTemplate(dangerPath)) patchesApplied++;
+  // ═══════════════════════════════════════════════════════════════
+  // PATCH: bitbucketCloudTemplate.js
+  // ═══════════════════════════════════════════════════════════════
+  const bbCloudTemplate = path.join(dist, "runner", "templates", "bitbucketCloudTemplate.js");
 
-  console.log("");
+  const bbCloudPatched = patchFile(
+    bbCloudTemplate,
+    [
+      // Branding: runtimeName e runtimeHref
+      [
+        '{ runtimeName: "dangerJS", runtimeHref: "https://danger.systems/js" }',
+        `{ runtimeName: "${BRAND_NAME}", runtimeHref: "${REPO_URL}" }`,
+      ],
+      [
+        '{ runtimeName: "Danger Bot", runtimeHref: "https://github.com/felipeduarte26/danger-bot" }',
+        `{ runtimeName: "${BRAND_NAME}", runtimeHref: "${REPO_URL}" }`,
+      ],
 
-  if (patchesApplied > 0) {
-    console.log("✅ PATCHES APLICADOS!");
-    console.log("");
-    console.log("📝 Modificações:");
-    console.log('  ❌ "All green. Good on \'ya" → REMOVIDO');
-    console.log("  ✅ danger.systems → https://github.com/felipeduarte26/danger-bot");
-    console.log('  ✅ "dangerJS" → "Danger Bot"');
-    console.log("  ✅ Emoji: 🚫 (:no_entry_sign:) → 🚀 (:rocket:)");
-    console.log("  🇧🇷 Mensagens traduzidas para Português");
-    console.log("  🔧 Bitbucket inline comments corrigidos (estratégia Danger Ruby)");
-    console.log("");
-    createPatchMarker(dangerPath);
-  } else {
-    console.log("⚠️  Nenhum patch aplicado (pode já estar modificado)");
-    console.log("");
+      // Traduzir messageForResultWithIssues (original em ingles)
+      [
+        'exports.messageForResultWithIssues = "".concat(warningEmoji, "  Danger found some issues. Don\'t worry, everything is fixable.");',
+        'exports.messageForResultWithIssues = "".concat(warningEmoji, "  Danger Bot encontrou alguns problemas. Nao se preocupe, tudo pode ser corrigido.");',
+      ],
+      // Traduzir messageForResultWithIssues (versao do patch antigo)
+      [
+        'exports.messageForResultWithIssues = "".concat(warningEmoji, "  Danger encontrou alguns problemas. Não se preocupe, tudo pode ser corrigido.");',
+        'exports.messageForResultWithIssues = "".concat(warningEmoji, "  Danger Bot encontrou alguns problemas. Nao se preocupe, tudo pode ser corrigido.");',
+      ],
+
+      // Remover mensagem "All green" (varias formas possiveis)
+      [
+        'return "".concat(successEmoji, " ").concat((0, exports.dangerSignature)(results));',
+        'return ""; // DANGER-BOT: Mensagem removida',
+      ],
+      [
+        'summaryMessage = "".concat(successEmoji, "  All green. ").concat((0, DangerUtils_1.compliment)());',
+        'summaryMessage = ""; // DANGER-BOT: Mensagem removida',
+      ],
+
+      // Emoji de signature: :no_entry_sign: -> :rocket:
+      ['var signatureEmoji = ":no_entry_sign:"', 'var signatureEmoji = ":rocket:"'],
+
+      // Inline template: corrigir URL dilettasolutions/danger.systems
+      [
+        'dilettasolutions.com',
+        REPO_URL,
+      ],
+      [
+        'danger.systems/js',
+        REPO_URL,
+      ],
+      [
+        'https://danger.systems',
+        REPO_URL,
+      ],
+    ],
+    "bitbucketCloudTemplate.js"
+  );
+  if (bbCloudPatched) totalPatched++;
+
+  // Patch especial: template principal - trocar link http://dangerID por link com title
+  if (fs.existsSync(bbCloudTemplate)) {
+    let content = fs.readFileSync(bbCloudTemplate, "utf8");
+
+    const oldMainLink = '[](http://".concat((0, exports.dangerIDToString)(dangerID), ")\\n  ");';
+    if (content.includes(oldMainLink)) {
+      const newMainLink = `[](\${REPO_URL} "".concat((0, exports.dangerIDToString)(dangerID), "\\")\n  ");`.replace("${REPO_URL}", REPO_URL);
+      content = content.replace(oldMainLink, newMainLink);
+      fs.writeFileSync(bbCloudTemplate, content, "utf8");
+      console.log("  ✅ bitbucketCloudTemplate.js: link principal corrigido");
+      totalPatched++;
+    }
   }
 
+  // Patch especial: inline template com estrategia Danger Ruby
+  if (fs.existsSync(bbCloudTemplate)) {
+    let content = fs.readFileSync(bbCloudTemplate, "utf8");
+
+    const oldInlineReturn =
+      'return "\\n[//]: # (".concat((0, exports.dangerIDToString)(dangerID), ")\\n[//]: # (").concat((0, exports.fileLineToString)(file, line), ")\\n").concat(results.fails.map(printViolation(noEntryEmoji)).join("\\n"), "\\n").concat(results.warnings.map(printViolation(warningEmoji)).join("\\n"), "\\n").concat(results.messages.map(printViolation(messageEmoji)).join("\\n"), "\\n").concat(results.markdowns.map(function (v) { return v.message; }).join("\\n\\n"), "\\n  ");';
+
+    if (content.includes(oldInlineReturn)) {
+      const newInlineReturn = `// DANGER-BOT: Estrategia Danger Ruby - link com title no final (invisivel no render)
+    var signature = "\\n\\n[](${REPO_URL} \\"danger-id-".concat(dangerID, ";\\")");
+    return "".concat(results.fails.map(printViolation(noEntryEmoji)).join("\\n"), "\\n").concat(results.warnings.map(printViolation(warningEmoji)).join("\\n"), "\\n").concat(results.messages.map(printViolation(messageEmoji)).join("\\n"), "\\n").concat(results.markdowns.map(function (v) { return v.message; }).join("\\n\\n")).replace(/^\\n+/, "").concat(signature, "\\n  ");`;
+
+      content = content.replace(oldInlineReturn, newInlineReturn);
+      fs.writeFileSync(bbCloudTemplate, content, "utf8");
+      console.log("  ✅ bitbucketCloudTemplate.js: inline template corrigido (Danger Ruby)");
+      totalPatched++;
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // PATCH: githubIssueTemplate.js
+  // ═══════════════════════════════════════════════════════════════
+  const githubTemplate = path.join(dist, "runner", "templates", "githubIssueTemplate.js");
+
+  const githubPatched = patchFile(
+    githubTemplate,
+    [
+      // Branding
+      [
+        '{ runtimeName: "dangerJS", runtimeHref: "https://danger.systems/js" }',
+        `{ runtimeName: "${BRAND_NAME}", runtimeHref: "${REPO_URL}" }`,
+      ],
+      [
+        '{ runtimeName: "Diletta Solutions", runtimeHref: "https://dilettasolutions.com" }',
+        `{ runtimeName: "${BRAND_NAME}", runtimeHref: "${REPO_URL}" }`,
+      ],
+
+      // Traduzir messageForResultWithIssues
+      [
+        "exports.messageForResultWithIssues = \"Found some issues. Don't worry, everything is fixable.\";",
+        `exports.messageForResultWithIssues = "${BRAND_NAME} encontrou alguns problemas. Nao se preocupe, tudo pode ser corrigido.";`,
+      ],
+
+      // Emoji :no_entry_sign: -> :rocket:
+      [':no_entry_sign:', ':rocket:'],
+
+      // Traduzir headers de tabela
+      ['"Warnings", "warning"', '"Avisos", "warning"'],
+      ['"Messages", "book"', '"Mensagens", "book"'],
+      ['"Fails", "no_entry_sign"', '"Erros", "rocket"'],
+    ],
+    "githubIssueTemplate.js"
+  );
+  if (githubPatched) totalPatched++;
+
+  // Patch especial: inlineTemplate do GitHub - substituir <!-- --> por link invisivel
+  // Bitbucket Cloud renderiza <!-- --> como texto visivel
+  if (fs.existsSync(githubTemplate)) {
+    let content = fs.readFileSync(githubTemplate, "utf8");
+
+    const oldGithubInline =
+      'return "\\n<!--\\n".concat(buildSummaryMessage(dangerID, results), "\\n").concat((0, exports.fileLineToString)(file, line), "\\n-->\\n")';
+
+    if (content.includes(oldGithubInline)) {
+      const newGithubInline =
+        `// DANGER-BOT: Usar link invisivel em vez de <!-- --> (Bitbucket mostra HTML comments como texto)
+    var signature = "\\n\\n[](${REPO_URL} \\"" + (0, exports.dangerIDToString)(dangerID) + (0, exports.fileLineToString)(file, line) + "\\")";
+    return ""`;
+
+      content = content.replace(oldGithubInline, newGithubInline);
+
+      const oldGithubInlineEnd = '.concat(results.markdowns.map(function (v) { return v.message; }).join("\\n\\n"), "\\n  ");';
+      const newGithubInlineEnd = '.concat(results.markdowns.map(function (v) { return v.message; }).join("\\n\\n")).replace(/^\\n+/, "").concat(signature, "\\n  ");';
+
+      content = content.replace(oldGithubInlineEnd, newGithubInlineEnd);
+
+      fs.writeFileSync(githubTemplate, content, "utf8");
+      console.log("  ✅ githubIssueTemplate.js: inline template corrigido (link invisivel)");
+      totalPatched++;
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // PATCH: bitbucketServerTemplate.js
+  // ═══════════════════════════════════════════════════════════════
+  const bbServerTemplate = path.join(dist, "runner", "templates", "bitbucketServerTemplate.js");
+
+  const bbServerPatched = patchFile(
+    bbServerTemplate,
+    [
+      // Branding
+      [
+        '{ runtimeName: "dangerJS", runtimeHref: "https://danger.systems/js" }',
+        `{ runtimeName: "${BRAND_NAME}", runtimeHref: "${REPO_URL}" }`,
+      ],
+      [
+        '{ runtimeName: "Diletta Solutions", runtimeHref: "https://dilettasolutions.com" }',
+        `{ runtimeName: "${BRAND_NAME}", runtimeHref: "${REPO_URL}" }`,
+      ],
+
+      // Traduzir messageForResultWithIssues
+      [
+        'exports.messageForResultWithIssues = "".concat(warningEmoji, " Danger found some issues. Don\'t worry, everything is fixable.");',
+        `exports.messageForResultWithIssues = "".concat(warningEmoji, " ${BRAND_NAME} encontrou alguns problemas. Nao se preocupe, tudo pode ser corrigido.");`,
+      ],
+    ],
+    "bitbucketServerTemplate.js"
+  );
+  if (bbServerPatched) totalPatched++;
+
+  // ═══════════════════════════════════════════════════════════════
+  // PATCH: Executor.js
+  // ═══════════════════════════════════════════════════════════════
+  const executorFile = path.join(dist, "runner", "Executor.js");
+
+  const executorPatched = patchFile(
+    executorFile,
+    [
+      // Remover "All green. Good on 'ya"
+      [
+        'return "".concat(tick, " All green. Good on \'ya.")',
+        'return "" // DANGER-BOT: Mensagem removida',
+      ],
+      [
+        'return "All green. ".concat',
+        'return ""; // DANGER-BOT: Mensagem removida //',
+      ],
+      // Corrigir inlineCommentTemplate: adicionar REPO_ACCESSTOKEN na verificacao
+      // Sem isso, inline comments usam template GitHub em vez de Bitbucket Cloud
+      [
+        'else if (process.env["DANGER_BITBUCKETCLOUD_OAUTH_KEY"] || process.env["DANGER_BITBUCKETCLOUD_USERNAME"]) {\n            comment = (0, bitbucketCloudTemplate_1.inlineTemplate)',
+        'else if (process.env["DANGER_BITBUCKETCLOUD_OAUTH_KEY"] || process.env["DANGER_BITBUCKETCLOUD_USERNAME"] || process.env["DANGER_BITBUCKETCLOUD_REPO_ACCESSTOKEN"]) {\n            comment = (0, bitbucketCloudTemplate_1.inlineTemplate)',
+      ],
+    ],
+    "Executor.js"
+  );
+  if (executorPatched) totalPatched++;
+
+  // ═══════════════════════════════════════════════════════════════
+  // PATCH: BitBucketCloud.js (build status key/url)
+  // ═══════════════════════════════════════════════════════════════
+  const bbCloudPlatform = path.join(dist, "platforms", "BitBucketCloud.js");
+
+  const bbCloudPlatformPatched = patchFile(
+    bbCloudPlatform,
+    [
+      // key e url padrao do build status
+      [
+        'key = "danger.systems"',
+        `key = "${BRAND_NAME}"`,
+      ],
+      [
+        'key = "https://dilettasolutions.com"',
+        `key = "${BRAND_NAME}"`,
+      ],
+      [
+        'key = "Danger Bot"',
+        `key = "${BRAND_NAME}"`,
+      ],
+      [
+        'url: url || "https://danger.systems/js"',
+        `url: url || "${REPO_URL}"`,
+      ],
+      [
+        'url: url || "https://dilettasolutions.com"',
+        `url: url || "${REPO_URL}"`,
+      ],
+      // runtimeName no platform
+      [
+        'runtimeName: "dangerJS"',
+        `runtimeName: "${BRAND_NAME}"`,
+      ],
+      // Links danger.systems restantes (http e https)
+      [
+        'https://danger.systems/js',
+        REPO_URL,
+      ],
+      [
+        'http://danger.systems/js',
+        REPO_URL,
+      ],
+      [
+        'https://danger.systems',
+        REPO_URL,
+      ],
+      [
+        'http://danger.systems',
+        REPO_URL,
+      ],
+      [
+        'https://dilettasolutions.com',
+        REPO_URL,
+      ],
+    ],
+    "BitBucketCloud.js"
+  );
+  if (bbCloudPlatformPatched) totalPatched++;
+
+  // ═══════════════════════════════════════════════════════════════
+  // PATCH: BitBucketServer.js
+  // ═══════════════════════════════════════════════════════════════
+  const bbServerPlatform = path.join(dist, "platforms", "BitBucketServer.js");
+
+  const bbServerPlatformPatched = patchFile(
+    bbServerPlatform,
+    [
+      ['https://danger.systems/js', REPO_URL],
+      ['http://danger.systems/js', REPO_URL],
+      ['https://danger.systems', REPO_URL],
+      ['https://dilettasolutions.com', REPO_URL],
+      ['runtimeName: "dangerJS"', `runtimeName: "${BRAND_NAME}"`],
+      ['key = "danger.systems"', `key = "${BRAND_NAME}"`],
+    ],
+    "BitBucketServer.js"
+  );
+  if (bbServerPlatformPatched) totalPatched++;
+
+  // ═══════════════════════════════════════════════════════════════
+  // PATCH: GitHubAPI.js
+  // ═══════════════════════════════════════════════════════════════
+  const githubAPI = path.join(dist, "platforms", "github", "GitHubAPI.js");
+
+  const githubAPIPatched = patchFile(
+    githubAPI,
+    [
+      ['https://danger.systems/js', REPO_URL],
+      ['https://danger.systems', REPO_URL],
+      ['https://dilettasolutions.com', REPO_URL],
+      ['runtimeName: "dangerJS"', `runtimeName: "${BRAND_NAME}"`],
+    ],
+    "GitHubAPI.js"
+  );
+  if (githubAPIPatched) totalPatched++;
+
+  // ═══════════════════════════════════════════════════════════════
+  // PATCH GLOBAL: varrer todos os JS por referencias restantes
+  // ═══════════════════════════════════════════════════════════════
+  const platformFile = path.join(dist, "platforms", "platform.js");
+  const allJsFiles = [
+    bbCloudTemplate,
+    githubTemplate,
+    bbServerTemplate,
+    executorFile,
+    bbCloudPlatform,
+    bbServerPlatform,
+    githubAPI,
+    platformFile,
+  ];
+
+  let globalFixCount = 0;
+  for (const filePath of allJsFiles) {
+    if (!fs.existsSync(filePath)) continue;
+    let content = fs.readFileSync(filePath, "utf8");
+    const before = content;
+
+    content = content.split("http://danger.systems/js").join(REPO_URL);
+    content = content.split("https://danger.systems/js").join(REPO_URL);
+    content = content.split("http://danger.systems").join(REPO_URL);
+    content = content.split("https://danger.systems").join(REPO_URL);
+    content = content.split("https://dilettasolutions.com").join(REPO_URL);
+    content = content.split("http://dilettasolutions.com").join(REPO_URL);
+    content = content.split('key = "danger.systems"').join(`key = "${BRAND_NAME}"`);
+    content = content.split('key: "danger.systems"').join(`key: "${BRAND_NAME}"`);
+
+    if (content !== before) {
+      fs.writeFileSync(filePath, content, "utf8");
+      globalFixCount++;
+    }
+  }
+  if (globalFixCount > 0) {
+    console.log(`  ✅ Varredura global: ${globalFixCount} arquivo(s) com URLs corrigidas`);
+    totalPatched += globalFixCount;
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // RESULTADO
+  // ═══════════════════════════════════════════════════════════════
+  console.log("");
+
+  if (totalPatched > 0) {
+    console.log(`✅ ${totalPatched} arquivo(s) patcheado(s)`);
+    console.log("");
+    console.log("📝 Modificacoes:");
+    console.log(`  ✅ Branding: "${BRAND_NAME}" + ${REPO_URL}`);
+    console.log("  🇧🇷 Mensagens traduzidas para Portugues");
+    console.log("  🔧 Bitbucket inline comments corrigidos");
+    console.log("  🔧 Bitbucket build status key/url corrigidos");
+    console.log('  ❌ "All green" removido');
+    createPatchMarker(dangerPath);
+  } else {
+    console.log("⚠️  Nenhum patch aplicado (arquivos podem ja estar modificados)");
+  }
+
+  console.log("");
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
   console.log("");
 }

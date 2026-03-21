@@ -14,12 +14,38 @@
 import { createPlugin, getDanger } from "@types";
 import * as fs from "fs";
 
-// Importar CLD3 (precisa estar instalado: npm install cld3-asm)
-let cld3: any = null;
-try {
-  cld3 = require("cld3-asm");
-} catch {
-  console.warn("⚠️ cld3-asm não instalado - plugin de documentação PT desabilitado");
+let cld3Module: any = null;
+let cld3Identifier: any = null;
+
+async function getIdentifier(): Promise<any> {
+  if (cld3Identifier) return cld3Identifier;
+
+  try {
+    const cld3 = require("cld3-asm");
+
+    if (typeof cld3.loadModule === "function") {
+      const mod = await cld3.loadModule();
+      cld3Identifier = mod.create(0, 512);
+      return cld3Identifier;
+    }
+
+    if (typeof cld3.createIdentifier === "function") {
+      cld3Identifier = cld3.createIdentifier();
+      return cld3Identifier;
+    }
+
+    if (cld3.default && typeof cld3.default.loadModule === "function") {
+      const mod = await cld3.default.loadModule();
+      cld3Identifier = mod.create(0, 512);
+      return cld3Identifier;
+    }
+
+    console.warn("⚠️ cld3-asm: API nao reconhecida");
+    return null;
+  } catch (error) {
+    console.warn("⚠️ cld3-asm nao disponivel:", (error as Error).message);
+    return null;
+  }
 }
 
 export default createPlugin(
@@ -29,11 +55,12 @@ export default createPlugin(
     enabled: true,
   },
   async () => {
-    // Se CLD3 não está disponível, pular
-    if (!cld3) {
-      message("⚠️ **Verificação de idioma**: cld3 não instalado. Execute: `npm install cld3-asm`");
+    const identifier = await getIdentifier();
+    if (!identifier) {
+      message("⚠️ **Verificação de idioma**: cld3 não disponível neste ambiente.");
       return;
     }
+    cld3Module = identifier;
 
     const dartFiles = [...getDanger().git.modified_files, ...getDanger().git.created_files].filter(
       (f) => f.endsWith(".dart") && fs.existsSync(f)
@@ -142,8 +169,8 @@ function extractDocumentationBlocks(lines: string[]): DocumentationBlock[] {
  */
 function isPortugueseText(text: string): boolean {
   if (!text || text.trim().length < 3) return false;
+  if (!cld3Module) return false;
 
-  // Ignorar templates Dart
   const dartTemplates = [
     /^\{@template\s+[^}]+\}$/,
     /^\{@endtemplate\}$/,
@@ -158,9 +185,8 @@ function isPortugueseText(text: string): boolean {
     return false;
   }
 
-  // Limpar texto
   const cleanText = text
-    .replace(/`[^`]*`/g, "") // Remover código inline
+    .replace(/`[^`]*`/g, "")
     .replace(/\{@template\s+[^}]+\}/g, "")
     .replace(/\{@endtemplate\}/g, "")
     .replace(/\{@macro\s+[^}]+\}/g, "")
@@ -170,13 +196,8 @@ function isPortugueseText(text: string): boolean {
   if (cleanText.length < 3) return false;
 
   try {
-    // Criar identificador (factory cld3)
-    const identifier = cld3.createIdentifier();
-    const result = identifier.findLanguage(cleanText);
-
+    const result = cld3Module.findLanguage(cleanText);
     if (!result) return false;
-
-    // Português detectado com confiança > 50%
     return result.language === "pt" && result.probability > 0.5;
   } catch (error) {
     console.error("❌ Erro CLD3:", error);
