@@ -139,7 +139,7 @@ Sem changelog, fica difícil:
           );
         } else {
           sendFail(
-            `## 📋 Changelog não foi atualizado
+            `Changelog não foi atualizado
 
 O arquivo \`changelog.md\` existe, mas não foi modificado nesta PR.
 
