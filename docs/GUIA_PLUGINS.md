@@ -129,6 +129,8 @@ executeDangerBot(plugins);
 | `barrelFilesEnforcerPlugin` | `barrel-files-enforcer` | Forca barrel files para organizar exports |
 | `securityCheckerPlugin` | `security-checker` | Detecta API keys hardcoded, `eval()`, secrets |
 | `spellCheckerPlugin` | `spell-checker` | Verifica ortografia em identificadores Dart com cspell |
+| `identifierLanguagePlugin` | `identifier-language` | Detecta identificadores em portugues no codigo Dart |
+| `classNamingConventionPlugin` | `class-naming-convention` | Verifica se nomes de classes usam substantivos (Clean Code) |
 
 ### Performance e Flutter
 

@@ -44,7 +44,7 @@ npm install --save-dev danger @felipeduarte26/danger-bot
 
 Crie `dangerfile.ts` na raiz do projeto:
 
-**Opcao A - Todos os plugins (26 plugins):**
+**Opcao A - Todos os plugins (28 plugins):**
 
 ```typescript
 import { allFlutterPlugins, executeDangerBot } from "@felipeduarte26/danger-bot";

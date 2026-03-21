@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/felipeduarte26/danger-bot"><img src="https://img.shields.io/badge/version-1.8.0-blue.svg" alt="Version"></a>
+  <a href="https://github.com/felipeduarte26/danger-bot"><img src="https://img.shields.io/badge/version-1.8.1-blue.svg" alt="Version"></a>
   <a href="https://nodejs.org"><img src="https://img.shields.io/badge/node-%3E%3D25.2.1-brightgreen.svg" alt="Node"></a>
   <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.9-blue.svg" alt="TypeScript"></a>
   <a href="https://github.com/felipeduarte26/danger-bot/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License"></a>
@@ -15,11 +15,11 @@
 
 ---
 
-**Danger Bot** e um conjunto modular de **26 plugins** para o [Danger JS](https://danger.systems/js/), focado em projetos **Flutter/Dart** com Clean Architecture. Ele analisa Pull Requests automaticamente durante o CI/CD e deixa comentarios com avisos, erros e sugestoes diretamente no PR.
+**Danger Bot** e um conjunto modular de **28 plugins** para o [Danger JS](https://danger.systems/js/), focado em projetos **Flutter/Dart** com Clean Architecture. Ele analisa Pull Requests automaticamente durante o CI/CD e deixa comentarios com avisos, erros e sugestoes diretamente no PR.
 
 ## Por que usar?
 
-- **26 plugins prontos** cobrindo arquitetura, performance, seguranca, nomenclatura e mais
+- **28 plugins prontos** cobrindo arquitetura, performance, seguranca, nomenclatura e mais
 - **Zero configuracao** - funciona com uma unica linha de codigo
 - **Multi-plataforma** - GitHub, Bitbucket Cloud, Bitbucket Server, GitLab
 - **CLI integrada** - crie e gerencie plugins pelo terminal
@@ -54,7 +54,7 @@ npx danger ci
 
 ## Plugins
 
-O Danger Bot inclui 26 plugins organizados em categorias:
+O Danger Bot inclui 28 plugins organizados em categorias:
 
 ### Pull Request
 
@@ -100,6 +100,8 @@ O Danger Bot inclui 26 plugins organizados em categorias:
 | **barrel-files-enforcer** | Forca uso de barrel files para organizar exports |
 | **security-checker** | Detecta API keys hardcoded, `eval()` e vulnerabilidades |
 | **spell-checker** | Verifica ortografia em identificadores Dart |
+| **identifier-language** | Detecta identificadores em portugues no codigo Dart |
+| **class-naming-convention** | Verifica se nomes de classes usam substantivos (Clean Code) |
 
 ### Performance e Flutter
 
@@ -129,7 +131,7 @@ import {
   dataLayerPlugins,           // 3 plugins (datasources, models, repositories)
   presentationLayerPlugins,   // 2 plugins (viewmodels, states)
   cleanArchitecturePlugins,   // 10 plugins (todas as camadas + validacao cross-layer)
-  codeQualityPlugins,         // 5 plugins (late-final, memory-leak, comments, security, barrel)
+  codeQualityPlugins,         // 7 plugins (late-final, memory-leak, comments, security, barrel, identifier-language, class-naming)
   performancePlugins,         // 2 plugins (flutter-performance, mediaquery-modern)
   executeDangerBot,
 } from "@felipeduarte26/danger-bot";
@@ -228,7 +230,7 @@ danger-bot/
 │   ├── types.ts              # Interfaces e tipos
 │   ├── helpers.ts            # Funcoes auxiliares
 │   └── plugins/
-│       └── flutter/          # 26 plugins Flutter/Dart
+│       └── flutter/          # 28 plugins Flutter/Dart
 │           ├── pr-summary/
 │           ├── pr-size-checker/
 │           ├── clean-architecture/
@@ -266,6 +268,7 @@ danger-bot/
 | [Commander](https://github.com/tj/commander.js) | 14 | CLI |
 | [CSpell](https://github.com/streetsidesoftware/cspell) | 9 | Spell checking |
 | [cld3-asm](https://www.npmjs.com/package/cld3-asm) | 4 | Deteccao de idioma |
+| [wordpos](https://www.npmjs.com/package/wordpos) | 2.1 | Classificacao gramatical (WordNet) |
 | [ESLint](https://eslint.org/) | 9 | Linting |
 | [Prettier](https://prettier.io/) | 3 | Formatacao |
 | [Husky](https://github.com/typicode/husky) | 9 | Git hooks |
