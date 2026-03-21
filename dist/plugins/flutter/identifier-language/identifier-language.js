@@ -546,35 +546,179 @@ exports.default = (0, _types_1.createPlugin)(
       }
     }
     if (matches.length === 0) return;
-    const byFile = new Map();
+    const seen = new Set();
     for (const m of matches) {
-      const list = byFile.get(m.file) || [];
-      list.push(m);
-      byFile.set(m.file, list);
-    }
-    for (const [file, fileMatches] of byFile) {
-      const seen = new Set();
-      const unique = fileMatches.filter((m) => {
-        const key = `${m.identifier}`;
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      });
-      const listing = unique
-        .slice(0, 8)
-        .map((m) => `\`${m.identifier}\` (${m.kind}) — palavras: ${m.ptWords.join(", ")}`)
-        .join("\n");
-      const extra = unique.length > 8 ? `\n\n+${unique.length - 8} ocorrência(s) omitida(s)` : "";
+      const key = `${m.file}::${m.line}::${m.identifier}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
       (0, _types_1.sendWarn)(
-        `**Identificadores em português detectados**\n\n` +
-          `O padrão do projeto é código em inglês.\n\n` +
-          `${listing}${extra}`,
-        file,
-        unique[0].line
+        `IDENTIFICADOR EM PORTUGUÊS
+
+\`${m.identifier}\` (${m.kind}) — palavras: **${m.ptWords.join(", ")}**
+
+### Problema Identificado
+
+O padrão do projeto é código 100% em inglês.
+Identificadores em português dificultam colaboração e consistência.
+
+### 🎯 AÇÃO NECESSÁRIA
+
+Renomeie para inglês:
+
+\`\`\`dart
+// ❌ Em português
+${m.kind === "classe" ? `class ${m.identifier}` : m.kind === "método" ? `void ${m.identifier}()` : `final ${m.identifier}`}
+
+// ✅ Em inglês
+${m.kind === "classe" ? `class ${suggestEnglish(m.identifier, m.ptWords)}` : m.kind === "método" ? `void ${suggestEnglish(m.identifier, m.ptWords)}()` : `final ${suggestEnglish(m.identifier, m.ptWords)}`}
+\`\`\`
+
+### 🚀 Objetivo
+
+Manter **consistência** e facilitar **colaboração** em equipe.
+
+📖 [Clean Code: Naming](https://medium.com/@mikhailhusyev/writing-clean-code-naming-variables-functions-methods-and-classes-6074a6796c7b)`,
+        m.file,
+        m.line
       );
     }
   }
 );
+const PT_TO_EN = {
+  pessoa: "Person",
+  pessoas: "People",
+  usuario: "User",
+  usuarios: "Users",
+  cliente: "Client",
+  clientes: "Clients",
+  produto: "Product",
+  produtos: "Products",
+  pedido: "Order",
+  pedidos: "Orders",
+  compra: "Purchase",
+  venda: "Sale",
+  pagamento: "Payment",
+  endereco: "Address",
+  cidade: "City",
+  estado: "State",
+  empresa: "Company",
+  funcionario: "Employee",
+  conta: "Account",
+  senha: "Password",
+  mensagem: "Message",
+  notificacao: "Notification",
+  configuracao: "Configuration",
+  categoria: "Category",
+  comentario: "Comment",
+  arquivo: "File",
+  documento: "Document",
+  imagem: "Image",
+  tarefa: "Task",
+  projeto: "Project",
+  equipe: "Team",
+  relatorio: "Report",
+  resultado: "Result",
+  cadastro: "Registration",
+  registro: "Record",
+  carrinho: "Cart",
+  estoque: "Stock",
+  fatura: "Invoice",
+  parcela: "Installment",
+  desconto: "Discount",
+  entrega: "Delivery",
+  motorista: "Driver",
+  aluno: "Student",
+  professor: "Teacher",
+  escola: "School",
+  curso: "Course",
+  aula: "Lesson",
+  prova: "Exam",
+  nota: "Grade",
+  medico: "Doctor",
+  paciente: "Patient",
+  consulta: "Appointment",
+  receita: "Prescription",
+  nome: "Name",
+  nomes: "Names",
+  idade: "Age",
+  valor: "Value",
+  preco: "Price",
+  numero: "Number",
+  quantidade: "Quantity",
+  tamanho: "Size",
+  peso: "Weight",
+  altura: "Height",
+  titulo: "Title",
+  descricao: "Description",
+  texto: "Text",
+  campo: "Field",
+  lista: "List",
+  grupo: "Group",
+  perfil: "Profile",
+  nivel: "Level",
+  erro: "Error",
+  aviso: "Warning",
+  resposta: "Response",
+  servico: "Service",
+  repositorio: "Repository",
+  tela: "Screen",
+  pagina: "Page",
+  botao: "Button",
+  formulario: "Form",
+  tabela: "Table",
+  filial: "Branch",
+  orcamento: "Budget",
+  contrato: "Contract",
+  fornecedor: "Supplier",
+  calcular: "calculate",
+  buscar: "search",
+  salvar: "save",
+  deletar: "delete",
+  remover: "remove",
+  atualizar: "update",
+  criar: "create",
+  listar: "list",
+  obter: "get",
+  enviar: "send",
+  receber: "receive",
+  validar: "validate",
+  verificar: "verify",
+  processar: "process",
+  carregar: "load",
+  exibir: "show",
+  mostrar: "display",
+  abrir: "open",
+  fechar: "close",
+  iniciar: "start",
+  finalizar: "finish",
+  cancelar: "cancel",
+  confirmar: "confirm",
+  ativo: "active",
+  inativo: "inactive",
+  novo: "new",
+  atual: "current",
+  principal: "main",
+  disponivel: "available",
+  obrigatorio: "required",
+  vazio: "empty",
+  grande: "large",
+  pequeno: "small",
+};
+function suggestEnglish(identifier, ptWords) {
+  let result = identifier;
+  for (const pt of ptWords) {
+    const en = PT_TO_EN[pt];
+    if (!en) continue;
+    const capitalized = pt.charAt(0).toUpperCase() + pt.slice(1);
+    if (result.includes(capitalized)) {
+      const enCapitalized = en.charAt(0).toUpperCase() + en.slice(1);
+      result = result.replace(capitalized, enCapitalized);
+    } else if (result.includes(pt)) {
+      result = result.replace(pt, en.toLowerCase());
+    }
+  }
+  return result !== identifier ? result : `/* traduza para inglês */`;
+}
 function stripCommentsAndStrings(line) {
   return line
     .replace(/\/\/.*$/, "")

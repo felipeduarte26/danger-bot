@@ -1,7 +1,7 @@
 /**
  * Força uso de barrel files
  */
-import { createPlugin, sendWarn, getAllChangedFiles } from "@types";
+import { createPlugin, sendFail, getAllChangedFiles } from "@types";
 
 export default createPlugin(
   {
@@ -10,7 +10,6 @@ export default createPlugin(
     enabled: true,
   },
   async () => {
-    // Verificar se pastas domain/data/presentation têm barrel files
     const folders = ["entities", "failures", "repositories", "usecases", "models", "datasources"];
     const allFiles = getAllChangedFiles();
 
@@ -20,12 +19,15 @@ export default createPlugin(
           f.includes(`/${folder}/`) && f.endsWith(".dart") && !f.endsWith(`${folder}.dart`)
       );
 
-      if (filesInFolder.length > 0) {
-        const barrelFile = allFiles.find((f: string) => f.endsWith(`/${folder}/${folder}.dart`));
+      if (filesInFolder.length === 0) continue;
 
-        if (!barrelFile) {
-          sendWarn(
-            `  BARREL FILE AUSENTE
+      const barrelFile = allFiles.find((f: string) => f.endsWith(`/${folder}/${folder}.dart`));
+      if (barrelFile) continue;
+
+      const targetFile = filesInFolder[0];
+
+      sendFail(
+        `BARREL FILE AUSENTE
 
 Pasta \`${folder}\` tem arquivos mas sem barrel file.
 
@@ -35,12 +37,12 @@ Sem barrel file, imports ficam verbosos:
 
 \`\`\`dart
 // ❌ Sem barrel file
-import '../domain/entities/user_entity.dart';
-import '../domain/entities/product_entity.dart';
-import '../domain/entities/order_entity.dart';
+import '../domain/${folder}/user_entity.dart';
+import '../domain/${folder}/product_entity.dart';
+import '../domain/${folder}/order_entity.dart';
 
 // ✅ Com barrel file
-import '../domain/entities/entities.dart';
+import '../domain/${folder}/${folder}.dart';
 \`\`\`
 
 ### 🎯 AÇÃO NECESSÁRIA
@@ -49,9 +51,7 @@ import '../domain/entities/entities.dart';
 
 \`\`\`dart
 // ${folder}.dart
-export 'file1.dart';
-export 'file2.dart';
-export 'file3.dart';
+${filesInFolder.map((f: string) => `export '${f.split("/").pop()}';`).join("\n")}
 \`\`\`
 
 ### 🚀 Objetivo
@@ -59,11 +59,9 @@ export 'file3.dart';
 Simplificar **imports** e melhorar **organização**.
 
 📖 [Guia completo sobre Barrel Files](https://medium.com/@ugamakelechi501/barrel-files-in-dart-and-flutter-a-guide-to-simplifying-imports-9b245dbe516a)`,
-            "README.md",
-            1
-          );
-        }
-      }
+        targetFile,
+        1
+      );
     }
   }
 );

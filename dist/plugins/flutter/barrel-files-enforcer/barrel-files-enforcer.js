@@ -11,18 +11,18 @@ exports.default = (0, _types_1.createPlugin)(
     enabled: true,
   },
   async () => {
-    // Verificar se pastas domain/data/presentation têm barrel files
     const folders = ["entities", "failures", "repositories", "usecases", "models", "datasources"];
     const allFiles = (0, _types_1.getAllChangedFiles)();
     for (const folder of folders) {
       const filesInFolder = allFiles.filter(
         (f) => f.includes(`/${folder}/`) && f.endsWith(".dart") && !f.endsWith(`${folder}.dart`)
       );
-      if (filesInFolder.length > 0) {
-        const barrelFile = allFiles.find((f) => f.endsWith(`/${folder}/${folder}.dart`));
-        if (!barrelFile) {
-          (0, _types_1.sendWarn)(
-            `  BARREL FILE AUSENTE
+      if (filesInFolder.length === 0) continue;
+      const barrelFile = allFiles.find((f) => f.endsWith(`/${folder}/${folder}.dart`));
+      if (barrelFile) continue;
+      const targetFile = filesInFolder[0];
+      (0, _types_1.sendFail)(
+        `BARREL FILE AUSENTE
 
 Pasta \`${folder}\` tem arquivos mas sem barrel file.
 
@@ -32,12 +32,12 @@ Sem barrel file, imports ficam verbosos:
 
 \`\`\`dart
 // ❌ Sem barrel file
-import '../domain/entities/user_entity.dart';
-import '../domain/entities/product_entity.dart';
-import '../domain/entities/order_entity.dart';
+import '../domain/${folder}/user_entity.dart';
+import '../domain/${folder}/product_entity.dart';
+import '../domain/${folder}/order_entity.dart';
 
 // ✅ Com barrel file
-import '../domain/entities/entities.dart';
+import '../domain/${folder}/${folder}.dart';
 \`\`\`
 
 ### 🎯 AÇÃO NECESSÁRIA
@@ -46,9 +46,7 @@ import '../domain/entities/entities.dart';
 
 \`\`\`dart
 // ${folder}.dart
-export 'file1.dart';
-export 'file2.dart';
-export 'file3.dart';
+${filesInFolder.map((f) => `export '${f.split("/").pop()}';`).join("\n")}
 \`\`\`
 
 ### 🚀 Objetivo
@@ -56,11 +54,9 @@ export 'file3.dart';
 Simplificar **imports** e melhorar **organização**.
 
 📖 [Guia completo sobre Barrel Files](https://medium.com/@ugamakelechi501/barrel-files-in-dart-and-flutter-a-guide-to-simplifying-imports-9b245dbe516a)`,
-            "README.md",
-            1
-          );
-        }
-      }
+        targetFile,
+        1
+      );
     }
   }
 );
