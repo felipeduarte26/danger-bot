@@ -25,7 +25,7 @@ export default createPlugin(
 
         if (!barrelFile) {
           sendWarn(
-            `## 📦 BARREL FILE AUSENTE
+            `  BARREL FILE AUSENTE
 
 Pasta \`${folder}\` tem arquivos mas sem barrel file.
 
