@@ -1,10 +1,6 @@
 /**
- * 📊 PR Summary Plugin
- *
- * Cria um sumário consolidado no topo da PR com estatísticas e overview
- *
- * IMPORTANTE: Usa markdown() diretamente para garantir que o sumário
- * apareça NO TOPO, antes de todos os fails, warnings e messages.
+ * PR Summary Plugin
+ * Gera um sumário compacto no topo do comentário da PR
  */
 import { createPlugin, getDanger, sendMarkdown } from "@types";
 
@@ -15,69 +11,49 @@ export default createPlugin(
     enabled: true,
   },
   async () => {
-    const danger = getDanger();
-    const { git } = danger;
+    const { git } = getDanger();
 
-    // Coletar estatísticas
-    const filesCreated = git.created_files.length;
-    const filesModified = git.modified_files.length;
-    const filesDeleted = git.deleted_files.length;
-    const totalFiles = filesCreated + filesModified + filesDeleted;
+    const created = git.created_files.length;
+    const modified = git.modified_files.length;
+    const deleted = git.deleted_files.length;
+    const total = created + modified + deleted;
 
-    const linesAdded = git.insertions || 0;
-    const linesDeleted = git.deletions || 0;
-    const totalLines = linesAdded + linesDeleted;
+    const added = git.insertions || 0;
+    const removed = git.deletions || 0;
+    const lines = added + removed;
 
-    // Determinar tamanho da PR
-    let sizeEmoji = "";
-    let sizeLabel = "";
-    if (totalLines === 0) {
-      sizeEmoji = "⚪";
-      sizeLabel = "Sem alterações de código";
-    } else if (totalLines <= 80) {
-      sizeEmoji = "🟢";
-      sizeLabel = "PR pequena (ideal)";
-    } else if (totalLines <= 200) {
-      sizeEmoji = "🟡";
-      sizeLabel = "PR média";
-    } else if (totalLines <= 600) {
-      sizeEmoji = "🟠";
-      sizeLabel = "PR grande";
-    } else {
-      sizeEmoji = "🔴";
-      sizeLabel = "PR muito grande";
-    }
+    const dartCount = [...git.modified_files, ...git.created_files, ...git.deleted_files].filter(
+      (f: string) => f.endsWith(".dart")
+    ).length;
 
-    // Contar arquivos Dart
-    const dartFiles = [...git.modified_files, ...git.created_files, ...git.deleted_files].filter(
-      (file: string) => file.endsWith(".dart")
+    const size =
+      lines === 0
+        ? { icon: "⚪", label: "Sem alterações" }
+        : lines <= 80
+          ? { icon: "🟢", label: "Pequena" }
+          : lines <= 200
+            ? { icon: "🟡", label: "Média" }
+            : lines <= 600
+              ? { icon: "🟠", label: "Grande" }
+              : { icon: "🔴", label: "Muito grande" };
+
+    const parts = [
+      created > 0 ? `**+${created}** novo(s)` : null,
+      modified > 0 ? `**${modified}** modificado(s)` : null,
+      deleted > 0 ? `**-${deleted}** removido(s)` : null,
+    ]
+      .filter(Boolean)
+      .join(" · ");
+
+    sendMarkdown(
+      [
+        `### ${size.icon} PR ${size.label} — ${lines} linhas`,
+        "",
+        `**${total}** arquivo(s): ${parts}${dartCount > 0 ? ` · **${dartCount}** Dart` : ""}`,
+        lines > 0 ? `**+${added}** adições · **-${removed}** remoções` : "",
+      ]
+        .filter((l) => l !== "")
+        .join("\n")
     );
-
-    // Construir sumário
-    const summary = `## 📊 SUMÁRIO DA PR
-
-${sizeEmoji} **Tamanho:** ${sizeLabel}
-
-### 📁 Arquivos Alterados
-
-- **Total:** ${totalFiles} arquivo(s)
-- ✅ Criados: ${filesCreated}
-- ✏️ Modificados: ${filesModified}
-- ❌ Deletados: ${filesDeleted}
-- 🎯 Arquivos Dart: ${dartFiles.length}
-
-### 📏 Linhas de Código
-
-- **Total:** ${totalLines} linha(s) alterada(s)
-- ➕ Adicionadas: ${linesAdded}
-- ➖ Removidas: ${linesDeleted}
-
----
-
-📝 **Análise detalhada abaixo...**`;
-
-    // Usar markdown() diretamente para garantir que apareça NO TOPO
-    // markdown() sempre renderiza ANTES de fails, warnings e messages
-    sendMarkdown(summary);
   }
 );
