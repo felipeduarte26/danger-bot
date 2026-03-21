@@ -119,7 +119,7 @@ Identificar facilmente entities na camada Domain.`);
           }
           // Verificar se é final class
           if (!fileText.match(/final\s+class\s+\w+Entity/)) {
-            (0, _types_1.sendFail)(`## 🏛️ ENTITY DEVE SER FINAL CLASS
+            (0, _types_1.sendFail)(`ENTITY DEVE SER FINAL CLASS
 
 **Arquivo:** \`${file}\`
 
