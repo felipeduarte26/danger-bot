@@ -407,6 +407,31 @@ function main() {
   if (githubAPIPatched) totalPatched++;
 
   // ═══════════════════════════════════════════════════════════════
+  // PATCH: BitBucketCloudAPI.js (remover uuid check para matching de comentarios)
+  // O uuid do REPO_ACCESS_TOKEN nem sempre bate com o user dos comentarios,
+  // causando duplicatas. Usar apenas dangerIDMessage para identificar.
+  // ═══════════════════════════════════════════════════════════════
+  const bbCloudAPI = path.join(dist, "platforms", "bitbucket_cloud", "BitBucketCloudAPI.js");
+
+  const bbCloudAPIPatched = patchFile(
+    bbCloudAPI,
+    [
+      // getDangerInlineComments: remover uuid check
+      [
+        "ownedByDanger: comment.content.raw.includes(dangerIDMessage) && comment.user.uuid === _this.uuid,",
+        "ownedByDanger: comment.content.raw.includes(dangerIDMessage),",
+      ],
+      // getDangerMainComments: remover uuid check
+      [
+        '.filter(function (comment) { return comment.content.raw.includes(dangerIDMessage); })\n                                .filter(function (comment) { return comment.user.uuid === _this.uuid; })',
+        ".filter(function (comment) { return comment.content.raw.includes(dangerIDMessage); })",
+      ],
+    ],
+    "BitBucketCloudAPI.js"
+  );
+  if (bbCloudAPIPatched) totalPatched++;
+
+  // ═══════════════════════════════════════════════════════════════
   // PATCH GLOBAL: varrer todos os JS por referencias restantes
   // ═══════════════════════════════════════════════════════════════
   const platformFile = path.join(dist, "platforms", "platform.js");
