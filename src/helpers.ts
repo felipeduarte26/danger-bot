@@ -60,7 +60,8 @@
 import type { DangerDSLType, GitDSL } from "danger";
 
 const _sentMessages = new Set<string>();
-let _existingComments: Set<string> | null = null;
+let _existingRaws: string[] | null = null;
+let _fetchPromise: Promise<string[]> | null = null;
 
 function dedupKey(type: string, msg: string, file?: string, line?: number): string {
   return `${type}::${file ?? ""}::${line ?? ""}::${msg}`;
@@ -78,75 +79,87 @@ function ensureTrailingBreak(msg: string, file?: string, line?: number): string 
   return msg.trimEnd() + "\n\n&#8203;";
 }
 
-/**
- * Carrega comentarios existentes do PR para evitar duplicatas entre execucoes.
- * Extrai a primeira linha significativa de cada comentario inline e geral
- * para usar como fingerprint de comparacao.
- */
-function loadExistingComments(): Set<string> {
-  if (_existingComments) return _existingComments;
-  _existingComments = new Set<string>();
-
-  try {
-    const d = (global as any).danger || (globalThis as any).danger;
-    if (!d) return _existingComments;
-
-    const comments = d.bitbucket_cloud?.comments || d.github?.pr?.comments || [];
-
-    for (const comment of comments) {
-      const raw = comment.content?.raw || comment.body || "";
-      const inline = comment.inline;
-
-      const firstLine = extractFingerprint(raw);
-      if (!firstLine) continue;
-
-      if (inline?.path) {
-        const line = inline.to || inline.from || 0;
-        _existingComments.add(`${inline.path}::${line}::${firstLine}`);
-      } else {
-        _existingComments.add(`::::${firstLine}`);
-      }
-    }
-  } catch {
-    // Se falhar, segue sem cache
-  }
-
-  return _existingComments;
+function isBitbucketCloud(): boolean {
+  return !!(
+    process.env.DANGER_BITBUCKETCLOUD_REPO_ACCESSTOKEN ||
+    process.env.DANGER_BITBUCKETCLOUD_OAUTH_KEY ||
+    process.env.DANGER_BITBUCKETCLOUD_USERNAME
+  );
 }
 
-function extractFingerprint(raw: string): string {
-  const lines = raw.split("\n");
-  for (const line of lines) {
+/**
+ * Busca comentarios existentes do PR via API do Bitbucket Cloud.
+ * So executa no Bitbucket Cloud (onde o Danger tem bug de duplicatas).
+ * No GitHub/GitLab/BB Server, retorna array vazio (Danger gerencia corretamente).
+ */
+async function fetchExistingRaws(): Promise<string[]> {
+  if (_existingRaws) return _existingRaws;
+  if (_fetchPromise) return _fetchPromise;
+
+  _fetchPromise = (async () => {
+    _existingRaws = [];
+
+    if (!isBitbucketCloud()) return _existingRaws;
+
+    try {
+      const token = process.env.DANGER_BITBUCKETCLOUD_REPO_ACCESSTOKEN;
+      const owner = process.env.BITRISEIO_GIT_REPOSITORY_OWNER;
+      const slug = process.env.BITRISEIO_GIT_REPOSITORY_SLUG;
+      const prId = process.env.BITRISE_PULL_REQUEST;
+
+      if (!token || !owner || !slug || !prId) {
+        return _existingRaws;
+      }
+
+      const repoSlug = `${owner}/${slug}`;
+      let url: string | null =
+        `https://api.bitbucket.org/2.0/repositories/${repoSlug}/pullrequests/${prId}/comments?q=deleted=false&pagelen=100`;
+
+      while (url) {
+        const res = await fetch(url, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (!res.ok) break;
+
+        const data = (await res.json()) as { values: any[]; next?: string };
+        for (const c of data.values) {
+          if (c.content?.raw) _existingRaws.push(c.content.raw);
+        }
+        url = data.next || null;
+      }
+
+      console.log(`Danger Bot: ${_existingRaws.length} comentario(s) existente(s) no PR`);
+    } catch (err) {
+      console.warn("Danger Bot: erro ao buscar comentarios:", (err as Error).message);
+    }
+
+    return _existingRaws;
+  })();
+
+  return _fetchPromise;
+}
+
+function extractFingerprint(msg: string): string {
+  for (const line of msg.split("\n")) {
     const cleaned = line
       .replace(/^[-*•]\s*/, "")
       .replace(/^:[\w_]+:\s*/, "")
-      .replace(/^\*\*/g, "")
+      .replace(/\*\*/g, "")
       .trim();
-    if (cleaned.length > 10) return cleaned.slice(0, 120);
+    if (cleaned.length > 15) return cleaned.slice(0, 100);
   }
   return "";
 }
 
-function alreadyCommented(msg: string, file?: string, line?: number): boolean {
-  const existing = loadExistingComments();
-  if (existing.size === 0) return false;
+async function alreadyCommented(msg: string): Promise<boolean> {
+  const raws = await fetchExistingRaws();
+  if (raws.length === 0) return false;
 
   const fp = extractFingerprint(msg);
   if (!fp) return false;
 
-  const key = `${file ?? ""}::${line ?? ""}::${fp}`;
-
-  for (const existingKey of existing) {
-    if (existingKey === key) return true;
-    if (
-      file &&
-      existingKey.startsWith(`${file}::${line}::`) &&
-      existingKey.includes(fp.slice(0, 60))
-    )
-      return true;
-  }
-
-  return false;
+  return raws.some((raw) => raw.includes(fp));
 }
 
 /**
@@ -249,9 +262,9 @@ export function getDanger(): ExtendedDangerDSLType {
  * sendMessage("**Total**: 5 arquivos modificados\n- 3 arquivos Dart\n- 2 arquivos YAML");
  * ```
  */
-export function sendMessage(msg: string, file?: string, line?: number): void {
+export async function sendMessage(msg: string, file?: string, line?: number): Promise<void> {
   if (isDuplicate("message", msg, file, line)) return;
-  if (alreadyCommented(msg, file, line)) return;
+  if (await alreadyCommented(msg)) return;
   const formatted = ensureTrailingBreak(msg, file, line);
   const messageFn = (global as any).message || (globalThis as any).message;
   if (messageFn) {
@@ -287,9 +300,9 @@ export function sendMessage(msg: string, file?: string, line?: number): void {
  * sendWarn("⚠️ **Performance**: Evite operações custosas no build()\n\nSugestão: Mova para initState()");
  * ```
  */
-export function sendWarn(msg: string, file?: string, line?: number): void {
+export async function sendWarn(msg: string, file?: string, line?: number): Promise<void> {
   if (isDuplicate("warn", msg, file, line)) return;
-  if (alreadyCommented(msg, file, line)) return;
+  if (await alreadyCommented(msg)) return;
   const formatted = ensureTrailingBreak(msg, file, line);
   const warnFn = (global as any).warn || (globalThis as any).warn;
   if (warnFn) {
@@ -325,9 +338,9 @@ export function sendWarn(msg: string, file?: string, line?: number): void {
  * sendFail("❌ **Segurança**: Dados sensíveis sem criptografia\n\nUse flutter_secure_storage");
  * ```
  */
-export function sendFail(msg: string, file?: string, line?: number): void {
+export async function sendFail(msg: string, file?: string, line?: number): Promise<void> {
   if (isDuplicate("fail", msg, file, line)) return;
-  if (alreadyCommented(msg, file, line)) return;
+  if (await alreadyCommented(msg)) return;
   const formatted = ensureTrailingBreak(msg, file, line);
   const failFn = (global as any).fail || (globalThis as any).fail;
   if (failFn) {

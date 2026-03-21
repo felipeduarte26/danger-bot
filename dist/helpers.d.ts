@@ -144,7 +144,7 @@ export declare function getDanger(): ExtendedDangerDSLType;
  * sendMessage("**Total**: 5 arquivos modificados\n- 3 arquivos Dart\n- 2 arquivos YAML");
  * ```
  */
-export declare function sendMessage(msg: string, file?: string, line?: number): void;
+export declare function sendMessage(msg: string, file?: string, line?: number): Promise<void>;
 /**
  * Envia um aviso (warning) no Pull Request
  *
@@ -169,7 +169,7 @@ export declare function sendMessage(msg: string, file?: string, line?: number): 
  * sendWarn("⚠️ **Performance**: Evite operações custosas no build()\n\nSugestão: Mova para initState()");
  * ```
  */
-export declare function sendWarn(msg: string, file?: string, line?: number): void;
+export declare function sendWarn(msg: string, file?: string, line?: number): Promise<void>;
 /**
  * Envia uma mensagem de erro no Pull Request (falha o build)
  *
@@ -194,7 +194,7 @@ export declare function sendWarn(msg: string, file?: string, line?: number): voi
  * sendFail("❌ **Segurança**: Dados sensíveis sem criptografia\n\nUse flutter_secure_storage");
  * ```
  */
-export declare function sendFail(msg: string, file?: string, line?: number): void;
+export declare function sendFail(msg: string, file?: string, line?: number): Promise<void>;
 /**
  * Envia conteúdo markdown formatado no Pull Request
  *
