@@ -21,7 +21,7 @@ export default createPlugin(
 
     for (const file of files) {
       if (!file.match(/_datasource\.dart$/)) {
-        await sendFail(
+        sendFail(
           `## 🗄️ NOMENCLATURA DE DATASOURCE INCORRETA
 
 Arquivo deve terminar com \`_datasource.dart\`.

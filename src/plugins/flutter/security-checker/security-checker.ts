@@ -28,7 +28,7 @@ export default createPlugin(
 
         for (const pattern of apiKeyPatterns) {
           if (fileText.match(pattern)) {
-            await sendFail(
+            sendFail(
               `## 🔒 SEGURANÇA - API KEY HARDCODED
 
 API Key detectada no código fonte!
@@ -100,7 +100,7 @@ Proteger **credenciais** e evitar **vazamentos de segurança**.
 
         // Detectar eval()
         if (fileText.includes("eval(")) {
-          await sendFail(
+          sendFail(
             `## 🔒 SEGURANÇA - USO DE EVAL()
 
 Uso de \`eval()\` detectado - **ALTO RISCO**.

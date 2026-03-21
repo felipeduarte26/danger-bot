@@ -24,7 +24,7 @@ export default createPlugin(
 
         // Verificar se ViewModel usa Repository diretamente
         if (fileText.match(/I\w*Repository\w*\s+\w+/)) {
-          await sendFail(
+          sendFail(
             `## 🎮 VIEWMODEL NÃO PODE USAR REPOSITORY DIRETAMENTE
 
 ViewModel deve depender de **UseCases**, não Repositories.

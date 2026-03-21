@@ -28,11 +28,11 @@ export default createPlugin(
     );
 
     if (dartFiles.length === 0) {
-      await sendMessage("ℹ️ **Flutter Analyze**: Nenhum arquivo Dart alterado para analisar.");
+      sendMessage("ℹ️ **Flutter Analyze**: Nenhum arquivo Dart alterado para analisar.");
       return;
     }
 
-    await sendMessage(`🔍 **Flutter Analyze**: Analisando ${dartFiles.length} arquivo(s)...`);
+    sendMessage(`🔍 **Flutter Analyze**: Analisando ${dartFiles.length} arquivo(s)...`);
 
     try {
       const analyzeCmd = `flutter analyze ${dartFiles.join(" ")} --no-congratulate --fatal-warnings --fatal-infos`;

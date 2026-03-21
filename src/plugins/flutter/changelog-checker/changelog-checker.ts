@@ -35,7 +35,7 @@ export default createPlugin(
     });
 
     if (significantChanges.length > 0 && !changelogModified) {
-      await sendWarn(
+      sendWarn(
         `**CHANGELOG não atualizado**
 
 Este PR modifica **${significantChanges.length} arquivo(s) de código**.

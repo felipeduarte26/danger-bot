@@ -80,8 +80,6 @@ exports.getPRDescription = getPRDescription;
 exports.getPRTitle = getPRTitle;
 exports.getLinesChanged = getLinesChanged;
 const _sentMessages = new Set();
-let _existingRaws = null;
-let _fetchPromise = null;
 function dedupKey(type, msg, file, line) {
   return `${type}::${file ?? ""}::${line ?? ""}::${msg}`;
 }
@@ -94,71 +92,6 @@ function isDuplicate(type, msg, file, line) {
 function ensureTrailingBreak(msg, file, line) {
   if (!file || line === undefined) return msg;
   return msg.trimEnd() + "\n\n&#8203;";
-}
-function isBitbucketCloud() {
-  return !!(
-    process.env.DANGER_BITBUCKETCLOUD_REPO_ACCESSTOKEN ||
-    process.env.DANGER_BITBUCKETCLOUD_OAUTH_KEY ||
-    process.env.DANGER_BITBUCKETCLOUD_USERNAME
-  );
-}
-/**
- * Busca comentarios existentes do PR via API do Bitbucket Cloud.
- * So executa no Bitbucket Cloud (onde o Danger tem bug de duplicatas).
- * No GitHub/GitLab/BB Server, retorna array vazio (Danger gerencia corretamente).
- */
-async function fetchExistingRaws() {
-  if (_existingRaws) return _existingRaws;
-  if (_fetchPromise) return _fetchPromise;
-  _fetchPromise = (async () => {
-    _existingRaws = [];
-    if (!isBitbucketCloud()) return _existingRaws;
-    try {
-      const token = process.env.DANGER_BITBUCKETCLOUD_REPO_ACCESSTOKEN;
-      const owner = process.env.BITRISEIO_GIT_REPOSITORY_OWNER;
-      const slug = process.env.BITRISEIO_GIT_REPOSITORY_SLUG;
-      const prId = process.env.BITRISE_PULL_REQUEST;
-      if (!token || !owner || !slug || !prId) {
-        return _existingRaws;
-      }
-      const repoSlug = `${owner}/${slug}`;
-      let url = `https://api.bitbucket.org/2.0/repositories/${repoSlug}/pullrequests/${prId}/comments?q=deleted=false&pagelen=100`;
-      while (url) {
-        const res = await fetch(url, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) break;
-        const data = await res.json();
-        for (const c of data.values) {
-          if (c.content?.raw) _existingRaws.push(c.content.raw);
-        }
-        url = data.next || null;
-      }
-      console.log(`Danger Bot: ${_existingRaws.length} comentario(s) existente(s) no PR`);
-    } catch (err) {
-      console.warn("Danger Bot: erro ao buscar comentarios:", err.message);
-    }
-    return _existingRaws;
-  })();
-  return _fetchPromise;
-}
-function extractFingerprint(msg) {
-  for (const line of msg.split("\n")) {
-    const cleaned = line
-      .replace(/^[-*•]\s*/, "")
-      .replace(/^:[\w_]+:\s*/, "")
-      .replace(/\*\*/g, "")
-      .trim();
-    if (cleaned.length > 15) return cleaned.slice(0, 100);
-  }
-  return "";
-}
-async function alreadyCommented(msg) {
-  const raws = await fetchExistingRaws();
-  if (raws.length === 0) return false;
-  const fp = extractFingerprint(msg);
-  if (!fp) return false;
-  return raws.some((raw) => raw.includes(fp));
 }
 // ============================================================================
 // DANGER CORE
@@ -231,9 +164,8 @@ function getDanger() {
  * sendMessage("**Total**: 5 arquivos modificados\n- 3 arquivos Dart\n- 2 arquivos YAML");
  * ```
  */
-async function sendMessage(msg, file, line) {
+function sendMessage(msg, file, line) {
   if (isDuplicate("message", msg, file, line)) return;
-  if (await alreadyCommented(msg)) return;
   const formatted = ensureTrailingBreak(msg, file, line);
   const messageFn = global.message || globalThis.message;
   if (messageFn) {
@@ -268,9 +200,8 @@ async function sendMessage(msg, file, line) {
  * sendWarn("⚠️ **Performance**: Evite operações custosas no build()\n\nSugestão: Mova para initState()");
  * ```
  */
-async function sendWarn(msg, file, line) {
+function sendWarn(msg, file, line) {
   if (isDuplicate("warn", msg, file, line)) return;
-  if (await alreadyCommented(msg)) return;
   const formatted = ensureTrailingBreak(msg, file, line);
   const warnFn = global.warn || globalThis.warn;
   if (warnFn) {
@@ -305,9 +236,8 @@ async function sendWarn(msg, file, line) {
  * sendFail("❌ **Segurança**: Dados sensíveis sem criptografia\n\nUse flutter_secure_storage");
  * ```
  */
-async function sendFail(msg, file, line) {
+function sendFail(msg, file, line) {
   if (isDuplicate("fail", msg, file, line)) return;
-  if (await alreadyCommented(msg)) return;
   const formatted = ensureTrailingBreak(msg, file, line);
   const failFn = global.fail || globalThis.fail;
   if (failFn) {

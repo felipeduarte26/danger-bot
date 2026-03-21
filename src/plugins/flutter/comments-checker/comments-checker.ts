@@ -25,7 +25,7 @@ export default createPlugin(
 
           // Detectar comentário // (mas não ///)
           if (line.match(/^\/\/(?!\/)/)) {
-            await sendFail(
+            sendFail(
               `## 💬 COMENTÁRIO // PROIBIDO
 
 Comentário \`//\` encontrado na linha ${i + 1}.

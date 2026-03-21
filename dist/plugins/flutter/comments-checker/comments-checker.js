@@ -23,7 +23,7 @@ exports.default = (0, _types_1.createPlugin)(
           const line = lines[i].trim();
           // Detectar comentário // (mas não ///)
           if (line.match(/^\/\/(?!\/)/)) {
-            await (0, _types_1.sendFail)(
+            (0, _types_1.sendFail)(
               `## 💬 COMENTÁRIO // PROIBIDO
 
 Comentário \`//\` encontrado na linha ${i + 1}.

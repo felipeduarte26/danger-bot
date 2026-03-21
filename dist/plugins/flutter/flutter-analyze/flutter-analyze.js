@@ -74,12 +74,12 @@ exports.default = (0, _types_1.createPlugin)(
         fs.existsSync(file) // Arquivo existe
     );
     if (dartFiles.length === 0) {
-      await (0, _types_1.sendMessage)(
+      (0, _types_1.sendMessage)(
         "ℹ️ **Flutter Analyze**: Nenhum arquivo Dart alterado para analisar."
       );
       return;
     }
-    await (0, _types_1.sendMessage)(
+    (0, _types_1.sendMessage)(
       `🔍 **Flutter Analyze**: Analisando ${dartFiles.length} arquivo(s)...`
     );
     try {

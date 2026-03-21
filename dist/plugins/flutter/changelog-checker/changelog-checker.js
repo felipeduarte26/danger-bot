@@ -29,7 +29,7 @@ exports.default = (0, _types_1.createPlugin)(
       return file.match(/\.(dart|ts|js|tsx|jsx)$/);
     });
     if (significantChanges.length > 0 && !changelogModified) {
-      await (0, _types_1.sendWarn)(
+      (0, _types_1.sendWarn)(
         `**CHANGELOG não atualizado**
 
 Este PR modifica **${significantChanges.length} arquivo(s) de código**.

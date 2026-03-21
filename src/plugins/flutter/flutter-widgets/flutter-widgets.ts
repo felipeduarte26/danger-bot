@@ -39,7 +39,7 @@ export default createPlugin(
           });
 
           if (firstNonOverrideLine > 0 && lastOverrideLine > firstNonOverrideLine) {
-            await sendFail(
+            sendFail(
               `## 📱 ORDEM DE FUNÇÕES INCORRETA
 
 Funções @override devem vir primeiro.

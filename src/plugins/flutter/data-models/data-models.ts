@@ -18,7 +18,7 @@ export default createPlugin(
 
     for (const file of files) {
       if (!file.match(/_model\.dart$/)) {
-        await sendFail(
+        sendFail(
           `## 📦 NOMENCLATURA DE MODEL INCORRETA
 
 Arquivo deve terminar com \`_model.dart\`.

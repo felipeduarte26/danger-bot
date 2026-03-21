@@ -60,8 +60,6 @@
 import type { DangerDSLType, GitDSL } from "danger";
 
 const _sentMessages = new Set<string>();
-let _existingRaws: string[] | null = null;
-let _fetchPromise: Promise<string[]> | null = null;
 
 function dedupKey(type: string, msg: string, file?: string, line?: number): string {
   return `${type}::${file ?? ""}::${line ?? ""}::${msg}`;
@@ -77,89 +75,6 @@ function isDuplicate(type: string, msg: string, file?: string, line?: number): b
 function ensureTrailingBreak(msg: string, file?: string, line?: number): string {
   if (!file || line === undefined) return msg;
   return msg.trimEnd() + "\n\n&#8203;";
-}
-
-function isBitbucketCloud(): boolean {
-  return !!(
-    process.env.DANGER_BITBUCKETCLOUD_REPO_ACCESSTOKEN ||
-    process.env.DANGER_BITBUCKETCLOUD_OAUTH_KEY ||
-    process.env.DANGER_BITBUCKETCLOUD_USERNAME
-  );
-}
-
-/**
- * Busca comentarios existentes do PR via API do Bitbucket Cloud.
- * So executa no Bitbucket Cloud (onde o Danger tem bug de duplicatas).
- * No GitHub/GitLab/BB Server, retorna array vazio (Danger gerencia corretamente).
- */
-async function fetchExistingRaws(): Promise<string[]> {
-  if (_existingRaws) return _existingRaws;
-  if (_fetchPromise) return _fetchPromise;
-
-  _fetchPromise = (async () => {
-    _existingRaws = [];
-
-    if (!isBitbucketCloud()) return _existingRaws;
-
-    try {
-      const token = process.env.DANGER_BITBUCKETCLOUD_REPO_ACCESSTOKEN;
-      const owner = process.env.BITRISEIO_GIT_REPOSITORY_OWNER;
-      const slug = process.env.BITRISEIO_GIT_REPOSITORY_SLUG;
-      const prId = process.env.BITRISE_PULL_REQUEST;
-
-      if (!token || !owner || !slug || !prId) {
-        return _existingRaws;
-      }
-
-      const repoSlug = `${owner}/${slug}`;
-      let url: string | null =
-        `https://api.bitbucket.org/2.0/repositories/${repoSlug}/pullrequests/${prId}/comments?q=deleted=false&pagelen=100`;
-
-      while (url) {
-        const res = await fetch(url, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        if (!res.ok) break;
-
-        const data = (await res.json()) as { values: any[]; next?: string };
-        for (const c of data.values) {
-          if (c.content?.raw) _existingRaws.push(c.content.raw);
-        }
-        url = data.next || null;
-      }
-
-      console.log(`Danger Bot: ${_existingRaws.length} comentario(s) existente(s) no PR`);
-    } catch (err) {
-      console.warn("Danger Bot: erro ao buscar comentarios:", (err as Error).message);
-    }
-
-    return _existingRaws;
-  })();
-
-  return _fetchPromise;
-}
-
-function extractFingerprint(msg: string): string {
-  for (const line of msg.split("\n")) {
-    const cleaned = line
-      .replace(/^[-*•]\s*/, "")
-      .replace(/^:[\w_]+:\s*/, "")
-      .replace(/\*\*/g, "")
-      .trim();
-    if (cleaned.length > 15) return cleaned.slice(0, 100);
-  }
-  return "";
-}
-
-async function alreadyCommented(msg: string): Promise<boolean> {
-  const raws = await fetchExistingRaws();
-  if (raws.length === 0) return false;
-
-  const fp = extractFingerprint(msg);
-  if (!fp) return false;
-
-  return raws.some((raw) => raw.includes(fp));
 }
 
 /**
@@ -262,9 +177,8 @@ export function getDanger(): ExtendedDangerDSLType {
  * sendMessage("**Total**: 5 arquivos modificados\n- 3 arquivos Dart\n- 2 arquivos YAML");
  * ```
  */
-export async function sendMessage(msg: string, file?: string, line?: number): Promise<void> {
+export function sendMessage(msg: string, file?: string, line?: number): void {
   if (isDuplicate("message", msg, file, line)) return;
-  if (await alreadyCommented(msg)) return;
   const formatted = ensureTrailingBreak(msg, file, line);
   const messageFn = (global as any).message || (globalThis as any).message;
   if (messageFn) {
@@ -300,9 +214,8 @@ export async function sendMessage(msg: string, file?: string, line?: number): Pr
  * sendWarn("⚠️ **Performance**: Evite operações custosas no build()\n\nSugestão: Mova para initState()");
  * ```
  */
-export async function sendWarn(msg: string, file?: string, line?: number): Promise<void> {
+export function sendWarn(msg: string, file?: string, line?: number): void {
   if (isDuplicate("warn", msg, file, line)) return;
-  if (await alreadyCommented(msg)) return;
   const formatted = ensureTrailingBreak(msg, file, line);
   const warnFn = (global as any).warn || (globalThis as any).warn;
   if (warnFn) {
@@ -338,9 +251,8 @@ export async function sendWarn(msg: string, file?: string, line?: number): Promi
  * sendFail("❌ **Segurança**: Dados sensíveis sem criptografia\n\nUse flutter_secure_storage");
  * ```
  */
-export async function sendFail(msg: string, file?: string, line?: number): Promise<void> {
+export function sendFail(msg: string, file?: string, line?: number): void {
   if (isDuplicate("fail", msg, file, line)) return;
-  if (await alreadyCommented(msg)) return;
   const formatted = ensureTrailingBreak(msg, file, line);
   const failFn = (global as any).fail || (globalThis as any).fail;
   if (failFn) {

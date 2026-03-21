@@ -21,7 +21,7 @@ export default createPlugin(
 
     for (const file of files) {
       if (!file.match(/_repository\.dart$/)) {
-        await sendFail(
+        sendFail(
           `## 🏪 NOMENCLATURA DE REPOSITORY INCORRETA
 
 Arquivo deve terminar com \`_repository.dart\` (implementação, não interface).

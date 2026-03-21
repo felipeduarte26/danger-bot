@@ -23,7 +23,7 @@ exports.default = (0, _types_1.createPlugin)(
         const fileText = content.chunks.map((c) => c.content).join("\n");
         // Verificar se ViewModel usa Repository diretamente
         if (fileText.match(/I\w*Repository\w*\s+\w+/)) {
-          await (0, _types_1.sendFail)(
+          (0, _types_1.sendFail)(
             `## 🎮 VIEWMODEL NÃO PODE USAR REPOSITORY DIRETAMENTE
 
 ViewModel deve depender de **UseCases**, não Repositories.

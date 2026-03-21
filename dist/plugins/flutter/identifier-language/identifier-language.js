@@ -551,7 +551,7 @@ exports.default = (0, _types_1.createPlugin)(
       const key = `${m.file}::${m.line}::${m.identifier}`;
       if (seen.has(key)) continue;
       seen.add(key);
-      await (0, _types_1.sendFail)(
+      (0, _types_1.sendFail)(
         `IDENTIFICADOR EM PORTUGUÊS
 
 \`${m.identifier}\` (${m.kind}) — palavras: **${m.ptWords.join(", ")}**

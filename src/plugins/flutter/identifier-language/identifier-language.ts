@@ -522,7 +522,7 @@ export default createPlugin(
       if (seen.has(key)) continue;
       seen.add(key);
 
-      await sendFail(
+      sendFail(
         `IDENTIFICADOR EM PORTUGUÊS
 
 \`${m.identifier}\` (${m.kind}) — palavras: **${m.ptWords.join(", ")}**

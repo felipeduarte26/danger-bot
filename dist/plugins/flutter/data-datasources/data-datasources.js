@@ -20,7 +20,7 @@ exports.default = (0, _types_1.createPlugin)(
       );
     for (const file of files) {
       if (!file.match(/_datasource\.dart$/)) {
-        await (0, _types_1.sendFail)(
+        (0, _types_1.sendFail)(
           `## 🗄️ NOMENCLATURA DE DATASOURCE INCORRETA
 
 Arquivo deve terminar com \`_datasource.dart\`.

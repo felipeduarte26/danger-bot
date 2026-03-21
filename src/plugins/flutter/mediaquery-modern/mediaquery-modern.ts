@@ -21,7 +21,7 @@ export default createPlugin(
 
         // Detectar MediaQuery.of(context).size DEPRECATED
         if (fileText.match(/MediaQuery\.of\(context\)\.size/)) {
-          await sendFail(
+          sendFail(
             `## 📱 MEDIAQUERY DEPRECATED
 
 Uso de \`MediaQuery.of(context).size\` **deprecated**.

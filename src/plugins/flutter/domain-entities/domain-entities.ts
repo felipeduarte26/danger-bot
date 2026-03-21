@@ -30,7 +30,7 @@ export default createPlugin(
       // Verificar nomenclatura do arquivo
       if (!file.match(/_entity\.dart$/)) {
         const baseName = file.split("/").pop()?.replace(".dart", "") || "";
-        await sendFail(
+        sendFail(
           `**🏛️ Nomenclatura de entity incorreta**
 
 ---
@@ -60,7 +60,7 @@ ${baseName}_entity.dart
           // Verificar se classe termina com Entity
           const classMatch = fileText.match(/(?:final\s+)?class\s+(\w+)/);
           if (classMatch && !classMatch[1].endsWith("Entity")) {
-            await sendFail(
+            sendFail(
               `## 🏛️ CLASSE ENTITY SEM SUFIXO
 
 **Arquivo:** \`${file}\`
@@ -97,7 +97,7 @@ Identificar facilmente entities na camada Domain.`
 
           // Verificar se é final class
           if (!fileText.match(/final\s+class\s+\w+Entity/)) {
-            await sendFail(
+            sendFail(
               `ENTITY DEVE SER FINAL CLASS
 
 **Arquivo:** \`${file}\`

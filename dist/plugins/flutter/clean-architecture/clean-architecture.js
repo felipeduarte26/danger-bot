@@ -22,7 +22,7 @@ exports.default = (0, _types_1.createPlugin)(
         // Domain não pode importar Data ou Presentation
         if (file.includes("/domain/")) {
           if (fileText.match(/import.*\/data\//)) {
-            await (0, _types_1.sendFail)(
+            (0, _types_1.sendFail)(
               `## 🏛️ VIOLAÇÃO CLEAN ARCHITECTURE - DOMAIN → DATA
 
 Domain Layer **não pode** importar Data Layer.
@@ -53,7 +53,7 @@ Manter **independência** da Domain Layer.`,
             );
           }
           if (fileText.match(/import.*\/presentation\//)) {
-            await (0, _types_1.sendFail)(
+            (0, _types_1.sendFail)(
               `## 🏛️ VIOLAÇÃO CLEAN ARCHITECTURE - DOMAIN → PRESENTATION
 
 Domain Layer **não pode** importar Presentation Layer.
@@ -70,7 +70,7 @@ Remova imports de arquivos da pasta /presentation/.`,
         // Data não pode importar Presentation
         if (file.includes("/data/")) {
           if (fileText.match(/import.*\/presentation\//)) {
-            await (0, _types_1.sendFail)(
+            (0, _types_1.sendFail)(
               `## 🏪 VIOLAÇÃO CLEAN ARCHITECTURE - DATA → PRESENTATION
 
 Data Layer **não pode** importar Presentation Layer.
@@ -92,7 +92,7 @@ Remova imports de arquivos da pasta /presentation/.`,
         // Presentation não pode importar Data diretamente (deve usar Domain)
         if (file.includes("/presentation/") && file.match(/_viewmodel\.dart$/)) {
           if (fileText.match(/I\w*Repository/)) {
-            await (0, _types_1.sendFail)(
+            (0, _types_1.sendFail)(
               `## 🎨 VIOLAÇÃO - VIEWMODEL USA REPOSITORY
 
 ViewModel deve usar **UseCases**, não Repositories.

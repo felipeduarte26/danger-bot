@@ -20,7 +20,7 @@ exports.default = (0, _types_1.createPlugin)(
         const fileText = content.chunks.map((c) => c.content).join("\n");
         // Detectar MediaQuery.of(context).size DEPRECATED
         if (fileText.match(/MediaQuery\.of\(context\)\.size/)) {
-          await (0, _types_1.sendFail)(
+          (0, _types_1.sendFail)(
             `## 📱 MEDIAQUERY DEPRECATED
 
 Uso de \`MediaQuery.of(context).size\` **deprecated**.

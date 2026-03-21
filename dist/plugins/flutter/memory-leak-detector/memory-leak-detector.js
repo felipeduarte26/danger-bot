@@ -21,7 +21,7 @@ exports.default = (0, _types_1.createPlugin)(
         // Detectar Controllers sem dispose
         if (fileText.match(/\w+Controller\s+\w+/) && fileText.includes("State<")) {
           if (!fileText.includes("dispose()") || !fileText.includes(".dispose()")) {
-            await (0, _types_1.sendFail)(
+            (0, _types_1.sendFail)(
               `## 💧 VAZAMENTO DE MEMÓRIA - CONTROLLER SEM DISPOSE
 
 Controller detectado mas sem \`dispose()\` correspondente.
@@ -85,7 +85,7 @@ Prevenir **vazamentos de memória** e manter app **performático**.
         // Detectar Timer sem cancel
         if (fileText.includes("Timer.periodic") || fileText.includes("Timer(")) {
           if (!fileText.includes(".cancel()")) {
-            await (0, _types_1.sendWarn)(
+            (0, _types_1.sendWarn)(
               `## 💧 VAZAMENTO - TIMER SEM CANCEL
 
 Timer detectado sem \`.cancel()\` correspondente.
@@ -129,7 +129,7 @@ class MyState extends State<MyWidget> {
         // Detectar StreamSubscription sem cancel
         if (fileText.includes("StreamSubscription")) {
           if (!fileText.includes(".cancel()")) {
-            await (0, _types_1.sendWarn)(
+            (0, _types_1.sendWarn)(
               `## 💧 VAZAMENTO - STREAM SEM CANCEL
 
 StreamSubscription sem \`.cancel()\`.

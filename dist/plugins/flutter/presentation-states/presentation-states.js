@@ -22,7 +22,7 @@ exports.default = (0, _types_1.createPlugin)(
         if (!content) continue;
         const fileText = content.chunks.map((c) => c.content).join("\n");
         if (!fileText.match(/sealed\s+class\s+\w+State/)) {
-          await (0, _types_1.sendFail)(
+          (0, _types_1.sendFail)(
             `## 🎨 STATE DEVE SER SEALED CLASS
 
 Primeira classe do state deve ser \`sealed class\`.

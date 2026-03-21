@@ -28,7 +28,7 @@ exports.default = (0, _types_1.createPlugin)(
     for (const file of usecaseFiles) {
       // Verificar nomenclatura
       if (!file.match(/_usecase\.dart$/)) {
-        await (0, _types_1.sendFail)(
+        (0, _types_1.sendFail)(
           `## ⚡ NOMENCLATURA DE USECASE INCORRETA
 
 O arquivo deve terminar com \`_usecase.dart\`.
@@ -65,7 +65,7 @@ Identificar **usecases** facilmente no projeto.`,
         const fileText = content.chunks.map((c) => c.content).join("\n");
         // Verificar sufixo UseCase (não Usecase)
         if (fileText.match(/class\s+\w+Usecase(?!ase)\b/)) {
-          await (0, _types_1.sendFail)(
+          (0, _types_1.sendFail)(
             `## ⚡ SUFIXO USECASE INCORRETO
 
 UseCase deve ter sufixo \`UseCase\` (com 'C' maiúsculo), não \`Usecase\`.
@@ -99,7 +99,7 @@ Manter **PascalCase** correto para nomes compostos.`,
         }
         // Verificar uso de extends ao invés de implements
         if (fileText.match(/final\s+class\s+\w*UseCase\s+extends\s+I\w+/)) {
-          await (0, _types_1.sendFail)(
+          (0, _types_1.sendFail)(
             `## ⚡ USECASE COM EXTENDS INCORRETO
 
 UseCase deve usar \`implements\`, não \`extends\`.
@@ -151,7 +151,7 @@ Usar corretamente **herança** vs **implementação** de interfaces.`,
         const hasInterface = fileText.match(/abstract\s+interface\s+class\s+I\w+UseCase/);
         const hasImplementation = fileText.match(/final\s+class\s+\w+UseCase\s+implements/);
         if (!hasInterface) {
-          await (0, _types_1.sendFail)(
+          (0, _types_1.sendFail)(
             `## ⚡ USECASE SEM INTERFACE
 
 Arquivo deve ter uma interface \`abstract interface class INomeUseCase\`.
@@ -198,7 +198,7 @@ Permitir **injeção de dependência** e **testes** eficientes.`,
           );
         }
         if (!hasImplementation) {
-          await (0, _types_1.sendFail)(
+          (0, _types_1.sendFail)(
             `## ⚡ USECASE SEM IMPLEMENTAÇÃO
 
 Arquivo deve ter implementação \`final class NomeUseCase implements INomeUseCase\`.

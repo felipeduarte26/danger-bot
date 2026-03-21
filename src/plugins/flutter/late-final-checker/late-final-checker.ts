@@ -22,7 +22,7 @@ export default createPlugin(
         // Detectar late final sem inicialização
         const lateMatches = fileText.matchAll(/late\s+final\s+(\w+)\s+(\w+);/g);
         for (const match of lateMatches) {
-          await sendWarn(
+          sendWarn(
             `## ⚠️ USO DE LATE FINAL DETECTADO
 
 Uso de \`late final\` encontrado: \`${match[0]}\`

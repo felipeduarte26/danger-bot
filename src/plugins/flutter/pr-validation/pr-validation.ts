@@ -25,7 +25,7 @@ export default createPlugin(
     const prDescription = danger.github?.pr?.body || danger.bitbucket_cloud?.pr?.description || "";
 
     if (prDescription.length < minDescriptionLength) {
-      await sendFail(
+      sendFail(
         `## 📝 Descrição do PR muito curta
 
 A descrição tem apenas ${prDescription.length} caracteres (mínimo: ${minDescriptionLength}).
@@ -93,7 +93,7 @@ Usuários com emails longos não conseguiam fazer login.
         });
 
         if (!hasChangelog) {
-          await sendFail(
+          sendFail(
             `## 📋 Changelog não encontrado
 
 Este projeto não possui um arquivo \`changelog.md\` na raiz.
@@ -138,7 +138,7 @@ Sem changelog, fica difícil:
             1
           );
         } else {
-          await sendFail(
+          sendFail(
             `Changelog não foi atualizado
 
 O arquivo \`changelog.md\` existe, mas não foi modificado nesta PR.
@@ -187,7 +187,7 @@ Cada PR deve documentar suas mudanças para manter o histórico claro.
     const pubspecLockChanged = git.modified_files.includes("pubspec.lock");
 
     if (pubspecLockChanged && !pubspecYamlChanged) {
-      await sendFail(
+      sendFail(
         `## 📦 pubspec.lock modificado sem pubspec.yaml
 
 O \`pubspec.lock\` foi alterado mas o \`pubspec.yaml\` não.
@@ -235,7 +235,7 @@ git push
 
     if (dartFiles.length > maxDartFiles) {
       const suggestedPRs = Math.ceil(dartFiles.length / 40);
-      await sendWarn(
+      sendWarn(
         `## 🚨 PR CRÍTICA - MUITOS ARQUIVOS DART
 
 Esta PR alterou **${dartFiles.length} arquivos .dart**!
@@ -306,15 +306,15 @@ Facilitar **code review** de qualidade e reduzir **riscos de bugs**.
 > **Regra de ouro:** PRs menores = revisões melhores = menos bugs em produção!`
       );
     } else if (dartFiles.length > 80) {
-      await sendWarn(
+      sendWarn(
         `## ⚠️ PR GRANDE\n\nEsta PR alterou **${dartFiles.length} arquivos .dart**. PRs menores (30-40 arquivos) facilitam revisões mais detalhadas.`
       );
     } else if (dartFiles.length > 60) {
-      await sendMessage(
+      sendMessage(
         `## 📏 PR MÉDIA-GRANDE\n\nEsta PR alterou **${dartFiles.length} arquivos .dart**. Está no limite aceitável, mas PRs menores são preferíveis.`
       );
     } else if (dartFiles.length > 0) {
-      await sendMessage(
+      sendMessage(
         `## ✅ Tamanho Ideal de PR\n\n**${dartFiles.length} arquivo(s) .dart** alterado(s) - excelente tamanho para revisão! 🎉`
       );
     }
@@ -328,25 +328,23 @@ Facilitar **code review** de qualidade e reduzir **riscos de bugs**.
 
     // Se não há linhas alteradas mas há arquivos criados, considerar as linhas
     if (linesChanged === 0 && totalFiles === 0) {
-      await sendMessage("ℹ️ Nenhuma linha de código alterada nesta PR");
+      sendMessage("ℹ️ Nenhuma linha de código alterada nesta PR");
     } else if (linesChanged === 0 && totalFiles > 0) {
-      await sendMessage(
-        `ℹ️ **${totalFiles} arquivo(s) alterado(s)** (arquivos vazios ou binários)`
-      );
+      sendMessage(`ℹ️ **${totalFiles} arquivo(s) alterado(s)** (arquivos vazios ou binários)`);
     } else if (linesChanged <= 80) {
-      await sendMessage(
+      sendMessage(
         `✅ **Ótimo**: PR pequeno e focado (**${linesChanged} linhas** em ${totalFiles} arquivo(s))`
       );
     } else if (linesChanged <= 200) {
-      await sendMessage(
+      sendMessage(
         `👍 **Bom**: PR de tamanho médio (**${linesChanged} linhas** em ${totalFiles} arquivo(s))`
       );
     } else if (linesChanged <= 600) {
-      await sendWarn(
+      sendWarn(
         `⚠️ **Atenção**: PR grande (**${linesChanged} linhas** em ${totalFiles} arquivo(s)). Considere quebrar em PRs menores.`
       );
     } else {
-      await sendWarn(
+      sendWarn(
         `🚨 **PR Muito Grande**: **${linesChanged} linhas** em ${totalFiles} arquivo(s)! Forte recomendação de quebrar em múltiplos PRs menores.`
       );
     }

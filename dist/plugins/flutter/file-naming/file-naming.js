@@ -27,7 +27,7 @@ exports.default = (0, _types_1.createPlugin)(
           .toLowerCase()
           .replace(/^_/, "")
           .replace(/_+/g, "_");
-        await (0, _types_1.sendFail)(
+        (0, _types_1.sendFail)(
           `## 📁 NOMENCLATURA DE ARQUIVO INCORRETA
 
 O arquivo \`${file}\` **não segue** a convenção de nomenclatura do Dart.

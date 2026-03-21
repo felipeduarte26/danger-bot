@@ -29,7 +29,7 @@ export default createPlugin(
         if (buildMatch) {
           const buildContent = buildMatch[1];
           if (buildContent.match(/\.sort\(|\.where\(|\.map\(|for\s*\(|while\s*\(/)) {
-            await sendFail(
+            sendFail(
               `## ⚡ OPERAÇÃO CUSTOSA NO BUILD()
 
 Operações custosas detectadas no método build().

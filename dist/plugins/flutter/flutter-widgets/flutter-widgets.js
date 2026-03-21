@@ -36,7 +36,7 @@ exports.default = (0, _types_1.createPlugin)(
             }
           });
           if (firstNonOverrideLine > 0 && lastOverrideLine > firstNonOverrideLine) {
-            await (0, _types_1.sendFail)(
+            (0, _types_1.sendFail)(
               `## 📱 ORDEM DE FUNÇÕES INCORRETA
 
 Funções @override devem vir primeiro.

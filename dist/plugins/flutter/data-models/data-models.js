@@ -18,7 +18,7 @@ exports.default = (0, _types_1.createPlugin)(
       .filter((f) => f.match(/\/data\/models\/[^/]+\.dart$/) && !f.endsWith("models.dart"));
     for (const file of files) {
       if (!file.match(/_model\.dart$/)) {
-        await (0, _types_1.sendFail)(
+        (0, _types_1.sendFail)(
           `## 📦 NOMENCLATURA DE MODEL INCORRETA
 
 Arquivo deve terminar com \`_model.dart\`.
