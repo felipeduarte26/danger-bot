@@ -158,12 +158,12 @@ function main() {
       // Traduzir messageForResultWithIssues (original em ingles)
       [
         'exports.messageForResultWithIssues = "".concat(warningEmoji, "  Danger found some issues. Don\'t worry, everything is fixable.");',
-        'exports.messageForResultWithIssues = "".concat(warningEmoji, "  Danger Bot encontrou alguns problemas. Nao se preocupe, tudo pode ser corrigido.");',
+        'exports.messageForResultWithIssues = "".concat(warningEmoji, "  Danger Bot encontrou alguns problemas. Não se preocupe, tudo pode ser corrigido.");',
       ],
       // Traduzir messageForResultWithIssues (versao do patch antigo)
       [
         'exports.messageForResultWithIssues = "".concat(warningEmoji, "  Danger encontrou alguns problemas. Não se preocupe, tudo pode ser corrigido.");',
-        'exports.messageForResultWithIssues = "".concat(warningEmoji, "  Danger Bot encontrou alguns problemas. Nao se preocupe, tudo pode ser corrigido.");',
+        'exports.messageForResultWithIssues = "".concat(warningEmoji, "  Danger Bot encontrou alguns problemas. Não se preocupe, tudo pode ser corrigido.");',
       ],
 
       // Remover mensagem "All green" (varias formas possiveis)
@@ -180,18 +180,9 @@ function main() {
       ['var signatureEmoji = ":no_entry_sign:"', 'var signatureEmoji = ":rocket:"'],
 
       // Inline template: corrigir URL dilettasolutions/danger.systems
-      [
-        'dilettasolutions.com',
-        REPO_URL,
-      ],
-      [
-        'danger.systems/js',
-        REPO_URL,
-      ],
-      [
-        'https://danger.systems',
-        REPO_URL,
-      ],
+      ["dilettasolutions.com", REPO_URL],
+      ["danger.systems/js", REPO_URL],
+      ["https://danger.systems", REPO_URL],
     ],
     "bitbucketCloudTemplate.js"
   );
@@ -203,7 +194,11 @@ function main() {
 
     const oldMainLink = '[](http://".concat((0, exports.dangerIDToString)(dangerID), ")\\n  ");';
     if (content.includes(oldMainLink)) {
-      const newMainLink = `[](\${REPO_URL} "".concat((0, exports.dangerIDToString)(dangerID), "\\")\n  ");`.replace("${REPO_URL}", REPO_URL);
+      const newMainLink =
+        `[](\${REPO_URL} "".concat((0, exports.dangerIDToString)(dangerID), "\\")\n  ");`.replace(
+          "${REPO_URL}",
+          REPO_URL
+        );
       content = content.replace(oldMainLink, newMainLink);
       fs.writeFileSync(bbCloudTemplate, content, "utf8");
       console.log("  ✅ bitbucketCloudTemplate.js: link principal corrigido");
@@ -250,12 +245,12 @@ function main() {
 
       // Traduzir messageForResultWithIssues
       [
-        "exports.messageForResultWithIssues = \"Found some issues. Don't worry, everything is fixable.\";",
-        `exports.messageForResultWithIssues = "${BRAND_NAME} encontrou alguns problemas. Nao se preocupe, tudo pode ser corrigido.";`,
+        'exports.messageForResultWithIssues = "Found some issues. Don\'t worry, everything is fixable.";',
+        `exports.messageForResultWithIssues = "${BRAND_NAME} encontrou alguns problemas. Não se preocupe, tudo pode ser corrigido.";`,
       ],
 
       // Emoji :no_entry_sign: -> :rocket:
-      [':no_entry_sign:', ':rocket:'],
+      [":no_entry_sign:", ":rocket:"],
 
       // Traduzir headers de tabela
       ['"Warnings", "warning"', '"Avisos", "warning"'],
@@ -275,15 +270,16 @@ function main() {
       'return "\\n<!--\\n".concat(buildSummaryMessage(dangerID, results), "\\n").concat((0, exports.fileLineToString)(file, line), "\\n-->\\n")';
 
     if (content.includes(oldGithubInline)) {
-      const newGithubInline =
-        `// DANGER-BOT: Usar link invisivel em vez de <!-- --> (Bitbucket mostra HTML comments como texto)
+      const newGithubInline = `// DANGER-BOT: Usar link invisivel em vez de <!-- --> (Bitbucket mostra HTML comments como texto)
     var signature = "\\n\\n[](${REPO_URL} \\"" + (0, exports.dangerIDToString)(dangerID) + (0, exports.fileLineToString)(file, line) + "\\")";
     return ""`;
 
       content = content.replace(oldGithubInline, newGithubInline);
 
-      const oldGithubInlineEnd = '.concat(results.markdowns.map(function (v) { return v.message; }).join("\\n\\n"), "\\n  ");';
-      const newGithubInlineEnd = '.concat(results.markdowns.map(function (v) { return v.message; }).join("\\n\\n")).replace(/^\\n+/, "").concat(signature, "\\n  ");';
+      const oldGithubInlineEnd =
+        '.concat(results.markdowns.map(function (v) { return v.message; }).join("\\n\\n"), "\\n  ");';
+      const newGithubInlineEnd =
+        '.concat(results.markdowns.map(function (v) { return v.message; }).join("\\n\\n")).replace(/^\\n+/, "").concat(signature, "\\n  ");';
 
       content = content.replace(oldGithubInlineEnd, newGithubInlineEnd);
 
@@ -314,7 +310,7 @@ function main() {
       // Traduzir messageForResultWithIssues
       [
         'exports.messageForResultWithIssues = "".concat(warningEmoji, " Danger found some issues. Don\'t worry, everything is fixable.");',
-        `exports.messageForResultWithIssues = "".concat(warningEmoji, " ${BRAND_NAME} encontrou alguns problemas. Nao se preocupe, tudo pode ser corrigido.");`,
+        `exports.messageForResultWithIssues = "".concat(warningEmoji, " ${BRAND_NAME} encontrou alguns problemas. Não se preocupe, tudo pode ser corrigido.");`,
       ],
     ],
     "bitbucketServerTemplate.js"
@@ -334,10 +330,7 @@ function main() {
         'return "".concat(tick, " All green. Good on \'ya.")',
         'return "" // DANGER-BOT: Mensagem removida',
       ],
-      [
-        'return "All green. ".concat',
-        'return ""; // DANGER-BOT: Mensagem removida //',
-      ],
+      ['return "All green. ".concat', 'return ""; // DANGER-BOT: Mensagem removida //'],
       // Corrigir inlineCommentTemplate: adicionar REPO_ACCESSTOKEN na verificacao
       // Sem isso, inline comments usam template GitHub em vez de Bitbucket Cloud
       [
@@ -358,52 +351,19 @@ function main() {
     bbCloudPlatform,
     [
       // key e url padrao do build status
-      [
-        'key = "danger.systems"',
-        `key = "${BRAND_NAME}"`,
-      ],
-      [
-        'key = "https://dilettasolutions.com"',
-        `key = "${BRAND_NAME}"`,
-      ],
-      [
-        'key = "Danger Bot"',
-        `key = "${BRAND_NAME}"`,
-      ],
-      [
-        'url: url || "https://danger.systems/js"',
-        `url: url || "${REPO_URL}"`,
-      ],
-      [
-        'url: url || "https://dilettasolutions.com"',
-        `url: url || "${REPO_URL}"`,
-      ],
+      ['key = "danger.systems"', `key = "${BRAND_NAME}"`],
+      ['key = "https://dilettasolutions.com"', `key = "${BRAND_NAME}"`],
+      ['key = "Danger Bot"', `key = "${BRAND_NAME}"`],
+      ['url: url || "https://danger.systems/js"', `url: url || "${REPO_URL}"`],
+      ['url: url || "https://dilettasolutions.com"', `url: url || "${REPO_URL}"`],
       // runtimeName no platform
-      [
-        'runtimeName: "dangerJS"',
-        `runtimeName: "${BRAND_NAME}"`,
-      ],
+      ['runtimeName: "dangerJS"', `runtimeName: "${BRAND_NAME}"`],
       // Links danger.systems restantes (http e https)
-      [
-        'https://danger.systems/js',
-        REPO_URL,
-      ],
-      [
-        'http://danger.systems/js',
-        REPO_URL,
-      ],
-      [
-        'https://danger.systems',
-        REPO_URL,
-      ],
-      [
-        'http://danger.systems',
-        REPO_URL,
-      ],
-      [
-        'https://dilettasolutions.com',
-        REPO_URL,
-      ],
+      ["https://danger.systems/js", REPO_URL],
+      ["http://danger.systems/js", REPO_URL],
+      ["https://danger.systems", REPO_URL],
+      ["http://danger.systems", REPO_URL],
+      ["https://dilettasolutions.com", REPO_URL],
     ],
     "BitBucketCloud.js"
   );
@@ -417,10 +377,10 @@ function main() {
   const bbServerPlatformPatched = patchFile(
     bbServerPlatform,
     [
-      ['https://danger.systems/js', REPO_URL],
-      ['http://danger.systems/js', REPO_URL],
-      ['https://danger.systems', REPO_URL],
-      ['https://dilettasolutions.com', REPO_URL],
+      ["https://danger.systems/js", REPO_URL],
+      ["http://danger.systems/js", REPO_URL],
+      ["https://danger.systems", REPO_URL],
+      ["https://dilettasolutions.com", REPO_URL],
       ['runtimeName: "dangerJS"', `runtimeName: "${BRAND_NAME}"`],
       ['key = "danger.systems"', `key = "${BRAND_NAME}"`],
     ],
@@ -436,9 +396,9 @@ function main() {
   const githubAPIPatched = patchFile(
     githubAPI,
     [
-      ['https://danger.systems/js', REPO_URL],
-      ['https://danger.systems', REPO_URL],
-      ['https://dilettasolutions.com', REPO_URL],
+      ["https://danger.systems/js", REPO_URL],
+      ["https://danger.systems", REPO_URL],
+      ["https://dilettasolutions.com", REPO_URL],
       ['runtimeName: "dangerJS"', `runtimeName: "${BRAND_NAME}"`],
     ],
     "GitHubAPI.js"
