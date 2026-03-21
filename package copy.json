@@ -8,18 +8,12 @@
   "bin": {
     "danger-bot": "./bin/cli.js"
   },
-  "files": [
-    "dist",
-    "scripts",
-    "bin",
-    "danger-globals.d.ts",
-    "README.md",
-    "LICENSE"
-  ],
+  "files": ["dist", "scripts", "bin", "danger-globals.d.ts", "README.md", "LICENSE"],
   "scripts": {
     "build": "tsc && tsc-alias",
     "watch": "tsc --watch",
     "prepublishOnly": "npm run build",
+    "postinstall": "node scripts/patch-danger.cjs",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.ts\" \"bin/**/*.js\"",
@@ -73,12 +67,7 @@
     "node": ">=25.2.1"
   },
   "lint-staged": {
-    "*.ts": [
-      "eslint --fix",
-      "prettier --write"
-    ],
-    "*.js": [
-      "prettier --write"
-    ]
+    "*.ts": ["eslint --fix", "prettier --write"],
+    "*.js": ["prettier --write"]
   }
 }
