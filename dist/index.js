@@ -39,6 +39,8 @@ exports.performancePlugins =
   exports.dataLayerPlugins =
   exports.domainLayerPlugins =
   exports.allFlutterPlugins =
+  exports.classNamingConventionPlugin =
+  exports.identifierLanguagePlugin =
   exports.barrelFilesEnforcerPlugin =
   exports.securityCheckerPlugin =
   exports.commentsCheckerPlugin =
@@ -227,8 +229,20 @@ Object.defineProperty(exports, "barrelFilesEnforcerPlugin", {
     return flutter_1.barrelFilesEnforcerPlugin;
   },
 });
+Object.defineProperty(exports, "identifierLanguagePlugin", {
+  enumerable: true,
+  get: function () {
+    return flutter_1.identifierLanguagePlugin;
+  },
+});
+Object.defineProperty(exports, "classNamingConventionPlugin", {
+  enumerable: true,
+  get: function () {
+    return flutter_1.classNamingConventionPlugin;
+  },
+});
 /**
- * All available Flutter plugins in a single array (26 plugins)
+ * All available Flutter plugins in a single array (28 plugins)
  * Use this for quick setup with all plugins enabled
  */
 exports.allFlutterPlugins = [
@@ -260,6 +274,8 @@ exports.allFlutterPlugins = [
   require("./plugins/flutter/comments-checker").default,
   require("./plugins/flutter/security-checker").default,
   require("./plugins/flutter/barrel-files-enforcer").default,
+  require("./plugins/flutter/identifier-language").default,
+  require("./plugins/flutter/class-naming-convention").default,
 ];
 // Export arrays for specific layers/categories
 const flutter_2 = require("./plugins/flutter");
@@ -290,5 +306,7 @@ exports.codeQualityPlugins = [
   flutter_2.commentsCheckerPlugin,
   flutter_2.securityCheckerPlugin,
   flutter_2.barrelFilesEnforcerPlugin,
+  flutter_2.identifierLanguagePlugin,
+  flutter_2.classNamingConventionPlugin,
 ];
 exports.performancePlugins = [flutter_2.flutterPerformancePlugin, flutter_2.mediaqueryModernPlugin];

@@ -10,7 +10,9 @@ var __importDefault =
     return mod && mod.__esModule ? mod : { default: mod };
   };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.barrelFilesEnforcerPlugin =
+exports.classNamingConventionPlugin =
+  exports.identifierLanguagePlugin =
+  exports.barrelFilesEnforcerPlugin =
   exports.securityCheckerPlugin =
   exports.commentsCheckerPlugin =
   exports.mediaqueryModernPlugin =
@@ -220,5 +222,19 @@ Object.defineProperty(exports, "barrelFilesEnforcerPlugin", {
   enumerable: true,
   get: function () {
     return __importDefault(barrel_files_enforcer_1).default;
+  },
+});
+var identifier_language_1 = require("./identifier-language");
+Object.defineProperty(exports, "identifierLanguagePlugin", {
+  enumerable: true,
+  get: function () {
+    return __importDefault(identifier_language_1).default;
+  },
+});
+var class_naming_convention_1 = require("./class-naming-convention");
+Object.defineProperty(exports, "classNamingConventionPlugin", {
+  enumerable: true,
+  get: function () {
+    return __importDefault(class_naming_convention_1).default;
   },
 });

@@ -35,3 +35,5 @@ export { default as mediaqueryModernPlugin } from "./mediaquery-modern";
 export { default as commentsCheckerPlugin } from "./comments-checker";
 export { default as securityCheckerPlugin } from "./security-checker";
 export { default as barrelFilesEnforcerPlugin } from "./barrel-files-enforcer";
+export { default as identifierLanguagePlugin } from "./identifier-language";
+export { default as classNamingConventionPlugin } from "./class-naming-convention";

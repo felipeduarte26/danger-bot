@@ -32,9 +32,11 @@ export {
   commentsCheckerPlugin,
   securityCheckerPlugin,
   barrelFilesEnforcerPlugin,
+  identifierLanguagePlugin,
+  classNamingConventionPlugin,
 } from "./plugins/flutter";
 /**
- * All available Flutter plugins in a single array (26 plugins)
+ * All available Flutter plugins in a single array (28 plugins)
  * Use this for quick setup with all plugins enabled
  */
 export declare const allFlutterPlugins: any[];

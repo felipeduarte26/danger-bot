@@ -23,32 +23,32 @@ exports.default = (0, _types_1.createPlugin)(
     const dartCount = [...git.modified_files, ...git.created_files, ...git.deleted_files].filter(
       (f) => f.endsWith(".dart")
     ).length;
-    const size =
+    const sizeLabel =
       lines === 0
-        ? { icon: "⚪", label: "Sem alterações" }
+        ? "Sem alterações de código"
         : lines <= 80
-          ? { icon: "🟢", label: "Pequena" }
+          ? "PR pequena — ideal para revisão"
           : lines <= 200
-            ? { icon: "🟡", label: "Média" }
+            ? "PR média"
             : lines <= 600
-              ? { icon: "🟠", label: "Grande" }
-              : { icon: "🔴", label: "Muito grande" };
-    const parts = [
-      created > 0 ? `**+${created}** novo(s)` : null,
-      modified > 0 ? `**${modified}** modificado(s)` : null,
-      deleted > 0 ? `**-${deleted}** removido(s)` : null,
+              ? "PR grande — considere dividir"
+              : "PR muito grande — divida em partes menores";
+    const fileDetails = [
+      created > 0 ? `+${created} novo(s)` : null,
+      modified > 0 ? `${modified} modificado(s)` : null,
+      deleted > 0 ? `-${deleted} removido(s)` : null,
     ]
       .filter(Boolean)
-      .join(" · ");
-    (0, _types_1.sendMarkdown)(
-      [
-        `### ${size.icon} PR ${size.label} — ${lines} linhas`,
-        "",
-        `**${total}** arquivo(s): ${parts}${dartCount > 0 ? ` · **${dartCount}** Dart` : ""}`,
-        lines > 0 ? `**+${added}** adições · **-${removed}** remoções` : "",
-      ]
-        .filter((l) => l !== "")
-        .join("\n")
-    );
+      .join(", ");
+    const rows = [
+      `| Métrica | Valor |`,
+      `| :-- | :-- |`,
+      `| **Arquivos** | ${total} (${fileDetails}) |`,
+      dartCount > 0 ? `| **Dart** | ${dartCount} arquivo(s) |` : null,
+      lines > 0 ? `| **Linhas** | +${added} / -${removed} |` : null,
+    ]
+      .filter(Boolean)
+      .join("\n");
+    (0, _types_1.sendMarkdown)([`**${sizeLabel}**`, "", rows].join("\n"));
   }
 );

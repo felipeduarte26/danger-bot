@@ -36,10 +36,12 @@ export {
   commentsCheckerPlugin,
   securityCheckerPlugin,
   barrelFilesEnforcerPlugin,
+  identifierLanguagePlugin,
+  classNamingConventionPlugin,
 } from "./plugins/flutter";
 
 /**
- * All available Flutter plugins in a single array (26 plugins)
+ * All available Flutter plugins in a single array (28 plugins)
  * Use this for quick setup with all plugins enabled
  */
 export const allFlutterPlugins = [
@@ -72,6 +74,8 @@ export const allFlutterPlugins = [
   require("./plugins/flutter/comments-checker").default,
   require("./plugins/flutter/security-checker").default,
   require("./plugins/flutter/barrel-files-enforcer").default,
+  require("./plugins/flutter/identifier-language").default,
+  require("./plugins/flutter/class-naming-convention").default,
 ];
 
 // Export arrays for specific layers/categories
@@ -91,6 +95,8 @@ import {
   commentsCheckerPlugin,
   securityCheckerPlugin,
   barrelFilesEnforcerPlugin,
+  identifierLanguagePlugin,
+  classNamingConventionPlugin,
   flutterPerformancePlugin,
   mediaqueryModernPlugin,
 } from "./plugins/flutter";
@@ -119,6 +125,8 @@ export const codeQualityPlugins = [
   commentsCheckerPlugin,
   securityCheckerPlugin,
   barrelFilesEnforcerPlugin,
+  identifierLanguagePlugin,
+  classNamingConventionPlugin,
 ];
 
 export const performancePlugins = [flutterPerformancePlugin, mediaqueryModernPlugin];

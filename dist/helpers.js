@@ -79,6 +79,16 @@ exports.hasFilesMatching = hasFilesMatching;
 exports.getPRDescription = getPRDescription;
 exports.getPRTitle = getPRTitle;
 exports.getLinesChanged = getLinesChanged;
+const _sentMessages = new Set();
+function dedupKey(type, msg, file, line) {
+  return `${type}::${file ?? ""}::${line ?? ""}::${msg}`;
+}
+function isDuplicate(type, msg, file, line) {
+  const key = dedupKey(type, msg, file, line);
+  if (_sentMessages.has(key)) return true;
+  _sentMessages.add(key);
+  return false;
+}
 // ============================================================================
 // DANGER CORE
 // ============================================================================
@@ -151,6 +161,7 @@ function getDanger() {
  * ```
  */
 function sendMessage(msg, file, line) {
+  if (isDuplicate("message", msg, file, line)) return;
   const messageFn = global.message || globalThis.message;
   if (messageFn) {
     if (file && line !== undefined) {
@@ -185,6 +196,7 @@ function sendMessage(msg, file, line) {
  * ```
  */
 function sendWarn(msg, file, line) {
+  if (isDuplicate("warn", msg, file, line)) return;
   const warnFn = global.warn || globalThis.warn;
   if (warnFn) {
     if (file && line !== undefined) {
@@ -219,6 +231,7 @@ function sendWarn(msg, file, line) {
  * ```
  */
 function sendFail(msg, file, line) {
+  if (isDuplicate("fail", msg, file, line)) return;
   const failFn = global.fail || globalThis.fail;
   if (failFn) {
     if (file && line !== undefined) {
