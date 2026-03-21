@@ -30,7 +30,7 @@ exports.default = (0, _types_1.createPlugin)(
     });
     if (significantChanges.length > 0 && !changelogModified) {
       (0, _types_1.sendWarn)(
-        `📝 **CHANGELOG não atualizado**
+        `**CHANGELOG não atualizado**
 
 Este PR modifica **${significantChanges.length} arquivo(s) de código**.
 

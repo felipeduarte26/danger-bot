@@ -31,54 +31,23 @@ export default createPlugin(
       if (!file.match(/_entity\.dart$/)) {
         const baseName = file.split("/").pop()?.replace(".dart", "") || "";
         sendFail(
-          `## 🏛️ NOMENCLATURA DE ENTITY INCORRETA
+          `**🏛️ Nomenclatura de entity incorreta**
+
+---
 
 **Arquivo:** \`${file}\`
 
-O arquivo deve terminar com \`_entity.dart\`.
-
-### ⚠️ Problema Identificado
-
-Nomenclatura inconsistente dificulta:
-
-- 🔍 Identificação de entities no projeto
-- 📁 Organização da camada Domain
-- 🤝 Entendimento da Clean Architecture
-
-**📍 Nome correto:** \`${baseName}_entity.dart\`
-
-### 🎯 AÇÃO NECESSÁRIA
-
-1. **Renomeie** o arquivo para \`${baseName}_entity.dart\`
-2. **Atualize** todos os imports que referenciam este arquivo
-3. **Verifique** se a classe também segue o padrão
-
-### 💡 Exemplo Correto
+O arquivo deve terminar com \`_entity.dart\`. Renomeie para \`${baseName}_entity.dart\` e atualize os imports.
 
 \`\`\`dart
-// ❌ INCORRETO
-// Arquivo: user.dart
-final class User {
-  final String id;
-  final String name;
-}
+// ❌ Incorreto
+${baseName}.dart
 
-// ✅ CORRETO  
-// Arquivo: user_entity.dart
-final class UserEntity {
-  final String id;
-  final String name;
-  
-  const UserEntity({
-    required this.id,
-    required this.name,
-  });
-}
+// ✅ Correto
+${baseName}_entity.dart
 \`\`\`
 
-### 🚀 Objetivo
-
-Manter **padrões da Clean Architecture** e facilitar identificação de entities.`
+> 💡 Sufixo \`_entity\` facilita identificação na camada Domain.`
         );
       }
 
