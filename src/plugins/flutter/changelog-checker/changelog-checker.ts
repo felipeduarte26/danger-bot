@@ -36,7 +36,7 @@ export default createPlugin(
 
     if (significantChanges.length > 0 && !changelogModified) {
       sendWarn(
-        `📝 **CHANGELOG não atualizado**
+        `**CHANGELOG não atualizado**
 
 Este PR modifica **${significantChanges.length} arquivo(s) de código**.
 
