@@ -57,8 +57,20 @@
  * ```
  */
 
-// Importar tipos do Danger JS para type safety
 import type { DangerDSLType, GitDSL } from "danger";
+
+const _sentMessages = new Set<string>();
+
+function dedupKey(type: string, msg: string, file?: string, line?: number): string {
+  return `${type}::${file ?? ""}::${line ?? ""}::${msg}`;
+}
+
+function isDuplicate(type: string, msg: string, file?: string, line?: number): boolean {
+  const key = dedupKey(type, msg, file, line);
+  if (_sentMessages.has(key)) return true;
+  _sentMessages.add(key);
+  return false;
+}
 
 /**
  * Interface estendida do GitDSL do Danger que inclui propriedades
@@ -161,6 +173,7 @@ export function getDanger(): ExtendedDangerDSLType {
  * ```
  */
 export function sendMessage(msg: string, file?: string, line?: number): void {
+  if (isDuplicate("message", msg, file, line)) return;
   const messageFn = (global as any).message || (globalThis as any).message;
   if (messageFn) {
     if (file && line !== undefined) {
@@ -196,6 +209,7 @@ export function sendMessage(msg: string, file?: string, line?: number): void {
  * ```
  */
 export function sendWarn(msg: string, file?: string, line?: number): void {
+  if (isDuplicate("warn", msg, file, line)) return;
   const warnFn = (global as any).warn || (globalThis as any).warn;
   if (warnFn) {
     if (file && line !== undefined) {
@@ -231,6 +245,7 @@ export function sendWarn(msg: string, file?: string, line?: number): void {
  * ```
  */
 export function sendFail(msg: string, file?: string, line?: number): void {
+  if (isDuplicate("fail", msg, file, line)) return;
   const failFn = (global as any).fail || (globalThis as any).fail;
   if (failFn) {
     if (file && line !== undefined) {
