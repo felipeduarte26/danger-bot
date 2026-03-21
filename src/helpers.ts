@@ -60,6 +60,7 @@
 import type { DangerDSLType, GitDSL } from "danger";
 
 const _sentMessages = new Set<string>();
+let _existingComments: Set<string> | null = null;
 
 function dedupKey(type: string, msg: string, file?: string, line?: number): string {
   return `${type}::${file ?? ""}::${line ?? ""}::${msg}`;
@@ -72,15 +73,80 @@ function isDuplicate(type: string, msg: string, file?: string, line?: number): b
   return false;
 }
 
-/**
- * Mensagens inline que caem no mesmo arquivo+linha sao agrupadas
- * pelo Danger em um unico comentario. Para evitar que o final de
- * uma regra e o inicio da proxima fiquem colados na mesma linha,
- * adicionamos quebras de linha no final de cada mensagem inline.
- */
 function ensureTrailingBreak(msg: string, file?: string, line?: number): string {
   if (!file || line === undefined) return msg;
   return msg.trimEnd() + "\n\n&#8203;";
+}
+
+/**
+ * Carrega comentarios existentes do PR para evitar duplicatas entre execucoes.
+ * Extrai a primeira linha significativa de cada comentario inline e geral
+ * para usar como fingerprint de comparacao.
+ */
+function loadExistingComments(): Set<string> {
+  if (_existingComments) return _existingComments;
+  _existingComments = new Set<string>();
+
+  try {
+    const d = (global as any).danger || (globalThis as any).danger;
+    if (!d) return _existingComments;
+
+    const comments = d.bitbucket_cloud?.comments || d.github?.pr?.comments || [];
+
+    for (const comment of comments) {
+      const raw = comment.content?.raw || comment.body || "";
+      const inline = comment.inline;
+
+      const firstLine = extractFingerprint(raw);
+      if (!firstLine) continue;
+
+      if (inline?.path) {
+        const line = inline.to || inline.from || 0;
+        _existingComments.add(`${inline.path}::${line}::${firstLine}`);
+      } else {
+        _existingComments.add(`::::${firstLine}`);
+      }
+    }
+  } catch {
+    // Se falhar, segue sem cache
+  }
+
+  return _existingComments;
+}
+
+function extractFingerprint(raw: string): string {
+  const lines = raw.split("\n");
+  for (const line of lines) {
+    const cleaned = line
+      .replace(/^[-*•]\s*/, "")
+      .replace(/^:[\w_]+:\s*/, "")
+      .replace(/^\*\*/g, "")
+      .trim();
+    if (cleaned.length > 10) return cleaned.slice(0, 120);
+  }
+  return "";
+}
+
+function alreadyCommented(msg: string, file?: string, line?: number): boolean {
+  const existing = loadExistingComments();
+  if (existing.size === 0) return false;
+
+  const fp = extractFingerprint(msg);
+  if (!fp) return false;
+
+  const key = `${file ?? ""}::${line ?? ""}::${fp}`;
+
+  for (const existingKey of existing) {
+    if (existingKey === key) return true;
+    if (
+      file &&
+      existingKey.startsWith(`${file}::${line}::`) &&
+      existingKey.includes(fp.slice(0, 60))
+    )
+      return true;
+  }
+
+  return false;
 }
 
 /**
@@ -185,6 +251,7 @@ export function getDanger(): ExtendedDangerDSLType {
  */
 export function sendMessage(msg: string, file?: string, line?: number): void {
   if (isDuplicate("message", msg, file, line)) return;
+  if (alreadyCommented(msg, file, line)) return;
   const formatted = ensureTrailingBreak(msg, file, line);
   const messageFn = (global as any).message || (globalThis as any).message;
   if (messageFn) {
@@ -222,6 +289,7 @@ export function sendMessage(msg: string, file?: string, line?: number): void {
  */
 export function sendWarn(msg: string, file?: string, line?: number): void {
   if (isDuplicate("warn", msg, file, line)) return;
+  if (alreadyCommented(msg, file, line)) return;
   const formatted = ensureTrailingBreak(msg, file, line);
   const warnFn = (global as any).warn || (globalThis as any).warn;
   if (warnFn) {
@@ -259,6 +327,7 @@ export function sendWarn(msg: string, file?: string, line?: number): void {
  */
 export function sendFail(msg: string, file?: string, line?: number): void {
   if (isDuplicate("fail", msg, file, line)) return;
+  if (alreadyCommented(msg, file, line)) return;
   const formatted = ensureTrailingBreak(msg, file, line);
   const failFn = (global as any).fail || (globalThis as any).fail;
   if (failFn) {

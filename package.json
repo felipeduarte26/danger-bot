@@ -20,6 +20,7 @@
     "build": "tsc && tsc-alias",
     "watch": "tsc --watch",
     "prepublishOnly": "npm run build",
+    "postinstall": "node scripts/patch-danger.cjs",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.ts\" \"bin/**/*.js\"",
