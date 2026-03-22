@@ -242,6 +242,302 @@ const TECH_WORDS = [
   "basepage",
 ];
 
+const PT_COMMON = new Set([
+  "pessoa",
+  "pessoas",
+  "usuario",
+  "usuarios",
+  "cliente",
+  "clientes",
+  "produto",
+  "produtos",
+  "pedido",
+  "pedidos",
+  "compra",
+  "compras",
+  "venda",
+  "vendas",
+  "pagamento",
+  "pagamentos",
+  "endereco",
+  "enderecos",
+  "cidade",
+  "cidades",
+  "estado",
+  "estados",
+  "empresa",
+  "empresas",
+  "funcionario",
+  "funcionarios",
+  "conta",
+  "contas",
+  "banco",
+  "senha",
+  "senhas",
+  "mensagem",
+  "mensagens",
+  "notificacao",
+  "notificacoes",
+  "configuracao",
+  "configuracoes",
+  "categoria",
+  "categorias",
+  "comentario",
+  "comentarios",
+  "arquivo",
+  "arquivos",
+  "documento",
+  "documentos",
+  "imagem",
+  "imagens",
+  "foto",
+  "fotos",
+  "tarefa",
+  "tarefas",
+  "projeto",
+  "projetos",
+  "equipe",
+  "equipes",
+  "relatorio",
+  "relatorios",
+  "resultado",
+  "resultados",
+  "cadastro",
+  "cadastros",
+  "registro",
+  "registros",
+  "carrinho",
+  "estoque",
+  "fatura",
+  "faturas",
+  "boleto",
+  "boletos",
+  "parcela",
+  "parcelas",
+  "desconto",
+  "descontos",
+  "cupom",
+  "cupons",
+  "entrega",
+  "entregas",
+  "frete",
+  "motorista",
+  "aluno",
+  "alunos",
+  "professor",
+  "professores",
+  "escola",
+  "escolas",
+  "curso",
+  "cursos",
+  "aula",
+  "aulas",
+  "prova",
+  "provas",
+  "nota",
+  "notas",
+  "medico",
+  "medicos",
+  "paciente",
+  "pacientes",
+  "consulta",
+  "consultas",
+  "receita",
+  "receitas",
+  "exame",
+  "exames",
+  "remedio",
+  "carro",
+  "carros",
+  "casa",
+  "casas",
+  "livro",
+  "livros",
+  "jogo",
+  "jogos",
+  "loja",
+  "lojas",
+  "nome",
+  "nomes",
+  "idade",
+  "tipo",
+  "tipos",
+  "valor",
+  "valores",
+  "preco",
+  "precos",
+  "numero",
+  "numeros",
+  "quantidade",
+  "tamanho",
+  "peso",
+  "altura",
+  "cor",
+  "cores",
+  "hora",
+  "horas",
+  "tempo",
+  "titulo",
+  "titulos",
+  "descricao",
+  "texto",
+  "textos",
+  "campo",
+  "campos",
+  "lista",
+  "listas",
+  "grupo",
+  "grupos",
+  "perfil",
+  "nivel",
+  "erro",
+  "erros",
+  "aviso",
+  "avisos",
+  "sucesso",
+  "falha",
+  "falhas",
+  "resposta",
+  "respostas",
+  "requisicao",
+  "servico",
+  "servicos",
+  "repositorio",
+  "tela",
+  "telas",
+  "pagina",
+  "paginas",
+  "botao",
+  "formulario",
+  "tabela",
+  "tabelas",
+  "filial",
+  "filiais",
+  "orcamento",
+  "contrato",
+  "contratos",
+  "fornecedor",
+  "fornecedores",
+  "lote",
+  "lotes",
+  "calcular",
+  "buscar",
+  "salvar",
+  "deletar",
+  "remover",
+  "atualizar",
+  "criar",
+  "listar",
+  "obter",
+  "pegar",
+  "enviar",
+  "receber",
+  "validar",
+  "verificar",
+  "processar",
+  "executar",
+  "carregar",
+  "exibir",
+  "mostrar",
+  "esconder",
+  "ocultar",
+  "abrir",
+  "fechar",
+  "iniciar",
+  "finalizar",
+  "cancelar",
+  "confirmar",
+  "aprovar",
+  "rejeitar",
+  "filtrar",
+  "ordenar",
+  "pesquisar",
+  "cadastrar",
+  "autenticar",
+  "formatar",
+  "converter",
+  "gerar",
+  "imprimir",
+  "copiar",
+  "mover",
+  "adicionar",
+  "inserir",
+  "editar",
+  "alterar",
+  "modificar",
+  "excluir",
+  "apagar",
+  "limpar",
+  "conectar",
+  "desconectar",
+  "sincronizar",
+  "notificar",
+  "selecionar",
+  "marcar",
+  "desmarcar",
+  "habilitar",
+  "desabilitar",
+  "ativar",
+  "desativar",
+  "bloquear",
+  "desbloquear",
+  "preencher",
+  "completar",
+  "ativo",
+  "ativa",
+  "inativo",
+  "inativa",
+  "novo",
+  "nova",
+  "antigo",
+  "antiga",
+  "atual",
+  "principal",
+  "secundario",
+  "publico",
+  "privado",
+  "aberto",
+  "fechado",
+  "disponivel",
+  "obrigatorio",
+  "opcional",
+  "valido",
+  "invalido",
+  "vazio",
+  "grande",
+  "pequeno",
+  "maximo",
+  "minimo",
+  "primeiro",
+  "ultimo",
+  "proximo",
+  "anterior",
+  "padrao",
+  "temporario",
+  "favorito",
+  "selecionado",
+  "logado",
+  "autenticado",
+  "pendente",
+  "aprovado",
+  "rejeitado",
+  "concluido",
+  "cancelado",
+  "por",
+  "para",
+  "com",
+  "sem",
+  "entre",
+  "sobre",
+  "desde",
+  "ate",
+  "dentro",
+  "fora",
+  "antes",
+  "depois",
+  "durante",
+]);
+
 interface IdentifierInfo {
   word: string;
   identifier: string;
@@ -441,15 +737,20 @@ export default createPlugin(
 
       if (misspelled.size === 0) return;
 
-      const errorsByFile = new Map<string, (IdentifierInfo & { file: string })[]>();
+      type TaggedId = IdentifierInfo & { file: string; reason: "typo" | "portuguese" };
+      const errorsByFile = new Map<string, TaggedId[]>();
 
       for (const id of allIdentifiers) {
         if (!misspelled.has(id.word.toLowerCase())) continue;
 
+        const reason: "typo" | "portuguese" = PT_COMMON.has(id.word.toLowerCase())
+          ? "portuguese"
+          : "typo";
+
         const existing = errorsByFile.get(id.file) ?? [];
         const isDup = existing.some((e) => e.word === id.word && e.line === id.line);
         if (!isDup) {
-          existing.push(id);
+          existing.push({ ...id, reason });
           errorsByFile.set(id.file, existing);
         }
       }
@@ -464,33 +765,65 @@ export default createPlugin(
       let totalErrors = 0;
 
       for (const [file, errors] of errorsByFile) {
-        const grouped = errors.slice(0, 10);
-        totalErrors += grouped.length;
+        const ptErrors = errors.filter((e) => e.reason === "portuguese").slice(0, 10);
+        const typoErrors = errors.filter((e) => e.reason === "typo").slice(0, 10);
 
-        const items = grouped
-          .map(
-            (e) =>
-              `- \`${e.word}\` em ${typeMap[e.type] || e.type} \`${e.identifier}\` (linha ${e.line})`
-          )
-          .join("\n");
+        if (ptErrors.length > 0) {
+          totalErrors += ptErrors.length;
+          const items = ptErrors
+            .map(
+              (e) =>
+                `- \`${e.word}\` em ${typeMap[e.type] || e.type} \`${e.identifier}\` (linha ${e.line})`
+            )
+            .join("\n");
 
-        const firstLine = grouped[0].line;
-        const extra = errors.length > 10 ? `\n\n_...e mais ${errors.length - 10} erro(s)_` : "";
+          const extra =
+            errors.filter((e) => e.reason === "portuguese").length > 10
+              ? `\n\n_...e mais ${errors.filter((e) => e.reason === "portuguese").length - 10} ocorrência(s)_`
+              : "";
 
-        sendFail(
-          `ERRO ORTOGRÁFICO — ${grouped.length} palavra(s) com possível typo
+          sendFail(
+            `IDENTIFICADOR EM PORTUGUÊS — ${ptErrors.length} palavra(s) em português detectada(s)
+
+${items}${extra}
+
+Identificadores devem ser escritos em **inglês**. Código em português dificulta manutenção em equipes internacionais e padronização.
+
+**Ação:** Renomeie para inglês.`,
+            file,
+            ptErrors[0].line
+          );
+        }
+
+        if (typoErrors.length > 0) {
+          totalErrors += typoErrors.length;
+          const items = typoErrors
+            .map(
+              (e) =>
+                `- \`${e.word}\` em ${typeMap[e.type] || e.type} \`${e.identifier}\` (linha ${e.line})`
+            )
+            .join("\n");
+
+          const extra =
+            errors.filter((e) => e.reason === "typo").length > 10
+              ? `\n\n_...e mais ${errors.filter((e) => e.reason === "typo").length - 10} erro(s)_`
+              : "";
+
+          sendFail(
+            `ERRO ORTOGRÁFICO — ${typoErrors.length} palavra(s) com possível typo
 
 ${items}${extra}
 
 **Ação:** Corrija o nome ou adicione ao dicionário (\`.vscode/settings.json\` → \`cSpell.words\`)`,
-          file,
-          firstLine
-        );
+            file,
+            typoErrors[0].line
+          );
+        }
       }
 
       if (totalErrors > 0) {
         sendMessage(
-          `**Spell Check**: ${totalErrors} possível(is) erro(s) ortográfico(s) em ${errorsByFile.size} arquivo(s)`
+          `**Spell Check**: ${totalErrors} problema(s) em ${errorsByFile.size} arquivo(s)`
         );
       }
     } finally {

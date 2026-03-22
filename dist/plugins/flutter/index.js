@@ -10,8 +10,7 @@ var __importDefault =
     return mod && mod.__esModule ? mod : { default: mod };
   };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.viewModelMethodsPlugin =
-  exports.classNamingConventionPlugin =
+exports.classNamingConventionPlugin =
   exports.identifierLanguagePlugin =
   exports.barrelFilesEnforcerPlugin =
   exports.securityCheckerPlugin =
@@ -213,12 +212,5 @@ Object.defineProperty(exports, "classNamingConventionPlugin", {
   enumerable: true,
   get: function () {
     return __importDefault(class_naming_convention_1).default;
-  },
-});
-var viewmodel_methods_1 = require("./viewmodel-methods");
-Object.defineProperty(exports, "viewModelMethodsPlugin", {
-  enumerable: true,
-  get: function () {
-    return __importDefault(viewmodel_methods_1).default;
   },
 });
