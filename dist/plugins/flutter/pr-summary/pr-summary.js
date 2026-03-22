@@ -32,82 +32,77 @@ exports.default = (0, _types_1.createPlugin)(
     const layers = detectLayers(dartSource);
     const size = getSizeInfo(dartSource.length);
     const risk = assessRisk(dartSource, testFiles, layers, categories);
-    let md = "### Resumo da PR\n\n";
-    // Tabela principal
+    let md = `## ${size.emoji} Resumo da PR — ${size.label}\n\n`;
+    // ── Visão geral ──
     const fileDetails = [
-      created.length > 0 ? `+${created.length} novo(s)` : null,
-      modified.length > 0 ? `${modified.length} modificado(s)` : null,
-      deleted.length > 0 ? `-${deleted.length} removido(s)` : null,
+      created.length > 0 ? `**+${created.length}** novo(s)` : null,
+      modified.length > 0 ? `**${modified.length}** modificado(s)` : null,
+      deleted.length > 0 ? `**-${deleted.length}** removido(s)` : null,
     ]
       .filter(Boolean)
       .join(" · ");
-    md += "| | |\n";
+    md += "| Métrica | Valor |\n";
     md += "| :-- | :-- |\n";
-    md += `| **Tamanho** | ${size.emoji} ${size.label} |\n`;
-    md += `| **Arquivos** | ${all.length} (${fileDetails}) |\n`;
+    md += `| Arquivos | ${all.length} (${fileDetails}) |\n`;
     if (dartSource.length > 0) {
-      md += `| **Dart** | ${dartSource.length} arquivo(s) |\n`;
+      md += `| Dart | **${dartSource.length}** arquivo(s) |\n`;
     }
     if (lines > 0) {
-      md += `| **Linhas** | +${added} / -${removed} |\n`;
+      md += `| Linhas | **+${added}** / **-${removed}** |\n`;
     }
     if (layers.length > 0) {
-      const layerStr = layers.map((l) => `${l.label}: ${l.files.length}`).join(" · ");
-      md += `| **Camadas** | ${layerStr} |\n`;
+      const layerStr = layers.map((l) => `**${l.label}** (${l.files.length})`).join(" · ");
+      md += `| Camadas | ${layerStr} |\n`;
     }
     if (testFiles.length > 0) {
-      md += `| **Testes** | ${testFiles.length} arquivo(s) |\n`;
+      md += `| Testes | ✅ ${testFiles.length} arquivo(s) |\n`;
     } else if (dartSource.length > 0) {
-      md += `| **Testes** | Nenhum teste alterado |\n`;
+      md += `| Testes | ⚠️ Nenhum teste alterado |\n`;
     }
     if (generatedFiles.length > 0) {
-      md += `| **Gerados** | ${generatedFiles.length} arquivo(s) |\n`;
+      md += `| Gerados | ${generatedFiles.length} arquivo(s) |\n`;
     }
-    md += `| **Risco** | ${risk.emoji} ${risk.level} |\n`;
-    // Breakdown por tipo
+    md += `| Risco | ${risk.emoji} **${risk.level}** |\n`;
+    // ── Breakdown por tipo ──
     const relevantCategories = categories.filter((c) => c.files.length > 0);
     if (relevantCategories.length > 1) {
-      md += "\n**Breakdown:**\n\n";
+      md += "\n---\n\n";
+      md += "**Breakdown por tipo**\n\n";
       md += "| Tipo | Qtd |\n";
       md += "| :-- | :--: |\n";
       for (const cat of relevantCategories) {
         md += `| ${cat.label} | ${cat.files.length} |\n`;
       }
     }
-    // Arquivos em destaque
+    // ── Arquivos em destaque ──
     const topFiles = getTopFiles(created, modified, all);
     if (topFiles.length > 0) {
-      md += "\n**Arquivos em destaque:**\n\n";
+      md += "\n---\n\n";
+      md += "**Arquivos em destaque**\n\n";
       for (const { short, isNew } of topFiles) {
-        md += `- \`${short}\`${isNew ? " (novo)" : ""}\n`;
+        const tag = isNew ? " `novo`" : "";
+        md += `- \`${short}\`${tag}\n`;
       }
     }
-    // Fatores de risco
+    // ── Fatores de risco ──
     const detectedRisks = risk.factors.filter((f) => f.detected);
     if (detectedRisks.length > 0) {
-      md += "\n**Atenção:**\n\n";
+      md += "\n---\n\n";
+      md += "⚠️ **Pontos de atenção**\n\n";
       for (const f of detectedRisks) {
         md += `- ${f.label}\n`;
       }
     }
-    // Checklist
+    // ── Checklist ──
     if (dartSource.length > 0) {
-      const hasTests = testFiles.length > 0;
-      const hasPresentation = layers.some((l) => l.label === "Presentation");
-      const hasConfig = categories.some((c) => c.label === "Config");
       md += "\n---\n\n";
-      md += "**Checklist:**\n\n";
-      md += `| | Item |\n`;
-      md += `| :--: | :-- |\n`;
-      md += `| ${hasTests ? "✅" : "⬜"} | Testes adicionados/atualizados |\n`;
-      md += `| ⬜ | Code review realizado |\n`;
-      md += `| ⬜ | Testado localmente |\n`;
-      if (hasPresentation) {
-        md += `| ⬜ | UI testada em diferentes tamanhos de tela |\n`;
-      }
-      if (hasConfig) {
-        md += `| ⬜ | Configurações revisadas (pubspec, gradle, etc.) |\n`;
-      }
+      md += "**Checklist**\n\n";
+      md += "| | Item |\n";
+      md += "| :--: | :-- |\n";
+      md += "| ⬜ | Testado em dispositivo Android |\n";
+      md += "| ⬜ | Testado em dispositivo iOS |\n";
+      md += "| ⬜ | Testado em Plataforma WEB (Servidor) |\n";
+      md += "| ⬜ | UI responsiva em diferentes tamanhos de tela |\n";
     }
     (0, _types_1.sendMarkdown)(md);
   }
