@@ -67,22 +67,6 @@ node_modules/
 package-lock.json
 ```
 
----
-
-## O que acontece na instalacao
-
-Ao rodar `npm install`, o Danger Bot executa automaticamente o script `postinstall` que:
-
-1. Localiza a instalacao do Danger JS
-2. Remove a mensagem padrao "All green. Good on 'ya"
-3. Substitui links internos do Danger para o repositorio do projeto
-4. Traduz mensagens do Danger para portugues (Failures → Erros, Warnings → Avisos)
-5. Corrige metadados de inline comments no Bitbucket Cloud
-
-Esse processo e automatico e transparente. Um marcador `.danger-bot-patched` e criado dentro do Danger JS para evitar reaplicacao.
-
----
-
 ## Configuracao do dangerfile
 
 Apos instalar, crie `dangerfile.ts` na raiz do projeto:
