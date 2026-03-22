@@ -1,99 +1,69 @@
 /**
- * Detecta uso de late final
+ * Late Final Checker Plugin
+ * Detecta uso desnecessário de late final com valor atribuído na declaração.
+ *
+ * late final só faz sentido quando o valor é atribuído DEPOIS (ex: initState).
+ * Se já tem valor na declaração, deve ser apenas final ou const.
  */
-import { createPlugin, getDanger, sendWarn, getDartFiles } from "@types";
+import { createPlugin, getDanger, sendFail } from "@types";
+import * as fs from "fs";
+
+const LATE_FINAL_WITH_VALUE = /late\s+final\s+(?:[\w<>,?\s]+\s+)?(\w+)\s*=\s*.+;/;
 
 export default createPlugin(
   {
     name: "late-final-checker",
-    description: "Detecta uso de late final",
+    description: "Detecta late final desnecessário com valor atribuído",
     enabled: true,
   },
   async () => {
-    const danger = getDanger();
-    const dartFiles = getDartFiles();
+    const { git } = getDanger();
+
+    const dartFiles = [...git.modified_files, ...git.created_files].filter(
+      (f: string) =>
+        f.endsWith(".dart") &&
+        !f.endsWith(".g.dart") &&
+        !f.endsWith(".freezed.dart") &&
+        fs.existsSync(f)
+    );
 
     for (const file of dartFiles) {
-      try {
-        const content = await danger.git.structuredDiffForFile(file);
-        if (!content) continue;
-        const fileText = content.chunks.map((c: any) => c.content).join("\n");
+      const content = fs.readFileSync(file, "utf-8");
+      const lines = content.split("\n");
 
-        // Detectar late final sem inicialização
-        const lateMatches = fileText.matchAll(/late\s+final\s+(\w+)\s+(\w+);/g);
-        for (const match of lateMatches) {
-          sendWarn(
-            `## ⚠️ USO DE LATE FINAL DETECTADO
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const match = line.match(LATE_FINAL_WITH_VALUE);
+        if (!match) continue;
 
-Uso de \`late final\` encontrado: \`${match[0]}\`
+        const varName = match[1];
+        const trimmed = line.trim();
 
----
+        sendFail(
+          `LATE FINAL DESNECESSÁRIO
 
-### ⚠️ Problema Identificado
-
-\`late final\` pode causar:
-- 🐛 Runtime errors se acessado antes de inicializar
-- 📉 Código menos seguro
-- 🤔 Dificuldade de debug
-
----
-
-### 🎯 AÇÃO NECESSÁRIA
-
-**Prefira alternativas mais seguras:**
+\`late final\` com valor atribuído na declaração não faz sentido.
 
 \`\`\`dart
-// ❌ EVITE (se possível)
-class MyClass {
-  late final String name;
-  
-  void init() {
-    name = 'John';  // Pode esquecer de chamar init()
-  }
-}
+// ❌ Atual
+${trimmed}
 
-// ✅ MELHOR: Inicialização no constructor
-class MyClass {
-  final String name;
-  
-  MyClass({required this.name});
-}
-
-// ✅ MELHOR: Nullable + inicialização tardia
-class MyClass {
-  String? _name;
-  String get name => _name ?? throw StateError('Not initialized');
-  
-  void init(String value) {
-    _name = value;
-  }
-}
-
-// ✅ ACEITÁVEL: late final com garantia de inicialização
-class _MyWidgetState extends State<MyWidget> {
-  late final AnimationController controller;
-  
-  @override
-  void initState() {
-    super.initState();
-    controller = AnimationController(vsync: this);  // ✓ Sempre inicializado
-  }
-}
+// ✅ Correto — remova late
+${trimmed.replace(/late\s+/, "")}
 \`\`\`
 
----
+### Problema Identificado
+
+\`late final ${varName} = ...\` atribui o valor imediatamente. O \`late\` só é necessário quando a atribuição acontece **depois** (ex: em \`initState\`, \`didChangeDependencies\`).
 
 ### 🚀 Objetivo
 
-Evitar **runtime errors** e tornar código mais **previsível**.
+Usar \`late\` apenas quando necessário — código mais claro e previsível.
 
-> **Dica:** Use \`late final\` apenas quando absolutamente necessário!`,
-            file,
-            1
-          );
-        }
-      } catch (e) {
-        // Ignore
+📖 [Effective Dart: Usage](https://dart.dev/effective-dart/usage#dont-use-late-when-a-constructor-initializer-will-do)`,
+          file,
+          i + 1
+        );
       }
     }
   }

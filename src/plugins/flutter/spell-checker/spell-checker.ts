@@ -1,12 +1,350 @@
 /**
- * 🔤 SPELL CHECKER PLUGIN
- * ======================
- * Verifica ortografia em identificadores Dart usando cspell
+ * Spell Checker Plugin
+ * Verifica ortografia em identificadores Dart usando cspell.
+ *
+ * Analisa apenas linhas adicionadas no diff (não o arquivo inteiro).
+ * Extrai classes, métodos, variáveis e parâmetros, quebra camelCase/PascalCase
+ * em palavras individuais, e verifica cada uma com cspell.
+ *
+ * Agrupa erros por arquivo para evitar ruído excessivo.
  */
-
-import { createPlugin, getDanger } from "@types";
+import { createPlugin, getDanger, sendFail, sendMessage } from "@types";
 import { execSync } from "child_process";
 import * as fs from "fs";
+import * as path from "path";
+import * as os from "os";
+
+const TECH_WORDS = [
+  "viewmodel",
+  "usecase",
+  "datasource",
+  "dto",
+  "auth",
+  "config",
+  "admin",
+  "navbar",
+  "sidebar",
+  "dropdown",
+  "popup",
+  "integrator",
+  "dashboard",
+  "analytics",
+  "workflow",
+  "notification",
+  "realtime",
+  "offline",
+  "sync",
+  "async",
+  "api",
+  "endpoint",
+  "serializable",
+  "bloc",
+  "cubit",
+  "riverpod",
+  "getx",
+  "hive",
+  "isar",
+  "freezed",
+  "equatable",
+  "dartz",
+  "fpdart",
+  "sliver",
+  "scaffold",
+  "appbar",
+  "snackbar",
+  "bottomsheet",
+  "pageview",
+  "tabbar",
+  "listview",
+  "gridview",
+  "textfield",
+  "checkbox",
+  "radiobutton",
+  "inkwell",
+  "gesturedetector",
+  "stateful",
+  "stateless",
+  "mixin",
+  "typedef",
+  "enum",
+  "impl",
+  "repo",
+  "infra",
+  "params",
+  "args",
+  "ctx",
+  "btn",
+  "img",
+  "nav",
+  "util",
+  "utils",
+  "validator",
+  "formatter",
+  "mapper",
+  "adapter",
+  "middleware",
+  "interceptor",
+  "injectable",
+  "singleton",
+  "multiton",
+  "debounce",
+  "throttle",
+  "paginator",
+  "pagination",
+  "serializer",
+  "deserializer",
+  "locator",
+  "localization",
+  "i18n",
+  "l10n",
+  "dio",
+  "retrofit",
+  "chopper",
+  "http",
+  "grpc",
+  "graphql",
+  "websocket",
+  "mqtt",
+  "firebase",
+  "supabase",
+  "appwrite",
+  "amplify",
+  "crashlytics",
+  "pubspec",
+  "yaml",
+  "json",
+  "xml",
+  "csv",
+  "sqlite",
+  "hivedb",
+  "objectbox",
+  "sharedpreferences",
+  "securestorage",
+  "keychain",
+  "biometric",
+  "onboarding",
+  "signup",
+  "signin",
+  "logout",
+  "otp",
+  "oauth",
+  "jwt",
+  "uuid",
+  "regex",
+  "cron",
+  "webhook",
+  "sdk",
+  "cli",
+  "env",
+  "devtools",
+  "lottie",
+  "rive",
+  "svg",
+  "png",
+  "webp",
+  "rgba",
+  "argb",
+  "hex",
+  "datetime",
+  "timestamp",
+  "timezone",
+  "utc",
+  "nullable",
+  "nonnull",
+  "iterable",
+  "streamable",
+  "disposable",
+  "cancelable",
+  "listenable",
+  "notifier",
+  "changenotifier",
+  "valuenotifier",
+  "statenotifier",
+  "asyncnotifier",
+  "futurebuilder",
+  "streambuilder",
+  "valuelistenablebuilder",
+  "animationcontroller",
+  "tweenanimation",
+  "pagecontroller",
+  "scrollcontroller",
+  "tabcontroller",
+  "textcontroller",
+  "focusnode",
+  "formkey",
+  "globalkey",
+  "navigatorkey",
+  "scaffoldkey",
+  "mediaquery",
+  "layoutbuilder",
+  "orientationbuilder",
+  "sliverappbar",
+  "sliverlist",
+  "slivergrid",
+  "customscrollview",
+  "nestedscrollview",
+  "reorderablelist",
+  "dismissible",
+  "draggable",
+  "interactivviewer",
+  "repaintboundary",
+  "cliprrect",
+  "clipoval",
+  "clippath",
+  "backdropfilter",
+  "colorfiltered",
+  "imagefiltered",
+  "shadermask",
+  "custompaint",
+  "custompainter",
+  "renderobject",
+  "renderbox",
+  "widgetspan",
+  "textspan",
+  "richtext",
+  "selectabletext",
+  "editabletext",
+  "autocomplete",
+  "typeahead",
+  "searchbar",
+  "filterchip",
+  "choicechip",
+  "actionchip",
+  "inputchip",
+  "datatable",
+  "paginateddatatable",
+  "expansiontile",
+  "expansionpanel",
+  "stepper",
+  "timeline",
+  "carousel",
+  "parallax",
+  "shimmer",
+  "skeleton",
+  "placeholder",
+  "errorwidget",
+  "fallback",
+  "initializer",
+  "bootstrapper",
+  "usecase",
+  "interactor",
+  "presenter",
+  "viewstate",
+  "uistate",
+  "baserepository",
+  "basedatasource",
+  "baseviewmodel",
+  "baseentity",
+  "basefailure",
+  "basemodel",
+  "basestate",
+  "basewidget",
+  "basepage",
+];
+
+interface IdentifierInfo {
+  word: string;
+  identifier: string;
+  type: string;
+  line: number;
+  context: string;
+}
+
+function breakCamelCase(identifier: string): string[] {
+  return identifier
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/([A-Z])([A-Z][a-z])/g, "$1 $2")
+    .split(/[\s_]+/)
+    .filter((w) => w.length > 2)
+    .filter((w) => !/^\d+$/.test(w))
+    .map((w) => w.toLowerCase());
+}
+
+function isCommentLine(line: string): boolean {
+  const trimmed = line.trim();
+  return trimmed.startsWith("//") || trimmed.startsWith("*") || trimmed.startsWith("///");
+}
+
+function extractIdentifiers(line: string, lineNumber: number): IdentifierInfo[] {
+  const results: IdentifierInfo[] = [];
+
+  if (isCommentLine(line)) return results;
+
+  const clean = line
+    .replace(/\/\/.*$/, "")
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/'[^']*'/g, '""')
+    .replace(/"[^"]*"/g, '""')
+    .replace(/r'[^']*'/g, '""')
+    .replace(/r"[^"]*"/g, '""');
+
+  if (!clean.trim()) return results;
+
+  const classMatch = clean.match(
+    /(?:abstract\s+interface\s+class|abstract\s+class|final\s+class|sealed\s+class|class)\s+([A-Za-z_]\w*)/
+  );
+  if (classMatch) {
+    for (const word of breakCamelCase(classMatch[1])) {
+      results.push({
+        word,
+        identifier: classMatch[1],
+        type: "class",
+        line: lineNumber,
+        context: line.trim(),
+      });
+    }
+  }
+
+  const methodRe =
+    /(?:Future<[^>]*>|void|String|int|double|bool|dynamic|List<[^>]*>|Map<[^,>]*,[^>]*>|Set<[^>]*>|[A-Z]\w*(?:<[^>]*>)?)\s+([a-z_]\w*)\s*\(/g;
+  let m;
+  while ((m = methodRe.exec(clean)) !== null) {
+    const name = m[1];
+    if (
+      /^(get|set|build|createState|initState|dispose|toString|hashCode|main|runApp|of|from|parse|tryParse)$/.test(
+        name
+      )
+    )
+      continue;
+    for (const word of breakCamelCase(name)) {
+      results.push({
+        word,
+        identifier: name,
+        type: "method",
+        line: lineNumber,
+        context: line.trim(),
+      });
+    }
+  }
+
+  const varRe =
+    /(?:final|const|var|late\s+final|late)\s+(?:[A-Za-z_]\w*(?:<[^>]*>)?\s+)?([a-z_]\w*)\s*[=;]/g;
+  while ((m = varRe.exec(clean)) !== null) {
+    const name = m[1];
+    if (/^(i|j|k|e|x|y|_)$/.test(name)) continue;
+    for (const word of breakCamelCase(name)) {
+      results.push({
+        word,
+        identifier: name,
+        type: "variable",
+        line: lineNumber,
+        context: line.trim(),
+      });
+    }
+  }
+
+  return results;
+}
+
+function getVscodeWords(): string[] {
+  try {
+    if (!fs.existsSync(".vscode/settings.json")) return [];
+    const settings = JSON.parse(fs.readFileSync(".vscode/settings.json", "utf-8"));
+    return settings["cSpell.words"] || [];
+  } catch {
+    return [];
+  }
+}
 
 export default createPlugin(
   {
@@ -15,125 +353,152 @@ export default createPlugin(
     enabled: true,
   },
   async () => {
-    const dartFiles = [...getDanger().git.modified_files, ...getDanger().git.created_files].filter(
-      (f) =>
+    const danger = getDanger();
+
+    const dartFiles = [...danger.git.created_files, ...danger.git.modified_files].filter(
+      (f: string) =>
         f.endsWith(".dart") &&
-        !f.includes(".g.dart") &&
-        !f.includes(".freezed.dart") &&
-        !f.includes(".mocks.dart") &&
+        !f.endsWith(".g.dart") &&
+        !f.endsWith(".freezed.dart") &&
+        !f.endsWith(".mocks.dart") &&
+        !f.includes("/generated/") &&
         fs.existsSync(f)
     );
 
-    if (dartFiles.length === 0) {
-      message("ℹ️ **cspell**: Nenhum arquivo Dart para verificar.");
-      return;
-    }
+    if (dartFiles.length === 0) return;
 
-    message(`🔤 **cspell**: Verificando ${dartFiles.length} arquivo(s)...`);
+    const tmpDir = path.join(os.tmpdir(), `danger-spell-${Date.now()}`);
+    fs.mkdirSync(tmpDir, { recursive: true });
+
+    const wordsFile = path.join(tmpDir, "words.txt");
+    const configFile = path.join(tmpDir, "cspell.json");
 
     try {
-      // Encontrar o caminho dos scripts do danger-bot
-      const dangerBotPath = require.resolve("@felipeduarte26/danger-bot").replace(/dist.*$/, "");
-      const setupScriptPath = `${dangerBotPath}scripts/setup_spell_check.sh`;
-      const extractScriptPath = `${dangerBotPath}scripts/extract_dart_identifiers.js`;
+      const allIdentifiers: (IdentifierInfo & { file: string })[] = [];
+      const uniqueWords = new Set<string>();
 
-      // Verificar se scripts existem localmente (projeto sem danger-bot instalado)
-      const localSetupScript = "scripts/setup_spell_check.sh";
-      const localExtractScript = "scripts/extract_dart_identifiers.js";
+      for (const file of dartFiles) {
+        const diff = await danger.git.structuredDiffForFile(file);
+        if (!diff) continue;
 
-      const setupScript = fs.existsSync(localSetupScript) ? localSetupScript : setupScriptPath;
-      const extractScript = fs.existsSync(localExtractScript)
-        ? localExtractScript
-        : extractScriptPath;
+        for (const chunk of diff.chunks) {
+          for (const change of chunk.changes) {
+            if ((change as any).type !== "add") continue;
 
-      // Setup cspell
-      execSync(`bash ${setupScript}`, { stdio: "pipe" });
+            const lineContent = (change as any).content?.replace(/^\+/, "") ?? "";
+            const lineNum = (change as any).ln ?? 1;
 
-      // Extrair identificadores
-      execSync(`node ${extractScript} ${dartFiles.join(" ")}`, {
-        stdio: "pipe",
-      });
+            if (lineContent.trim().startsWith("import ")) continue;
+            if (lineContent.trim().startsWith("export ")) continue;
+            if (lineContent.trim().startsWith("part ")) continue;
 
-      // Verificar se arquivos foram criados
-      if (
-        !fs.existsSync("temp_identifiers_for_spell_check.txt") ||
-        !fs.existsSync("temp_spell_check_metadata.json")
-      ) {
-        message("⚠️ Arquivos temporários não criados");
-        return;
+            const identifiers = extractIdentifiers(lineContent, lineNum);
+            for (const id of identifiers) {
+              uniqueWords.add(id.word);
+              allIdentifiers.push({ ...id, file });
+            }
+          }
+        }
       }
 
-      // Executar cspell
+      if (uniqueWords.size === 0) return;
+
+      fs.writeFileSync(wordsFile, Array.from(uniqueWords).join("\n"));
+
+      const vscodeWords = getVscodeWords();
+      const allCustomWords = [...new Set([...TECH_WORDS, ...vscodeWords])];
+
+      const cspellConfig = {
+        version: "0.2",
+        language: "en",
+        import: [
+          "@cspell/dict-dart/cspell-ext.json",
+          "@cspell/dict-flutter/cspell-ext.json",
+          "@cspell/dict-software-terms/cspell-ext.json",
+        ],
+        dictionaries: ["dart", "flutter", "softwareTerms", "custom-terms"],
+        dictionaryDefinitions: [{ name: "custom-terms", words: allCustomWords }],
+      };
+
+      fs.writeFileSync(configFile, JSON.stringify(cspellConfig, null, 2));
+
       let cspellOutput = "";
       try {
         execSync(
-          "./node_modules/.bin/cspell --config cspell.config.json --no-progress --no-summary temp_identifiers_for_spell_check.txt",
-          { encoding: "utf-8", stdio: "pipe" }
+          `./node_modules/.bin/cspell --config ${configFile} --no-progress --no-summary ${wordsFile}`,
+          { encoding: "utf-8", stdio: "pipe", timeout: 30000 }
         );
       } catch (error: any) {
         cspellOutput = error.stdout || "";
       }
 
-      // Parse resultados
-      const metadata = JSON.parse(fs.readFileSync("temp_spell_check_metadata.json", "utf-8"));
-      const errors = parseCspellOutput(cspellOutput, metadata);
-
-      // Reportar erros
-      if (errors.length > 0) {
-        for (const err of errors) {
-          const typeMap: Record<string, string> = {
-            class: "classe",
-            method: "método",
-            variable: "variável",
-            parameter: "parâmetro",
-          };
-
-          fail(
-            `**ERRO ORTOGRÁFICO**: \`${err.word}\` em ${typeMap[err.type] || err.type} \`${err.identifier}\`\n\n` +
-              `\`\`\`dart\n${err.context}\n\`\`\`\n\n` +
-              `**Ação**: Corrija ou adicione ao dicionário (.vscode/settings.json)`,
-            err.file,
-            err.line
-          );
-        }
-
-        message(
-          `⚠️ ${errors.length} erro(s) ortográfico(s) em ${new Set(errors.map((e) => e.file)).size} arquivo(s)`
-        );
-      } else {
-        message("✅ **cspell**: Nenhum erro ortográfico!");
+      const misspelled = new Set<string>();
+      const regex = /words\.txt:\d+:\d+\s*-\s*Unknown word \(([^)]+)\)/g;
+      let match;
+      while ((match = regex.exec(cspellOutput)) !== null) {
+        misspelled.add(match[1].toLowerCase());
       }
 
-      // Cleanup
-      [
-        "temp_identifiers_for_spell_check.txt",
-        "temp_spell_check_metadata.json",
-        "cspell.config.json",
-      ].forEach((f) => fs.existsSync(f) && fs.unlinkSync(f));
-    } catch (error) {
-      message("⚠️ Erro na verificação ortográfica");
+      if (misspelled.size === 0) return;
+
+      const errorsByFile = new Map<string, (IdentifierInfo & { file: string })[]>();
+
+      for (const id of allIdentifiers) {
+        if (!misspelled.has(id.word.toLowerCase())) continue;
+
+        const existing = errorsByFile.get(id.file) ?? [];
+        const isDup = existing.some((e) => e.word === id.word && e.line === id.line);
+        if (!isDup) {
+          existing.push(id);
+          errorsByFile.set(id.file, existing);
+        }
+      }
+
+      const typeMap: Record<string, string> = {
+        class: "classe",
+        method: "método",
+        variable: "variável",
+        parameter: "parâmetro",
+      };
+
+      let totalErrors = 0;
+
+      for (const [file, errors] of errorsByFile) {
+        const grouped = errors.slice(0, 10);
+        totalErrors += grouped.length;
+
+        const items = grouped
+          .map(
+            (e) =>
+              `- \`${e.word}\` em ${typeMap[e.type] || e.type} \`${e.identifier}\` (linha ${e.line})`
+          )
+          .join("\n");
+
+        const firstLine = grouped[0].line;
+        const extra = errors.length > 10 ? `\n\n_...e mais ${errors.length - 10} erro(s)_` : "";
+
+        sendFail(
+          `ERRO ORTOGRÁFICO — ${grouped.length} palavra(s) com possível typo
+
+${items}${extra}
+
+**Ação:** Corrija o nome ou adicione ao dicionário (\`.vscode/settings.json\` → \`cSpell.words\`)`,
+          file,
+          firstLine
+        );
+      }
+
+      if (totalErrors > 0) {
+        sendMessage(
+          `**Spell Check**: ${totalErrors} possível(is) erro(s) ortográfico(s) em ${errorsByFile.size} arquivo(s)`
+        );
+      }
+    } finally {
+      try {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+      } catch {
+        // best-effort cleanup
+      }
     }
   }
 );
-
-function parseCspellOutput(output: string, metadata: any[]): any[] {
-  const errors: any[] = [];
-  const regex = /temp_identifiers_for_spell_check\.txt:\d+:\d+\s*-\s*Unknown word \(([^)]+)\)/;
-
-  for (const line of output.split("\n")) {
-    const match = line.match(regex);
-    if (match) {
-      const word = match[1];
-      const matches = metadata.filter((m) => m.word.toLowerCase() === word.toLowerCase());
-      errors.push(...matches);
-    }
-  }
-
-  return errors.filter(
-    (e, i, self) =>
-      i ===
-      self.findIndex(
-        (x) => x.originalFile === e.originalFile && x.line === e.line && x.word === e.word
-      )
-  );
-}

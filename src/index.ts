@@ -14,19 +14,16 @@ export {
   prSizeCheckerPlugin,
   changelogCheckerPlugin,
   flutterAnalyzePlugin,
-  portugueseDocumentationPlugin,
   spellCheckerPlugin,
   prValidationPlugin,
   fileNamingPlugin,
   domainEntitiesPlugin,
   domainFailuresPlugin,
-  domainRepositoriesPlugin,
+  repositoriesPlugin,
   domainUseCasesPlugin,
   dataDatasourcesPlugin,
   dataModelsPlugin,
-  dataRepositoriesPlugin,
   presentationViewModelsPlugin,
-  presentationStatesPlugin,
   flutterPerformancePlugin,
   flutterWidgetsPlugin,
   cleanArchitecturePlugin,
@@ -41,30 +38,24 @@ export {
 } from "./plugins/flutter";
 
 /**
- * All available Flutter plugins in a single array (28 plugins)
+ * All available Flutter plugins in a single array (25 plugins)
  * Use this for quick setup with all plugins enabled
  */
 export const allFlutterPlugins = [
-  // Sumário deve ser PRIMEIRO para aparecer no topo
   require("./plugins/flutter/pr-summary").default,
-
-  // Importar os plugins
   require("./plugins/flutter/pr-size-checker").default,
   require("./plugins/flutter/changelog-checker").default,
   require("./plugins/flutter/flutter-analyze").default,
-  require("./plugins/flutter/portuguese-documentation").default,
   require("./plugins/flutter/spell-checker").default,
   require("./plugins/flutter/pr-validation").default,
   require("./plugins/flutter/file-naming").default,
   require("./plugins/flutter/domain-entities").default,
   require("./plugins/flutter/domain-failures").default,
-  require("./plugins/flutter/domain-repositories").default,
+  require("./plugins/flutter/repositories").default,
   require("./plugins/flutter/domain-usecases").default,
   require("./plugins/flutter/data-datasources").default,
   require("./plugins/flutter/data-models").default,
-  require("./plugins/flutter/data-repositories").default,
   require("./plugins/flutter/presentation-viewmodels").default,
-  require("./plugins/flutter/presentation-states").default,
   require("./plugins/flutter/flutter-performance").default,
   require("./plugins/flutter/flutter-widgets").default,
   require("./plugins/flutter/clean-architecture").default,
@@ -82,13 +73,11 @@ export const allFlutterPlugins = [
 import {
   domainEntitiesPlugin,
   domainFailuresPlugin,
-  domainRepositoriesPlugin,
+  repositoriesPlugin,
   domainUseCasesPlugin,
   dataDatasourcesPlugin,
   dataModelsPlugin,
-  dataRepositoriesPlugin,
   presentationViewModelsPlugin,
-  presentationStatesPlugin,
   cleanArchitecturePlugin,
   lateFinalCheckerPlugin,
   memoryLeakDetectorPlugin,
@@ -104,13 +93,13 @@ import {
 export const domainLayerPlugins = [
   domainEntitiesPlugin,
   domainFailuresPlugin,
-  domainRepositoriesPlugin,
+  repositoriesPlugin,
   domainUseCasesPlugin,
 ];
 
-export const dataLayerPlugins = [dataDatasourcesPlugin, dataModelsPlugin, dataRepositoriesPlugin];
+export const dataLayerPlugins = [dataDatasourcesPlugin, dataModelsPlugin];
 
-export const presentationLayerPlugins = [presentationViewModelsPlugin, presentationStatesPlugin];
+export const presentationLayerPlugins = [presentationViewModelsPlugin];
 
 export const cleanArchitecturePlugins = [
   ...domainLayerPlugins,

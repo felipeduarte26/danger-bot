@@ -1,7 +1,22 @@
 /**
- * Detecta violações de Clean Architecture
+ * Clean Architecture Plugin
+ * Detecta violações de dependência entre camadas:
+ * - Domain não pode importar Data nem Presentation
+ * - Data não pode importar Presentation nem UseCases
+ * - Presentation não pode importar Data diretamente
  */
-import { createPlugin, getDanger, sendFail, getAllChangedFiles } from "@types";
+import { createPlugin, getDanger, sendFail } from "@types";
+import * as fs from "fs";
+
+const IMPORT_RE = /^\s*import\s+['"]([^'"]+)['"]/;
+
+interface Violation {
+  file: string;
+  line: number;
+  importPath: string;
+  rule: string;
+  message: string;
+}
 
 export default createPlugin(
   {
@@ -10,120 +25,265 @@ export default createPlugin(
     enabled: true,
   },
   async () => {
-    const danger = getDanger();
-    const allFiles = getAllChangedFiles();
+    const { git } = getDanger();
 
-    for (const file of allFiles) {
-      if (!file.endsWith(".dart")) continue;
+    const dartFiles = [...git.modified_files, ...git.created_files].filter(
+      (f: string) => f.endsWith(".dart") && fs.existsSync(f)
+    );
 
-      try {
-        const content = await danger.git.structuredDiffForFile(file);
-        if (!content) continue;
-        const fileText = content.chunks.map((c: any) => c.content).join("\n");
+    const violations: Violation[] = [];
 
-        // Domain não pode importar Data ou Presentation
-        if (file.includes("/domain/")) {
-          if (fileText.match(/import.*\/data\//)) {
-            sendFail(
-              `## 🏛️ VIOLAÇÃO CLEAN ARCHITECTURE - DOMAIN → DATA
+    for (const file of dartFiles) {
+      const content = fs.readFileSync(file, "utf-8");
+      const lines = content.split("\n");
+
+      const isDomain = file.includes("/domain/");
+      const isData = file.includes("/data/");
+      const isPresentation = file.includes("/presentation/");
+      const isUseCase = file.includes("/usecases/") || file.endsWith("_usecase.dart");
+
+      if (!isDomain && !isData && !isPresentation) continue;
+
+      for (let i = 0; i < lines.length; i++) {
+        const match = lines[i].match(IMPORT_RE);
+        if (!match) continue;
+
+        const importPath = match[1];
+
+        if (isDomain) {
+          if (importPath.includes("/data/")) {
+            violations.push({
+              file,
+              line: i + 1,
+              importPath,
+              rule: "DOMAIN → DATA",
+              message: `VIOLAÇÃO CLEAN ARCHITECTURE — DOMAIN → DATA
 
 Domain Layer **não pode** importar Data Layer.
 
----
+### Problema Identificado
 
-### ⚠️ Problema
-Dependência invertida! Domain deve ser independente.
+Import detectado:
+\`\`\`dart
+${lines[i].trim()}
+\`\`\`
 
----
+Domain deve depender apenas de si mesma. Data implementa as interfaces definidas em Domain, não o contrário.
 
 ### 🎯 AÇÃO NECESSÁRIA
 
 \`\`\`dart
-// ❌ INCORRETO
-import '../data/models/user_model.dart';
+// ❌ Domain importando Data
+import 'package:app/features/user/data/models/user_model.dart';
 
-// ✅ CORRETO
-import '../domain/entities/user_entity.dart';
+// ✅ Domain usa apenas suas próprias definições
+import 'package:app/features/user/domain/entities/user_entity.dart';
 \`\`\`
 
----
-
 ### 🚀 Objetivo
-Manter **independência** da Domain Layer.`,
-              file,
-              1
-            );
+
+Manter **independência** da Domain Layer.
+
+📖 [Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)`,
+            });
           }
-          if (fileText.match(/import.*\/presentation\//)) {
-            sendFail(
-              `## 🏛️ VIOLAÇÃO CLEAN ARCHITECTURE - DOMAIN → PRESENTATION
+
+          if (importPath.includes("/presentation/")) {
+            violations.push({
+              file,
+              line: i + 1,
+              importPath,
+              rule: "DOMAIN → PRESENTATION",
+              message: `VIOLAÇÃO CLEAN ARCHITECTURE — DOMAIN → PRESENTATION
 
 Domain Layer **não pode** importar Presentation Layer.
 
----
+### Problema Identificado
+
+Import detectado:
+\`\`\`dart
+${lines[i].trim()}
+\`\`\`
 
 ### 🎯 AÇÃO NECESSÁRIA
-Remova imports de arquivos da pasta /presentation/.`,
-              file,
-              1
-            );
+
+Remova este import. Domain não deve conhecer nada sobre UI.
+
+### 🚀 Objetivo
+
+Manter **independência** da Domain Layer.
+
+📖 [Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)`,
+            });
           }
         }
 
-        // Data não pode importar Presentation
-        if (file.includes("/data/")) {
-          if (fileText.match(/import.*\/presentation\//)) {
-            sendFail(
-              `## 🏪 VIOLAÇÃO CLEAN ARCHITECTURE - DATA → PRESENTATION
+        if (isData) {
+          if (importPath.includes("/presentation/")) {
+            violations.push({
+              file,
+              line: i + 1,
+              importPath,
+              rule: "DATA → PRESENTATION",
+              message: `VIOLAÇÃO CLEAN ARCHITECTURE — DATA → PRESENTATION
 
 Data Layer **não pode** importar Presentation Layer.
 
----
+### Problema Identificado
 
-### ⚠️ Problema
-Data deve ser independente de UI.
+Import detectado:
+\`\`\`dart
+${lines[i].trim()}
+\`\`\`
 
----
+Data deve ser independente de UI. Se precisa de dados da UI, receba como parâmetro.
 
 ### 🎯 AÇÃO NECESSÁRIA
-Remova imports de arquivos da pasta /presentation/.`,
-              file,
-              1
-            );
+
+Remova este import e passe os dados necessários via parâmetro nos métodos.
+
+### 🚀 Objetivo
+
+Manter **separação** entre Data e UI.
+
+📖 [Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)`,
+            });
           }
-        }
 
-        // Presentation não pode importar Data diretamente (deve usar Domain)
-        if (file.includes("/presentation/") && file.match(/_viewmodel\.dart$/)) {
-          if (fileText.match(/I\w*Repository/)) {
-            sendFail(
-              `## 🎨 VIOLAÇÃO - VIEWMODEL USA REPOSITORY
+          if (importPath.includes("/usecases/") || importPath.includes("_usecase.dart")) {
+            violations.push({
+              file,
+              line: i + 1,
+              importPath,
+              rule: "DATA → USECASE",
+              message: `VIOLAÇÃO CLEAN ARCHITECTURE — DATA → USECASE
 
-ViewModel deve usar **UseCases**, não Repositories.
+Data Layer **não pode** importar UseCases.
 
----
+### Problema Identificado
+
+Import detectado:
+\`\`\`dart
+${lines[i].trim()}
+\`\`\`
+
+Data implementa interfaces de Domain (repositories), mas não deve usar UseCases. UseCases orquestram Data, não o contrário.
 
 ### 🎯 AÇÃO NECESSÁRIA
 
 \`\`\`dart
-// ❌ INCORRETO
-class UserViewModel {
-  final IUserRepository repository;
-}
+// ❌ Data importando UseCase
+import 'package:app/features/user/domain/usecases/get_user_usecase.dart';
 
-// ✅ CORRETO
-class UserViewModel {
-  final IGetUserUseCase getUserUseCase;
-}
-\`\`\``,
-              file,
-              1
-            );
+// ✅ Data importa apenas interfaces de Domain
+import 'package:app/features/user/domain/repositories/user_repository_interface.dart';
+import 'package:app/features/user/domain/entities/user_entity.dart';
+\`\`\`
+
+### 🚀 Objetivo
+
+Respeitar a **direção de dependência**: UseCases → Repositories, nunca o inverso.
+
+📖 [Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)`,
+            });
           }
         }
-      } catch (e) {
-        // Ignore
+
+        if (isUseCase) {
+          const importsUseCase =
+            importPath.includes("/usecases/") || importPath.includes("_usecase.dart");
+          if (importsUseCase) {
+            violations.push({
+              file,
+              line: i + 1,
+              importPath,
+              rule: "USECASE → USECASE",
+              message: `VIOLAÇÃO CLEAN ARCHITECTURE — USECASE → USECASE
+
+Um UseCase **não pode** importar outro UseCase.
+
+### Problema Identificado
+
+Import detectado:
+\`\`\`dart
+${lines[i].trim()}
+\`\`\`
+
+Cada UseCase deve encapsular **uma única responsabilidade**. Se um UseCase precisa de outro, é sinal de que a lógica deve estar em um Repository ou em um novo UseCase que orquestra ambos no ViewModel.
+
+### 🎯 AÇÃO NECESSÁRIA
+
+\`\`\`dart
+// ❌ UseCase importando outro UseCase
+class CreateOrderUseCase {
+  final IValidateStockUseCase validateStock; // errado
+}
+
+// ✅ ViewModel orquestra múltiplos UseCases
+class OrderViewModel {
+  final ICreateOrderUseCase createOrder;
+  final IValidateStockUseCase validateStock;
+
+  Future<void> submit() async {
+    await validateStock.execute();
+    await createOrder.execute();
+  }
+}
+\`\`\`
+
+### 🚀 Objetivo
+
+Cada UseCase com **responsabilidade única**. A orquestração fica no ViewModel.
+
+📖 [Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)`,
+            });
+          }
+        }
+
+        if (isPresentation) {
+          if (importPath.includes("/data/")) {
+            violations.push({
+              file,
+              line: i + 1,
+              importPath,
+              rule: "PRESENTATION → DATA",
+              message: `VIOLAÇÃO CLEAN ARCHITECTURE — PRESENTATION → DATA
+
+Presentation Layer **não pode** importar Data Layer diretamente.
+
+### Problema Identificado
+
+Import detectado:
+\`\`\`dart
+${lines[i].trim()}
+\`\`\`
+
+Presentation deve acessar dados apenas via UseCases e Entities de Domain. Nunca Models ou Datasources de Data.
+
+### 🎯 AÇÃO NECESSÁRIA
+
+\`\`\`dart
+// ❌ Presentation importando Data
+import 'package:app/features/user/data/models/user_model.dart';
+
+// ✅ Presentation usa Domain
+import 'package:app/features/user/domain/entities/user_entity.dart';
+import 'package:app/features/user/domain/usecases/get_user_usecase.dart';
+\`\`\`
+
+### 🚀 Objetivo
+
+Presentation só conhece **Domain**. Data é um detalhe de implementação.
+
+📖 [Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)`,
+            });
+          }
+        }
       }
+    }
+
+    for (const v of violations) {
+      sendFail(v.message, v.file, v.line);
     }
   }
 );

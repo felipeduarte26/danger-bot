@@ -10,7 +10,8 @@ var __importDefault =
     return mod && mod.__esModule ? mod : { default: mod };
   };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.classNamingConventionPlugin =
+exports.viewModelMethodsPlugin =
+  exports.classNamingConventionPlugin =
   exports.identifierLanguagePlugin =
   exports.barrelFilesEnforcerPlugin =
   exports.securityCheckerPlugin =
@@ -21,19 +22,16 @@ exports.classNamingConventionPlugin =
   exports.cleanArchitecturePlugin =
   exports.flutterWidgetsPlugin =
   exports.flutterPerformancePlugin =
-  exports.presentationStatesPlugin =
   exports.presentationViewModelsPlugin =
-  exports.dataRepositoriesPlugin =
   exports.dataModelsPlugin =
   exports.dataDatasourcesPlugin =
   exports.domainUseCasesPlugin =
-  exports.domainRepositoriesPlugin =
+  exports.repositoriesPlugin =
   exports.domainFailuresPlugin =
   exports.domainEntitiesPlugin =
   exports.fileNamingPlugin =
   exports.prValidationPlugin =
   exports.spellCheckerPlugin =
-  exports.portugueseDocumentationPlugin =
   exports.flutterAnalyzePlugin =
   exports.changelogCheckerPlugin =
   exports.prSizeCheckerPlugin =
@@ -67,13 +65,6 @@ Object.defineProperty(exports, "flutterAnalyzePlugin", {
   enumerable: true,
   get: function () {
     return __importDefault(flutter_analyze_1).default;
-  },
-});
-var portuguese_documentation_1 = require("./portuguese-documentation");
-Object.defineProperty(exports, "portugueseDocumentationPlugin", {
-  enumerable: true,
-  get: function () {
-    return __importDefault(portuguese_documentation_1).default;
   },
 });
 var spell_checker_1 = require("./spell-checker");
@@ -112,11 +103,11 @@ Object.defineProperty(exports, "domainFailuresPlugin", {
     return __importDefault(domain_failures_1).default;
   },
 });
-var domain_repositories_1 = require("./domain-repositories");
-Object.defineProperty(exports, "domainRepositoriesPlugin", {
+var repositories_1 = require("./repositories");
+Object.defineProperty(exports, "repositoriesPlugin", {
   enumerable: true,
   get: function () {
-    return __importDefault(domain_repositories_1).default;
+    return __importDefault(repositories_1).default;
   },
 });
 var domain_usecases_1 = require("./domain-usecases");
@@ -140,25 +131,11 @@ Object.defineProperty(exports, "dataModelsPlugin", {
     return __importDefault(data_models_1).default;
   },
 });
-var data_repositories_1 = require("./data-repositories");
-Object.defineProperty(exports, "dataRepositoriesPlugin", {
-  enumerable: true,
-  get: function () {
-    return __importDefault(data_repositories_1).default;
-  },
-});
 var presentation_viewmodels_1 = require("./presentation-viewmodels");
 Object.defineProperty(exports, "presentationViewModelsPlugin", {
   enumerable: true,
   get: function () {
     return __importDefault(presentation_viewmodels_1).default;
-  },
-});
-var presentation_states_1 = require("./presentation-states");
-Object.defineProperty(exports, "presentationStatesPlugin", {
-  enumerable: true,
-  get: function () {
-    return __importDefault(presentation_states_1).default;
   },
 });
 var flutter_performance_1 = require("./flutter-performance");
@@ -236,5 +213,12 @@ Object.defineProperty(exports, "classNamingConventionPlugin", {
   enumerable: true,
   get: function () {
     return __importDefault(class_naming_convention_1).default;
+  },
+});
+var viewmodel_methods_1 = require("./viewmodel-methods");
+Object.defineProperty(exports, "viewModelMethodsPlugin", {
+  enumerable: true,
+  get: function () {
+    return __importDefault(viewmodel_methods_1).default;
   },
 });

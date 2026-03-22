@@ -182,17 +182,19 @@ const LAYER_SUFFIXES = [
   "Interface",
 ];
 
-const TARGET_PATTERNS: { regex: RegExp; label: string }[] = [
-  { regex: /\/domain\/repositories\/[^/]+\.dart$/, label: "Repository Interface" },
-  { regex: /\/data\/repositories\/[^/]+\.dart$/, label: "Repository Implementation" },
-  { regex: /\/data\/datasources\/[^/]+\.dart$/, label: "Datasource" },
-  { regex: /_viewmodel\.dart$/, label: "ViewModel" },
+const TARGET_FOLDERS: { folder: string; label: string }[] = [
+  { folder: "/entities/", label: "Entity" },
+  { folder: "/repositories/", label: "Repository" },
+  { folder: "/datasources/", label: "Datasource" },
+  { folder: "/viewmodels/", label: "ViewModel" },
 ];
 
 function isTargetFile(file: string): string | null {
-  for (const { regex, label } of TARGET_PATTERNS) {
-    if (regex.test(file)) return label;
+  if (file.includes("/usecases/")) return null;
+  for (const { folder, label } of TARGET_FOLDERS) {
+    if (file.includes(folder)) return label;
   }
+  if (file.endsWith("_viewmodel.dart") || file.endsWith("_view_model.dart")) return "ViewModel";
   return null;
 }
 

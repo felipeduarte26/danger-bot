@@ -39,6 +39,7 @@ exports.performancePlugins =
   exports.dataLayerPlugins =
   exports.domainLayerPlugins =
   exports.allFlutterPlugins =
+  exports.viewModelMethodsPlugin =
   exports.classNamingConventionPlugin =
   exports.identifierLanguagePlugin =
   exports.barrelFilesEnforcerPlugin =
@@ -50,19 +51,16 @@ exports.performancePlugins =
   exports.cleanArchitecturePlugin =
   exports.flutterWidgetsPlugin =
   exports.flutterPerformancePlugin =
-  exports.presentationStatesPlugin =
   exports.presentationViewModelsPlugin =
-  exports.dataRepositoriesPlugin =
   exports.dataModelsPlugin =
   exports.dataDatasourcesPlugin =
   exports.domainUseCasesPlugin =
-  exports.domainRepositoriesPlugin =
+  exports.repositoriesPlugin =
   exports.domainFailuresPlugin =
   exports.domainEntitiesPlugin =
   exports.fileNamingPlugin =
   exports.prValidationPlugin =
   exports.spellCheckerPlugin =
-  exports.portugueseDocumentationPlugin =
   exports.flutterAnalyzePlugin =
   exports.changelogCheckerPlugin =
   exports.prSizeCheckerPlugin =
@@ -97,12 +95,6 @@ Object.defineProperty(exports, "flutterAnalyzePlugin", {
     return flutter_1.flutterAnalyzePlugin;
   },
 });
-Object.defineProperty(exports, "portugueseDocumentationPlugin", {
-  enumerable: true,
-  get: function () {
-    return flutter_1.portugueseDocumentationPlugin;
-  },
-});
 Object.defineProperty(exports, "spellCheckerPlugin", {
   enumerable: true,
   get: function () {
@@ -133,10 +125,10 @@ Object.defineProperty(exports, "domainFailuresPlugin", {
     return flutter_1.domainFailuresPlugin;
   },
 });
-Object.defineProperty(exports, "domainRepositoriesPlugin", {
+Object.defineProperty(exports, "repositoriesPlugin", {
   enumerable: true,
   get: function () {
-    return flutter_1.domainRepositoriesPlugin;
+    return flutter_1.repositoriesPlugin;
   },
 });
 Object.defineProperty(exports, "domainUseCasesPlugin", {
@@ -157,22 +149,10 @@ Object.defineProperty(exports, "dataModelsPlugin", {
     return flutter_1.dataModelsPlugin;
   },
 });
-Object.defineProperty(exports, "dataRepositoriesPlugin", {
-  enumerable: true,
-  get: function () {
-    return flutter_1.dataRepositoriesPlugin;
-  },
-});
 Object.defineProperty(exports, "presentationViewModelsPlugin", {
   enumerable: true,
   get: function () {
     return flutter_1.presentationViewModelsPlugin;
-  },
-});
-Object.defineProperty(exports, "presentationStatesPlugin", {
-  enumerable: true,
-  get: function () {
-    return flutter_1.presentationStatesPlugin;
   },
 });
 Object.defineProperty(exports, "flutterPerformancePlugin", {
@@ -241,30 +221,31 @@ Object.defineProperty(exports, "classNamingConventionPlugin", {
     return flutter_1.classNamingConventionPlugin;
   },
 });
+Object.defineProperty(exports, "viewModelMethodsPlugin", {
+  enumerable: true,
+  get: function () {
+    return flutter_1.viewModelMethodsPlugin;
+  },
+});
 /**
- * All available Flutter plugins in a single array (28 plugins)
+ * All available Flutter plugins in a single array (26 plugins)
  * Use this for quick setup with all plugins enabled
  */
 exports.allFlutterPlugins = [
-  // Sumário deve ser PRIMEIRO para aparecer no topo
   require("./plugins/flutter/pr-summary").default,
-  // Importar os plugins
   require("./plugins/flutter/pr-size-checker").default,
   require("./plugins/flutter/changelog-checker").default,
   require("./plugins/flutter/flutter-analyze").default,
-  require("./plugins/flutter/portuguese-documentation").default,
   require("./plugins/flutter/spell-checker").default,
   require("./plugins/flutter/pr-validation").default,
   require("./plugins/flutter/file-naming").default,
   require("./plugins/flutter/domain-entities").default,
   require("./plugins/flutter/domain-failures").default,
-  require("./plugins/flutter/domain-repositories").default,
+  require("./plugins/flutter/repositories").default,
   require("./plugins/flutter/domain-usecases").default,
   require("./plugins/flutter/data-datasources").default,
   require("./plugins/flutter/data-models").default,
-  require("./plugins/flutter/data-repositories").default,
   require("./plugins/flutter/presentation-viewmodels").default,
-  require("./plugins/flutter/presentation-states").default,
   require("./plugins/flutter/flutter-performance").default,
   require("./plugins/flutter/flutter-widgets").default,
   require("./plugins/flutter/clean-architecture").default,
@@ -276,23 +257,20 @@ exports.allFlutterPlugins = [
   require("./plugins/flutter/barrel-files-enforcer").default,
   require("./plugins/flutter/identifier-language").default,
   require("./plugins/flutter/class-naming-convention").default,
+  require("./plugins/flutter/viewmodel-methods").default,
 ];
 // Export arrays for specific layers/categories
 const flutter_2 = require("./plugins/flutter");
 exports.domainLayerPlugins = [
   flutter_2.domainEntitiesPlugin,
   flutter_2.domainFailuresPlugin,
-  flutter_2.domainRepositoriesPlugin,
+  flutter_2.repositoriesPlugin,
   flutter_2.domainUseCasesPlugin,
 ];
-exports.dataLayerPlugins = [
-  flutter_2.dataDatasourcesPlugin,
-  flutter_2.dataModelsPlugin,
-  flutter_2.dataRepositoriesPlugin,
-];
+exports.dataLayerPlugins = [flutter_2.dataDatasourcesPlugin, flutter_2.dataModelsPlugin];
 exports.presentationLayerPlugins = [
   flutter_2.presentationViewModelsPlugin,
-  flutter_2.presentationStatesPlugin,
+  flutter_2.viewModelMethodsPlugin,
 ];
 exports.cleanArchitecturePlugins = [
   ...exports.domainLayerPlugins,

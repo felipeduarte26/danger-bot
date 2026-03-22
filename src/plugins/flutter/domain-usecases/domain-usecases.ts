@@ -1,15 +1,15 @@
-import { createPlugin, getDanger, sendFail } from "@types";
-
 /**
- * ⚡ Domain UseCases Plugin
- *
- * Verifica regras para usecases na camada Domain:
- * - Nomenclatura: *_usecase.dart
- * - Interface: abstract interface class INomeUseCase
- * - Implementação: final class NomeUseCase implements INomeUseCase
- * - Sufixo: UseCase (não Usecase)
- * - Usa implements, não extends
+ * Domain UseCases Plugin
+ * Valida arquivos dentro de /usecases/:
+ * - Nome do arquivo deve terminar com _usecase.dart
+ * - Deve ter abstract interface class com prefixo I e sufixo Usecase
+ * - Deve ter final class com sufixo Usecase e implements
+ * - Deve usar implements, não extends para a interface
+ * - Somente um usecase (interface + implementação) por arquivo
  */
+import { createPlugin, getDanger, sendFail } from "@types";
+import * as fs from "fs";
+
 export default createPlugin(
   {
     name: "domain-usecases",
@@ -17,239 +17,201 @@ export default createPlugin(
     enabled: true,
   },
   async () => {
-    const danger = getDanger();
-    const { git } = danger;
+    const { git } = getDanger();
 
-    const usecaseFiles = git.created_files
-      .concat(git.modified_files)
-      .filter(
-        (file: string) =>
-          file.match(/\/domain\/usecases\/.*\.dart$/) && !file.endsWith("usecases.dart")
-      );
+    const files = [...git.created_files, ...git.modified_files].filter(
+      (f: string) =>
+        f.includes("/usecases/") &&
+        f.endsWith(".dart") &&
+        !f.endsWith("usecases.dart") &&
+        fs.existsSync(f)
+    );
 
-    for (const file of usecaseFiles) {
-      // Verificar nomenclatura
-      if (!file.match(/_usecase\.dart$/)) {
+    for (const file of files) {
+      const fileName = file.split("/").pop() || "";
+
+      if (!fileName.endsWith("_usecase.dart")) {
         sendFail(
-          `## ⚡ NOMENCLATURA DE USECASE INCORRETA
+          `NOMENCLATURA DE USECASE INCORRETA
 
-O arquivo deve terminar com \`_usecase.dart\`.
-
----
-
-### ⚠️ Problema Identificado
-
-**📍 Arquivo atual:** \`${file}\`
-
----
+Arquivo deve terminar com \`_usecase.dart\`.
 
 ### 🎯 AÇÃO NECESSÁRIA
 
-Renomeie para: \`*_usecase.dart\`
+\`\`\`dart
+// ❌ ${fileName}
+// ✅ ${fileName.replace(".dart", "")}_usecase.dart
+\`\`\``,
+          file,
+          1
+        );
+        continue;
+      }
 
-\`\`\`
-❌ get_user.dart
-✅ get_user_usecase.dart
-\`\`\`
+      const content = fs.readFileSync(file, "utf-8");
+      const lines = content.split("\n");
 
----
+      const interfaces: { name: string; line: number }[] = [];
+      const implementations: { name: string; line: number; raw: string }[] = [];
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+
+        const ifaceMatch = line.match(/abstract\s+interface\s+class\s+([A-Za-z_]\w*)/);
+        if (ifaceMatch) {
+          interfaces.push({ name: ifaceMatch[1], line: i + 1 });
+        }
+
+        const implMatch = line.match(
+          /(?:final\s+)?class\s+([A-Za-z_]\w*)\s+(?:implements|extends)\s+([A-Za-z_]\w*)/
+        );
+        if (implMatch && !line.includes("abstract")) {
+          implementations.push({ name: implMatch[1], line: i + 1, raw: line });
+        }
+      }
+
+      if (interfaces.length > 1) {
+        sendFail(
+          `MÚLTIPLAS INTERFACES EM UM ARQUIVO USECASE
+
+Encontradas **${interfaces.length} interfaces**: ${interfaces.map((i) => `\`${i.name}\``).join(", ")}.
+
+### 🎯 AÇÃO NECESSÁRIA
+
+Cada UseCase (interface + implementação) deve estar em seu próprio arquivo.
 
 ### 🚀 Objetivo
 
-Identificar **usecases** facilmente no projeto.`,
+**Um UseCase por arquivo** — facilita navegação e manutenção.`,
+          file,
+          interfaces[1].line
+        );
+      }
+
+      if (interfaces.length === 0) {
+        sendFail(
+          `USECASE SEM INTERFACE
+
+Arquivo de UseCase deve ter \`abstract interface class\`.
+
+### 🎯 AÇÃO NECESSÁRIA
+
+\`\`\`dart
+abstract interface class IGetUserUsecase {
+  Future<Result<Failure, UserEntity>> call(String id);
+}
+
+final class GetUserUsecase implements IGetUserUsecase {
+  const GetUserUsecase(this._repository);
+  final IUserRepository _repository;
+
+  @override
+  Future<Result<Failure, UserEntity>> call(String id) async {
+    return _repository.getUser(id);
+  }
+}
+\`\`\`
+
+### 🚀 Objetivo
+
+Permitir **injeção de dependência** e facilitar **testes**.`,
           file,
           1
         );
       }
 
-      try {
-        const content = await danger.git.structuredDiffForFile(file);
-        if (!content) continue;
-
-        const fileText = content.chunks.map((c: any) => c.content).join("\n");
-
-        // Verificar sufixo UseCase (não Usecase)
-        if (fileText.match(/class\s+\w+Usecase(?!ase)\b/)) {
+      for (const iface of interfaces) {
+        if (!iface.name.startsWith("I")) {
           sendFail(
-            `## ⚡ SUFIXO USECASE INCORRETO
+            `INTERFACE DE USECASE SEM PREFIXO I
 
-UseCase deve ter sufixo \`UseCase\` (com 'C' maiúsculo), não \`Usecase\`.
-
----
-
-### ⚠️ Problema Identificado
-
-PascalCase correto: \`UseCase\` (não \`Usecase\`)
-
----
+A interface \`${iface.name}\` deve começar com \`I\`.
 
 ### 🎯 AÇÃO NECESSÁRIA
 
 \`\`\`dart
-// ❌ INCORRETO
-class GetUserUsecase implements IGetUserUsecase { }
-
-// ✅ CORRETO
-class GetUserUseCase implements IGetUserUseCase { }
-\`\`\`
-
----
-
-### 🚀 Objetivo
-
-Manter **PascalCase** correto para nomes compostos.`,
+// ❌ abstract interface class ${iface.name} { }
+// ✅ abstract interface class I${iface.name} { }
+\`\`\``,
             file,
-            1
+            iface.line
           );
         }
 
-        // Verificar uso de extends ao invés de implements
-        if (fileText.match(/final\s+class\s+\w*UseCase\s+extends\s+I\w+/)) {
+        if (!iface.name.endsWith("Usecase")) {
           sendFail(
-            `## ⚡ USECASE COM EXTENDS INCORRETO
+            `INTERFACE DE USECASE SEM SUFIXO
+
+A interface \`${iface.name}\` deve terminar com \`Usecase\`.
+
+### 🎯 AÇÃO NECESSÁRIA
+
+\`\`\`dart
+// ❌ abstract interface class ${iface.name} { }
+// ✅ abstract interface class ${iface.name}Usecase { }
+\`\`\``,
+            file,
+            iface.line
+          );
+        }
+      }
+
+      if (implementations.length === 0 && interfaces.length > 0) {
+        sendFail(
+          `USECASE SEM IMPLEMENTAÇÃO
+
+Arquivo tem interface mas não tem a implementação.
+
+### 🎯 AÇÃO NECESSÁRIA
+
+\`\`\`dart
+final class ${interfaces[0].name.replace(/^I/, "")} implements ${interfaces[0].name} {
+  // implementação
+}
+\`\`\``,
+          file,
+          interfaces[0].line
+        );
+      }
+
+      for (const impl of implementations) {
+        if (!impl.name.endsWith("Usecase")) {
+          sendFail(
+            `IMPLEMENTAÇÃO DE USECASE SEM SUFIXO
+
+A classe \`${impl.name}\` deve terminar com \`Usecase\`.
+
+### 🎯 AÇÃO NECESSÁRIA
+
+\`\`\`dart
+// ❌ class ${impl.name} { }
+// ✅ class ${impl.name}Usecase { }
+\`\`\``,
+            file,
+            impl.line
+          );
+        }
+
+        if (impl.raw.match(/extends\s+I\w+/)) {
+          sendFail(
+            `USECASE COM EXTENDS INCORRETO
 
 UseCase deve usar \`implements\`, não \`extends\`.
 
----
+### Problema Identificado
 
-### ⚠️ Problema Identificado
-
-Interfaces devem ser **implementadas**, não estendidas.
-
----
+\`extends\` é para herança de classes. Interfaces devem ser implementadas.
 
 ### 🎯 AÇÃO NECESSÁRIA
 
 \`\`\`dart
-// ❌ INCORRETO
-final class GetUserUseCase extends IGetUserUseCase {
-  // extends é para herança de classes
-}
-
-// ✅ CORRETO
-final class GetUserUseCase implements IGetUserUseCase {
-  // implements é para interfaces
-  const GetUserUseCase({required this.repository});
-  
-  final IUserRepository repository;
-  
-  @override
-  Future<Result<Failure, UserEntity>> call(String id) async {
-    return await repository.getUser(id);
-  }
-}
-\`\`\`
-
-**Regra:**
-- \`extends\` → herança de **classes**
-- \`implements\` → implementação de **interfaces**
-
----
-
-### 🚀 Objetivo
-
-Usar corretamente **herança** vs **implementação** de interfaces.`,
+// ❌ class ${impl.name} extends ${interfaces[0]?.name || "IXxxUsecase"} { }
+// ✅ class ${impl.name} implements ${interfaces[0]?.name || "IXxxUsecase"} { }
+\`\`\``,
             file,
-            1
+            impl.line
           );
         }
-
-        // Verificar se tem interface e implementação
-        const hasInterface = fileText.match(/abstract\s+interface\s+class\s+I\w+UseCase/);
-        const hasImplementation = fileText.match(/final\s+class\s+\w+UseCase\s+implements/);
-
-        if (!hasInterface) {
-          sendFail(
-            `## ⚡ USECASE SEM INTERFACE
-
-Arquivo deve ter uma interface \`abstract interface class INomeUseCase\`.
-
----
-
-### ⚠️ Problema Identificado
-
-UseCase precisa de interface para:
-- ✅ Inversão de dependência
-- ✅ Facilitar testes (mocks)
-- ✅ Desacoplar implementação
-
----
-
-### 🎯 AÇÃO NECESSÁRIA
-
-\`\`\`dart
-// Interface (contrato)
-abstract interface class IGetUserUseCase {
-  Future<Result<Failure, UserEntity>> call(String id);
-}
-
-// Implementação
-final class GetUserUseCase implements IGetUserUseCase {
-  const GetUserUseCase({required this.repository});
-  
-  final IUserRepository repository;
-  
-  @override
-  Future<Result<Failure, UserEntity>> call(String id) {
-    return repository.getUser(id);
-  }
-}
-\`\`\`
-
----
-
-### 🚀 Objetivo
-
-Permitir **injeção de dependência** e **testes** eficientes.`,
-            file,
-            1
-          );
-        }
-
-        if (!hasImplementation) {
-          sendFail(
-            `## ⚡ USECASE SEM IMPLEMENTAÇÃO
-
-Arquivo deve ter implementação \`final class NomeUseCase implements INomeUseCase\`.
-
----
-
-### ⚠️ Problema Identificado
-
-UseCase precisa de implementação concreta.
-
----
-
-### 🎯 AÇÃO NECESSÁRIA
-
-\`\`\`dart
-abstract interface class IGetUserUseCase {
-  Future<Result<Failure, UserEntity>> call(String id);
-}
-
-final class GetUserUseCase implements IGetUserUseCase {
-  const GetUserUseCase({required this.repository});
-  
-  final IUserRepository repository;
-  
-  @override
-  Future<Result<Failure, UserEntity>> call(String id) async {
-    return await repository.getUser(id);
-  }
-}
-\`\`\`
-
----
-
-### 🚀 Objetivo
-
-Ter **implementação concreta** do caso de uso.`,
-            file,
-            1
-          );
-        }
-      } catch (e) {
-        // Arquivo pode não ter diff disponível
       }
     }
   }

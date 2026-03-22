@@ -1,171 +1,207 @@
 "use strict";
+var __createBinding =
+  (this && this.__createBinding) ||
+  (Object.create
+    ? function (o, m, k, k2) {
+        if (k2 === undefined) k2 = k;
+        var desc = Object.getOwnPropertyDescriptor(m, k);
+        if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+          desc = {
+            enumerable: true,
+            get: function () {
+              return m[k];
+            },
+          };
+        }
+        Object.defineProperty(o, k2, desc);
+      }
+    : function (o, m, k, k2) {
+        if (k2 === undefined) k2 = k;
+        o[k2] = m[k];
+      });
+var __setModuleDefault =
+  (this && this.__setModuleDefault) ||
+  (Object.create
+    ? function (o, v) {
+        Object.defineProperty(o, "default", { enumerable: true, value: v });
+      }
+    : function (o, v) {
+        o["default"] = v;
+      });
+var __importStar =
+  (this && this.__importStar) ||
+  (function () {
+    var ownKeys = function (o) {
+      ownKeys =
+        Object.getOwnPropertyNames ||
+        function (o) {
+          var ar = [];
+          for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+          return ar;
+        };
+      return ownKeys(o);
+    };
+    return function (mod) {
+      if (mod && mod.__esModule) return mod;
+      var result = {};
+      if (mod != null)
+        for (var k = ownKeys(mod), i = 0; i < k.length; i++)
+          if (k[i] !== "default") __createBinding(result, mod, k[i]);
+      __setModuleDefault(result, mod);
+      return result;
+    };
+  })();
 Object.defineProperty(exports, "__esModule", { value: true });
 /**
- * Detecta possíveis memory leaks
+ * Memory Leak Detector Plugin
+ * Detecta disposables (Controllers, FocusNodes, Timers, Streams) em classes
+ * State<> que não têm dispose/cancel correspondente.
+ *
+ * Para cada disposable encontrado como campo da classe, verifica se existe
+ * uma chamada .dispose() ou .cancel() com o mesmo nome no método dispose().
  */
 const _types_1 = require("../../../types");
+const fs = __importStar(require("fs"));
+const DISPOSE_TYPES = [
+  "TextEditingController",
+  "AnimationController",
+  "ScrollController",
+  "PageController",
+  "TabController",
+  "FocusNode",
+  "ChangeNotifier",
+  "ValueNotifier",
+];
+const CANCEL_TYPES = ["Timer", "StreamSubscription", "StreamController"];
+const FIELD_RE = /^\s+(?:late\s+)?(?:final\s+)?(?:([\w<>,?\s]+?)\s+)?(_?\w+)\s*[=;]/;
 exports.default = (0, _types_1.createPlugin)(
   {
     name: "memory-leak-detector",
-    description: "Detecta possíveis memory leaks",
+    description: "Detecta possíveis memory leaks em States",
     enabled: true,
   },
   async () => {
-    const danger = (0, _types_1.getDanger)();
-    const dartFiles = (0, _types_1.getDartFiles)();
+    const { git } = (0, _types_1.getDanger)();
+    const dartFiles = [...git.modified_files, ...git.created_files].filter(
+      (f) =>
+        f.endsWith(".dart") &&
+        !f.endsWith(".g.dart") &&
+        !f.endsWith(".freezed.dart") &&
+        fs.existsSync(f)
+    );
     for (const file of dartFiles) {
-      try {
-        const content = await danger.git.structuredDiffForFile(file);
-        if (!content) continue;
-        const fileText = content.chunks.map((c) => c.content).join("\n");
-        // Detectar Controllers sem dispose
-        if (fileText.match(/\w+Controller\s+\w+/) && fileText.includes("State<")) {
-          if (!fileText.includes("dispose()") || !fileText.includes(".dispose()")) {
-            (0, _types_1.sendFail)(
-              `## 💧 VAZAMENTO DE MEMÓRIA - CONTROLLER SEM DISPOSE
+      const content = fs.readFileSync(file, "utf-8");
+      if (!content.includes("extends State<") && !content.includes("extends ViewState<")) continue;
+      const lines = content.split("\n");
+      const disposables = findDisposables(lines);
+      if (disposables.length === 0) continue;
+      const disposeBody = extractDisposeBody(lines);
+      for (const d of disposables) {
+        const cleanupCall = d.needsCancel ? `${d.name}?.cancel()` : `${d.name}.dispose()`;
+        const hasCleanup =
+          disposeBody.includes(`${d.name}.dispose()`) ||
+          disposeBody.includes(`${d.name}?.dispose()`) ||
+          disposeBody.includes(`${d.name}.cancel()`) ||
+          disposeBody.includes(`${d.name}?.cancel()`);
+        if (hasCleanup) continue;
+        const action = d.needsCancel ? "cancel" : "dispose";
+        (0, _types_1.sendFail)(
+          `VAZAMENTO DE MEMÓRIA — ${d.type} SEM ${action.toUpperCase()}()
 
-Controller detectado mas sem \`dispose()\` correspondente.
+\`${d.name}\` (${d.type}) não tem \`${action}()\` no método \`dispose()\`.
 
----
+### Problema Identificado
 
-### ⚠️ Problema Identificado
-
-Controllers **não dispostos** causam:
-- 💾 Vazamento de memória
-- 📱 App mais lento com o tempo
-- 🔋 Maior consumo de bateria
-- 💥 Possível crash por falta de memória
-
----
-
-### 🎯 AÇÃO NECESSÁRIA
+Recursos não liberados causam vazamento de memória, lentidão e consumo excessivo de bateria.
 
 \`\`\`dart
-// ❌ INCORRETO
-class MyPageState extends State<MyPage> {
-  final TextEditingController controller = TextEditingController();
-  // ❌ Sem dispose!
-}
+// ❌ Atual — sem cleanup
+${d.type} ${d.name} = ...;
 
-// ✅ CORRETO
-class MyPageState extends State<MyPage> {
-  late final TextEditingController controller;
-  
-  @override
-  void initState() {
-    super.initState();
-    controller = TextEditingController();
-  }
-  
-  @override
-  void dispose() {
-    controller.dispose();  // ✅ Limpa recursos
-    super.dispose();
-  }
-  
-  @override
-  Widget build(BuildContext context) {
-    return TextField(controller: controller);
-  }
+// ✅ Correto — adicione no dispose()
+@override
+void dispose() {
+  ${cleanupCall};
+  super.dispose();
 }
 \`\`\`
 
----
-
 ### 🚀 Objetivo
 
-Prevenir **vazamentos de memória** e manter app **performático**.
+Todo **${d.type}** deve ter \`${action}()\` no método \`dispose()\`.
 
-> **Regra:** Todo Controller/Stream/Timer deve ter dispose()!`,
-              file,
-              1
-            );
-          }
-        }
-        // Detectar Timer sem cancel
-        if (fileText.includes("Timer.periodic") || fileText.includes("Timer(")) {
-          if (!fileText.includes(".cancel()")) {
-            (0, _types_1.sendWarn)(
-              `## 💧 VAZAMENTO - TIMER SEM CANCEL
-
-Timer detectado sem \`.cancel()\` correspondente.
-
----
-
-### 🎯 AÇÃO NECESSÁRIA
-
-\`\`\`dart
-// ❌ INCORRETO
-class MyState extends State<MyWidget> {
-  Timer.periodic(Duration(seconds: 1), (timer) {
-    print('tick');
-  });
-}
-
-// ✅ CORRETO
-class MyState extends State<MyWidget> {
-  Timer? _timer;
-  
-  @override
-  void initState() {
-    super.initState();
-    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
-      print('tick');
-    });
-  }
-  
-  @override
-  void dispose() {
-    _timer?.cancel();  // ✅ Cancela timer
-    super.dispose();
-  }
-}
-\`\`\``,
-              file,
-              1
-            );
-          }
-        }
-        // Detectar StreamSubscription sem cancel
-        if (fileText.includes("StreamSubscription")) {
-          if (!fileText.includes(".cancel()")) {
-            (0, _types_1.sendWarn)(
-              `## 💧 VAZAMENTO - STREAM SEM CANCEL
-
-StreamSubscription sem \`.cancel()\`.
-
----
-
-### 🎯 AÇÃO NECESSÁRIA
-
-\`\`\`dart
-// ✅ CORRETO
-class MyState extends State<MyWidget> {
-  StreamSubscription? _subscription;
-  
-  @override
-  void initState() {
-    super.initState();
-    _subscription = stream.listen((data) {
-      // handle data
-    });
-  }
-  
-  @override
-  void dispose() {
-    _subscription?.cancel();  // ✅ Cancela subscription
-    super.dispose();
-  }
-}
-\`\`\``,
-              file,
-              1
-            );
-          }
-        }
-      } catch (e) {
-        // Ignore
+📖 [Flutter: dispose method](https://api.flutter.dev/flutter/widgets/State/dispose.html)`,
+          file,
+          d.line
+        );
       }
     }
   }
 );
+function findDisposables(lines) {
+  const result = [];
+  let insideStateClass = false;
+  let braceDepth = 0;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (line.match(/class\s+\w+\s+extends\s+(?:State|ViewState)</)) {
+      insideStateClass = true;
+      braceDepth = 0;
+    }
+    if (insideStateClass) {
+      for (const ch of line) {
+        if (ch === "{") braceDepth++;
+        if (ch === "}") braceDepth--;
+      }
+      if (braceDepth <= 0 && insideStateClass && line.includes("}")) {
+        insideStateClass = false;
+        continue;
+      }
+      if (braceDepth !== 1) continue;
+      const fieldMatch = line.match(FIELD_RE);
+      if (!fieldMatch) continue;
+      const explicitType = fieldMatch[1]?.trim() || "";
+      const varName = fieldMatch[2];
+      if (!varName || varName === "super" || varName === "const") continue;
+      const rightSide = line.split("=")[1] || "";
+      for (const type of DISPOSE_TYPES) {
+        if (explicitType.includes(type) || rightSide.includes(`${type}(`)) {
+          result.push({ name: varName, type, line: i + 1, needsDispose: true, needsCancel: false });
+          break;
+        }
+      }
+      for (const type of CANCEL_TYPES) {
+        if (
+          explicitType.includes(type) ||
+          rightSide.includes(`${type}(`) ||
+          rightSide.includes(`${type}.`)
+        ) {
+          result.push({ name: varName, type, line: i + 1, needsDispose: false, needsCancel: true });
+          break;
+        }
+      }
+    }
+  }
+  return result;
+}
+function extractDisposeBody(lines) {
+  let inDispose = false;
+  let braceDepth = 0;
+  let body = "";
+  for (const line of lines) {
+    if (line.match(/void\s+dispose\s*\(\s*\)/)) {
+      inDispose = true;
+      braceDepth = 0;
+    }
+    if (!inDispose) continue;
+    for (const ch of line) {
+      if (ch === "{") braceDepth++;
+      if (ch === "}") braceDepth--;
+    }
+    body += line + "\n";
+    if (inDispose && braceDepth <= 0 && line.includes("}")) {
+      break;
+    }
+  }
+  return body;
+}

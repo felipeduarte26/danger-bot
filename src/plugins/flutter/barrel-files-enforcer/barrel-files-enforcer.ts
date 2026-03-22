@@ -1,57 +1,98 @@
 /**
- * Força uso de barrel files
+ * Barrel Files Enforcer Plugin
+ * Analisa imports dos arquivos Dart e sugere barrel files quando
+ * multiplos imports vem da mesma pasta.
  */
-import { createPlugin, sendFail, getAllChangedFiles } from "@types";
+import { createPlugin, getDanger, sendFail } from "@types";
+import * as fs from "fs";
+
+const IMPORT_RE = /^import\s+['"]package:([^'"]+)['"];/;
+const DART_CORE_RE = /^import\s+['"]dart:/;
+const RELATIVE_RE = /^import\s+['"]\.\./;
+
+interface ImportGroup {
+  folder: string;
+  imports: string[];
+  lines: number[];
+}
 
 export default createPlugin(
   {
     name: "barrel-files-enforcer",
-    description: "Força uso de barrel files",
+    description: "Sugere barrel files quando múltiplos imports vêm da mesma pasta",
     enabled: true,
   },
   async () => {
-    const folders = ["entities", "failures", "repositories", "usecases", "models", "datasources"];
-    const allFiles = getAllChangedFiles();
+    const { git } = getDanger();
 
-    for (const folder of folders) {
-      const filesInFolder = allFiles.filter(
-        (f: string) =>
-          f.includes(`/${folder}/`) && f.endsWith(".dart") && !f.endsWith(`${folder}.dart`)
-      );
+    const dartFiles = [...git.modified_files, ...git.created_files].filter(
+      (f: string) =>
+        f.endsWith(".dart") &&
+        !f.endsWith(".g.dart") &&
+        !f.endsWith(".freezed.dart") &&
+        fs.existsSync(f)
+    );
 
-      if (filesInFolder.length === 0) continue;
+    for (const file of dartFiles) {
+      const content = fs.readFileSync(file, "utf-8");
+      const lines = content.split("\n");
 
-      const barrelFile = allFiles.find((f: string) => f.endsWith(`/${folder}/${folder}.dart`));
-      if (barrelFile) continue;
+      const packageImports: { path: string; line: number }[] = [];
 
-      const targetFile = filesInFolder[0];
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
 
-      sendFail(
-        `BARREL FILE AUSENTE
+        if (DART_CORE_RE.test(line)) continue;
+        if (RELATIVE_RE.test(line)) continue;
 
-Pasta \`${folder}\` tem arquivos mas sem barrel file.
+        const match = line.match(IMPORT_RE);
+        if (match) {
+          packageImports.push({ path: match[1], line: i + 1 });
+        }
+      }
+
+      if (packageImports.length < 2) continue;
+
+      const groups = groupByFolder(packageImports);
+
+      for (const group of groups) {
+        if (group.imports.length < 2) continue;
+
+        const folderName = group.folder.split("/").pop() || group.folder;
+        const barrelName = `${folderName}.dart`;
+
+        const alreadyUsesBarrel = group.imports.some(
+          (imp) =>
+            imp.endsWith(`/${barrelName}`) || imp.endsWith(`/${folderName}/${folderName}.dart`)
+        );
+        if (alreadyUsesBarrel) continue;
+
+        const importLines = group.imports.map((imp) => `import 'package:${imp}';`).join("\n");
+        const packagePrefix = group.imports[0].split("/").slice(0, -1).join("/");
+
+        sendFail(
+          `BARREL FILE RECOMENDADO
+
+**${group.imports.length} imports** da mesma pasta \`${folderName}/\` poderiam usar um barrel file.
 
 ### Problema Identificado
 
-Sem barrel file, imports ficam verbosos:
+Imports verbosos da mesma pasta:
 
 \`\`\`dart
-// ❌ Sem barrel file
-import '../domain/${folder}/user_entity.dart';
-import '../domain/${folder}/product_entity.dart';
-import '../domain/${folder}/order_entity.dart';
+// ❌ Atual — ${group.imports.length} imports separados
+${importLines}
 
-// ✅ Com barrel file
-import '../domain/${folder}/${folder}.dart';
+// ✅ Com barrel file — 1 import
+import 'package:${packagePrefix}/${barrelName}';
 \`\`\`
 
 ### 🎯 AÇÃO NECESSÁRIA
 
-**Crie arquivo:** \`${folder}/${folder}.dart\`
+Crie \`${barrelName}\` na pasta \`${folderName}/\`:
 
 \`\`\`dart
-// ${folder}.dart
-${filesInFolder.map((f: string) => `export '${f.split("/").pop()}';`).join("\n")}
+${group.imports.map((imp) => `export '${imp.split("/").pop()}';`).join("\n")}
 \`\`\`
 
 ### 🚀 Objetivo
@@ -59,9 +100,31 @@ ${filesInFolder.map((f: string) => `export '${f.split("/").pop()}';`).join("\n")
 Simplificar **imports** e melhorar **organização**.
 
 📖 [Guia completo sobre Barrel Files](https://medium.com/@ugamakelechi501/barrel-files-in-dart-and-flutter-a-guide-to-simplifying-imports-9b245dbe516a)`,
-        targetFile,
-        1
-      );
+          file,
+          group.lines[0]
+        );
+      }
     }
   }
 );
+
+function groupByFolder(imports: { path: string; line: number }[]): ImportGroup[] {
+  const map = new Map<string, ImportGroup>();
+
+  for (const imp of imports) {
+    const parts = imp.path.split("/");
+    if (parts.length < 2) continue;
+
+    const folder = parts.slice(0, -1).join("/");
+
+    let group = map.get(folder);
+    if (!group) {
+      group = { folder, imports: [], lines: [] };
+      map.set(folder, group);
+    }
+    group.imports.push(imp.path);
+    group.lines.push(imp.line);
+  }
+
+  return Array.from(map.values());
+}

@@ -10,19 +10,16 @@ export {
   prSizeCheckerPlugin,
   changelogCheckerPlugin,
   flutterAnalyzePlugin,
-  portugueseDocumentationPlugin,
   spellCheckerPlugin,
   prValidationPlugin,
   fileNamingPlugin,
   domainEntitiesPlugin,
   domainFailuresPlugin,
-  domainRepositoriesPlugin,
+  repositoriesPlugin,
   domainUseCasesPlugin,
   dataDatasourcesPlugin,
   dataModelsPlugin,
-  dataRepositoriesPlugin,
   presentationViewModelsPlugin,
-  presentationStatesPlugin,
   flutterPerformancePlugin,
   flutterWidgetsPlugin,
   cleanArchitecturePlugin,
@@ -34,9 +31,10 @@ export {
   barrelFilesEnforcerPlugin,
   identifierLanguagePlugin,
   classNamingConventionPlugin,
+  viewModelMethodsPlugin,
 } from "./plugins/flutter";
 /**
- * All available Flutter plugins in a single array (28 plugins)
+ * All available Flutter plugins in a single array (26 plugins)
  * Use this for quick setup with all plugins enabled
  */
 export declare const allFlutterPlugins: any[];

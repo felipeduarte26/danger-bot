@@ -2,9 +2,49 @@
  * Identifier Language Plugin
  * Detecta nomes de classes, métodos e variáveis em português.
  * O padrão do projeto é código 100% em inglês.
+ *
+ * Usa duas camadas de detecção:
+ * 1. Dicionário interno (~400 palavras PT comuns em código) — rápido e preciso
+ * 2. cld3-asm (Google CLD3) como fallback — para palavras fora do dicionário
  */
 import { createPlugin, getDanger, sendFail } from "@types";
 import * as fs from "fs";
+
+let _cld3Identifier: any = null;
+let _cld3Loaded = false;
+
+async function getCld3(): Promise<any> {
+  if (_cld3Loaded) return _cld3Identifier;
+  _cld3Loaded = true;
+
+  try {
+    const cld3 = require("cld3-asm");
+
+    if (typeof cld3.loadModule === "function") {
+      const mod = await cld3.loadModule();
+      _cld3Identifier = mod.create(0, 512);
+    } else if (typeof cld3.createIdentifier === "function") {
+      _cld3Identifier = cld3.createIdentifier();
+    } else if (cld3.default && typeof cld3.default.loadModule === "function") {
+      const mod = await cld3.default.loadModule();
+      _cld3Identifier = mod.create(0, 512);
+    }
+  } catch {
+    // cld3 nao disponivel — segue so com dicionario
+  }
+
+  return _cld3Identifier;
+}
+
+function isCld3Portuguese(text: string): boolean {
+  if (!_cld3Identifier || text.length < 6) return false;
+  try {
+    const result = _cld3Identifier.findLanguage(text);
+    return result?.language === "pt" && result.probability > 0.7;
+  } catch {
+    return false;
+  }
+}
 
 const PT_WORDS = new Set([
   // Substantivos comuns em código
@@ -480,6 +520,8 @@ export default createPlugin(
   async () => {
     const { git } = getDanger();
 
+    await getCld3();
+
     const dartFiles = [...git.modified_files, ...git.created_files].filter(
       (f: string) =>
         f.endsWith(".dart") &&
@@ -492,6 +534,7 @@ export default createPlugin(
     if (dartFiles.length === 0) return;
 
     const matches: IdentifierMatch[] = [];
+    const commentMatches: { file: string; line: number; text: string; type: string }[] = [];
 
     for (const file of dartFiles) {
       const content = fs.readFileSync(file, "utf-8");
@@ -499,12 +542,51 @@ export default createPlugin(
 
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
+        const trimmed = line.trim();
+
+        // Detectar comentarios e documentacao em portugues
+        const docMatch = trimmed.match(/^\/\/\/\s*(.+)/);
+        const commentMatch = !docMatch ? trimmed.match(/^\/\/\s*(.+)/) : null;
+
+        if (docMatch || commentMatch) {
+          const text = (docMatch || commentMatch)![1].trim();
+
+          // Ignorar pragmas, annotations, templates Dart
+          if (
+            text.startsWith("ignore:") ||
+            text.startsWith("coverage:") ||
+            text.startsWith("TODO") ||
+            text.startsWith("FIXME") ||
+            text.startsWith("{@") ||
+            text.startsWith("@") ||
+            text.length < 15
+          ) {
+            continue;
+          }
+
+          if (isCld3Portuguese(text)) {
+            commentMatches.push({
+              file,
+              line: i + 1,
+              text: text.slice(0, 80),
+              type: docMatch ? "documentação (///)" : "comentário (//)",
+            });
+          }
+        }
+
+        // Detectar identificadores em portugues
         const cleaned = stripCommentsAndStrings(line);
         if (!cleaned.trim()) continue;
 
         for (const { identifier, kind } of extractIdentifiers(cleaned)) {
           const words = splitIdentifier(identifier);
-          const ptWords = words.filter((w) => PT_WORDS.has(w) && !AMBIGUOUS.has(w));
+
+          const ptWords = words.filter((w) => {
+            if (AMBIGUOUS.has(w)) return false;
+            if (PT_WORDS.has(w)) return true;
+            if (w.length >= 6 && isCld3Portuguese(w)) return true;
+            return false;
+          });
 
           if (ptWords.length > 0) {
             matches.push({ file, line: i + 1, identifier, kind, ptWords });
@@ -513,6 +595,37 @@ export default createPlugin(
       }
     }
 
+    // Reportar comentarios em portugues
+    const commentSeen = new Set<string>();
+    for (const c of commentMatches) {
+      const key = `${c.file}::${c.line}`;
+      if (commentSeen.has(key)) continue;
+      commentSeen.add(key);
+
+      sendFail(
+        `${c.type.toUpperCase()} EM PORTUGUÊS
+
+\`${c.text}${c.text.length >= 80 ? "..." : ""}\`
+
+### Problema Identificado
+
+O padrão do projeto é documentação e comentários **100% em inglês**.
+
+### 🎯 AÇÃO NECESSÁRIA
+
+Traduza para inglês.
+
+### 🚀 Objetivo
+
+Manter **consistência** e facilitar **colaboração** internacional.
+
+📖 [Effective Dart: Documentation](https://dart.dev/effective-dart/documentation)`,
+        c.file,
+        c.line
+      );
+    }
+
+    // Reportar identificadores em portugues
     if (matches.length === 0) return;
 
     const seen = new Set<string>();

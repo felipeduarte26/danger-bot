@@ -1,98 +1,116 @@
 "use strict";
+var __createBinding =
+  (this && this.__createBinding) ||
+  (Object.create
+    ? function (o, m, k, k2) {
+        if (k2 === undefined) k2 = k;
+        var desc = Object.getOwnPropertyDescriptor(m, k);
+        if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+          desc = {
+            enumerable: true,
+            get: function () {
+              return m[k];
+            },
+          };
+        }
+        Object.defineProperty(o, k2, desc);
+      }
+    : function (o, m, k, k2) {
+        if (k2 === undefined) k2 = k;
+        o[k2] = m[k];
+      });
+var __setModuleDefault =
+  (this && this.__setModuleDefault) ||
+  (Object.create
+    ? function (o, v) {
+        Object.defineProperty(o, "default", { enumerable: true, value: v });
+      }
+    : function (o, v) {
+        o["default"] = v;
+      });
+var __importStar =
+  (this && this.__importStar) ||
+  (function () {
+    var ownKeys = function (o) {
+      ownKeys =
+        Object.getOwnPropertyNames ||
+        function (o) {
+          var ar = [];
+          for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+          return ar;
+        };
+      return ownKeys(o);
+    };
+    return function (mod) {
+      if (mod && mod.__esModule) return mod;
+      var result = {};
+      if (mod != null)
+        for (var k = ownKeys(mod), i = 0; i < k.length; i++)
+          if (k[i] !== "default") __createBinding(result, mod, k[i]);
+      __setModuleDefault(result, mod);
+      return result;
+    };
+  })();
 Object.defineProperty(exports, "__esModule", { value: true });
 /**
- * Detecta uso de late final
+ * Late Final Checker Plugin
+ * Detecta uso desnecessário de late final com valor atribuído na declaração.
+ *
+ * late final só faz sentido quando o valor é atribuído DEPOIS (ex: initState).
+ * Se já tem valor na declaração, deve ser apenas final ou const.
  */
 const _types_1 = require("../../../types");
+const fs = __importStar(require("fs"));
+const LATE_FINAL_WITH_VALUE = /late\s+final\s+(?:[\w<>,?\s]+\s+)?(\w+)\s*=\s*.+;/;
 exports.default = (0, _types_1.createPlugin)(
   {
     name: "late-final-checker",
-    description: "Detecta uso de late final",
+    description: "Detecta late final desnecessário com valor atribuído",
     enabled: true,
   },
   async () => {
-    const danger = (0, _types_1.getDanger)();
-    const dartFiles = (0, _types_1.getDartFiles)();
+    const { git } = (0, _types_1.getDanger)();
+    const dartFiles = [...git.modified_files, ...git.created_files].filter(
+      (f) =>
+        f.endsWith(".dart") &&
+        !f.endsWith(".g.dart") &&
+        !f.endsWith(".freezed.dart") &&
+        fs.existsSync(f)
+    );
     for (const file of dartFiles) {
-      try {
-        const content = await danger.git.structuredDiffForFile(file);
-        if (!content) continue;
-        const fileText = content.chunks.map((c) => c.content).join("\n");
-        // Detectar late final sem inicialização
-        const lateMatches = fileText.matchAll(/late\s+final\s+(\w+)\s+(\w+);/g);
-        for (const match of lateMatches) {
-          (0, _types_1.sendWarn)(
-            `## ⚠️ USO DE LATE FINAL DETECTADO
+      const content = fs.readFileSync(file, "utf-8");
+      const lines = content.split("\n");
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const match = line.match(LATE_FINAL_WITH_VALUE);
+        if (!match) continue;
+        const varName = match[1];
+        const trimmed = line.trim();
+        (0, _types_1.sendFail)(
+          `LATE FINAL DESNECESSÁRIO
 
-Uso de \`late final\` encontrado: \`${match[0]}\`
-
----
-
-### ⚠️ Problema Identificado
-
-\`late final\` pode causar:
-- 🐛 Runtime errors se acessado antes de inicializar
-- 📉 Código menos seguro
-- 🤔 Dificuldade de debug
-
----
-
-### 🎯 AÇÃO NECESSÁRIA
-
-**Prefira alternativas mais seguras:**
+\`late final\` com valor atribuído na declaração não faz sentido.
 
 \`\`\`dart
-// ❌ EVITE (se possível)
-class MyClass {
-  late final String name;
-  
-  void init() {
-    name = 'John';  // Pode esquecer de chamar init()
-  }
-}
+// ❌ Atual
+${trimmed}
 
-// ✅ MELHOR: Inicialização no constructor
-class MyClass {
-  final String name;
-  
-  MyClass({required this.name});
-}
-
-// ✅ MELHOR: Nullable + inicialização tardia
-class MyClass {
-  String? _name;
-  String get name => _name ?? throw StateError('Not initialized');
-  
-  void init(String value) {
-    _name = value;
-  }
-}
-
-// ✅ ACEITÁVEL: late final com garantia de inicialização
-class _MyWidgetState extends State<MyWidget> {
-  late final AnimationController controller;
-  
-  @override
-  void initState() {
-    super.initState();
-    controller = AnimationController(vsync: this);  // ✓ Sempre inicializado
-  }
-}
+// ✅ Correto — remova late
+${trimmed.replace(/late\s+/, "")}
 \`\`\`
 
----
+### Problema Identificado
+
+\`late final ${varName} = ...\` atribui o valor imediatamente. O \`late\` só é necessário quando a atribuição acontece **depois** (ex: em \`initState\`, \`didChangeDependencies\`).
 
 ### 🚀 Objetivo
 
-Evitar **runtime errors** e tornar código mais **previsível**.
+Usar \`late\` apenas quando necessário — código mais claro e previsível.
 
-> **Dica:** Use \`late final\` apenas quando absolutamente necessário!`,
-            file,
-            1
-          );
-        }
-      } catch (e) {
-        // Ignore
+📖 [Effective Dart: Usage](https://dart.dev/effective-dart/usage#dont-use-late-when-a-constructor-initializer-will-do)`,
+          file,
+          i + 1
+        );
       }
     }
   }

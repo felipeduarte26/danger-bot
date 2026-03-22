@@ -1,10 +1,6 @@
 import { execSync } from "child_process";
 import * as fs from "fs";
-import { createPlugin, getDanger, sendMessage } from "@types";
-
-// Referências às funções globais do Danger
-declare const message: typeof import("danger").message;
-declare const fail: typeof import("danger").fail;
+import { createPlugin, getDanger, sendMessage, sendFail } from "@types";
 
 export default createPlugin(
   {
@@ -53,7 +49,7 @@ export default createPlugin(
         .filter((line: string) => dartFiles.some((file: string) => line.includes(file)));
 
       if (filteredLines.length === 0) {
-        message("✅ **Flutter Analyze**: Nenhum problema encontrado nos arquivos alterados!");
+        sendMessage("✅ **Flutter Analyze**: Nenhum problema encontrado nos arquivos alterados!");
         return;
       }
 
@@ -88,8 +84,7 @@ export default createPlugin(
                 ? `\n📖 [Documentação oficial](${docLink})`
                 : `\n**Regra:** \`${ruleName}\``);
 
-            // Inline comment - 1 comentário por erro
-            fail(fullMessage, relativePath, parseInt(lineNumber, 10));
+            sendFail(fullMessage, relativePath, parseInt(lineNumber, 10));
             issuesFound++;
           }
         }

@@ -1,14 +1,14 @@
-import { createPlugin, getDanger, sendFail } from "@types";
-
 /**
- * 🏛️ Domain Entities Plugin
- *
- * Verifica regras para entities na camada Domain da Clean Architecture:
- * - Nomenclatura: *_entity.dart
- * - Classes: final class NomeEntity
- * - Constructor: const
- * - Campos: final
+ * Domain Entities Plugin
+ * Valida arquivos dentro de /entities/:
+ * - Nome do arquivo deve terminar com _entity.dart
+ * - Classe deve ser final class
+ * - Classe deve ter sufixo Entity
+ * - Somente uma entity por arquivo
  */
+import { createPlugin, getDanger, sendFail } from "@types";
+import * as fs from "fs";
+
 export default createPlugin(
   {
     name: "domain-entities",
@@ -16,122 +16,126 @@ export default createPlugin(
     enabled: true,
   },
   async () => {
-    const danger = getDanger();
-    const { git } = danger;
+    const { git } = getDanger();
 
-    const entityFiles = git.created_files
-      .concat(git.modified_files)
-      .filter(
-        (file: string) =>
-          file.match(/\/domain\/entities\/[^/]+\.dart$/) && !file.endsWith("entities.dart")
-      );
+    const files = [...git.created_files, ...git.modified_files].filter(
+      (f: string) =>
+        f.includes("/entities/") &&
+        f.endsWith(".dart") &&
+        !f.endsWith("entities.dart") &&
+        fs.existsSync(f)
+    );
 
-    for (const file of entityFiles) {
-      // Verificar nomenclatura do arquivo
-      if (!file.match(/_entity\.dart$/)) {
-        const baseName = file.split("/").pop()?.replace(".dart", "") || "";
+    for (const file of files) {
+      const fileName = file.split("/").pop() || "";
+
+      if (!fileName.endsWith("_entity.dart")) {
         sendFail(
-          `**🏛️ Nomenclatura de entity incorreta**
+          `NOMENCLATURA DE ENTITY INCORRETA
 
----
+Arquivo deve terminar com \`_entity.dart\`.
 
-**Arquivo:** \`${file}\`
-
-O arquivo deve terminar com \`_entity.dart\`. Renomeie para \`${baseName}_entity.dart\` e atualize os imports.
+### 🎯 AÇÃO NECESSÁRIA
 
 \`\`\`dart
-// ❌ Incorreto
-${baseName}.dart
+// ❌ ${fileName}
+// ✅ ${fileName.replace(".dart", "")}_entity.dart
+\`\`\``,
+          file,
+          1
+        );
+        continue;
+      }
 
-// ✅ Correto
-${baseName}_entity.dart
-\`\`\`
+      const content = fs.readFileSync(file, "utf-8");
+      const lines = content.split("\n");
 
-> 💡 Sufixo \`_entity\` facilita identificação na camada Domain.`
+      const classes: { name: string; line: number; isFinal: boolean }[] = [];
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (line.includes("abstract")) continue;
+
+        const classMatch = line.match(/(final\s+)?class\s+([A-Za-z_]\w*)/);
+        if (classMatch) {
+          classes.push({
+            name: classMatch[2],
+            line: i + 1,
+            isFinal: !!classMatch[1],
+          });
+        }
+      }
+
+      if (classes.length === 0) continue;
+
+      if (classes.length > 1) {
+        sendFail(
+          `MÚLTIPLAS ENTITIES EM UM ARQUIVO
+
+Encontradas **${classes.length} classes**: ${classes.map((c) => `\`${c.name}\``).join(", ")}.
+
+### 🎯 AÇÃO NECESSÁRIA
+
+Cada Entity deve estar em seu próprio arquivo.
+
+### 🚀 Objetivo
+
+**Uma Entity por arquivo** — facilita navegação e manutenção.`,
+          file,
+          classes[1].line
         );
       }
 
-      // Ler conteúdo do arquivo para verificar a classe
-      try {
-        const content = await danger.git.structuredDiffForFile(file);
-        if (content) {
-          const fileText = content.chunks.map((c: any) => c.content).join("\n");
+      for (const cls of classes) {
+        if (!cls.name.endsWith("Entity")) {
+          sendFail(
+            `ENTITY SEM SUFIXO
 
-          // Verificar se classe termina com Entity
-          const classMatch = fileText.match(/(?:final\s+)?class\s+(\w+)/);
-          if (classMatch && !classMatch[1].endsWith("Entity")) {
-            sendFail(
-              `## 🏛️ CLASSE ENTITY SEM SUFIXO
-
-**Arquivo:** \`${file}\`
-
-A classe deve terminar com \`Entity\`.
-
-### ⚠️ Problema Identificado
-
-**📍 Classe encontrada:** \`${classMatch[1]}\`
-
-**📍 Classe esperada:** \`${classMatch[1]}Entity\`
-
-### 🎯 AÇÃO NECESSÁRIA
-
-Renomeie a classe para incluir o sufixo \`Entity\`:
-
-\`\`\`dart
-// ❌ INCORRETO
-final class ${classMatch[1]} {
-  // ...
-}
-
-// ✅ CORRETO
-final class ${classMatch[1]}Entity {
-  // ...
-}
-\`\`\`
-
-### 🚀 Objetivo
-
-Identificar facilmente entities na camada Domain.`
-            );
-          }
-
-          // Verificar se é final class
-          if (!fileText.match(/final\s+class\s+\w+Entity/)) {
-            sendFail(
-              `ENTITY DEVE SER FINAL CLASS
-
-**Arquivo:** \`${file}\`
-
-Entities devem usar \`final class\` para prevenir herança indevida.
-
-### ⚠️ Problema Identificado
-
-Classe sem \`final\` pode ser estendida, quebrando princípios da Domain Layer.
+A classe \`${cls.name}\` deve terminar com \`Entity\`.
 
 ### 🎯 AÇÃO NECESSÁRIA
 
 \`\`\`dart
-// ❌ INCORRETO
-class UserEntity {
-  String name;  // ❌ Mutável
-}
-
-// ✅ CORRETO
-final class UserEntity {
-  final String name;  // ✅ Imutável
-  
-  const UserEntity({required this.name});
-}
-\`\`\`
-
-### 🚀 Objetivo
-
-Garantir **imutabilidade** e design correto da Domain Layer.`
-            );
-          }
+// ❌ class ${cls.name} { }
+// ✅ final class ${cls.name}Entity { }
+\`\`\``,
+            file,
+            cls.line
+          );
         }
-      } catch (e) {
-        // Arquivo pode não ter diff disponível
+
+        if (!cls.isFinal) {
+          sendFail(
+            `ENTITY DEVE SER FINAL CLASS
+
+A classe \`${cls.name}\` deve usar \`final class\` para prevenir herança indevida.
+
+### Problema Identificado
+
+Sem \`final\`, a classe pode ser estendida, quebrando princípios da Domain Layer.
+
+### 🎯 AÇÃO NECESSÁRIA
+
+\`\`\`dart
+// ❌ Sem final
+class ${cls.name} {
+  final String name;
+}
+
+// ✅ Com final
+final class ${cls.name} {
+  final String name;
+  const ${cls.name}({required this.name});
+}
+\`\`\`
+
+### 🚀 Objetivo
+
+Garantir **imutabilidade** e design correto da Domain Layer.`,
+            file,
+            cls.line
+          );
+        }
       }
     }
   }

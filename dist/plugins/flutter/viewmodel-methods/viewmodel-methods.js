@@ -53,34 +53,38 @@ var __importStar =
   })();
 Object.defineProperty(exports, "__esModule", { value: true });
 /**
- * Presentation ViewModels Plugin
- * Verifica que ViewModels dependam apenas de UseCases.
+ * ViewModel Methods Plugin
+ * Verifica que métodos públicos em ViewModels retornem apenas void/Future<void>.
+ * Baseado na boa prática do Bloc: prefer_void_public_cubit_methods.
  *
- * Analisa os campos (fields) da classe ViewModel para detectar:
- * - Repository como dependência (deve usar UseCase)
- * - Datasource como dependência (deve usar UseCase)
+ * ViewModels devem comunicar mudanças via State (emit), nunca retornando valores.
  *
  * Detecta ViewModels por:
- * - Arquivo: *_viewmodel.dart ou *_view_model.dart
+ * - Arquivo: *_view_model.dart ou *_viewmodel.dart
  * - Classe: extends ViewModelBase
  */
 const _types_1 = require("../../../types");
 const fs = __importStar(require("fs"));
-const FORBIDDEN_TYPES = [
-  { pattern: /Repository/, label: "Repository" },
-  { pattern: /Datasource|DataSource/, label: "Datasource" },
-];
-const FIELD_RE = /^\s+(?:late\s+)?final\s+([\w<>,?\s]+?)\s+(_?\w+)\s*[=;]/;
+const ALLOWED_RETURN_TYPES = new Set(["void", "Future<void>"]);
+const LIFECYCLE_METHODS = new Set([
+  "initViewModel",
+  "dispose",
+  "close",
+  "toString",
+  "hashCode",
+  "noSuchMethod",
+  "build",
+]);
 exports.default = (0, _types_1.createPlugin)(
   {
-    name: "presentation-viewmodels",
-    description: "Valida que ViewModels dependam apenas de UseCases",
+    name: "viewmodel-methods",
+    description: "Verifica que métodos públicos de ViewModel retornem void",
     enabled: true,
   },
   async () => {
     const { git } = (0, _types_1.getDanger)();
     const files = [...git.created_files, ...git.modified_files].filter(
-      (f) => (f.endsWith("_viewmodel.dart") || f.endsWith("_view_model.dart")) && fs.existsSync(f)
+      (f) => (f.endsWith("_view_model.dart") || f.endsWith("_viewmodel.dart")) && fs.existsSync(f)
     );
     for (const file of files) {
       const content = fs.readFileSync(file, "utf-8");
@@ -104,43 +108,52 @@ exports.default = (0, _types_1.createPlugin)(
           continue;
         }
         if (braceDepth !== 1) continue;
-        const fieldMatch = line.match(FIELD_RE);
-        if (!fieldMatch) continue;
-        const fieldType = fieldMatch[1].trim();
-        const fieldName = fieldMatch[2];
-        for (const { pattern, label } of FORBIDDEN_TYPES) {
-          if (pattern.test(fieldType)) {
-            (0, _types_1.sendFail)(
-              `VIEWMODEL DEPENDE DE ${label.toUpperCase()} DIRETAMENTE
+        const methodMatch = line.match(/^\s+([\w<>,\s]+?)\s+([a-zA-Z_]\w*)\s*\(/);
+        if (!methodMatch) continue;
+        const returnType = methodMatch[1].trim();
+        const methodName = methodMatch[2];
+        if (methodName.startsWith("_")) continue;
+        if (line.includes("@override")) continue;
+        if (i > 0 && lines[i - 1].trim() === "@override") continue;
+        if (LIFECYCLE_METHODS.has(methodName)) continue;
+        if (returnType === "const" || returnType === "final" || returnType === "static") continue;
+        if (line.includes("factory") || line.includes("operator")) continue;
+        if (!ALLOWED_RETURN_TYPES.has(returnType)) {
+          (0, _types_1.sendFail)(
+            `MÉTODO PÚBLICO COM RETORNO EM VIEWMODEL
 
-Campo \`${fieldName}\` é do tipo \`${fieldType}\` — ViewModel deve depender apenas de **UseCases**.
+Método \`${methodName}\` retorna \`${returnType}\` — deveria retornar \`void\` ou \`Future<void>\`.
 
 ### Problema Identificado
 
-ViewModel acessando ${label} diretamente viola Clean Architecture. A camada Presentation só deve conhecer Domain (UseCases e Entities).
+ViewModels usam **State** para comunicar mudanças. Métodos públicos não devem retornar valores diretamente.
 
 \`\`\`dart
-// ❌ Dependência direta de ${label}
-final class MyViewModel extends ViewModelBase<MyState> {
-  final ${fieldType} ${fieldName};
+// ❌ Retorna valor
+${returnType} ${methodName}(...) {
+  ...
+  return value;
 }
 
-// ✅ Dependência via UseCase
-final class MyViewModel extends ViewModelBase<MyState> {
-  final IGetDataUsecase _getDataUsecase;
+// ✅ Usa emit para comunicar via State
+Future<void> ${methodName}(...) async {
+  ...
+  emit(NewState(value));
 }
 \`\`\`
 
+### 🎯 AÇÃO NECESSÁRIA
+
+Altere o retorno para \`void\` ou \`Future<void>\` e use \`emit()\` para comunicar o resultado via State.
+
 ### 🚀 Objetivo
 
-ViewModel → **UseCase** → Repository → Datasource. Nunca pular camadas.
+Seguir padrão **Bloc/Cubit** — ViewModels comunicam via State, não via retorno.
 
-📖 [Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)`,
-              file,
-              i + 1
-            );
-            break;
-          }
+📖 [prefer_void_public_cubit_methods](https://bloclibrary.dev/lint-rules/prefer_void_public_cubit_methods/)`,
+            file,
+            i + 1
+          );
         }
       }
     }

@@ -98,7 +98,9 @@ exports.default = (0, _types_1.createPlugin)(
         .split("\n")
         .filter((line) => dartFiles.some((file) => line.includes(file)));
       if (filteredLines.length === 0) {
-        message("✅ **Flutter Analyze**: Nenhum problema encontrado nos arquivos alterados!");
+        (0, _types_1.sendMessage)(
+          "✅ **Flutter Analyze**: Nenhum problema encontrado nos arquivos alterados!"
+        );
         return;
       }
       let issuesFound = 0;
@@ -126,8 +128,7 @@ exports.default = (0, _types_1.createPlugin)(
               (docLink
                 ? `\n📖 [Documentação oficial](${docLink})`
                 : `\n**Regra:** \`${ruleName}\``);
-            // Inline comment - 1 comentário por erro
-            fail(fullMessage, relativePath, parseInt(lineNumber, 10));
+            (0, _types_1.sendFail)(fullMessage, relativePath, parseInt(lineNumber, 10));
             issuesFound++;
           }
         }

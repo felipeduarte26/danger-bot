@@ -1,40 +1,60 @@
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 /**
  * PR Size Checker Plugin
- * Verifica o tamanho do PR e alerta se está muito grande
+ * Verifica o tamanho do PR baseado em arquivos .dart (exclui gerados).
+ * Se mais de 100 arquivos .dart alterados, bloqueia a PR.
  */
-Object.defineProperty(exports, "__esModule", { value: true });
 const _types_1 = require("../../../types");
+const GENERATED_PATTERNS = [
+  /\.g\.dart$/,
+  /\.freezed\.dart$/,
+  /\.mocks\.dart$/,
+  /\.gen\.dart$/,
+  /pubspec\.lock$/,
+  /\.pod$/,
+  /Pods\//,
+  /\.pbxproj$/,
+];
+const MAX_DART_FILES = 100;
 exports.default = (0, _types_1.createPlugin)(
   {
     name: "pr-size-checker",
-    description: "Verifica se o PR não está muito grande",
+    description: "Verifica tamanho do PR por arquivos .dart",
     enabled: true,
   },
   async () => {
-    const danger = (0, _types_1.getDanger)();
-    const { additions = 0, deletions = 0 } = danger.github?.pr || danger.bitbucket_cloud?.pr || {};
-    const totalChanges = additions + deletions;
-    const LARGE_PR_THRESHOLD = 500;
-    const VERY_LARGE_PR_THRESHOLD = 1000;
-    if (totalChanges > VERY_LARGE_PR_THRESHOLD) {
+    const { git } = (0, _types_1.getDanger)();
+    const allChanged = [...git.modified_files, ...git.created_files];
+    const dartFiles = allChanged.filter(
+      (f) => f.endsWith(".dart") && !GENERATED_PATTERNS.some((p) => p.test(f))
+    );
+    if (dartFiles.length === 0) return;
+    if (dartFiles.length > MAX_DART_FILES) {
+      (0, _types_1.sendFail)(`PR COM MUITOS ARQUIVOS
+
+Esta PR altera **${dartFiles.length} arquivos .dart** (limite: ${MAX_DART_FILES}).
+
+### Problema Identificado
+
+PRs com mais de ${MAX_DART_FILES} arquivos são extremamente difíceis de revisar e aumentam o risco de bugs passarem despercebidos.
+
+### 🎯 AÇÃO NECESSÁRIA
+
+Divida em PRs menores agrupando por:
+- Feature ou módulo
+- Camada (domain, data, presentation)
+- Tipo de mudança (refactor, feature, fix)
+
+### 🚀 Objetivo
+
+PRs menores = revisões melhores = menos bugs em produção.
+
+📖 [Google Engineering: Small CLs](https://google.github.io/eng-practices/review/developer/small-cls.html)`);
+    } else if (dartFiles.length > 60) {
       (0, _types_1.sendWarn)(
-        `🚨 **PR MUITO GRANDE** (${totalChanges} linhas)\n\n` +
-          `Este PR tem **${additions} adições** e **${deletions} deleções**.\n\n` +
-          `**Recomendação**: Considere dividir em PRs menores para facilitar a revisão.\n\n` +
-          `PRs menores são:\n` +
-          `- ✅ Mais fáceis de revisar\n` +
-          `- ✅ Menos propensos a bugs\n` +
-          `- ✅ Mais rápidos para merge`
+        `**PR grande** — ${dartFiles.length} arquivos .dart alterados. Considere dividir em PRs menores.`
       );
-    } else if (totalChanges > LARGE_PR_THRESHOLD) {
-      (0, _types_1.sendWarn)(
-        `⚠️ **PR Grande** (${totalChanges} linhas)\n\n` +
-          `Este PR tem **${additions} adições** e **${deletions} deleções**.\n\n` +
-          `Considere revisar se pode ser dividido em partes menores.`
-      );
-    } else {
-      (0, _types_1.sendMessage)(`✅ **Tamanho do PR**: ${totalChanges} linhas (OK)`);
     }
   }
 );
