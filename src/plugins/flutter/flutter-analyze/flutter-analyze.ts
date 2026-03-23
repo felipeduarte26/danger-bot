@@ -28,8 +28,6 @@ export default createPlugin(
       return;
     }
 
-    sendMessage(`🔍 **Flutter Analyze**: Analisando ${dartFiles.length} arquivo(s)...`);
-
     try {
       const analyzeCmd = `flutter analyze ${dartFiles.join(" ")} --no-congratulate --fatal-warnings --fatal-infos`;
 
@@ -53,7 +51,6 @@ export default createPlugin(
         return;
       }
 
-      let issuesFound = 0;
       const issueRegex = /^(error|warning|info)\s*•\s*(.+?)\s*•\s*(.+?):(\d+):(\d+)\s*•\s*(.+)$/;
 
       for (const line of filteredLines) {
@@ -85,15 +82,8 @@ export default createPlugin(
                 : `\n**Regra:** \`${ruleName}\``);
 
             sendFail(fullMessage, relativePath, parseInt(lineNumber, 10));
-            issuesFound++;
           }
         }
-      }
-
-      if (issuesFound > 0) {
-        message(
-          `🔍 **Flutter Analyze**: ${issuesFound} problema(s) encontrado(s) nos arquivos alterados.`
-        );
       }
     } catch (error) {
       message("⚠️ **Flutter Analyze**: Erro ao executar análise. Verifique os logs.");
