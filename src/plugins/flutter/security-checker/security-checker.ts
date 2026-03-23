@@ -303,7 +303,8 @@ O arquivo \`${file}\` **não deve ser commitado** no repositório. Ele pode cont
         const missingList = missing.map((m) => `- \`${m}\``).join("\n");
 
         sendWarn(
-          `\n⚠️ GITIGNORE — Entradas de segurança ausentes
+          `
+          ⚠️ GITIGNORE — Entradas de segurança ausentes
 
 O \`.gitignore\` não contém algumas entradas recomendadas para proteger arquivos sensíveis:
 

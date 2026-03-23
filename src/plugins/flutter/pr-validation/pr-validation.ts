@@ -282,16 +282,14 @@ Quebrar em ${suggestedPRs} PRs menores:
       );
     } else if (dartFiles.length > 80) {
       sendWarn(
-        `\n⚠️ PR GRANDE — Esta PR alterou **${dartFiles.length} arquivos .dart**. PRs menores (30-40 arquivos) facilitam revisões mais detalhadas.`
+        `⚠️ PR GRANDE — Esta PR alterou **${dartFiles.length} arquivos .dart**. PRs menores (30-40 arquivos) facilitam revisões mais detalhadas.`
       );
     } else if (dartFiles.length > 60) {
       sendMessage(
-        `\n📏 PR MÉDIA-GRANDE — Esta PR alterou **${dartFiles.length} arquivos .dart**. Está no limite aceitável, mas PRs menores são preferíveis.`
+        `📏 PR MÉDIA-GRANDE — Esta PR alterou **${dartFiles.length} arquivos .dart**. Está no limite aceitável, mas PRs menores são preferíveis.`
       );
     } else if (dartFiles.length > 0) {
-      sendMessage(
-        `\n✅ Tamanho Ideal de PR — **${dartFiles.length} arquivo(s) .dart** alterado(s).`
-      );
+      sendMessage(`✅ Tamanho Ideal de PR — **${dartFiles.length} arquivo(s) .dart** alterado(s).`);
     }
 
     // 5. VERIFICAÇÃO DE LINHAS DE CÓDIGO
@@ -302,24 +300,24 @@ Quebrar em ${suggestedPRs} PRs menores:
     const totalFiles = filesCreated + filesModified + filesDeleted;
 
     if (linesChanged === 0 && totalFiles === 0) {
-      sendMessage("\nℹ️ Nenhuma linha de código alterada nesta PR.");
+      sendMessage("ℹ️ Nenhuma linha de código alterada nesta PR.");
     } else if (linesChanged === 0 && totalFiles > 0) {
-      sendMessage(`\nℹ️ **${totalFiles} arquivo(s) alterado(s)**`);
+      sendMessage(`ℹ️ **${totalFiles} arquivo(s) alterado(s)**`);
     } else if (linesChanged <= 80) {
       sendMessage(
-        `\n✅ **Ótimo**: PR pequeno e focado (**${linesChanged} linhas** em ${totalFiles} arquivo(s))`
+        `✅ **Ótimo**: PR pequeno e focado (**${linesChanged} linhas** em ${totalFiles} arquivo(s))`
       );
     } else if (linesChanged <= 200) {
       sendMessage(
-        `\n👍 **Bom**: PR de tamanho médio (**${linesChanged} linhas** em ${totalFiles} arquivo(s))`
+        `👍 **Bom**: PR de tamanho médio (**${linesChanged} linhas** em ${totalFiles} arquivo(s))`
       );
     } else if (linesChanged <= 600) {
       sendWarn(
-        `\n⚠️ **Atenção**: PR grande (**${linesChanged} linhas** em ${totalFiles} arquivo(s)). Considere quebrar em PRs menores.`
+        `⚠️ **Atenção**: PR grande (**${linesChanged} linhas** em ${totalFiles} arquivo(s)). Considere quebrar em PRs menores.`
       );
     } else {
       sendWarn(
-        `\n🚨 **PR Muito Grande**: **${linesChanged} linhas** em ${totalFiles} arquivo(s)! Forte recomendação de quebrar em múltiplos PRs menores.`
+        `🚨 **PR Muito Grande**: **${linesChanged} linhas** em ${totalFiles} arquivo(s)! Forte recomendação de quebrar em múltiplos PRs menores.`
       );
     }
   }
