@@ -227,18 +227,20 @@ export default createPlugin(
           const icon = severity === "critical" ? "🚨" : severity === "high" ? "⚠️" : "💡";
 
           sendFail(
-            `${icon} SEGURANÇA — ${label.toUpperCase()}
+            `\n${icon} SEGURANÇA — ${label.toUpperCase()}
 
 \`${line.trim()}\`
 
 Credencial detectada diretamente no código-fonte. Isso é um **risco ${severity === "critical" ? "crítico" : "alto"}** de segurança.
 
 **Consequências:**
+
 - Exposição de credenciais em repositório
 - Uso não autorizado por terceiros
 - Possível violação de dados
 
 **Ação necessária:**
+
 1. Remova a credencial do código
 2. Revogue a credencial no provedor (considere comprometida)
 3. Use variáveis de ambiente:
@@ -269,19 +271,15 @@ final apiKey = dotenv.env['API_KEY'] ?? '';
 
       if (matched) {
         sendFail(
-          `🚨 ARQUIVO SENSÍVEL COMMITADO — \`${fileName}\`
+          `\n🚨 ARQUIVO SENSÍVEL COMMITADO — \`${fileName}\`
 
 O arquivo \`${file}\` **não deve ser commitado** no repositório. Ele pode conter credenciais, chaves ou configurações sensíveis.
 
 **Ação necessária:**
+
 1. Remova o arquivo do commit: \`git rm --cached ${file}\`
 2. Adicione ao \`.gitignore\`: \`${fileName}\`
-3. Se continha credenciais, revogue e gere novas
-
-\`\`\`gitignore
-# .gitignore
-${fileName}
-\`\`\``,
+3. Se continha credenciais, revogue e gere novas`,
           file,
           1
         );
@@ -302,19 +300,18 @@ ${fileName}
       }
 
       if (missing.length > 0) {
+        const missingList = missing.map((m) => `- \`${m}\``).join("\n");
+
         sendWarn(
-          `\nGITIGNORE — Entradas de segurança ausentes
+          `\n⚠️ GITIGNORE — Entradas de segurança ausentes
 
 O \`.gitignore\` não contém algumas entradas recomendadas para proteger arquivos sensíveis:
 
-${missing.map((m) => `- \`${m}\``).join("\n")}
+${missingList}
 
 **Adicione ao .gitignore:**
 
-\`\`\`gitignore
-# Segurança
-${missing.join("\n")}
-\`\`\``
+${missingList}`
         );
       }
     }
