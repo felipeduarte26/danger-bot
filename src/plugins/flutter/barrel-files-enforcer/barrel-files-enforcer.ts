@@ -16,6 +16,16 @@ interface ImportGroup {
   lines: number[];
 }
 
+function getProjectPackageName(): string | null {
+  try {
+    const pubspec = fs.readFileSync("pubspec.yaml", "utf-8");
+    const match = pubspec.match(/^name:\s*(.+)$/m);
+    return match ? match[1].trim() : null;
+  } catch {
+    return null;
+  }
+}
+
 export default createPlugin(
   {
     name: "barrel-files-enforcer",
@@ -24,6 +34,9 @@ export default createPlugin(
   },
   async () => {
     const { git } = getDanger();
+    const projectPackage = getProjectPackageName();
+
+    if (!projectPackage) return;
 
     const dartFiles = [...git.modified_files, ...git.created_files].filter(
       (f: string) =>
@@ -47,6 +60,8 @@ export default createPlugin(
 
         const match = line.match(IMPORT_RE);
         if (match) {
+          if (!match[1].startsWith(`${projectPackage}/`)) continue;
+
           packageImports.push({ path: match[1], line: i + 1 });
         }
       }
