@@ -62,6 +62,15 @@ const fs = __importStar(require("fs"));
 const IMPORT_RE = /^import\s+['"]package:([^'"]+)['"];/;
 const DART_CORE_RE = /^import\s+['"]dart:/;
 const RELATIVE_RE = /^import\s+['"]\.\./;
+function getProjectPackageName() {
+  try {
+    const pubspec = fs.readFileSync("pubspec.yaml", "utf-8");
+    const match = pubspec.match(/^name:\s*(.+)$/m);
+    return match ? match[1].trim() : null;
+  } catch {
+    return null;
+  }
+}
 exports.default = (0, _types_1.createPlugin)(
   {
     name: "barrel-files-enforcer",
@@ -70,6 +79,8 @@ exports.default = (0, _types_1.createPlugin)(
   },
   async () => {
     const { git } = (0, _types_1.getDanger)();
+    const projectPackage = getProjectPackageName();
+    if (!projectPackage) return;
     const dartFiles = [...git.modified_files, ...git.created_files].filter(
       (f) =>
         f.endsWith(".dart") &&
@@ -87,6 +98,7 @@ exports.default = (0, _types_1.createPlugin)(
         if (RELATIVE_RE.test(line)) continue;
         const match = line.match(IMPORT_RE);
         if (match) {
+          if (!match[1].startsWith(`${projectPackage}/`)) continue;
           packageImports.push({ path: match[1], line: i + 1 });
         }
       }
