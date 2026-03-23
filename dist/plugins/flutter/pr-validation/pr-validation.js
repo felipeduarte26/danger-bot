@@ -355,7 +355,7 @@ Facilitar **code review** de qualidade e reduzir **riscos de bugs**.
       );
     } else if (dartFiles.length > 0) {
       (0, _types_1.sendMessage)(
-        `## ✅ Tamanho Ideal de PR\n\n**${dartFiles.length} arquivo(s) .dart** alterado(s) - excelente tamanho para revisão! 🎉`
+        `✅ Tamanho Ideal de PR\n\n**${dartFiles.length} arquivo(s) .dart** alterado(s) - excelente tamanho para revisão! 🎉`
       );
     }
     // 5. VERIFICAÇÃO DE LINHAS DE CÓDIGO

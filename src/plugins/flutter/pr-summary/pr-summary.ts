@@ -48,7 +48,7 @@ export default createPlugin(
     const size = getSizeInfo(dartSource.length);
     const risk = assessRisk(dartSource, testFiles, layers, categories);
 
-    let md = `## ${size.emoji} Resumo da PR — ${size.label}\n\n`;
+    let md = `${size.emoji} Resumo da PR — ${size.label}\n\n`;
 
     // ── Visão geral ──
     const fileDetails = [

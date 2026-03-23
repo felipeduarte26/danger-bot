@@ -32,7 +32,7 @@ exports.default = (0, _types_1.createPlugin)(
     const layers = detectLayers(dartSource);
     const size = getSizeInfo(dartSource.length);
     const risk = assessRisk(dartSource, testFiles, layers, categories);
-    let md = `## ${size.emoji} Resumo da PR — ${size.label}\n\n`;
+    let md = `${size.emoji} Resumo da PR — ${size.label}\n\n`;
     // ── Visão geral ──
     const fileDetails = [
       created.length > 0 ? `**+${created.length}** novo(s)` : null,
