@@ -307,15 +307,15 @@ Facilitar **code review** de qualidade e reduzir **riscos de bugs**.
       );
     } else if (dartFiles.length > 80) {
       sendWarn(
-        `## ⚠️ PR GRANDE\n\nEsta PR alterou **${dartFiles.length} arquivos .dart**. PRs menores (30-40 arquivos) facilitam revisões mais detalhadas.`
+        `⚠️ PR GRANDE - Esta PR alterou **${dartFiles.length} arquivos .dart**. PRs menores (30-40 arquivos) facilitam revisões mais detalhadas.`
       );
     } else if (dartFiles.length > 60) {
       sendMessage(
-        `## 📏 PR MÉDIA-GRANDE\n\nEsta PR alterou **${dartFiles.length} arquivos .dart**. Está no limite aceitável, mas PRs menores são preferíveis.`
+        `📏 PR MÉDIA-GRANDE - Esta PR alterou **${dartFiles.length} arquivos .dart**. Está no limite aceitável, mas PRs menores são preferíveis.`
       );
     } else if (dartFiles.length > 0) {
       sendMessage(
-        `✅ Tamanho Ideal de PR\n\n**${dartFiles.length} arquivo(s) .dart** alterado(s) - excelente tamanho para revisão! 🎉`
+        `✅ Tamanho Ideal de PR - **${dartFiles.length} arquivo(s) .dart** alterado(s) - excelente tamanho para revisão! 🎉`
       );
     }
 
@@ -330,7 +330,7 @@ Facilitar **code review** de qualidade e reduzir **riscos de bugs**.
     if (linesChanged === 0 && totalFiles === 0) {
       sendMessage("ℹ️ Nenhuma linha de código alterada nesta PR");
     } else if (linesChanged === 0 && totalFiles > 0) {
-      sendMessage(`ℹ️ **${totalFiles} arquivo(s) alterado(s)** (arquivos vazios ou binários)`);
+      sendMessage(`ℹ️ **${totalFiles} arquivo(s) alterado(s)**`);
     } else if (linesChanged <= 80) {
       sendMessage(
         `✅ **Ótimo**: PR pequeno e focado (**${linesChanged} linhas** em ${totalFiles} arquivo(s))`
