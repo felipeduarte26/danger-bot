@@ -303,7 +303,7 @@ ${fileName}
 
       if (missing.length > 0) {
         sendWarn(
-          `GITIGNORE — Entradas de segurança ausentes
+          `\nGITIGNORE — Entradas de segurança ausentes
 
 O \`.gitignore\` não contém algumas entradas recomendadas para proteger arquivos sensíveis:
 

@@ -315,7 +315,7 @@ Facilitar **code review** de qualidade e reduzir **riscos de bugs**.
       );
     } else if (dartFiles.length > 0) {
       sendMessage(
-        `## ✅ Tamanho Ideal de PR\n\n**${dartFiles.length} arquivo(s) .dart** alterado(s) - excelente tamanho para revisão! 🎉`
+        `✅ Tamanho Ideal de PR\n\n**${dartFiles.length} arquivo(s) .dart** alterado(s) - excelente tamanho para revisão! 🎉`
       );
     }
 
