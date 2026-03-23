@@ -79,9 +79,6 @@ exports.default = (0, _types_1.createPlugin)(
       );
       return;
     }
-    (0, _types_1.sendMessage)(
-      `🔍 **Flutter Analyze**: Analisando ${dartFiles.length} arquivo(s)...`
-    );
     try {
       const analyzeCmd = `flutter analyze ${dartFiles.join(" ")} --no-congratulate --fatal-warnings --fatal-infos`;
       let analyzeOutput = "";
@@ -103,7 +100,6 @@ exports.default = (0, _types_1.createPlugin)(
         );
         return;
       }
-      let issuesFound = 0;
       const issueRegex = /^(error|warning|info)\s*•\s*(.+?)\s*•\s*(.+?):(\d+):(\d+)\s*•\s*(.+)$/;
       for (const line of filteredLines) {
         const trimmedLine = line.trim();
@@ -129,14 +125,8 @@ exports.default = (0, _types_1.createPlugin)(
                 ? `\n📖 [Documentação oficial](${docLink})`
                 : `\n**Regra:** \`${ruleName}\``);
             (0, _types_1.sendFail)(fullMessage, relativePath, parseInt(lineNumber, 10));
-            issuesFound++;
           }
         }
-      }
-      if (issuesFound > 0) {
-        message(
-          `🔍 **Flutter Analyze**: ${issuesFound} problema(s) encontrado(s) nos arquivos alterados.`
-        );
       }
     } catch (error) {
       message("⚠️ **Flutter Analyze**: Erro ao executar análise. Verifique os logs.");
