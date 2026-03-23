@@ -26,7 +26,7 @@ export default createPlugin(
 
     if (prDescription.length < minDescriptionLength) {
       sendFail(
-        `## 📝 Descrição do PR muito curta
+        `\n## 📝 Descrição do PR muito curta
 
 A descrição tem apenas ${prDescription.length} caracteres (mínimo: ${minDescriptionLength}).
 
@@ -41,10 +41,10 @@ Descrições curtas dificultam a revisão e compreensão das mudanças.
 
 ### O que incluir na descrição?
 
-1. **Contexto** - Por que essa mudança foi necessária?
-2. **Mudanças** - O que foi alterado?
-3. **Impacto** - Como isso afeta o sistema/usuários?
-4. **Testes** - Como foi testado?
+1. **Contexto** — Por que essa mudança foi necessária?
+2. **Mudanças** — O que foi alterado?
+3. **Impacto** — Como isso afeta o sistema/usuários?
+4. **Testes** — Como foi testado?
 
 ### Exemplo:
 
@@ -64,9 +64,7 @@ Usuários com emails longos não conseguiam fazer login.
 ## Testes
 - ✅ Login com emails longos funcionando
 - ✅ 15 testes unitários passando
-\`\`\`
-
-💡 Dica: Uma boa descrição economiza tempo de revisão!`,
+\`\`\``,
         "README.md",
         1
       );
@@ -81,7 +79,6 @@ Usuários com emails longos não conseguiam fazer login.
         git.created_files.includes("CHANGELOG.md");
 
       if (!changelogModified) {
-        // Verificar se o arquivo existe no repositório (não apenas na PR)
         const changelogPaths = ["changelog.md", "CHANGELOG.md", "Changelog.md", "CHANGELOG.MD"];
 
         const hasChangelog = changelogPaths.some((p) => {
@@ -94,7 +91,7 @@ Usuários com emails longos não conseguiam fazer login.
 
         if (!hasChangelog) {
           sendFail(
-            `## 📋 Changelog não encontrado
+            `\n## 📋 Changelog não encontrado
 
 Este projeto não possui um arquivo \`changelog.md\` na raiz.
 
@@ -110,36 +107,36 @@ Sem changelog, fica difícil:
 ### O que fazer?
 
 1. Crie o arquivo \`changelog.md\` na raiz do projeto
-2. Use este template básico:
+2. Use este template:
 
 \`\`\`markdown
 # Changelog
 
-## [Unreleased]
+Todas as mudanças notáveis deste projeto serão documentadas neste arquivo.
+O formato é inspirado em [Keep a Changelog](https://keepachangelog.com/).
 
-### Added
-- Nova funcionalidade X
+## [x.x.x] - DD/MM/AAAA (Pre-Release)
 
-### Fixed
-- Corrigido bug no login
+### 🛠️ Fixed
 
-### Changed
-- Melhorada performance
+- [TICKET-000: Descrição da correção](https://link-para-o-ticket)
 
-## [1.0.0] - 2024-01-15
-### Added
-- Versão inicial
+### 🆕 Added
+
+- [TICKET-000: Descrição da nova funcionalidade](https://link-para-o-ticket)
+
+### 🔄 Changed
+
+- [TICKET-000: Descrição da alteração](https://link-para-o-ticket)
 \`\`\`
 
-3. Documente as mudanças desta PR
-
-📖 Referência: [Keep a Changelog](https://keepachangelog.com/)`,
+3. Documente as mudanças desta PR`,
             "changelog.md",
             1
           );
         } else {
           sendFail(
-            `Changelog não foi atualizado
+            `\nChangelog não foi atualizado
 
 O arquivo \`changelog.md\` existe, mas não foi modificado nesta PR.
 
@@ -150,31 +147,28 @@ Cada PR deve documentar suas mudanças para manter o histórico claro.
 ### O que fazer?
 
 1. Abra o arquivo \`changelog.md\`
-2. Localize a seção \`## [Unreleased]\`
-3. Adicione suas mudanças nas categorias:
+2. Localize a versão atual (ou crie uma nova seção)
+3. Adicione suas mudanças nas categorias correspondentes:
 
 \`\`\`markdown
-## [Unreleased]
+## [x.x.x] - DD/MM/AAAA (Pre-Release)
 
-### Added
-- Nova tela de configurações
-- Validação de CPF
+### 🛠️ Fixed
 
-### Fixed
-- Corrigido crash ao fazer logout
-- Corrigido bug de validação
+- [TICKET-000: Descrição da correção](https://link-para-o-ticket)
 
-### Changed
-- Melhorada performance (50% mais rápido)
-- Atualizada UI dos botões
+### 🆕 Added
 
-### Security
-- Corrigida vulnerabilidade no login
+- [TICKET-000: Descrição da nova funcionalidade](https://link-para-o-ticket)
+
+### 🔄 Changed
+
+- [TICKET-000: Descrição da alteração](https://link-para-o-ticket)
 \`\`\`
 
 4. Commit e push
 
-💡 Dica: Use categorias claras (Added, Fixed, Changed, Security)`,
+💡 Dica: Sempre inclua o link do ticket do Jira para rastreabilidade!`,
             "changelog.md",
             1
           );
@@ -188,7 +182,7 @@ Cada PR deve documentar suas mudanças para manter o histórico claro.
 
     if (pubspecLockChanged && !pubspecYamlChanged) {
       sendFail(
-        `## 📦 pubspec.lock modificado sem pubspec.yaml
+        `\n## 📦 pubspec.lock modificado sem pubspec.yaml
 
 O \`pubspec.lock\` foi alterado mas o \`pubspec.yaml\` não.
 
@@ -219,9 +213,7 @@ git commit -m "chore: sincroniza pubspec.lock"
 git push
 \`\`\`
 
-4. Se não houver diferenças: pode ignorar (diferença de plataforma/cache)
-
-💡 Dica: Execute \`flutter pub get\` após cada pull!`,
+4. Se não houver diferenças: pode ignorar (diferença de plataforma/cache)`,
         "pubspec.lock",
         1
       );
@@ -236,11 +228,9 @@ git push
     if (dartFiles.length > maxDartFiles) {
       const suggestedPRs = Math.ceil(dartFiles.length / 40);
       sendWarn(
-        `## 🚨 PR CRÍTICA - MUITOS ARQUIVOS DART
+        `\n## 🚨 PR CRÍTICA — MUITOS ARQUIVOS DART
 
 Esta PR alterou **${dartFiles.length} arquivos .dart**!
-
----
 
 ### ⚠️ Problema Identificado
 
@@ -255,8 +245,6 @@ PRs com mais de **${maxDartFiles} arquivos** Dart são:
 - Limite recomendado: **${maxDartFiles}**
 - Sugestão: Quebrar em **${suggestedPRs} PRs** menores
 
----
-
 ### 🎯 AÇÃO NECESSÁRIA
 
 **Como quebrar esta PR:**
@@ -266,56 +254,43 @@ PRs com mais de **${maxDartFiles} arquivos** Dart são:
 3. **Crie** PRs menores (30-40 arquivos cada)
 4. **Ordene** por dependência (base → features)
 
----
-
 ### 💡 Exemplo de Quebra
 
 \`\`\`
-📦 PR Original: 200 arquivos
+📦 PR Original: ${dartFiles.length} arquivos
    └─ ❌ Difícil revisar, muitos conflitos
 
-Quebrar em 5 PRs menores:
+Quebrar em ${suggestedPRs} PRs menores:
 
-1️⃣ PR: Refatoração de Models (40 arquivos)
-   ├─ Base para outras mudanças
-   └─ ✅ Fácil revisar
+1️⃣ PR: Refatoração de Models
+   └─ ✅ Base para outras mudanças
 
-2️⃣ PR: Novos UseCases e Repositories (35 arquivos) 
-   ├─ Depende da PR 1
+2️⃣ PR: Novos UseCases e Repositories
    └─ ✅ Contexto claro
 
-3️⃣ PR: ViewModels e States (40 arquivos)
-   ├─ Depende da PR 2
+3️⃣ PR: ViewModels e States
    └─ ✅ Lógica isolada
 
-4️⃣ PR: UI e Widgets (45 arquivos)
-   ├─ Depende da PR 3
+4️⃣ PR: UI e Widgets
    └─ ✅ Visual separado
 
-5️⃣ PR: Testes e Ajustes Finais (40 arquivos)
-   ├─ Depende de todas anteriores
+5️⃣ PR: Testes e Ajustes Finais
    └─ ✅ Validação completa
 \`\`\`
-
----
-
-### 🚀 Objetivo
-
-Facilitar **code review** de qualidade e reduzir **riscos de bugs**.
 
 > **Regra de ouro:** PRs menores = revisões melhores = menos bugs em produção!`
       );
     } else if (dartFiles.length > 80) {
       sendWarn(
-        `⚠️ PR GRANDE - Esta PR alterou **${dartFiles.length} arquivos .dart**. PRs menores (30-40 arquivos) facilitam revisões mais detalhadas.`
+        `\n⚠️ PR GRANDE — Esta PR alterou **${dartFiles.length} arquivos .dart**. PRs menores (30-40 arquivos) facilitam revisões mais detalhadas.`
       );
     } else if (dartFiles.length > 60) {
       sendMessage(
-        `📏 PR MÉDIA-GRANDE - Esta PR alterou **${dartFiles.length} arquivos .dart**. Está no limite aceitável, mas PRs menores são preferíveis.`
+        `\n📏 PR MÉDIA-GRANDE — Esta PR alterou **${dartFiles.length} arquivos .dart**. Está no limite aceitável, mas PRs menores são preferíveis.`
       );
     } else if (dartFiles.length > 0) {
       sendMessage(
-        `✅ Tamanho Ideal de PR - **${dartFiles.length} arquivo(s) .dart** alterado(s) - excelente tamanho para revisão! 🎉`
+        `\n✅ Tamanho Ideal de PR — **${dartFiles.length} arquivo(s) .dart** alterado(s).`
       );
     }
 
@@ -326,26 +301,25 @@ Facilitar **code review** de qualidade e reduzir **riscos de bugs**.
     const filesDeleted = git.deleted_files.length;
     const totalFiles = filesCreated + filesModified + filesDeleted;
 
-    // Se não há linhas alteradas mas há arquivos criados, considerar as linhas
     if (linesChanged === 0 && totalFiles === 0) {
-      sendMessage("ℹ️ Nenhuma linha de código alterada nesta PR");
+      sendMessage("\nℹ️ Nenhuma linha de código alterada nesta PR.");
     } else if (linesChanged === 0 && totalFiles > 0) {
-      sendMessage(`ℹ️ **${totalFiles} arquivo(s) alterado(s)**`);
+      sendMessage(`\nℹ️ **${totalFiles} arquivo(s) alterado(s)**`);
     } else if (linesChanged <= 80) {
       sendMessage(
-        `✅ **Ótimo**: PR pequeno e focado (**${linesChanged} linhas** em ${totalFiles} arquivo(s))`
+        `\n✅ **Ótimo**: PR pequeno e focado (**${linesChanged} linhas** em ${totalFiles} arquivo(s))`
       );
     } else if (linesChanged <= 200) {
       sendMessage(
-        `👍 **Bom**: PR de tamanho médio (**${linesChanged} linhas** em ${totalFiles} arquivo(s))`
+        `\n👍 **Bom**: PR de tamanho médio (**${linesChanged} linhas** em ${totalFiles} arquivo(s))`
       );
     } else if (linesChanged <= 600) {
       sendWarn(
-        `⚠️ **Atenção**: PR grande (**${linesChanged} linhas** em ${totalFiles} arquivo(s)). Considere quebrar em PRs menores.`
+        `\n⚠️ **Atenção**: PR grande (**${linesChanged} linhas** em ${totalFiles} arquivo(s)). Considere quebrar em PRs menores.`
       );
     } else {
       sendWarn(
-        `🚨 **PR Muito Grande**: **${linesChanged} linhas** em ${totalFiles} arquivo(s)! Forte recomendação de quebrar em múltiplos PRs menores.`
+        `\n🚨 **PR Muito Grande**: **${linesChanged} linhas** em ${totalFiles} arquivo(s)! Forte recomendação de quebrar em múltiplos PRs menores.`
       );
     }
   }
