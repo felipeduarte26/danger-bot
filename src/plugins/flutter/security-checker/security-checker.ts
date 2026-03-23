@@ -227,7 +227,7 @@ export default createPlugin(
           const icon = severity === "critical" ? "🚨" : severity === "high" ? "⚠️" : "💡";
 
           sendFail(
-            `\n${icon} SEGURANÇA — ${label.toUpperCase()}
+            `${icon} SEGURANÇA — ${label.toUpperCase()}
 
 \`${line.trim()}\`
 
@@ -271,7 +271,7 @@ final apiKey = dotenv.env['API_KEY'] ?? '';
 
       if (matched) {
         sendFail(
-          `\n🚨 ARQUIVO SENSÍVEL COMMITADO — \`${fileName}\`
+          `🚨 ARQUIVO SENSÍVEL COMMITADO — \`${fileName}\`
 
 O arquivo \`${file}\` **não deve ser commitado** no repositório. Ele pode conter credenciais, chaves ou configurações sensíveis.
 
@@ -303,8 +303,7 @@ O arquivo \`${file}\` **não deve ser commitado** no repositório. Ele pode cont
         const missingList = missing.map((m) => `- \`${m}\``).join("\n");
 
         sendWarn(
-          `
-          ⚠️ GITIGNORE — Entradas de segurança ausentes
+          `GITIGNORE — Entradas de segurança ausentes
 
 O \`.gitignore\` não contém algumas entradas recomendadas para proteger arquivos sensíveis:
 

@@ -72,6 +72,10 @@ function isDuplicate(type: string, msg: string, file?: string, line?: number): b
   return false;
 }
 
+function isEmptyMessage(msg: string): boolean {
+  return !msg || msg.trim().length === 0;
+}
+
 function ensureTrailingBreak(msg: string, file?: string, line?: number): string {
   if (!file || line === undefined) return msg;
   return msg.trimEnd() + "\n\n&#8203;";
@@ -178,6 +182,7 @@ export function getDanger(): ExtendedDangerDSLType {
  * ```
  */
 export function sendMessage(msg: string, file?: string, line?: number): void {
+  if (isEmptyMessage(msg)) return;
   if (isDuplicate("message", msg, file, line)) return;
   const formatted = ensureTrailingBreak(msg, file, line);
   const messageFn = (global as any).message || (globalThis as any).message;
@@ -215,6 +220,7 @@ export function sendMessage(msg: string, file?: string, line?: number): void {
  * ```
  */
 export function sendWarn(msg: string, file?: string, line?: number): void {
+  if (isEmptyMessage(msg)) return;
   if (isDuplicate("warn", msg, file, line)) return;
   const formatted = ensureTrailingBreak(msg, file, line);
   const warnFn = (global as any).warn || (globalThis as any).warn;
@@ -252,6 +258,7 @@ export function sendWarn(msg: string, file?: string, line?: number): void {
  * ```
  */
 export function sendFail(msg: string, file?: string, line?: number): void {
+  if (isEmptyMessage(msg)) return;
   if (isDuplicate("fail", msg, file, line)) return;
   const formatted = ensureTrailingBreak(msg, file, line);
   const failFn = (global as any).fail || (globalThis as any).fail;
@@ -301,6 +308,7 @@ export function sendFail(msg: string, file?: string, line?: number): void {
  * ```
  */
 export function sendMarkdown(msg: string, file?: string, line?: number): void {
+  if (isEmptyMessage(msg)) return;
   const markdownFn = (global as any).markdown || (globalThis as any).markdown;
   if (markdownFn) {
     if (file && line !== undefined) {

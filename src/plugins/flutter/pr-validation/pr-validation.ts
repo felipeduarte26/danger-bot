@@ -26,7 +26,7 @@ export default createPlugin(
 
     if (prDescription.length < minDescriptionLength) {
       sendFail(
-        `\n## 📝 Descrição do PR muito curta
+        `## 📝 Descrição do PR muito curta
 
 A descrição tem apenas ${prDescription.length} caracteres (mínimo: ${minDescriptionLength}).
 
@@ -91,7 +91,7 @@ Usuários com emails longos não conseguiam fazer login.
 
         if (!hasChangelog) {
           sendFail(
-            `\n## 📋 Changelog não encontrado
+            `## 📋 Changelog não encontrado
 
 Este projeto não possui um arquivo \`changelog.md\` na raiz.
 
@@ -136,7 +136,7 @@ O formato é inspirado em [Keep a Changelog](https://keepachangelog.com/).
           );
         } else {
           sendFail(
-            `\nChangelog não foi atualizado
+            `Changelog não foi atualizado
 
 O arquivo \`changelog.md\` existe, mas não foi modificado nesta PR.
 
@@ -182,7 +182,7 @@ Cada PR deve documentar suas mudanças para manter o histórico claro.
 
     if (pubspecLockChanged && !pubspecYamlChanged) {
       sendFail(
-        `\n## 📦 pubspec.lock modificado sem pubspec.yaml
+        `## 📦 pubspec.lock modificado sem pubspec.yaml
 
 O \`pubspec.lock\` foi alterado mas o \`pubspec.yaml\` não.
 
@@ -228,7 +228,7 @@ git push
     if (dartFiles.length > maxDartFiles) {
       const suggestedPRs = Math.ceil(dartFiles.length / 40);
       sendWarn(
-        `\n## 🚨 PR CRÍTICA — MUITOS ARQUIVOS DART
+        `## 🚨 PR CRÍTICA — MUITOS ARQUIVOS DART
 
 Esta PR alterou **${dartFiles.length} arquivos .dart**!
 
