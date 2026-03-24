@@ -76,6 +76,16 @@ function isEmptyMessage(msg: string): boolean {
   return !msg || msg.trim().length === 0;
 }
 
+function extractTitle(msg: string): string {
+  const firstLine = msg.trim().split("\n")[0].trim();
+  return (
+    firstLine
+      .replace(/^#+\s*/, "")
+      .replace(/[*`#]/g, "")
+      .trim() || "Erro detectado"
+  );
+}
+
 function ensureTrailingBreak(msg: string, file?: string, line?: number): string {
   if (!file || line === undefined) return msg;
   return msg.trimEnd() + "\n\n&#8203;";
@@ -227,6 +237,11 @@ export function sendWarn(msg: string, file?: string, line?: number): void {
   if (warnFn) {
     if (file && line !== undefined) {
       warnFn(formatted, file, line);
+      const title = extractTitle(msg);
+      const summaryMsg = `**${title}** — \`${file}\`${line ? `:${line}` : ""}`;
+      if (!isDuplicate("warn", summaryMsg)) {
+        warnFn(summaryMsg);
+      }
     } else {
       warnFn(formatted);
     }
@@ -265,6 +280,11 @@ export function sendFail(msg: string, file?: string, line?: number): void {
   if (failFn) {
     if (file && line !== undefined) {
       failFn(formatted, file, line);
+      const title = extractTitle(msg);
+      const summaryMsg = `**${title}** — \`${file}\`${line ? `:${line}` : ""}`;
+      if (!isDuplicate("fail", summaryMsg)) {
+        failFn(summaryMsg);
+      }
     } else {
       failFn(formatted);
     }

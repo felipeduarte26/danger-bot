@@ -15,11 +15,11 @@
 
 ---
 
-**Danger Bot** e um conjunto modular de **26 plugins** para o [Danger JS](https://danger.systems/js/), focado em projetos **Flutter/Dart** com Clean Architecture. Ele analisa Pull Requests automaticamente durante o CI/CD e deixa comentarios com avisos, erros e sugestoes diretamente no PR.
+**Danger Bot** e um conjunto modular de **27 plugins** para o [Danger JS](https://danger.systems/js/), focado em projetos **Flutter/Dart** com Clean Architecture. Ele analisa Pull Requests automaticamente durante o CI/CD e deixa comentarios com avisos, erros e sugestoes diretamente no PR.
 
 ## Por que usar?
 
-- **26 plugins prontos** cobrindo arquitetura, performance, seguranca, nomenclatura e mais
+- **27 plugins prontos** cobrindo arquitetura, performance, seguranca, nomenclatura e mais
 - **Zero configuracao** - funciona com uma unica linha de codigo
 - **Multi-plataforma** - GitHub, Bitbucket Cloud, Bitbucket Server, GitLab
 - **CLI integrada** - crie e gerencie plugins pelo terminal
@@ -54,7 +54,7 @@ npx danger ci
 
 ## Plugins
 
-O Danger Bot inclui 26 plugins organizados em categorias:
+O Danger Bot inclui 27 plugins organizados em categorias:
 
 ### Pull Request
 
@@ -64,6 +64,7 @@ O Danger Bot inclui 26 plugins organizados em categorias:
 | **pr-size-checker** | Alerta sobre PRs muito grandes |
 | **pr-validation** | Valida descricao, titulo e formato do PR |
 | **changelog-checker** | Verifica se o CHANGELOG.md foi atualizado |
+| **merge-conflict-checker** | Detecta conflitos de merge com o branch de destino |
 
 ### Clean Architecture - Domain
 
@@ -223,7 +224,7 @@ danger-bot/
 │   ├── types.ts              # Interfaces e tipos
 │   ├── helpers.ts            # Funcoes auxiliares
 │   └── plugins/
-│       └── flutter/          # 26 plugins Flutter/Dart
+│       └── flutter/          # 27 plugins Flutter/Dart
 │           ├── pr-summary/
 │           ├── pr-size-checker/
 │           ├── clean-architecture/

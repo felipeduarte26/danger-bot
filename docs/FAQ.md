@@ -163,8 +163,8 @@ npx danger local
 
 ### Quantos plugins existem?
 
-26 plugins organizados em categorias:
-- 4 de Pull Request
+27 plugins organizados em categorias:
+- 5 de Pull Request
 - 4 de Domain (Clean Architecture)
 - 2 de Data (Clean Architecture)
 - 2 de Presentation (Clean Architecture)

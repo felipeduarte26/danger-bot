@@ -37,7 +37,7 @@ export { DangerPlugin, DangerPluginConfig, DangerBotCallbacks };
 // Factory
 export { createPlugin, runPlugins };
 
-// Plugins individuais (26)
+// Plugins individuais (27)
 export { allFlutterPlugins, prSummaryPlugin, prSizeCheckerPlugin /* ... */ };
 
 // Plugins por categoria
@@ -351,7 +351,7 @@ export default createPlugin(
 
 | Export | Plugins incluidos | Quantidade |
 |--------|-------------------|------------|
-| `allFlutterPlugins` | Todos os 26 plugins | 26 |
+| `allFlutterPlugins` | Todos os 27 plugins | 27 |
 | `domainLayerPlugins` | entities, failures, repositories, usecases | 4 |
 | `dataLayerPlugins` | datasources, models | 2 |
 | `presentationLayerPlugins` | viewmodels, try-catch-checker | 2 |

@@ -92,6 +92,15 @@ function isDuplicate(type, msg, file, line) {
 function isEmptyMessage(msg) {
   return !msg || msg.trim().length === 0;
 }
+function extractTitle(msg) {
+  const firstLine = msg.trim().split("\n")[0].trim();
+  return (
+    firstLine
+      .replace(/^#+\s*/, "")
+      .replace(/[*`#]/g, "")
+      .trim() || "Erro detectado"
+  );
+}
 function ensureTrailingBreak(msg, file, line) {
   if (!file || line === undefined) return msg;
   return msg.trimEnd() + "\n\n&#8203;";
@@ -212,6 +221,11 @@ function sendWarn(msg, file, line) {
   if (warnFn) {
     if (file && line !== undefined) {
       warnFn(formatted, file, line);
+      const title = extractTitle(msg);
+      const summaryMsg = `**${title}** — \`${file}\`${line ? `:${line}` : ""}`;
+      if (!isDuplicate("warn", summaryMsg)) {
+        warnFn(summaryMsg);
+      }
     } else {
       warnFn(formatted);
     }
@@ -249,6 +263,11 @@ function sendFail(msg, file, line) {
   if (failFn) {
     if (file && line !== undefined) {
       failFn(formatted, file, line);
+      const title = extractTitle(msg);
+      const summaryMsg = `**${title}** — \`${file}\`${line ? `:${line}` : ""}`;
+      if (!isDuplicate("fail", summaryMsg)) {
+        failFn(summaryMsg);
+      }
     } else {
       failFn(formatted);
     }

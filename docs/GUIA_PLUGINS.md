@@ -83,7 +83,7 @@ executeDangerBot(plugins);
 
 ---
 
-## Lista completa de plugins (26)
+## Lista completa de plugins (27)
 
 ### Pull Request
 
@@ -93,6 +93,7 @@ executeDangerBot(plugins);
 | `prSizeCheckerPlugin` | `pr-size-checker` | Verifica tamanho do PR por arquivos .dart |
 | `prValidationPlugin` | `pr-validation` | Valida descricao, changelog e aspectos gerais do PR |
 | `changelogCheckerPlugin` | `changelog-checker` | Verifica se o CHANGELOG.md foi atualizado |
+| `mergeConflictCheckerPlugin` | `merge-conflict-checker` | Detecta conflitos de merge com o branch de destino |
 
 ### Clean Architecture - Domain
 
