@@ -222,7 +222,7 @@ function sendWarn(msg, file, line) {
     if (file && line !== undefined) {
       warnFn(formatted, file, line);
       const title = extractTitle(msg);
-      const summaryMsg = `**${title}** — \`${file}\`${line ? `:${line}` : ""}`;
+      const summaryMsg = `**${title}** — \`${file}\``;
       if (!isDuplicate("warn", summaryMsg)) {
         warnFn(summaryMsg);
       }
@@ -264,7 +264,7 @@ function sendFail(msg, file, line) {
     if (file && line !== undefined) {
       failFn(formatted, file, line);
       const title = extractTitle(msg);
-      const summaryMsg = `**${title}** — \`${file}\`${line ? `:${line}` : ""}`;
+      const summaryMsg = `**${title}** — \`${file}\``;
       if (!isDuplicate("fail", summaryMsg)) {
         failFn(summaryMsg);
       }
