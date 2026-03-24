@@ -15,6 +15,7 @@ A CLI e instalada automaticamente com o pacote e pode ser usada via `danger-bot`
 | `danger-bot remove-plugin` | `rm` | Remover um plugin existente |
 | `danger-bot generate-dangerfile` | `gen` | Gerar dangerfile de exemplo |
 | `danger-bot validate <file>` | - | Validar estrutura de um plugin |
+| `danger-bot init` | - | Gerar arquivo danger-bot.yaml de configuracao |
 | `danger-bot info` | - | Informacoes do projeto |
 
 ---
@@ -203,6 +204,39 @@ Ou com problemas:
    ⚠️ Falta campo "enabled" (será true por padrão)
    ⚠️ Falta documentação JSDoc no topo do arquivo
 ```
+
+---
+
+## danger-bot init
+
+Gera um arquivo `danger-bot.yaml` na raiz do projeto com configuracao de exemplo.
+
+```bash
+danger-bot init
+```
+
+O arquivo permite configurar:
+
+- **`local_plugins`**: caminhos para plugins customizados do seu projeto
+- **`ignore_files`**: arquivos que devem ser ignorados por todos os plugins
+- **`settings`**: configuracoes gerais (verbose, etc.)
+
+Se o arquivo ja existir, a CLI pergunta se deseja sobrescrever.
+
+**Exemplo de saida:**
+
+```
+✅ danger-bot.yaml criado com sucesso!
+
+📄 Arquivo: /caminho/do/projeto/danger-bot.yaml
+
+📝 Próximos passos:
+   1. Edite o danger-bot.yaml com suas configurações
+   2. Adicione plugins locais em local_plugins
+   3. Liste arquivos para ignorar em ignore_files
+```
+
+> Documentacao completa: [Configuracao](CONFIGURACAO.md)
 
 ---
 

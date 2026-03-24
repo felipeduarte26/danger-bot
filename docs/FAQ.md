@@ -159,6 +159,46 @@ npx danger local
 
 ---
 
+## Configuracao (danger-bot.yaml)
+
+### O que e o danger-bot.yaml?
+
+Um arquivo opcional de configuracao na raiz do seu projeto. Permite definir plugins locais e arquivos ignorados sem alterar o `dangerfile.ts`.
+
+```bash
+npx danger-bot init
+```
+
+> Documentacao completa: [Configuracao](CONFIGURACAO.md)
+
+### Como ignorar arquivos especificos?
+
+Adicione ao `danger-bot.yaml`:
+
+```yaml
+ignore_files:
+  - lib/features/old_module/legacy_page.dart
+  - lib/core/deprecated_helper.dart
+```
+
+### Posso criar plugins locais no meu projeto?
+
+Sim. Crie plugins `.ts` ou `.js` seguindo o padrao `createPlugin` e aponte no `danger-bot.yaml`:
+
+```yaml
+local_plugins:
+  - ./danger/plugins/meu-plugin.ts
+  - ./danger/plugins/
+```
+
+O `executeDangerBot` carrega automaticamente. Veja [Configuracao](CONFIGURACAO.md).
+
+### Meu projeto usa ignore_danger_files.json, como migrar?
+
+Migre os caminhos para o `danger-bot.yaml` em `ignore_files` e remova o `ignore_danger_files.json`. Veja [Migracao](CONFIGURACAO.md#migrando-do-ignore_danger_filesjson).
+
+---
+
 ## Plugins
 
 ### Quantos plugins existem?
@@ -173,11 +213,15 @@ npx danger local
 
 ### Como criar meu proprio plugin?
 
-Use a CLI:
+**Para o pacote (contribuir):**
 
 ```bash
 npx danger-bot create-plugin
 ```
+
+**Para seu projeto (plugin local):**
+
+Crie um arquivo `.ts` seguindo o padrao `createPlugin` e aponte no `danger-bot.yaml`. Veja [Plugins Locais](GUIA_PLUGINS.md#plugins-locais-do-projeto).
 
 Ou crie manualmente. Veja: [Guia de Plugins](GUIA_PLUGINS.md#criando-um-plugin-customizado)
 

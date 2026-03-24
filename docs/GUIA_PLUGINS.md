@@ -223,9 +223,44 @@ Simplificar **imports** e melhorar **organizacao**.
 
 ---
 
+## Plugins Locais do Projeto
+
+Alem dos 27 plugins do pacote, voce pode criar plugins **locais** no seu projeto, sem precisar fazer push no repositorio do Danger Bot.
+
+### Configuracao
+
+1. Gere o arquivo de configuracao:
+
+```bash
+danger-bot init
+```
+
+2. Edite o `danger-bot.yaml`:
+
+```yaml
+local_plugins:
+  - ./danger/plugins/meu-plugin.ts
+  - ./danger/plugins/
+
+ignore_files:
+  - lib/features/old_module/legacy_page.dart
+```
+
+3. O `executeDangerBot` carrega tudo automaticamente:
+
+```typescript
+import { allFlutterPlugins, executeDangerBot } from "@felipeduarte26/danger-bot";
+
+executeDangerBot(allFlutterPlugins);
+```
+
+> Documentacao completa: [Configuracao](CONFIGURACAO.md)
+
+---
+
 ## Criando um plugin customizado
 
-### Usando a CLI (recomendado)
+### Usando a CLI (recomendado) — para plugins do pacote
 
 ```bash
 danger-bot create-plugin
@@ -237,7 +272,11 @@ A CLI pergunta nome e descricao, e gera automaticamente:
 - `README.md` com documentacao
 - Atualiza barrel files e `allFlutterPlugins`
 
-### Manualmente
+### Plugin local do projeto
+
+Crie um arquivo `.ts` no seu projeto (ex: `danger/plugins/meu-plugin.ts`) e aponte no `danger-bot.yaml`. O plugin deve seguir o padrao `createPlugin`. Veja [Configuracao](CONFIGURACAO.md) para exemplos completos.
+
+### Manualmente (para plugins do pacote)
 
 Crie uma pasta em `src/plugins/flutter/meu-plugin/`:
 

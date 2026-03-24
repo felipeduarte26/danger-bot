@@ -7,6 +7,7 @@
 // Export tipos e helpers
 export * from "./types";
 export * from "./helpers";
+export * from "./config";
 
 // Export all plugins
 export {

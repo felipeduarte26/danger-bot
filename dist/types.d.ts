@@ -28,7 +28,11 @@ export {
   getPRTitle,
   getLinesChanged,
   isInLayer,
+  setIgnoredFiles,
+  getIgnoredFiles,
 } from "./helpers";
+export { loadConfig, loadLocalPlugins } from "./config";
+export type { DangerBotConfig } from "./config";
 export interface DangerPluginConfig {
   /** Nome do plugin para identificação em logs */
   name: string;
@@ -84,21 +88,26 @@ export interface DangerBotCallbacks {
 /**
  * Execute Danger Bot with plugins - Simplifies dangerfile.ts
  *
+ * Carrega automaticamente o arquivo `danger-bot.yaml` da raiz do projeto.
+ * - `ignore_files`: arquivos ignorados por todos os plugins
+ * - `local_plugins`: plugins locais do projeto, carregados e executados junto com os plugins padrão
+ *
  * @param plugins - Array of plugins to run
  * @param callbacks - Optional callbacks for lifecycle hooks
  *
  * @example
- * import { executeDangerBot, getDanger, sendMessage, sendWarn } from "@felipeduarte26/danger-bot";
+ * ```typescript
+ * import { executeDangerBot, allFlutterPlugins } from "@felipeduarte26/danger-bot";
  *
- * executeDangerBot([pluginTestPlugin], {
+ * executeDangerBot(allFlutterPlugins, {
  *   onBeforeRun: () => {
- *     const pr = getDanger().github?.pr;
  *     sendMessage("Starting Danger CI...");
  *     return true;
  *   },
  *   onSuccess: () => sendMessage("✅ Success!"),
  *   onError: (error) => sendWarn(`⚠️ Error: ${error.message}`)
  * });
+ * ```
  */
 export declare function executeDangerBot(
   plugins: DangerPlugin[],

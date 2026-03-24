@@ -32,10 +32,13 @@ export { getDomainDartFiles, getDataDartFiles, getPresentationDartFiles, isInLay
 export { getPRDescription, getPRTitle, getLinesChanged };
 
 // Tipos
-export { DangerPlugin, DangerPluginConfig, DangerBotCallbacks };
+export { DangerPlugin, DangerPluginConfig, DangerBotCallbacks, DangerBotConfig };
 
 // Factory
 export { createPlugin, runPlugins };
+
+// Configuracao (danger-bot.yaml)
+export { loadConfig, loadLocalPlugins, setIgnoredFiles, getIgnoredFiles };
 
 // Plugins individuais (27)
 export { allFlutterPlugins, prSummaryPlugin, prSizeCheckerPlugin /* ... */ };
@@ -56,6 +59,10 @@ export {
 ## executeDangerBot
 
 Funcao principal que executa uma lista de plugins com callbacks opcionais.
+
+Carrega automaticamente o `danger-bot.yaml` da raiz do projeto (se existir) para:
+- Aplicar `ignore_files` no filtro de arquivos
+- Carregar e executar `local_plugins` apos os plugins passados por parametro
 
 ```typescript
 function executeDangerBot(plugins: DangerPlugin[], callbacks?: DangerBotCallbacks): void
@@ -358,3 +365,56 @@ export default createPlugin(
 | `cleanArchitecturePlugins` | domain + data + presentation + clean-architecture | 9 |
 | `codeQualityPlugins` | late-final, memory-leak, comments, security, barrel, identifier-language, class-naming-convention | 7 |
 | `performancePlugins` | flutter-performance, mediaquery-modern | 2 |
+
+---
+
+## Configuracao (danger-bot.yaml)
+
+### DangerBotConfig
+
+Interface da configuracao carregada do `danger-bot.yaml`.
+
+```typescript
+interface DangerBotConfig {
+  local_plugins?: string[];
+  ignore_files?: string[];
+  settings?: {
+    fail_on_errors?: boolean;
+    verbose?: boolean;
+  };
+}
+```
+
+### loadConfig()
+
+Carrega o `danger-bot.yaml` (ou `.yml`) da raiz do projeto. Retorna `{}` se o arquivo nao existir.
+
+```typescript
+function loadConfig(): DangerBotConfig
+```
+
+### loadLocalPlugins(pluginPaths)
+
+Carrega plugins locais a partir de caminhos (arquivos ou diretorios). Valida se cada modulo exporta um `DangerPlugin` valido.
+
+```typescript
+async function loadLocalPlugins(pluginPaths: string[]): Promise<DangerPlugin[]>
+```
+
+### setIgnoredFiles(files)
+
+Define os arquivos ignorados por todos os plugins. Chamado internamente pelo `executeDangerBot`.
+
+```typescript
+function setIgnoredFiles(files: string[]): void
+```
+
+### getIgnoredFiles()
+
+Retorna o `Set` de arquivos atualmente ignorados.
+
+```typescript
+function getIgnoredFiles(): Set<string>
+```
+
+> Documentacao completa: [Configuracao](CONFIGURACAO.md)

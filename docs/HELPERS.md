@@ -150,9 +150,11 @@ scheduleTask(async () => {
 
 ## Filtros de Arquivos
 
+> **Nota:** Todos os helpers de filtro de arquivos respeitam automaticamente a lista de `ignore_files` configurada no `danger-bot.yaml`. Arquivos ignorados nao aparecem nos resultados. Veja [Configuracao](CONFIGURACAO.md).
+
 ### getAllChangedFiles()
 
-Retorna todos os arquivos modificados e criados no PR. Combina `modified_files` e `created_files`, excluindo deletados.
+Retorna todos os arquivos modificados e criados no PR. Combina `modified_files` e `created_files`, excluindo deletados e arquivos listados em `ignore_files`.
 
 ```typescript
 function getAllChangedFiles(): string[]
@@ -353,6 +355,40 @@ if (lines > 500) {
   sendWarn(`PR com ${lines} linhas alteradas`);
 }
 ```
+
+---
+
+## Configuracao de Ignore
+
+### setIgnoredFiles(files)
+
+Define os arquivos que devem ser ignorados por todos os plugins. Chamado internamente pelo `executeDangerBot` ao carregar o `danger-bot.yaml`.
+
+```typescript
+function setIgnoredFiles(files: string[]): void
+```
+
+```typescript
+setIgnoredFiles([
+  "lib/features/old_module/legacy_page.dart",
+  "lib/core/deprecated_helper.dart",
+]);
+```
+
+### getIgnoredFiles()
+
+Retorna o `Set` de arquivos atualmente ignorados.
+
+```typescript
+function getIgnoredFiles(): Set<string>
+```
+
+```typescript
+const ignored = getIgnoredFiles();
+console.log(`${ignored.size} arquivo(s) ignorado(s)`);
+```
+
+> Na pratica, nao e necessario chamar essas funcoes manualmente. O `executeDangerBot` carrega o `danger-bot.yaml` e aplica automaticamente. Veja [Configuracao](CONFIGURACAO.md).
 
 ---
 

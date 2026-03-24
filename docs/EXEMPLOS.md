@@ -211,6 +211,58 @@ executeDangerBot([...allFlutterPlugins, noTodoPlugin]);
 
 ---
 
+## Com plugins locais (danger-bot.yaml)
+
+Crie plugins locais no seu projeto sem alterar o pacote:
+
+**danger-bot.yaml:**
+
+```yaml
+local_plugins:
+  - ./danger/plugins/
+
+ignore_files:
+  - lib/features/old_module/legacy_page.dart
+```
+
+**danger/plugins/todo-checker.ts:**
+
+```typescript
+import { createPlugin, getDartFiles, sendWarn } from "@felipeduarte26/danger-bot";
+import * as fs from "fs";
+
+export default createPlugin(
+  {
+    name: "todo-checker",
+    description: "Detecta comentarios TODO no codigo",
+    enabled: true,
+  },
+  async () => {
+    const files = getDartFiles().filter((f) => fs.existsSync(f));
+    for (const file of files) {
+      const content = fs.readFileSync(file, "utf-8");
+      const lines = content.split("\n");
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].includes("// TODO")) {
+          sendWarn(`TODO encontrado: ${lines[i].trim()}`, file, i + 1);
+        }
+      }
+    }
+  },
+);
+```
+
+**dangerfile.ts:**
+
+```typescript
+import { allFlutterPlugins, executeDangerBot } from "@felipeduarte26/danger-bot";
+
+// Plugins locais sao carregados automaticamente do danger-bot.yaml
+executeDangerBot(allFlutterPlugins);
+```
+
+---
+
 ## Condicional por branch
 
 ```typescript

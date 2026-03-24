@@ -99,6 +99,19 @@ Abra um PR no GitHub.
 
 ---
 
+## Modulos principais
+
+| Arquivo | Responsabilidade |
+|---------|-----------------|
+| `src/index.ts` | Entry point, exports principais, arrays de plugins |
+| `src/types.ts` | Interfaces (`DangerPlugin`, `DangerBotCallbacks`), `executeDangerBot`, `createPlugin` |
+| `src/helpers.ts` | Funcoes auxiliares (mensagens, filtros de arquivos, PR info) |
+| `src/config.ts` | Loader do `danger-bot.yaml` (plugins locais, ignore_files) |
+
+> Detalhes: [Arquitetura](ARQUITETURA.md)
+
+---
+
 ## Criando um plugin
 
 ### Via CLI (recomendado)

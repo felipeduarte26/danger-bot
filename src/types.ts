@@ -33,7 +33,12 @@ export {
   getPRTitle,
   getLinesChanged,
   isInLayer,
+  setIgnoredFiles,
+  getIgnoredFiles,
 } from "./helpers";
+
+export { loadConfig, loadLocalPlugins } from "./config";
+export type { DangerBotConfig } from "./config";
 
 export interface DangerPluginConfig {
   /** Nome do plugin para identificação em logs */
@@ -117,25 +122,46 @@ export interface DangerBotCallbacks {
 /**
  * Execute Danger Bot with plugins - Simplifies dangerfile.ts
  *
+ * Carrega automaticamente o arquivo `danger-bot.yaml` da raiz do projeto.
+ * - `ignore_files`: arquivos ignorados por todos os plugins
+ * - `local_plugins`: plugins locais do projeto, carregados e executados junto com os plugins padrão
+ *
  * @param plugins - Array of plugins to run
  * @param callbacks - Optional callbacks for lifecycle hooks
  *
  * @example
- * import { executeDangerBot, getDanger, sendMessage, sendWarn } from "@felipeduarte26/danger-bot";
+ * ```typescript
+ * import { executeDangerBot, allFlutterPlugins } from "@felipeduarte26/danger-bot";
  *
- * executeDangerBot([pluginTestPlugin], {
+ * executeDangerBot(allFlutterPlugins, {
  *   onBeforeRun: () => {
- *     const pr = getDanger().github?.pr;
  *     sendMessage("Starting Danger CI...");
  *     return true;
  *   },
  *   onSuccess: () => sendMessage("✅ Success!"),
  *   onError: (error) => sendWarn(`⚠️ Error: ${error.message}`)
  * });
+ * ```
  */
 export function executeDangerBot(plugins: DangerPlugin[], callbacks?: DangerBotCallbacks): void {
   void (async () => {
     try {
+      const { loadConfig, loadLocalPlugins } = await import("./config");
+      const { setIgnoredFiles } = await import("./helpers");
+
+      const config = loadConfig();
+
+      if (config.ignore_files?.length) {
+        setIgnoredFiles(config.ignore_files);
+      }
+
+      let allPlugins = [...plugins];
+
+      if (config.local_plugins?.length) {
+        const localPlugins = await loadLocalPlugins(config.local_plugins);
+        allPlugins = [...allPlugins, ...localPlugins];
+      }
+
       if (callbacks?.onBeforeRun) {
         const shouldContinue = await callbacks.onBeforeRun();
         if (shouldContinue === false) {
@@ -143,7 +169,7 @@ export function executeDangerBot(plugins: DangerPlugin[], callbacks?: DangerBotC
         }
       }
 
-      await runPlugins(plugins);
+      await runPlugins(allPlugins);
 
       if (callbacks?.onSuccess) {
         await callbacks.onSuccess();

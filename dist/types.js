@@ -7,8 +7,64 @@
  * Cada plugin deve implementar esta interface para garantir
  * consistência e facilitar manutenção
  */
+var __createBinding =
+  (this && this.__createBinding) ||
+  (Object.create
+    ? function (o, m, k, k2) {
+        if (k2 === undefined) k2 = k;
+        var desc = Object.getOwnPropertyDescriptor(m, k);
+        if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+          desc = {
+            enumerable: true,
+            get: function () {
+              return m[k];
+            },
+          };
+        }
+        Object.defineProperty(o, k2, desc);
+      }
+    : function (o, m, k, k2) {
+        if (k2 === undefined) k2 = k;
+        o[k2] = m[k];
+      });
+var __setModuleDefault =
+  (this && this.__setModuleDefault) ||
+  (Object.create
+    ? function (o, v) {
+        Object.defineProperty(o, "default", { enumerable: true, value: v });
+      }
+    : function (o, v) {
+        o["default"] = v;
+      });
+var __importStar =
+  (this && this.__importStar) ||
+  (function () {
+    var ownKeys = function (o) {
+      ownKeys =
+        Object.getOwnPropertyNames ||
+        function (o) {
+          var ar = [];
+          for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+          return ar;
+        };
+      return ownKeys(o);
+    };
+    return function (mod) {
+      if (mod && mod.__esModule) return mod;
+      var result = {};
+      if (mod != null)
+        for (var k = ownKeys(mod), i = 0; i < k.length; i++)
+          if (k[i] !== "default") __createBinding(result, mod, k[i]);
+      __setModuleDefault(result, mod);
+      return result;
+    };
+  })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.isInLayer =
+exports.loadLocalPlugins =
+  exports.loadConfig =
+  exports.getIgnoredFiles =
+  exports.setIgnoredFiles =
+  exports.isInLayer =
   exports.getLinesChanged =
   exports.getPRTitle =
   exports.getPRDescription =
@@ -163,6 +219,31 @@ Object.defineProperty(exports, "isInLayer", {
     return helpers_1.isInLayer;
   },
 });
+Object.defineProperty(exports, "setIgnoredFiles", {
+  enumerable: true,
+  get: function () {
+    return helpers_1.setIgnoredFiles;
+  },
+});
+Object.defineProperty(exports, "getIgnoredFiles", {
+  enumerable: true,
+  get: function () {
+    return helpers_1.getIgnoredFiles;
+  },
+});
+var config_1 = require("./config");
+Object.defineProperty(exports, "loadConfig", {
+  enumerable: true,
+  get: function () {
+    return config_1.loadConfig;
+  },
+});
+Object.defineProperty(exports, "loadLocalPlugins", {
+  enumerable: true,
+  get: function () {
+    return config_1.loadLocalPlugins;
+  },
+});
 /**
  * HELPER: Criar plugin facilmente
  */
@@ -196,32 +277,52 @@ async function runPlugins(plugins) {
 /**
  * Execute Danger Bot with plugins - Simplifies dangerfile.ts
  *
+ * Carrega automaticamente o arquivo `danger-bot.yaml` da raiz do projeto.
+ * - `ignore_files`: arquivos ignorados por todos os plugins
+ * - `local_plugins`: plugins locais do projeto, carregados e executados junto com os plugins padrão
+ *
  * @param plugins - Array of plugins to run
  * @param callbacks - Optional callbacks for lifecycle hooks
  *
  * @example
- * import { executeDangerBot, getDanger, sendMessage, sendWarn } from "@felipeduarte26/danger-bot";
+ * ```typescript
+ * import { executeDangerBot, allFlutterPlugins } from "@felipeduarte26/danger-bot";
  *
- * executeDangerBot([pluginTestPlugin], {
+ * executeDangerBot(allFlutterPlugins, {
  *   onBeforeRun: () => {
- *     const pr = getDanger().github?.pr;
  *     sendMessage("Starting Danger CI...");
  *     return true;
  *   },
  *   onSuccess: () => sendMessage("✅ Success!"),
  *   onError: (error) => sendWarn(`⚠️ Error: ${error.message}`)
  * });
+ * ```
  */
 function executeDangerBot(plugins, callbacks) {
   void (async () => {
     try {
+      const { loadConfig, loadLocalPlugins } = await Promise.resolve().then(() =>
+        __importStar(require("./config"))
+      );
+      const { setIgnoredFiles } = await Promise.resolve().then(() =>
+        __importStar(require("./helpers"))
+      );
+      const config = loadConfig();
+      if (config.ignore_files?.length) {
+        setIgnoredFiles(config.ignore_files);
+      }
+      let allPlugins = [...plugins];
+      if (config.local_plugins?.length) {
+        const localPlugins = await loadLocalPlugins(config.local_plugins);
+        allPlugins = [...allPlugins, ...localPlugins];
+      }
       if (callbacks?.onBeforeRun) {
         const shouldContinue = await callbacks.onBeforeRun();
         if (shouldContinue === false) {
           return;
         }
       }
-      await runPlugins(plugins);
+      await runPlugins(allPlugins);
       if (callbacks?.onSuccess) {
         await callbacks.onSuccess();
       }

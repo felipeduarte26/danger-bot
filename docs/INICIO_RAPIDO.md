@@ -144,6 +144,32 @@ pipelines:
 
 ---
 
+## Configuracao do projeto (opcional)
+
+Gere um arquivo `danger-bot.yaml` para configurar plugins locais e arquivos ignorados:
+
+```bash
+npx danger-bot init
+```
+
+Edite o arquivo para adicionar configuracoes:
+
+```yaml
+# Plugins locais do seu projeto
+local_plugins:
+  - ./danger/plugins/
+
+# Arquivos ignorados por todos os plugins
+ignore_files:
+  - lib/features/old_module/legacy_page.dart
+```
+
+O `executeDangerBot` carrega o YAML automaticamente. Nenhuma mudanca no `dangerfile.ts` e necessaria.
+
+> Documentacao completa: [Configuracao](CONFIGURACAO.md)
+
+---
+
 ## Personalizacao
 
 ### Desabilitar um plugin
@@ -200,6 +226,7 @@ npm install --save-dev danger
 
 ## Proximos passos
 
+- [Configuracao](CONFIGURACAO.md) - Plugins locais e arquivos ignorados
 - [Guia de Plugins](GUIA_PLUGINS.md) - Entenda cada plugin e como configurar
 - [API Reference](API.md) - Funcoes e tipos disponiveis
 - [Exemplos](EXEMPLOS.md) - Casos de uso praticos

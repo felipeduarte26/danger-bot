@@ -58,6 +58,15 @@
  */
 import type { DangerDSLType, GitDSL } from "danger";
 /**
+ * Define os arquivos que devem ser ignorados por todos os plugins.
+ * Chamado internamente pelo executeDangerBot ao carregar o danger-bot.yaml.
+ */
+export declare function setIgnoredFiles(files: string[]): void;
+/**
+ * Retorna os arquivos ignorados configurados.
+ */
+export declare function getIgnoredFiles(): Set<string>;
+/**
  * Interface estendida do GitDSL do Danger que inclui propriedades
  * disponíveis em runtime mas não tipadas oficialmente.
  *

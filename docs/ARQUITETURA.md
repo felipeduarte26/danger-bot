@@ -12,6 +12,7 @@ danger-bot/
 │   ├── index.ts            # Entry point - exports principais
 │   ├── types.ts            # Interfaces, tipos e funcoes core
 │   ├── helpers.ts          # Funcoes auxiliares
+│   ├── config.ts           # Loader do danger-bot.yaml (plugins locais + ignore)
 │   └── plugins/
 │       ├── index.ts        # Barrel file de plataformas
 │       └── flutter/        # Plugins Flutter/Dart
@@ -30,6 +31,7 @@ danger-bot/
 │   │   ├── list-plugins.js
 │   │   ├── generate-dangerfile.js
 │   │   ├── validate-plugin.js
+│   │   ├── init-config.js
 │   │   └── info.js
 │   ├── templates/          # Templates para geracao de codigo
 │   │   ├── plugin-template.js
@@ -59,8 +61,11 @@ danger-bot/
    └── Danger JS carrega dangerfile.ts
 
 3. executeDangerBot(plugins, callbacks?)
+   ├── loadConfig() → carrega danger-bot.yaml (se existir)
+   ├── setIgnoredFiles(config.ignore_files) → filtra arquivos ignorados
+   ├── loadLocalPlugins(config.local_plugins) → carrega plugins locais
    ├── callbacks.onBeforeRun() → false cancela
-   ├── runPlugins(plugins)
+   ├── runPlugins([...plugins, ...localPlugins])
    │   └── Para cada plugin habilitado:
    │       └── plugin.run()
    │           └── Usa helpers (getDartFiles, sendWarn, etc.)
@@ -87,9 +92,10 @@ Define as interfaces core do sistema de plugins:
 - `DangerPluginConfig` - configuracao de um plugin (name, description, enabled)
 - `DangerPlugin` - interface de um plugin (config + run)
 - `DangerBotCallbacks` - callbacks do ciclo de vida
+- `DangerBotConfig` - re-export da interface de configuracao YAML
 - `createPlugin()` - factory para criar plugins
 - `runPlugins()` - executa plugins sequencialmente
-- `executeDangerBot()` - funcao principal com callbacks
+- `executeDangerBot()` - funcao principal com config automatico, plugins locais e callbacks
 
 ### src/helpers.ts
 
@@ -99,6 +105,17 @@ Funcoes auxiliares organizadas em categorias:
 - **Filtros de arquivos**: `getAllChangedFiles`, `getDartFiles`, `getFilesMatching`, etc.
 - **Clean Architecture**: `getDomainDartFiles`, `getDataDartFiles`, `isInLayer`, etc.
 - **Info do PR**: `getPRDescription`, `getPRTitle`, `getLinesChanged`
+- **Configuracao**: `setIgnoredFiles`, `getIgnoredFiles` (usados internamente pelo config loader)
+
+> `getAllChangedFiles()` filtra automaticamente os arquivos listados em `ignore_files` do `danger-bot.yaml`.
+
+### src/config.ts
+
+Carrega configuracoes do arquivo `danger-bot.yaml` da raiz do projeto:
+- `loadConfig()` - le e parseia o YAML
+- `loadLocalPlugins()` - carrega plugins locais via `import()` dinamico
+- `DangerBotConfig` - interface da estrutura do YAML
+- Validacao automatica de plugins locais (verifica `config.name` e `run()`)
 
 ### src/plugins/flutter/
 
@@ -151,6 +168,8 @@ A CLI usa [Commander](https://github.com/tj/commander.js) e esta em `bin/cli.js`
 Cada comando e um modulo separado em `bin/commands/`. Os comandos manipulam o filesystem para criar/remover plugins e atualizar barrel files automaticamente.
 
 Templates em `bin/templates/` geram codigo para novos plugins, dangerfiles e READMEs.
+
+O comando `init` (`bin/commands/init-config.js`) gera um `danger-bot.yaml` de exemplo na raiz do projeto do usuario.
 
 ---
 

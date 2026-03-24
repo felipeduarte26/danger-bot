@@ -50,6 +50,16 @@ npx danger ci
 
 > Para instalacao via Git, veja o [Guia de Instalacao](docs/INSTALACAO.md).
 
+### Configuracao do projeto (opcional)
+
+Gere um arquivo `danger-bot.yaml` para configurar plugins locais e arquivos ignorados:
+
+```bash
+npx danger-bot init
+```
+
+Veja mais em [Configuracao](docs/CONFIGURACAO.md).
+
 ---
 
 ## Plugins
@@ -177,6 +187,7 @@ danger-bot list              # Listar todos os plugins
 danger-bot create-plugin     # Criar novo plugin interativamente
 danger-bot gen               # Gerar dangerfile de exemplo
 danger-bot validate <file>   # Validar estrutura de um plugin
+danger-bot init              # Gerar danger-bot.yaml de configuracao
 danger-bot info              # Informacoes do projeto
 ```
 
@@ -210,6 +221,7 @@ danger-bot info              # Informacoes do projeto
 | [Arquitetura](docs/ARQUITETURA.md) | Estrutura interna do projeto |
 | [Desenvolvimento](docs/DESENVOLVIMENTO.md) | Como contribuir |
 | [Commits](docs/COMMITS.md) | Padrao de Conventional Commits |
+| [Configuracao](docs/CONFIGURACAO.md) | Plugins locais e arquivos ignorados |
 | [FAQ](docs/FAQ.md) | Perguntas frequentes |
 | [CI/CD](docs/pipelines/README.md) | Guias de configuracao por plataforma |
 
@@ -223,6 +235,7 @@ danger-bot/
 │   ├── index.ts              # Exports principais
 │   ├── types.ts              # Interfaces e tipos
 │   ├── helpers.ts            # Funcoes auxiliares
+│   ├── config.ts             # Loader do danger-bot.yaml
 │   └── plugins/
 │       └── flutter/          # 27 plugins Flutter/Dart
 │           ├── pr-summary/
@@ -260,6 +273,7 @@ danger-bot/
 | [TypeScript](https://www.typescriptlang.org/) | 5.9 | Linguagem principal |
 | [Danger JS](https://github.com/danger/danger-js) | 13+ | Framework de code review |
 | [Commander](https://github.com/tj/commander.js) | 14 | CLI |
+| [js-yaml](https://github.com/nodeca/js-yaml) | 4 | Parser do danger-bot.yaml |
 | [CSpell](https://github.com/streetsidesoftware/cspell) | 9 | Spell checking |
 | [cld3-asm](https://www.npmjs.com/package/cld3-asm) | 4 | Deteccao de idioma |
 | [wordpos](https://www.npmjs.com/package/wordpos) | 2.1 | Classificacao gramatical (WordNet) |

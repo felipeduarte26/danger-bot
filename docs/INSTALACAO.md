@@ -115,6 +115,16 @@ executeDangerBot(allFlutterPlugins, {
 });
 ```
 
+### Configuracao opcional (danger-bot.yaml)
+
+Opcionalmente, gere um arquivo de configuracao para definir plugins locais e arquivos ignorados:
+
+```bash
+npx danger-bot init
+```
+
+> Documentacao completa: [Configuracao](CONFIGURACAO.md)
+
 ---
 
 ## Verificar instalacao

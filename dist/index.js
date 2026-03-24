@@ -70,6 +70,7 @@ exports.performancePlugins =
 // Export tipos e helpers
 __exportStar(require("./types"), exports);
 __exportStar(require("./helpers"), exports);
+__exportStar(require("./config"), exports);
 // Export all plugins
 var flutter_1 = require("./plugins/flutter");
 Object.defineProperty(exports, "prSummaryPlugin", {

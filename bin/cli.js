@@ -13,6 +13,7 @@ import { listPlugins } from "./commands/list-plugins.js";
 import { generateDangerfile } from "./commands/generate-dangerfile.js";
 import { validatePlugin } from "./commands/validate-plugin.js";
 import { showInfo } from "./commands/info.js";
+import { initConfig } from "./commands/init-config.js";
 
 // Configurar CLI
 program
@@ -53,6 +54,12 @@ program
   .command("validate <plugin-file>")
   .description("Validar se um plugin segue o padrão correto")
   .action(validatePlugin);
+
+// Comando: gerar config yaml
+program
+  .command("init")
+  .description("Gerar arquivo danger-bot.yaml de configuração na raiz do projeto")
+  .action(initConfig);
 
 // Comando: info do projeto
 program.command("info").description("Mostrar informações do projeto").action(showInfo);

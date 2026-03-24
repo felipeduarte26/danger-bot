@@ -60,6 +60,25 @@
 import type { DangerDSLType, GitDSL } from "danger";
 
 const _sentMessages = new Set<string>();
+let _ignoredFiles = new Set<string>();
+
+/**
+ * Define os arquivos que devem ser ignorados por todos os plugins.
+ * Chamado internamente pelo executeDangerBot ao carregar o danger-bot.yaml.
+ */
+export function setIgnoredFiles(files: string[]): void {
+  _ignoredFiles = new Set(files);
+  if (_ignoredFiles.size > 0) {
+    console.log(`🚫 ${_ignoredFiles.size} arquivo(s) na lista de ignore`);
+  }
+}
+
+/**
+ * Retorna os arquivos ignorados configurados.
+ */
+export function getIgnoredFiles(): Set<string> {
+  return _ignoredFiles;
+}
 
 function dedupKey(type: string, msg: string, file?: string, line?: number): string {
   return `${type}::${file ?? ""}::${line ?? ""}::${msg}`;
@@ -405,7 +424,9 @@ export function scheduleTask(fn: () => Promise<void>): void {
  */
 export function getAllChangedFiles(): string[] {
   const danger = getDanger();
-  return [...danger.git.modified_files, ...danger.git.created_files];
+  const files = [...danger.git.modified_files, ...danger.git.created_files];
+  if (_ignoredFiles.size === 0) return files;
+  return files.filter((f) => !_ignoredFiles.has(f));
 }
 
 /**

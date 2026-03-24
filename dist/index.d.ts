@@ -5,6 +5,7 @@
  */
 export * from "./types";
 export * from "./helpers";
+export * from "./config";
 export {
   prSummaryPlugin,
   prSizeCheckerPlugin,
