@@ -30,57 +30,49 @@ function runGitMergeTree(target) {
 }
 function parseConflicts(output) {
   const conflicts = [];
+  const conflictRe = /^CONFLICT \(.*?\):\s+.*?(?:in|merge)\s+(.+)$/;
   const lines = output.split("\n");
-  let currentFile = null;
   for (const line of lines) {
-    const conflictMatch = line.match(/^CONFLICT \(.*?\):\s+.*?(?:in|merge)\s+(.+)$/);
-    if (conflictMatch) {
-      currentFile = conflictMatch[1].trim();
-      if (!conflicts.find((c) => c.file === currentFile)) {
-        conflicts.push({ file: currentFile, markers: [] });
-      }
-      continue;
-    }
-    if (currentFile && line.startsWith("+<<<<<<< ")) {
-      const lineNum = findConflictLine(output, currentFile);
-      if (lineNum > 0) {
-        const conflict = conflicts.find((c) => c.file === currentFile);
-        if (conflict && !conflict.markers.includes(lineNum)) {
-          conflict.markers.push(lineNum);
-        }
-      }
-    }
+    const match = line.match(conflictRe);
+    if (!match) continue;
+    const file = match[1].trim();
+    const conflictLine = findConflictLineForFile(lines, file);
+    conflicts.push({ file, line: conflictLine });
   }
   return conflicts;
 }
-function findConflictLine(output, file) {
-  const lines = output.split("\n");
-  let inFile = false;
-  let lineCounter = 0;
+function findConflictLineForFile(lines, file) {
+  let inFileBlock = false;
+  let currentLine = 0;
   for (const line of lines) {
-    if (
-      line.includes(file) &&
-      (line.startsWith("CONFLICT") || line.startsWith("changed in both"))
-    ) {
-      inFile = true;
-      lineCounter = 0;
+    if (line.startsWith("changed in both") || line.startsWith("added in both")) {
+      const nextLines = lines.slice(lines.indexOf(line), lines.indexOf(line) + 4).join("\n");
+      inFileBlock = nextLines.includes(file);
+      currentLine = 0;
       continue;
     }
-    if (inFile) {
-      const hunkMatch = line.match(/^@@ -\d+,?\d* \+(\d+),?\d* @@/);
-      if (hunkMatch) {
-        lineCounter = parseInt(hunkMatch[1], 10);
-        continue;
-      }
-      if (line.startsWith("+<<<<<<< ")) {
-        return lineCounter;
-      }
-      if (!line.startsWith("-")) {
-        lineCounter++;
-      }
+    if (!inFileBlock) continue;
+    const hunkMatch = line.match(/^@@ -\d+,?\d* \+(\d+),?\d* @@/);
+    if (hunkMatch) {
+      currentLine = parseInt(hunkMatch[1], 10);
+      continue;
+    }
+    if (line.startsWith("+<<<<<<< ")) {
+      return Math.max(currentLine, 1);
+    }
+    if (
+      line.startsWith("merged") ||
+      line.startsWith("changed in both") ||
+      line.startsWith("added in both")
+    ) {
+      inFileBlock = false;
+      continue;
+    }
+    if (!line.startsWith("-")) {
+      currentLine++;
     }
   }
-  return 0;
+  return 1;
 }
 exports.default = (0, _types_1.createPlugin)(
   {
@@ -91,6 +83,7 @@ exports.default = (0, _types_1.createPlugin)(
   async () => {
     const target = getTargetBranch();
     if (!target) return;
+    const branchName = target.replace("origin/", "");
     try {
       (0, child_process_1.execSync)(`git fetch origin --quiet`, { timeout: 30000 });
     } catch {
@@ -100,25 +93,23 @@ exports.default = (0, _types_1.createPlugin)(
     if (exitCode === 0) return;
     const conflicts = parseConflicts(output);
     if (conflicts.length === 0) return;
-    const fileList = conflicts.map((c) => `\`${c.file}\``).join("\n- ");
     for (const conflict of conflicts) {
-      const line = conflict.markers.length > 0 ? conflict.markers[0] : undefined;
       (0, _types_1.sendFail)(
         `CONFLITO DE MERGE DETECTADO
 
-O arquivo \`${conflict.file}\` possui **conflito** com o branch de destino \`${target.replace("origin/", "")}\`.
+Este arquivo possui **conflito** com o branch de destino \`${branchName}\`.
 
 ### Problema Identificado
 
 \`\`\`
-<<<<<<< HEAD (sua branch)
+<<<<<<< .our (sua branch)
   // suas alterações
 =======
-  // alterações no ${target.replace("origin/", "")}
->>>>>>> ${target.replace("origin/", "")}
+  // alterações no ${branchName}
+>>>>>>> .their (${branchName})
 \`\`\`
 
-O merge automático **não é possível** neste arquivo. Existem alterações concorrentes que precisam ser resolvidas manualmente.
+O merge automático **não é possível**. Existem alterações concorrentes que precisam ser resolvidas manualmente.
 
 ### 🎯 AÇÃO NECESSÁRIA
 
@@ -127,12 +118,11 @@ O merge automático **não é possível** neste arquivo. Existem alterações co
 
 # ✅ Resolva o conflito atualizando sua branch
 git fetch origin
-git merge origin/${target.replace("origin/", "")}
+git merge origin/${branchName}
 
-# Resolva os conflitos nos arquivos marcados
-# Depois faça commit e push
+# Resolva os conflitos, depois:
 git add .
-git commit -m "fix: resolver conflitos com ${target.replace("origin/", "")}"
+git commit -m "fix: resolver conflitos com ${branchName}"
 git push
 \`\`\`
 
@@ -142,21 +132,8 @@ Garantir que a PR possa ser **mergeada sem conflitos**, evitando problemas no br
 
 📖 [Git - Resolving Merge Conflicts](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/addressing-merge-conflicts/resolving-a-merge-conflict-using-the-command-line)`,
         conflict.file,
-        line
+        conflict.line
       );
-    }
-    if (conflicts.length > 1) {
-      (0, _types_1.sendFail)(`MÚLTIPLOS CONFLITOS DE MERGE
-
-Esta PR possui conflitos em **${conflicts.length} arquivo(s)** com o branch \`${target.replace("origin/", "")}\`:
-
-- ${fileList}
-
-### 🎯 AÇÃO NECESSÁRIA
-
-Atualize sua branch antes de prosseguir com o merge.
-
-📖 [Git - Resolving Merge Conflicts](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/addressing-merge-conflicts/resolving-a-merge-conflict-using-the-command-line)`);
     }
   }
 );
