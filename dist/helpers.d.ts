@@ -58,6 +58,19 @@
  */
 import type { DangerDSLType, GitDSL } from "danger";
 /**
+ * Ativa ou desativa o modo verbose.
+ * Chamado internamente pelo executeDangerBot ao carregar o danger-bot.yaml.
+ */
+export declare function setVerbose(enabled: boolean): void;
+/**
+ * Retorna se o modo verbose está ativo.
+ */
+export declare function isVerbose(): boolean;
+/**
+ * Log condicional — só imprime quando verbose está ativo.
+ */
+export declare function verboseLog(...args: unknown[]): void;
+/**
  * Define os arquivos que devem ser ignorados por todos os plugins.
  * Chamado internamente pelo executeDangerBot ao carregar o danger-bot.yaml.
  */

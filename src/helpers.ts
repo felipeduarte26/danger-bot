@@ -61,6 +61,29 @@ import type { DangerDSLType, GitDSL } from "danger";
 
 const _sentMessages = new Set<string>();
 let _ignoredFiles = new Set<string>();
+let _verbose = false;
+
+/**
+ * Ativa ou desativa o modo verbose.
+ * Chamado internamente pelo executeDangerBot ao carregar o danger-bot.yaml.
+ */
+export function setVerbose(enabled: boolean): void {
+  _verbose = enabled;
+}
+
+/**
+ * Retorna se o modo verbose está ativo.
+ */
+export function isVerbose(): boolean {
+  return _verbose;
+}
+
+/**
+ * Log condicional — só imprime quando verbose está ativo.
+ */
+export function verboseLog(...args: unknown[]): void {
+  if (_verbose) console.log("[verbose]", ...args);
+}
 
 /**
  * Define os arquivos que devem ser ignorados por todos os plugins.
@@ -70,6 +93,11 @@ export function setIgnoredFiles(files: string[]): void {
   _ignoredFiles = new Set(files);
   if (_ignoredFiles.size > 0) {
     console.log(`🚫 ${_ignoredFiles.size} arquivo(s) na lista de ignore`);
+    if (_verbose) {
+      for (const f of _ignoredFiles) {
+        console.log(`   ├─ ${f}`);
+      }
+    }
   }
 }
 
@@ -424,9 +452,19 @@ export function scheduleTask(fn: () => Promise<void>): void {
  */
 export function getAllChangedFiles(): string[] {
   const danger = getDanger();
-  const files = [...danger.git.modified_files, ...danger.git.created_files];
-  if (_ignoredFiles.size === 0) return files;
-  return files.filter((f) => !_ignoredFiles.has(f));
+  const allFiles = [...danger.git.modified_files, ...danger.git.created_files];
+  if (_ignoredFiles.size === 0) {
+    verboseLog(`📂 ${allFiles.length} arquivo(s) modificados/criados no PR`);
+    return allFiles;
+  }
+  const filtered = allFiles.filter((f) => !_ignoredFiles.has(f));
+  const ignoredCount = allFiles.length - filtered.length;
+  if (ignoredCount > 0) {
+    verboseLog(
+      `📂 ${allFiles.length} arquivo(s) no PR, ${ignoredCount} ignorado(s), ${filtered.length} para análise`
+    );
+  }
+  return filtered;
 }
 
 /**

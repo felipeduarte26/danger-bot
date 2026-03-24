@@ -62,6 +62,9 @@ var __importStar =
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.loadLocalPlugins =
   exports.loadConfig =
+  exports.verboseLog =
+  exports.isVerbose =
+  exports.setVerbose =
   exports.getIgnoredFiles =
   exports.setIgnoredFiles =
   exports.isInLayer =
@@ -231,6 +234,24 @@ Object.defineProperty(exports, "getIgnoredFiles", {
     return helpers_1.getIgnoredFiles;
   },
 });
+Object.defineProperty(exports, "setVerbose", {
+  enumerable: true,
+  get: function () {
+    return helpers_1.setVerbose;
+  },
+});
+Object.defineProperty(exports, "isVerbose", {
+  enumerable: true,
+  get: function () {
+    return helpers_1.isVerbose;
+  },
+});
+Object.defineProperty(exports, "verboseLog", {
+  enumerable: true,
+  get: function () {
+    return helpers_1.verboseLog;
+  },
+});
 var config_1 = require("./config");
 Object.defineProperty(exports, "loadConfig", {
   enumerable: true,
@@ -259,19 +280,39 @@ function createPlugin(config, runFn) {
  * @param plugins - Array of plugins to run
  */
 async function runPlugins(plugins) {
+  const { isVerbose } = await Promise.resolve().then(() => __importStar(require("./helpers")));
+  const verbose = isVerbose();
+  const totalStart = Date.now();
+  if (verbose) {
+    const enabled = plugins.filter((p) => p.config.enabled).length;
+    const disabled = plugins.length - enabled;
+    console.log(
+      `[verbose] 🔌 ${plugins.length} plugin(s) total — ${enabled} ativo(s), ${disabled} desabilitado(s)`
+    );
+  }
   for (const plugin of plugins) {
     if (!plugin.config.enabled) {
       console.log(`⏭️  Plugin '${plugin.config.name}' está desabilitado`);
       continue;
     }
     try {
+      const pluginStart = Date.now();
       console.log(`⚡ Executando plugin: ${plugin.config.name}`);
       await plugin.run();
-      console.log(`✅ Plugin '${plugin.config.name}' executado com sucesso`);
+      const elapsed = Date.now() - pluginStart;
+      if (verbose) {
+        console.log(`[verbose] ✅ ${plugin.config.name} — ${elapsed}ms`);
+      } else {
+        console.log(`✅ Plugin '${plugin.config.name}' executado com sucesso`);
+      }
     } catch (error) {
       console.error(`❌ Erro no plugin '${plugin.config.name}':`, error);
       throw error;
     }
+  }
+  if (verbose) {
+    const totalElapsed = Date.now() - totalStart;
+    console.log(`[verbose] ⏱️  Tempo total de execução: ${totalElapsed}ms`);
   }
 }
 /**
@@ -304,10 +345,20 @@ function executeDangerBot(plugins, callbacks) {
       const { loadConfig, loadLocalPlugins } = await Promise.resolve().then(() =>
         __importStar(require("./config"))
       );
-      const { setIgnoredFiles } = await Promise.resolve().then(() =>
+      const { setIgnoredFiles, setVerbose, verboseLog } = await Promise.resolve().then(() =>
         __importStar(require("./helpers"))
       );
       const config = loadConfig();
+      const verbose = config.settings?.verbose ?? false;
+      setVerbose(verbose);
+      if (verbose) {
+        console.log("[verbose] ═══════════════════════════════════════");
+        console.log("[verbose] 🤖 Danger Bot — modo verbose ativo");
+        console.log("[verbose] ═══════════════════════════════════════");
+        verboseLog(`📦 ${plugins.length} plugin(s) do pacote`);
+        verboseLog(`📂 local_plugins: ${config.local_plugins?.length ?? 0} caminho(s)`);
+        verboseLog(`🚫 ignore_files: ${config.ignore_files?.length ?? 0} arquivo(s)`);
+      }
       if (config.ignore_files?.length) {
         setIgnoredFiles(config.ignore_files);
       }
@@ -316,9 +367,14 @@ function executeDangerBot(plugins, callbacks) {
         const localPlugins = await loadLocalPlugins(config.local_plugins);
         allPlugins = [...allPlugins, ...localPlugins];
       }
+      if (verbose) {
+        verboseLog(`🔌 Total de plugins para execução: ${allPlugins.length}`);
+        console.log("[verbose] ───────────────────────────────────────");
+      }
       if (callbacks?.onBeforeRun) {
         const shouldContinue = await callbacks.onBeforeRun();
         if (shouldContinue === false) {
+          verboseLog("⛔ onBeforeRun retornou false — execução cancelada");
           return;
         }
       }

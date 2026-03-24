@@ -83,7 +83,7 @@ executeDangerBot(plugins);
 
 ---
 
-## Lista completa de plugins (27)
+## Lista completa de plugins
 
 ### Pull Request
 
@@ -225,7 +225,7 @@ Simplificar **imports** e melhorar **organizacao**.
 
 ## Plugins Locais do Projeto
 
-Alem dos 27 plugins do pacote, voce pode criar plugins **locais** no seu projeto, sem precisar fazer push no repositorio do Danger Bot.
+Alem dos plugins do pacote, voce pode criar plugins **locais** no seu projeto, sem precisar fazer push no repositorio do Danger Bot.
 
 ### Configuracao
 

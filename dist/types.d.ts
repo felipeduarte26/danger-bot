@@ -30,6 +30,9 @@ export {
   isInLayer,
   setIgnoredFiles,
   getIgnoredFiles,
+  setVerbose,
+  isVerbose,
+  verboseLog,
 } from "./helpers";
 export { loadConfig, loadLocalPlugins } from "./config";
 export type { DangerBotConfig } from "./config";

@@ -58,6 +58,9 @@
  * ```
  */
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.setVerbose = setVerbose;
+exports.isVerbose = isVerbose;
+exports.verboseLog = verboseLog;
 exports.setIgnoredFiles = setIgnoredFiles;
 exports.getIgnoredFiles = getIgnoredFiles;
 exports.getDanger = getDanger;
@@ -83,6 +86,26 @@ exports.getPRTitle = getPRTitle;
 exports.getLinesChanged = getLinesChanged;
 const _sentMessages = new Set();
 let _ignoredFiles = new Set();
+let _verbose = false;
+/**
+ * Ativa ou desativa o modo verbose.
+ * Chamado internamente pelo executeDangerBot ao carregar o danger-bot.yaml.
+ */
+function setVerbose(enabled) {
+  _verbose = enabled;
+}
+/**
+ * Retorna se o modo verbose está ativo.
+ */
+function isVerbose() {
+  return _verbose;
+}
+/**
+ * Log condicional — só imprime quando verbose está ativo.
+ */
+function verboseLog(...args) {
+  if (_verbose) console.log("[verbose]", ...args);
+}
 /**
  * Define os arquivos que devem ser ignorados por todos os plugins.
  * Chamado internamente pelo executeDangerBot ao carregar o danger-bot.yaml.
@@ -91,6 +114,11 @@ function setIgnoredFiles(files) {
   _ignoredFiles = new Set(files);
   if (_ignoredFiles.size > 0) {
     console.log(`🚫 ${_ignoredFiles.size} arquivo(s) na lista de ignore`);
+    if (_verbose) {
+      for (const f of _ignoredFiles) {
+        console.log(`   ├─ ${f}`);
+      }
+    }
   }
 }
 /**
@@ -403,9 +431,19 @@ function scheduleTask(fn) {
  */
 function getAllChangedFiles() {
   const danger = getDanger();
-  const files = [...danger.git.modified_files, ...danger.git.created_files];
-  if (_ignoredFiles.size === 0) return files;
-  return files.filter((f) => !_ignoredFiles.has(f));
+  const allFiles = [...danger.git.modified_files, ...danger.git.created_files];
+  if (_ignoredFiles.size === 0) {
+    verboseLog(`📂 ${allFiles.length} arquivo(s) modificados/criados no PR`);
+    return allFiles;
+  }
+  const filtered = allFiles.filter((f) => !_ignoredFiles.has(f));
+  const ignoredCount = allFiles.length - filtered.length;
+  if (ignoredCount > 0) {
+    verboseLog(
+      `📂 ${allFiles.length} arquivo(s) no PR, ${ignoredCount} ignorado(s), ${filtered.length} para análise`
+    );
+  }
+  return filtered;
 }
 /**
  * Retorna todos os arquivos `.dart` modificados ou criados

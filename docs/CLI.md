@@ -36,7 +36,7 @@ danger-bot ls
 DANGER BOT - PLUGINS DISPONÍVEIS
 =================================
 
-flutter/ (27 plugins)
+flutter/
 
   PR & Validação:
     - pr-summary
@@ -60,8 +60,6 @@ flutter/ (27 plugins)
     - presentation-try-catch-checker
 
   ...
-
-Total: 27 plugin(s)
 ```
 
 ---
@@ -261,7 +259,7 @@ Description: Conjunto modular de plugins Danger JS
 
 Platforms:
 
-  flutter/ (27 plugins)
+  flutter/
     - barrel-files-enforcer/
     - changelog-checker/
     - class-naming-convention/
@@ -290,7 +288,7 @@ Platforms:
     - security-checker/
     - spell-checker/
 
-Total: 27 plugin(s) across 1 platform(s)
+Total: plugin(s) across 1 platform(s)
 
 ============================================================
 ```

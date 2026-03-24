@@ -203,13 +203,15 @@ Migre os caminhos para o `danger-bot.yaml` em `ignore_files` e remova o `ignore_
 
 ### Quantos plugins existem?
 
-27 plugins organizados em categorias:
-- 5 de Pull Request
-- 4 de Domain (Clean Architecture)
-- 2 de Data (Clean Architecture)
-- 2 de Presentation (Clean Architecture)
-- 9 de Qualidade de Codigo
-- 5 de Performance e Flutter
+Os plugins do pacote estao organizados em categorias:
+- Pull Request (pr-summary, pr-size-checker, pr-validation, changelog-checker, merge-conflict-checker)
+- Domain — Clean Architecture (entities, failures, repositories, usecases)
+- Data — Clean Architecture (datasources, models)
+- Presentation — Clean Architecture (viewmodels, try-catch-checker)
+- Qualidade de Codigo (clean-architecture, file-naming, comments, late-final, barrel-files, security, spell-checker, identifier-language, class-naming)
+- Performance e Flutter (flutter-analyze, flutter-performance, flutter-widgets, mediaquery-modern, memory-leak-detector)
+
+Use `danger-bot list` para ver a lista atualizada.
 
 ### Como criar meu proprio plugin?
 

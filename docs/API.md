@@ -40,7 +40,7 @@ export { createPlugin, runPlugins };
 // Configuracao (danger-bot.yaml)
 export { loadConfig, loadLocalPlugins, setIgnoredFiles, getIgnoredFiles };
 
-// Plugins individuais (27)
+// Plugins individuais
 export { allFlutterPlugins, prSummaryPlugin, prSizeCheckerPlugin /* ... */ };
 
 // Plugins por categoria
@@ -358,7 +358,7 @@ export default createPlugin(
 
 | Export | Plugins incluidos | Quantidade |
 |--------|-------------------|------------|
-| `allFlutterPlugins` | Todos os 27 plugins | 27 |
+| `allFlutterPlugins` | Todos os plugins do pacote | — |
 | `domainLayerPlugins` | entities, failures, repositories, usecases | 4 |
 | `dataLayerPlugins` | datasources, models | 2 |
 | `presentationLayerPlugins` | viewmodels, try-catch-checker | 2 |

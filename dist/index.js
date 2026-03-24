@@ -236,7 +236,7 @@ Object.defineProperty(exports, "mergeConflictCheckerPlugin", {
   },
 });
 /**
- * All available Flutter plugins in a single array (27 plugins)
+ * All available Flutter plugins in a single array
  * Use this for quick setup with all plugins enabled
  */
 exports.allFlutterPlugins = [
