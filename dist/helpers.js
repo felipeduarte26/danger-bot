@@ -57,6 +57,58 @@
  * }
  * ```
  */
+var __createBinding =
+  (this && this.__createBinding) ||
+  (Object.create
+    ? function (o, m, k, k2) {
+        if (k2 === undefined) k2 = k;
+        var desc = Object.getOwnPropertyDescriptor(m, k);
+        if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+          desc = {
+            enumerable: true,
+            get: function () {
+              return m[k];
+            },
+          };
+        }
+        Object.defineProperty(o, k2, desc);
+      }
+    : function (o, m, k, k2) {
+        if (k2 === undefined) k2 = k;
+        o[k2] = m[k];
+      });
+var __setModuleDefault =
+  (this && this.__setModuleDefault) ||
+  (Object.create
+    ? function (o, v) {
+        Object.defineProperty(o, "default", { enumerable: true, value: v });
+      }
+    : function (o, v) {
+        o["default"] = v;
+      });
+var __importStar =
+  (this && this.__importStar) ||
+  (function () {
+    var ownKeys = function (o) {
+      ownKeys =
+        Object.getOwnPropertyNames ||
+        function (o) {
+          var ar = [];
+          for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+          return ar;
+        };
+      return ownKeys(o);
+    };
+    return function (mod) {
+      if (mod && mod.__esModule) return mod;
+      var result = {};
+      if (mod != null)
+        for (var k = ownKeys(mod), i = 0; i < k.length; i++)
+          if (k[i] !== "default") __createBinding(result, mod, k[i]);
+      __setModuleDefault(result, mod);
+      return result;
+    };
+  })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.setVerbose = setVerbose;
 exports.isVerbose = isVerbose;
@@ -548,32 +600,41 @@ function getAllChangedFiles() {
   return filtered;
 }
 /**
- * Retorna todos os arquivos `.dart` modificados ou criados
+ * Retorna todos os arquivos `.dart` modificados ou criados que existem no disco
  *
- * Filtra apenas arquivos com extensão `.dart`, incluindo testes (`*_test.dart`).
+ * Combina os arquivos modificados (`modified_files`) e criados (`created_files`)
+ * do contexto do Danger, filtrando apenas arquivos com extensão `.dart`.
  *
- * @returns Array com caminhos dos arquivos .dart
+ *
+ * Como utiliza import dinâmico de `fs`, esta função é assíncrona.
+ *
+ * @returns Promise com um array contendo os caminhos dos arquivos `.dart` existentes
  * @category Filtros de Arquivos
  * @since 1.0.0
  *
  * @example
  * ```typescript
- * const dartFiles = getDartFiles();
+ * const dartFiles = await getAllDartFiles();
  *
  * if (dartFiles.length === 0) {
- *   sendMessage("ℹ️ Nenhum arquivo Dart modificado");
+ *   sendMessage("Nenhum arquivo Dart válido encontrado");
  *   return;
  * }
  *
- * // Separar código de testes
- * const codeFiles = dartFiles.filter(f => !f.includes('_test.dart'));
- * const testFiles = dartFiles.filter(f => f.includes('_test.dart'));
+ * sendMessage(`${dartFiles.length} arquivo(s) Dart encontrado(s) no PR`);
  *
- * sendMessage(`📝 ${codeFiles.length} arquivos de código, ${testFiles.length} testes`);
+ * dartFiles.forEach(file => {
+ *   console.log(`- ${file}`);
+ * });
  * ```
  */
-function getDartFiles() {
-  return getAllChangedFiles().filter((f) => f.endsWith(".dart"));
+async function getDartFiles() {
+  const danger = getDanger();
+  const { existsSync } = await Promise.resolve().then(() => __importStar(require("fs")));
+  const dartFiles = [...danger.git.modified_files, ...danger.git.created_files].filter(
+    (f) => f.endsWith(".dart") && existsSync(f)
+  );
+  return dartFiles;
 }
 /**
  * Retorna arquivos `.dart` de um diretório específico
@@ -600,8 +661,9 @@ function getDartFiles() {
  * }
  * ```
  */
-function getDartFilesInDirectory(directory) {
-  return getDartFiles().filter((f) => f.includes(directory));
+async function getDartFilesInDirectory(directory) {
+  const data = await getDartFiles();
+  return data.filter((f) => f.includes(directory));
 }
 /**
  * Retorna arquivos que correspondem a um padrão RegExp
@@ -665,8 +727,9 @@ function getFilesMatching(pattern) {
  * }
  * ```
  */
-function getDomainDartFiles() {
-  return getDartFilesInDirectory("/domain/");
+async function getDomainDartFiles() {
+  const data = await getDartFilesInDirectory("/domain/");
+  return data;
 }
 /**
  * Retorna arquivos `.dart` da camada Data (Clean Architecture)
@@ -693,8 +756,8 @@ function getDomainDartFiles() {
  * }
  * ```
  */
-function getDataDartFiles() {
-  return getDartFilesInDirectory("/data/");
+async function getDataDartFiles() {
+  return await getDartFilesInDirectory("/data/");
 }
 /**
  * Retorna arquivos `.dart` da camada Presentation (Clean Architecture)
@@ -722,8 +785,8 @@ function getDataDartFiles() {
  * }
  * ```
  */
-function getPresentationDartFiles() {
-  return getDartFilesInDirectory("/presentation/");
+async function getPresentationDartFiles() {
+  return await getDartFilesInDirectory("/presentation/");
 }
 /**
  * Verifica se um arquivo pertence a uma camada específica da Clean Architecture

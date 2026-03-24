@@ -12,7 +12,7 @@ exports.default = (0, _types_1.createPlugin)(
   },
   async () => {
     const danger = (0, _types_1.getDanger)();
-    const dartFiles = (0, _types_1.getDartFiles)();
+    const dartFiles = await (0, _types_1.getDartFiles)();
     for (const file of dartFiles) {
       try {
         const content = await danger.git.structuredDiffForFile(file);

@@ -85,12 +85,12 @@ Resolva o TODO antes de mergear a PR.
 
 Manter o codigo limpo e sem pendencias.`,
             file,
-            i + 1,
+            i + 1
           );
         }
       }
     }
-  },
+  }
 );
 ```
 
@@ -149,37 +149,14 @@ Quando um arquivo esta na lista de `ignore_files`, ele nao aparece nos resultado
 - `getFilesMatching()`, `getFilesByExtension()`
 - `hasFilesMatching()`
 
-### Migrando do ignore_danger_files.json
-
-Se seu projeto usa o antigo `ignore_danger_files.json`:
-
-```json
-{
-  "files": [
-    "lib/features/old_module/legacy_page.dart",
-    "lib/core/deprecated_helper.dart"
-  ]
-}
-```
-
-Migre para o `danger-bot.yaml`:
-
-```yaml
-ignore_files:
-  - lib/features/old_module/legacy_page.dart
-  - lib/core/deprecated_helper.dart
-```
-
-Depois, remova o `ignore_danger_files.json`.
-
 ---
 
 ## settings
 
 Configuracoes gerais do Danger Bot.
 
-| Opcao | Tipo | Default | Descricao |
-|-------|------|---------|-----------|
+| Opcao     | Tipo      | Default | Descricao                                |
+| --------- | --------- | ------- | ---------------------------------------- |
 | `verbose` | `boolean` | `false` | Exibe logs detalhados durante a execucao |
 
 ```yaml
@@ -227,18 +204,31 @@ import {
   getDanger,
 
   // Mensagens
-  sendMessage, sendWarn, sendFail, sendMarkdown,
+  sendMessage,
+  sendWarn,
+  sendFail,
+  sendMarkdown,
 
   // Arquivos (ja respeita ignore_files automaticamente)
-  getAllChangedFiles, getDartFiles, getDartFilesInDirectory,
-  getFilesMatching, getFilesByExtension, hasFilesMatching,
-  getFileContent, fileContainsPattern,
+  getAllChangedFiles,
+  getDartFiles,
+  getDartFilesInDirectory,
+  getFilesMatching,
+  getFilesByExtension,
+  hasFilesMatching,
+  getFileContent,
+  fileContainsPattern,
 
   // Clean Architecture
-  getDomainDartFiles, getDataDartFiles, getPresentationDartFiles, isInLayer,
+  getDomainDartFiles,
+  getDataDartFiles,
+  getPresentationDartFiles,
+  isInLayer,
 
   // PR info
-  getPRDescription, getPRTitle, getLinesChanged,
+  getPRDescription,
+  getPRTitle,
+  getLinesChanged,
 
   // Plugin factory
   createPlugin,
