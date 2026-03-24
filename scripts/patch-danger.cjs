@@ -14,7 +14,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const PATCH_VERSION = "3.2.0";
+const PATCH_VERSION = "3.3.0";
 const REPO_URL = "https://github.com/felipeduarte26/danger-bot";
 const BRAND_NAME = "Danger Bot";
 
@@ -69,7 +69,7 @@ function createPatchMarker(dangerPath) {
           "Tradução: mensagens em pt-BR",
           "Bitbucket Cloud: inline comments corrigidos (estratégia Danger Ruby)",
           "Bitbucket Cloud: build status key/url corrigidos",
-          "Removida mensagem 'All green'",
+          "Mensagem 'All green' traduzida para parabéns em pt-BR",
         ],
       },
       null,
@@ -166,14 +166,19 @@ function main() {
         'exports.messageForResultWithIssues = "".concat(warningEmoji, "  Danger Bot encontrou alguns problemas. Não se preocupe, tudo pode ser corrigido.");',
       ],
 
-      // Remover mensagem "All green" (varias formas possiveis)
+      // Traduzir mensagem "All green" para parabéns em pt-BR (original)
       [
         'return "".concat(successEmoji, " ").concat((0, exports.dangerSignature)(results));',
-        'return ""; // DANGER-BOT: Mensagem removida',
+        'return "".concat(successEmoji, " **Parabéns!** Nenhum problema encontrado. Código limpo e pronto para review. 🎉\\n\\n").concat((0, exports.dangerSignature)(results));',
       ],
       [
         'summaryMessage = "".concat(successEmoji, "  All green. ").concat((0, DangerUtils_1.compliment)());',
+        'summaryMessage = "".concat(successEmoji, "  **Parabéns!** Nenhum problema encontrado. Código limpo e pronto para review. 🎉");',
+      ],
+      // Traduzir mensagem "All green" (patch antigo que removeu a mensagem)
+      [
         'summaryMessage = ""; // DANGER-BOT: Mensagem removida',
+        'summaryMessage = "".concat(successEmoji, "  **Parabéns!** Nenhum problema encontrado. Código limpo e pronto para review. 🎉");',
       ],
 
       // Emoji de signature: :no_entry_sign: -> :rocket:
@@ -326,12 +331,21 @@ function main() {
   const executorPatched = patchFile(
     executorFile,
     [
-      // Remover "All green. Good on 'ya"
+      // Traduzir "All green" para parabéns em pt-BR (original)
       [
         'return "".concat(tick, " All green. Good on \'ya.")',
-        'return "" // DANGER-BOT: Mensagem removida',
+        'return "".concat(tick, " **Parabéns!** Nenhum problema encontrado. Código limpo e pronto para review. 🎉")',
       ],
-      ['return "All green. ".concat', 'return ""; // DANGER-BOT: Mensagem removida //'],
+      ['return "All green. ".concat', 'return "**Parabéns!** Nenhum problema encontrado. Código limpo e pronto para review. 🎉"; //'],
+      // Traduzir "All green" (patch antigo que removeu a mensagem)
+      [
+        'return "" // DANGER-BOT: Mensagem removida',
+        'return "".concat(tick, " **Parabéns!** Nenhum problema encontrado. Código limpo e pronto para review. 🎉")',
+      ],
+      [
+        'return ""; // DANGER-BOT: Mensagem removida //',
+        'return "**Parabéns!** Nenhum problema encontrado. Código limpo e pronto para review. 🎉"; //',
+      ],
       // Corrigir inlineCommentTemplate: adicionar REPO_ACCESSTOKEN na verificacao
       // Sem isso, inline comments usam template GitHub em vez de Bitbucket Cloud
       [
@@ -484,7 +498,7 @@ function main() {
     console.log("  🇧🇷 Mensagens traduzidas para Portugues");
     console.log("  🔧 Bitbucket inline comments corrigidos");
     console.log("  🔧 Bitbucket build status key/url corrigidos");
-    console.log('  ❌ "All green" removido');
+    console.log('  🎉 "All green" → mensagem de parabéns em pt-BR');
     createPatchMarker(dangerPath);
   } else {
     console.log("⚠️  Nenhum patch aplicado (arquivos podem ja estar modificados)");
