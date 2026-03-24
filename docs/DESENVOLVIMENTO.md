@@ -122,7 +122,8 @@ npx danger-bot create-plugin
 ## Estrutura de um plugin
 
 ```typescript
-import { createPlugin, getDartFiles, sendWarn } from "@felipeduarte26/danger-bot";
+import { createPlugin, getDanger, sendFail } from "@types";
+import * as fs from "fs";
 
 export default createPlugin(
   {
@@ -131,11 +132,33 @@ export default createPlugin(
     enabled: true,
   },
   async () => {
-    const files = getDartFiles();
-    // logica do plugin
+    const { git } = getDanger();
+
+    const dartFiles = [...git.modified_files, ...git.created_files].filter(
+      (f: string) => f.endsWith(".dart") && fs.existsSync(f)
+    );
+
+    for (const file of dartFiles) {
+      // logica do plugin
+    }
   }
 );
 ```
+
+### Padrao de mensagens
+
+Ao reportar problemas, siga este formato:
+
+```
+TITULO EM CAPS (sem emoji)
+Descricao curta do problema
+### Problema Identificado (com bloco de codigo)
+### 🎯 ACAO NECESSARIA (exemplo ❌/✅)
+### 🚀 Objetivo (frase curta)
+📖 [Link](url) de referencia
+```
+
+> Detalhes completos: [Guia de Plugins](GUIA_PLUGINS.md#padrao-de-mensagens-dos-plugins)
 
 ---
 

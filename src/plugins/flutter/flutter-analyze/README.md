@@ -264,9 +264,9 @@ flutter analyze --help
 
 ## 🔗 Plugins Relacionados
 
-- [flutter-architecture](../flutter-architecture/README.md) - Valida arquitetura
+- [clean-architecture](../clean-architecture/README.md) - Valida arquitetura
 - [spell-checker](../spell-checker/README.md) - Verifica ortografia
-- [portuguese-documentation](../portuguese-documentation/README.md) - Detecta docs em PT
+- [identifier-language](../identifier-language/README.md) - Detecta identificadores em portugues
 
 ---
 

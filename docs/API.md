@@ -37,7 +37,7 @@ export { DangerPlugin, DangerPluginConfig, DangerBotCallbacks };
 // Factory
 export { createPlugin, runPlugins };
 
-// Plugins individuais (28)
+// Plugins individuais (26)
 export { allFlutterPlugins, prSummaryPlugin, prSizeCheckerPlugin /* ... */ };
 
 // Plugins por categoria
@@ -351,10 +351,10 @@ export default createPlugin(
 
 | Export | Plugins incluidos | Quantidade |
 |--------|-------------------|------------|
-| `allFlutterPlugins` | Todos os 28 plugins | 28 |
+| `allFlutterPlugins` | Todos os 26 plugins | 26 |
 | `domainLayerPlugins` | entities, failures, repositories, usecases | 4 |
-| `dataLayerPlugins` | datasources, models, repositories | 3 |
-| `presentationLayerPlugins` | viewmodels, states | 2 |
-| `cleanArchitecturePlugins` | domain + data + presentation + clean-architecture | 10 |
+| `dataLayerPlugins` | datasources, models | 2 |
+| `presentationLayerPlugins` | viewmodels, try-catch-checker | 2 |
+| `cleanArchitecturePlugins` | domain + data + presentation + clean-architecture | 9 |
 | `codeQualityPlugins` | late-final, memory-leak, comments, security, barrel, identifier-language, class-naming-convention | 7 |
 | `performancePlugins` | flutter-performance, mediaquery-modern | 2 |

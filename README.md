@@ -15,11 +15,11 @@
 
 ---
 
-**Danger Bot** e um conjunto modular de **28 plugins** para o [Danger JS](https://danger.systems/js/), focado em projetos **Flutter/Dart** com Clean Architecture. Ele analisa Pull Requests automaticamente durante o CI/CD e deixa comentarios com avisos, erros e sugestoes diretamente no PR.
+**Danger Bot** e um conjunto modular de **26 plugins** para o [Danger JS](https://danger.systems/js/), focado em projetos **Flutter/Dart** com Clean Architecture. Ele analisa Pull Requests automaticamente durante o CI/CD e deixa comentarios com avisos, erros e sugestoes diretamente no PR.
 
 ## Por que usar?
 
-- **28 plugins prontos** cobrindo arquitetura, performance, seguranca, nomenclatura e mais
+- **26 plugins prontos** cobrindo arquitetura, performance, seguranca, nomenclatura e mais
 - **Zero configuracao** - funciona com uma unica linha de codigo
 - **Multi-plataforma** - GitHub, Bitbucket Cloud, Bitbucket Server, GitLab
 - **CLI integrada** - crie e gerencie plugins pelo terminal
@@ -54,7 +54,7 @@ npx danger ci
 
 ## Plugins
 
-O Danger Bot inclui 28 plugins organizados em categorias:
+O Danger Bot inclui 26 plugins organizados em categorias:
 
 ### Pull Request
 
@@ -78,16 +78,15 @@ O Danger Bot inclui 28 plugins organizados em categorias:
 
 | Plugin | Descricao |
 |--------|-----------|
-| **data-datasources** | Valida nomenclatura de datasources |
-| **data-models** | Valida models (`final class`, `fromJson`, `toJson`) |
-| **data-repositories** | Valida implementacoes de repository |
+| **data-datasources** | Valida Data Sources |
+| **data-models** | Valida Data Models |
 
 ### Clean Architecture - Presentation
 
 | Plugin | Descricao |
 |--------|-----------|
 | **presentation-viewmodels** | Valida que ViewModels usem UseCases, nao Repositories |
-| **presentation-states** | Valida States (`sealed class`) |
+| **presentation-try-catch-checker** | Detecta uso de try-catch na camada Presentation |
 
 ### Qualidade de Codigo
 
@@ -113,12 +112,6 @@ O Danger Bot inclui 28 plugins organizados em categorias:
 | **mediaquery-modern** | Forca APIs modernas do MediaQuery (Flutter 3.10+) |
 | **memory-leak-detector** | Detecta Controllers/Timers/Streams sem `dispose()` |
 
-### Documentacao
-
-| Plugin | Descricao |
-|--------|-----------|
-| **portuguese-documentation** | Detecta documentacao em portugues no codigo |
-
 ---
 
 ## Importacao por Categoria
@@ -128,9 +121,9 @@ Alem de `allFlutterPlugins`, voce pode importar plugins por categoria:
 ```typescript
 import {
   domainLayerPlugins,         // 4 plugins (entities, failures, repositories, usecases)
-  dataLayerPlugins,           // 3 plugins (datasources, models, repositories)
-  presentationLayerPlugins,   // 2 plugins (viewmodels, states)
-  cleanArchitecturePlugins,   // 10 plugins (todas as camadas + validacao cross-layer)
+  dataLayerPlugins,           // 2 plugins (datasources, models)
+  presentationLayerPlugins,   // 2 plugins (viewmodels, try-catch-checker)
+  cleanArchitecturePlugins,   // 9 plugins (todas as camadas + validacao cross-layer)
   codeQualityPlugins,         // 7 plugins (late-final, memory-leak, comments, security, barrel, identifier-language, class-naming)
   performancePlugins,         // 2 plugins (flutter-performance, mediaquery-modern)
   executeDangerBot,
@@ -230,7 +223,7 @@ danger-bot/
 │   ├── types.ts              # Interfaces e tipos
 │   ├── helpers.ts            # Funcoes auxiliares
 │   └── plugins/
-│       └── flutter/          # 28 plugins Flutter/Dart
+│       └── flutter/          # 26 plugins Flutter/Dart
 │           ├── pr-summary/
 │           ├── pr-size-checker/
 │           ├── clean-architecture/

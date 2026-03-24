@@ -382,8 +382,8 @@ SiglaEspecifica
 ## 🔗 Plugins Relacionados
 
 - [flutter-analyze](../flutter-analyze/README.md) - Análise estática Dart
-- [portuguese-documentation](../portuguese-documentation/README.md) - Detecção de idioma
-- [flutter-architecture](../flutter-architecture/README.md) - Validação de qualidade
+- [identifier-language](../identifier-language/README.md) - Detecção de idioma
+- [clean-architecture](../clean-architecture/README.md) - Validação de qualidade
 
 ---
 

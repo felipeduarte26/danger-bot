@@ -27,7 +27,7 @@ import {
   executeDangerBot,
 } from "@felipeduarte26/danger-bot";
 
-// Apenas plugins de Clean Architecture (10 plugins)
+// Apenas plugins de Clean Architecture
 executeDangerBot(cleanArchitecturePlugins);
 
 // Combinar categorias
@@ -69,7 +69,7 @@ executeDangerBot(plugins);
 ### Desabilitar varios plugins
 
 ```typescript
-const disabled = ["spell-checker", "portuguese-documentation", "comments-checker"];
+const disabled = ["spell-checker", "comments-checker"];
 
 const plugins = allFlutterPlugins.map(p => {
   if (disabled.includes(p.config.name)) {
@@ -83,52 +83,51 @@ executeDangerBot(plugins);
 
 ---
 
-## Lista completa de plugins
+## Lista completa de plugins (26)
 
 ### Pull Request
 
 | Plugin | Nome interno | Descricao |
 |--------|-------------|-----------|
 | `prSummaryPlugin` | `pr-summary` | Gera sumario automatico com estatisticas do PR |
-| `prSizeCheckerPlugin` | `pr-size-checker` | Alerta quando o PR tem muitas linhas alteradas |
-| `prValidationPlugin` | `pr-validation` | Valida descricao, titulo e formato do PR |
-| `changelogCheckerPlugin` | `changelog-checker` | Verifica se CHANGELOG.md foi atualizado |
+| `prSizeCheckerPlugin` | `pr-size-checker` | Verifica tamanho do PR por arquivos .dart |
+| `prValidationPlugin` | `pr-validation` | Valida descricao, changelog e aspectos gerais do PR |
+| `changelogCheckerPlugin` | `changelog-checker` | Verifica se o CHANGELOG.md foi atualizado |
 
 ### Clean Architecture - Domain
 
 | Plugin | Nome interno | Descricao |
 |--------|-------------|-----------|
-| `domainEntitiesPlugin` | `domain-entities` | Valida entities: `final class`, constructor `const`, sufixo `Entity` |
-| `domainFailuresPlugin` | `domain-failures` | Valida failures: `sealed class`, pattern matching |
-| `domainRepositoriesPlugin` | `domain-repositories` | Valida interfaces: `abstract interface class` |
-| `domainUseCasesPlugin` | `domain-usecases` | Valida usecases: interface + implementacao, metodo `call()` |
+| `domainEntitiesPlugin` | `domain-entities` | Valida Domain Entities |
+| `domainFailuresPlugin` | `domain-failures` | Valida Domain Failures |
+| `repositoriesPlugin` | `repositories` | Valida Repositories (Domain interface + Data implementacao) |
+| `domainUseCasesPlugin` | `domain-usecases` | Valida Domain Use Cases |
 
 ### Clean Architecture - Data
 
 | Plugin | Nome interno | Descricao |
 |--------|-------------|-----------|
-| `dataDatasourcesPlugin` | `data-datasources` | Valida nomenclatura: sufixo `Datasource`, interface + impl |
-| `dataModelsPlugin` | `data-models` | Valida models: `final class`, `fromJson`, `toJson`, `toEntity` |
-| `dataRepositoriesPlugin` | `data-repositories` | Valida que implementam interface do Domain |
+| `dataDatasourcesPlugin` | `data-datasources` | Valida Data Sources |
+| `dataModelsPlugin` | `data-models` | Valida Data Models |
 
 ### Clean Architecture - Presentation
 
 | Plugin | Nome interno | Descricao |
 |--------|-------------|-----------|
-| `presentationViewModelsPlugin` | `presentation-viewmodels` | Valida que ViewModels usem UseCases, nao Repositories |
-| `presentationStatesPlugin` | `presentation-states` | Valida States: `sealed class` com subclasses `final` |
+| `presentationViewModelsPlugin` | `presentation-viewmodels` | Valida que ViewModels dependam apenas de UseCases |
+| `presentationTryCatchCheckerPlugin` | `presentation-try-catch-checker` | Detecta uso de try-catch na camada Presentation |
 
 ### Qualidade de Codigo
 
 | Plugin | Nome interno | Descricao |
 |--------|-------------|-----------|
-| `cleanArchitecturePlugin` | `clean-architecture` | Detecta imports entre camadas (Domain nao pode importar Data, etc.) |
-| `fileNamingPlugin` | `file-naming` | Verifica `snake_case` em nomes de arquivos `.dart` |
-| `commentsCheckerPlugin` | `comments-checker` | Forca `///` (doc comments) ao inves de `//` |
-| `lateFinalCheckerPlugin` | `late-final-checker` | Detecta `late final` e sugere alternativas seguras |
-| `barrelFilesEnforcerPlugin` | `barrel-files-enforcer` | Forca barrel files para organizar exports |
-| `securityCheckerPlugin` | `security-checker` | Detecta API keys hardcoded, `eval()`, secrets |
-| `spellCheckerPlugin` | `spell-checker` | Verifica ortografia em identificadores Dart com cspell |
+| `cleanArchitecturePlugin` | `clean-architecture` | Detecta violacoes entre camadas (imports indevidos) |
+| `fileNamingPlugin` | `file-naming` | Verifica nomenclatura de arquivos Dart (snake_case) |
+| `commentsCheckerPlugin` | `comments-checker` | Verifica uso correto de comentarios |
+| `lateFinalCheckerPlugin` | `late-final-checker` | Detecta late final desnecessario com valor atribuido |
+| `barrelFilesEnforcerPlugin` | `barrel-files-enforcer` | Sugere barrel files quando multiplos imports vem da mesma pasta |
+| `securityCheckerPlugin` | `security-checker` | Detecta problemas de seguranca (keys, secrets, arquivos sensiveis) |
+| `spellCheckerPlugin` | `spell-checker` | Verifica ortografia em identificadores Dart |
 | `identifierLanguagePlugin` | `identifier-language` | Detecta identificadores em portugues no codigo Dart |
 | `classNamingConventionPlugin` | `class-naming-convention` | Verifica se nomes de classes usam substantivos (Clean Code) |
 
@@ -136,23 +135,96 @@ executeDangerBot(plugins);
 
 | Plugin | Nome interno | Descricao |
 |--------|-------------|-----------|
-| `flutterAnalyzePlugin` | `flutter-analyze` | Executa `flutter analyze` e reporta problemas |
-| `flutterPerformancePlugin` | `flutter-performance` | Detecta operacoes custosas dentro de `build()` |
-| `flutterWidgetsPlugin` | `flutter-widgets` | Verifica ordem de funcoes em widgets Flutter |
-| `mediaqueryModernPlugin` | `mediaquery-modern` | Forca APIs modernas do MediaQuery (Flutter 3.10+) |
-| `memoryLeakDetectorPlugin` | `memory-leak-detector` | Detecta Controllers/Timers/Streams sem `dispose()` |
+| `flutterAnalyzePlugin` | `flutter-analyze` | Executa flutter analyze e reporta problemas |
+| `flutterPerformancePlugin` | `flutter-performance` | Detecta operacoes custosas no build() |
+| `flutterWidgetsPlugin` | `flutter-widgets` | Verifica ordem dos metodos em widgets Flutter |
+| `mediaqueryModernPlugin` | `mediaquery-modern` | Sugere APIs modernas do MediaQuery (Flutter 3.10+) |
+| `memoryLeakDetectorPlugin` | `memory-leak-detector` | Detecta possiveis memory leaks em States |
 
-### Documentacao
+---
 
-| Plugin | Nome interno | Descricao |
-|--------|-------------|-----------|
-| `portugueseDocumentationPlugin` | `portuguese-documentation` | Detecta documentacao em portugues no codigo |
+## Padrao de mensagens dos plugins
+
+Todos os plugins devem seguir o mesmo formato de mensagem ao usar `sendFail` ou `sendWarn`. O padrao garante consistencia visual nos comentarios do PR.
+
+### Estrutura obrigatoria
+
+```
+TITULO EM CAPS (sem emoji)
+
+Descricao curta do problema detectado.
+
+### Problema Identificado
+
+Bloco de codigo mostrando o trecho problematico.
+
+### 🎯 ACAO NECESSARIA
+
+Exemplo com ❌ (errado) e ✅ (correto).
+
+### 🚀 Objetivo
+
+Frase curta explicando o beneficio da correcao.
+
+📖 [Link de referencia](url)
+```
+
+### Exemplo real (barrel-files-enforcer)
+
+```typescript
+sendFail(
+  `BARREL FILE RECOMENDADO
+
+**3 imports** da mesma pasta \`models/\` poderiam usar um barrel file.
+
+### Problema Identificado
+
+\`\`\`dart
+// ❌ Atual — 3 imports separados
+import 'package:app/features/user/domain/entities/user_entity.dart';
+import 'package:app/features/user/domain/entities/address_entity.dart';
+import 'package:app/features/user/domain/entities/role_entity.dart';
+
+// ✅ Com barrel file — 1 import
+import 'package:app/features/user/domain/entities/entities.dart';
+\`\`\`
+
+### 🎯 ACAO NECESSARIA
+
+Crie \`entities.dart\` na pasta \`entities/\`:
+
+\`\`\`dart
+export 'user_entity.dart';
+export 'address_entity.dart';
+export 'role_entity.dart';
+\`\`\`
+
+### 🚀 Objetivo
+
+Simplificar **imports** e melhorar **organizacao**.
+
+📖 [Guia sobre Barrel Files](https://medium.com/@ugamakelechi501/barrel-files-in-dart-and-flutter)`,
+  file,
+  line
+);
+```
+
+### Regras do padrao
+
+| Elemento | Regra |
+|----------|-------|
+| Titulo | CAPS, sem emoji, sem `##` |
+| Descricao | 1-2 linhas, pode usar **negrito** |
+| Problema Identificado | Bloco de codigo com o trecho real |
+| Acao Necessaria | Exemplo ❌/✅ com codigo |
+| Objetivo | Frase curta (1 linha) |
+| Link | Emoji 📖 + link markdown |
 
 ---
 
 ## Criando um plugin customizado
 
-### Usando a CLI
+### Usando a CLI (recomendado)
 
 ```bash
 danger-bot create-plugin
@@ -171,7 +243,8 @@ Crie uma pasta em `src/plugins/flutter/meu-plugin/`:
 **`meu-plugin.ts`:**
 
 ```typescript
-import { createPlugin, getDartFiles, sendWarn, sendMessage } from "@felipeduarte26/danger-bot";
+import { createPlugin, getDanger, sendFail } from "@types";
+import * as fs from "fs";
 
 export default createPlugin(
   {
@@ -180,17 +253,54 @@ export default createPlugin(
     enabled: true,
   },
   async () => {
-    const dartFiles = getDartFiles();
+    const { git } = getDanger();
 
-    if (dartFiles.length === 0) {
-      return; // nada para verificar
-    }
+    const dartFiles = [...git.modified_files, ...git.created_files].filter(
+      (f: string) =>
+        f.endsWith(".dart") &&
+        !f.endsWith(".g.dart") &&
+        !f.endsWith(".freezed.dart") &&
+        fs.existsSync(f)
+    );
 
     for (const file of dartFiles) {
-      // sua logica aqui
-    }
+      const content = fs.readFileSync(file, "utf-8");
+      const lines = content.split("\n");
 
-    sendMessage(`Verificados ${dartFiles.length} arquivos`);
+      for (let i = 0; i < lines.length; i++) {
+        // sua logica de deteccao aqui
+
+        sendFail(
+          `TITULO DO PROBLEMA
+
+Descricao curta do que foi detectado.
+
+### Problema Identificado
+
+\`\`\`dart
+${lines[i].trim()}
+\`\`\`
+
+### 🎯 ACAO NECESSARIA
+
+\`\`\`dart
+// ❌ Errado
+codigo_errado();
+
+// ✅ Correto
+codigo_correto();
+\`\`\`
+
+### 🚀 Objetivo
+
+Frase curta sobre o beneficio.
+
+📖 [Referencia](https://link.com)`,
+          file,
+          i + 1
+        );
+      }
+    }
   }
 );
 ```

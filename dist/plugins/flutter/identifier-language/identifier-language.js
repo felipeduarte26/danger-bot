@@ -635,7 +635,7 @@ Traduza para inglês.
 
 ### 🚀 Objetivo
 
-Manter **consistência** e facilitar **colaboração** internacional.
+Manter **consistência** com o ecossistema (SDK, docs, frameworks) e facilitar **colaboração** entre equipes.
 
 📖 [Effective Dart: Documentation](https://dart.dev/effective-dart/documentation)`,
         c.file,

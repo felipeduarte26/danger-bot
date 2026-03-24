@@ -21,7 +21,7 @@ danger-bot/
 │           │   ├── index.ts
 │           │   └── README.md
 │           ├── security-checker/
-│           └── ... (28 plugins)
+│           └── ... (26 plugins)
 ├── bin/                    # CLI
 │   ├── cli.js              # Entry point da CLI (Commander)
 │   ├── commands/           # Implementacao dos comandos

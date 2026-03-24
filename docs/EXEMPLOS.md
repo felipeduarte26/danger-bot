@@ -105,7 +105,7 @@ executeDangerBot(allFlutterPlugins, {
 ```typescript
 import { allFlutterPlugins, executeDangerBot } from "@felipeduarte26/danger-bot";
 
-const disabled = ["spell-checker", "portuguese-documentation"];
+const disabled = ["spell-checker", "comments-checker"];
 
 const plugins = allFlutterPlugins.map(p => {
   if (disabled.includes(p.config.name)) {
