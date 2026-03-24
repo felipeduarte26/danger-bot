@@ -188,13 +188,13 @@ danger-bot info              # Informacoes do projeto
 
 ## Plataformas de CI/CD
 
-| Plataforma          | Guia                                              | Dificuldade |
-| ------------------- | ------------------------------------------------- | ----------- |
-| GitHub Actions      | [Ver guia](docs/pipelines/README.md)              | Facil       |
-| Bitbucket Pipelines | [Ver guia](docs/pipelines/BITBUCKET_PIPELINES.md) | Facil       |
-| Bitrise             | [Ver guia](docs/pipelines/BITRISE.md)             | Media       |
-| GitLab CI           | [Ver guia](docs/pipelines/README.md)              | Facil       |
-| CircleCI            | [Ver guia](docs/pipelines/README.md)              | Media       |
+| Plataforma          | Guia                                              |
+| ------------------- | ------------------------------------------------- |
+| GitHub Actions      | [Ver guia](docs/pipelines/README.md)              |
+| Bitbucket Pipelines | [Ver guia](docs/pipelines/BITBUCKET_PIPELINES.md) |
+| Bitrise             | [Ver guia](docs/pipelines/BITRISE.md)             |
+| GitLab CI           | [Ver guia](docs/pipelines/README.md)              |
+| CircleCI            | [Ver guia](docs/pipelines/README.md)              |
 
 ---
 
