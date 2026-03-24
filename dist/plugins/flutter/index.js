@@ -10,7 +10,8 @@ var __importDefault =
     return mod && mod.__esModule ? mod : { default: mod };
   };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.classNamingConventionPlugin =
+exports.presentationTryCatchCheckerPlugin =
+  exports.classNamingConventionPlugin =
   exports.identifierLanguagePlugin =
   exports.barrelFilesEnforcerPlugin =
   exports.securityCheckerPlugin =
@@ -212,5 +213,12 @@ Object.defineProperty(exports, "classNamingConventionPlugin", {
   enumerable: true,
   get: function () {
     return __importDefault(class_naming_convention_1).default;
+  },
+});
+var presentation_try_catch_checker_1 = require("./presentation-try-catch-checker");
+Object.defineProperty(exports, "presentationTryCatchCheckerPlugin", {
+  enumerable: true,
+  get: function () {
+    return __importDefault(presentation_try_catch_checker_1).default;
   },
 });

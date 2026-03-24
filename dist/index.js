@@ -39,6 +39,7 @@ exports.performancePlugins =
   exports.dataLayerPlugins =
   exports.domainLayerPlugins =
   exports.allFlutterPlugins =
+  exports.presentationTryCatchCheckerPlugin =
   exports.classNamingConventionPlugin =
   exports.identifierLanguagePlugin =
   exports.barrelFilesEnforcerPlugin =
@@ -220,6 +221,12 @@ Object.defineProperty(exports, "classNamingConventionPlugin", {
     return flutter_1.classNamingConventionPlugin;
   },
 });
+Object.defineProperty(exports, "presentationTryCatchCheckerPlugin", {
+  enumerable: true,
+  get: function () {
+    return flutter_1.presentationTryCatchCheckerPlugin;
+  },
+});
 /**
  * All available Flutter plugins in a single array (25 plugins)
  * Use this for quick setup with all plugins enabled
@@ -250,6 +257,7 @@ exports.allFlutterPlugins = [
   require("./plugins/flutter/barrel-files-enforcer").default,
   require("./plugins/flutter/identifier-language").default,
   require("./plugins/flutter/class-naming-convention").default,
+  require("./plugins/flutter/presentation-try-catch-checker").default,
 ];
 // Export arrays for specific layers/categories
 const flutter_2 = require("./plugins/flutter");
@@ -260,7 +268,10 @@ exports.domainLayerPlugins = [
   flutter_2.domainUseCasesPlugin,
 ];
 exports.dataLayerPlugins = [flutter_2.dataDatasourcesPlugin, flutter_2.dataModelsPlugin];
-exports.presentationLayerPlugins = [flutter_2.presentationViewModelsPlugin];
+exports.presentationLayerPlugins = [
+  flutter_2.presentationViewModelsPlugin,
+  flutter_2.presentationTryCatchCheckerPlugin,
+];
 exports.cleanArchitecturePlugins = [
   ...exports.domainLayerPlugins,
   ...exports.dataLayerPlugins,

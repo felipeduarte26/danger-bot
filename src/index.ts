@@ -35,6 +35,7 @@ export {
   barrelFilesEnforcerPlugin,
   identifierLanguagePlugin,
   classNamingConventionPlugin,
+  presentationTryCatchCheckerPlugin,
 } from "./plugins/flutter";
 
 /**
@@ -67,6 +68,7 @@ export const allFlutterPlugins = [
   require("./plugins/flutter/barrel-files-enforcer").default,
   require("./plugins/flutter/identifier-language").default,
   require("./plugins/flutter/class-naming-convention").default,
+  require("./plugins/flutter/presentation-try-catch-checker").default,
 ];
 
 // Export arrays for specific layers/categories
@@ -88,6 +90,7 @@ import {
   classNamingConventionPlugin,
   flutterPerformancePlugin,
   mediaqueryModernPlugin,
+  presentationTryCatchCheckerPlugin,
 } from "./plugins/flutter";
 
 export const domainLayerPlugins = [
@@ -99,7 +102,10 @@ export const domainLayerPlugins = [
 
 export const dataLayerPlugins = [dataDatasourcesPlugin, dataModelsPlugin];
 
-export const presentationLayerPlugins = [presentationViewModelsPlugin];
+export const presentationLayerPlugins = [
+  presentationViewModelsPlugin,
+  presentationTryCatchCheckerPlugin,
+];
 
 export const cleanArchitecturePlugins = [
   ...domainLayerPlugins,

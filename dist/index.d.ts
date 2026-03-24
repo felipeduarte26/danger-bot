@@ -31,6 +31,7 @@ export {
   barrelFilesEnforcerPlugin,
   identifierLanguagePlugin,
   classNamingConventionPlugin,
+  presentationTryCatchCheckerPlugin,
 } from "./plugins/flutter";
 /**
  * All available Flutter plugins in a single array (25 plugins)
