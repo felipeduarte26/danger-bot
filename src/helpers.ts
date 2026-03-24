@@ -601,6 +601,7 @@ export function scheduleTask(fn: () => Promise<void>): void {
 export function getAllChangedFiles(): string[] {
   const danger = getDanger();
   const allFiles = [...danger.git.modified_files, ...danger.git.created_files];
+
   if (_ignoredFiles.size === 0) {
     verboseLog(`📂 ${allFiles.length} arquivo(s) modificados/criados no PR`);
     return allFiles;
@@ -616,32 +617,43 @@ export function getAllChangedFiles(): string[] {
 }
 
 /**
- * Retorna todos os arquivos `.dart` modificados ou criados
+ * Retorna todos os arquivos `.dart` modificados ou criados que existem no disco
  *
- * Filtra apenas arquivos com extensão `.dart`, incluindo testes (`*_test.dart`).
+ * Combina os arquivos modificados (`modified_files`) e criados (`created_files`)
+ * do contexto do Danger, filtrando apenas arquivos com extensão `.dart`.
  *
- * @returns Array com caminhos dos arquivos .dart
+ *
+ * Como utiliza import dinâmico de `fs`, esta função é assíncrona.
+ *
+ * @returns Promise com um array contendo os caminhos dos arquivos `.dart` existentes
  * @category Filtros de Arquivos
  * @since 1.0.0
  *
  * @example
  * ```typescript
- * const dartFiles = getDartFiles();
+ * const dartFiles = await getAllDartFiles();
  *
  * if (dartFiles.length === 0) {
- *   sendMessage("ℹ️ Nenhum arquivo Dart modificado");
+ *   sendMessage("Nenhum arquivo Dart válido encontrado");
  *   return;
  * }
  *
- * // Separar código de testes
- * const codeFiles = dartFiles.filter(f => !f.includes('_test.dart'));
- * const testFiles = dartFiles.filter(f => f.includes('_test.dart'));
+ * sendMessage(`${dartFiles.length} arquivo(s) Dart encontrado(s) no PR`);
  *
- * sendMessage(`📝 ${codeFiles.length} arquivos de código, ${testFiles.length} testes`);
+ * dartFiles.forEach(file => {
+ *   console.log(`- ${file}`);
+ * });
  * ```
  */
-export function getDartFiles(): string[] {
-  return getAllChangedFiles().filter((f: string) => f.endsWith(".dart"));
+export async function getDartFiles(): Promise<string[]> {
+  const danger = getDanger();
+  const { existsSync } = await import("fs");
+
+  const dartFiles = [...danger.git.modified_files, ...danger.git.created_files].filter(
+    (f: string) => f.endsWith(".dart") && existsSync(f)
+  );
+
+  return dartFiles;
 }
 
 /**
@@ -669,8 +681,9 @@ export function getDartFiles(): string[] {
  * }
  * ```
  */
-export function getDartFilesInDirectory(directory: string): string[] {
-  return getDartFiles().filter((f: string) => f.includes(directory));
+export async function getDartFilesInDirectory(directory: string): Promise<string[]> {
+  const data = await getDartFiles();
+  return data.filter((f: string) => f.includes(directory));
 }
 
 /**
@@ -737,8 +750,9 @@ export function getFilesMatching(pattern: RegExp): string[] {
  * }
  * ```
  */
-export function getDomainDartFiles(): string[] {
-  return getDartFilesInDirectory("/domain/");
+export async function getDomainDartFiles(): Promise<string[]> {
+  const data = await getDartFilesInDirectory("/domain/");
+  return data;
 }
 
 /**
@@ -766,8 +780,8 @@ export function getDomainDartFiles(): string[] {
  * }
  * ```
  */
-export function getDataDartFiles(): string[] {
-  return getDartFilesInDirectory("/data/");
+export async function getDataDartFiles(): Promise<string[]> {
+  return await getDartFilesInDirectory("/data/");
 }
 
 /**
@@ -796,8 +810,8 @@ export function getDataDartFiles(): string[] {
  * }
  * ```
  */
-export function getPresentationDartFiles(): string[] {
-  return getDartFilesInDirectory("/presentation/");
+export async function getPresentationDartFiles(): Promise<string[]> {
+  return await getDartFilesInDirectory("/presentation/");
 }
 
 /**
