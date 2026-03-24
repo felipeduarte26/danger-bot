@@ -198,7 +198,7 @@ danger-bot info              # Informacoes do projeto
 
 ---
 
-## Documentacao
+## Documentação
 
 | Documento                                  | Descricao                             |
 | ------------------------------------------ | ------------------------------------- |
