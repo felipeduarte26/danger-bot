@@ -339,6 +339,154 @@ export function sendFail(msg: string, file?: string, line?: number): void {
 }
 
 /**
+ * Opções para mensagens formatadas no padrão Danger Bot.
+ * Usado por sendFormattedFail e sendFormattedWarn.
+ */
+export interface FormattedMessageOptions {
+  /** Título em CAPS (sem emoji). Ex: "BARREL FILE RECOMENDADO" */
+  title: string;
+  /** Descrição curta do problema (1-2 linhas, suporta **negrito**) */
+  description: string;
+  /** Bloco de código mostrando o problema — wrong (❌) e correct (✅) são formatados automaticamente */
+  problem: {
+    /** Código errado (será exibido com ❌) */
+    wrong: string;
+    /** Código correto (será exibido com ✅) */
+    correct: string;
+    /** Label customizado para o código errado (default: "Errado") */
+    wrongLabel?: string;
+    /** Label customizado para o código correto (default: "Correto") */
+    correctLabel?: string;
+    /** Linguagem do bloco de código (default: "dart") */
+    language?: string;
+  };
+  /** Ação necessária para corrigir o problema */
+  action: {
+    /** Texto explicando o que fazer (opcional, aparece antes do bloco de código) */
+    text?: string;
+    /** Bloco de código com a correção */
+    code: string;
+    /** Linguagem do bloco de código (default: "dart") */
+    language?: string;
+  };
+  /** Frase curta sobre o benefício da correção */
+  objective: string;
+  /** Link de referência */
+  reference?: {
+    text: string;
+    url: string;
+  };
+  /** Arquivo onde o problema foi encontrado */
+  file?: string;
+  /** Linha do problema */
+  line?: number;
+}
+
+function buildFormattedMessage(opts: FormattedMessageOptions): string {
+  const lang = opts.problem.language ?? "dart";
+  const actionLang = opts.action.language ?? "dart";
+  const wrongLabel = opts.problem.wrongLabel ?? "Errado";
+  const correctLabel = opts.problem.correctLabel ?? "Correto";
+  const actionText = opts.action.text ? `${opts.action.text}\n\n` : "";
+  const refLine = opts.reference ? `\n📖 [${opts.reference.text}](${opts.reference.url})` : "";
+
+  return `${opts.title}
+
+${opts.description}
+
+### Problema Identificado
+
+\`\`\`${lang}
+// ❌ ${wrongLabel}
+${opts.problem.wrong}
+
+// ✅ ${correctLabel}
+${opts.problem.correct}
+\`\`\`
+
+### 🎯 AÇÃO NECESSÁRIA
+
+${actionText}\`\`\`${actionLang}
+${opts.action.code}
+\`\`\`
+
+### 🚀 Objetivo
+
+${opts.objective}${refLine}`;
+}
+
+/**
+ * Envia um erro formatado no padrão Danger Bot.
+ *
+ * Monta automaticamente o layout com título, problema, ação e objetivo.
+ * Alternativa estruturada ao sendFail com template literal.
+ *
+ * @category Mensagens
+ * @since 2.1.0
+ *
+ * @example
+ * ```typescript
+ * sendFormattedFail({
+ *   title: "BARREL FILE RECOMENDADO",
+ *   description: "**3 imports** da mesma pasta `models/` poderiam usar um barrel file.",
+ *   problem: {
+ *     wrong: "import '...user_entity.dart';\nimport '...address_entity.dart';\nimport '...role_entity.dart';",
+ *     correct: "import '...entities.dart';",
+ *     wrongLabel: "Atual — 3 imports separados",
+ *     correctLabel: "Com barrel file — 1 import",
+ *   },
+ *   action: {
+ *     text: "Crie `entities.dart` na pasta `entities/`:",
+ *     code: "export 'user_entity.dart';\nexport 'address_entity.dart';\nexport 'role_entity.dart';",
+ *   },
+ *   objective: "Simplificar **imports** e melhorar **organização**.",
+ *   reference: {
+ *     text: "Guia sobre Barrel Files",
+ *     url: "https://medium.com/@ugamakelechi501/barrel-files-in-dart-and-flutter",
+ *   },
+ *   file: "lib/main.dart",
+ *   line: 5,
+ * });
+ * ```
+ */
+export function sendFormattedFail(opts: FormattedMessageOptions): void {
+  const msg = buildFormattedMessage(opts);
+  sendFail(msg, opts.file, opts.line);
+}
+
+/**
+ * Envia um aviso formatado no padrão Danger Bot.
+ *
+ * Monta automaticamente o layout com título, problema, ação e objetivo.
+ * Alternativa estruturada ao sendWarn com template literal.
+ *
+ * @category Mensagens
+ * @since 2.1.0
+ *
+ * @example
+ * ```typescript
+ * sendFormattedWarn({
+ *   title: "USO DE PRINT DETECTADO",
+ *   description: "Encontrado `print()` no código de produção.",
+ *   problem: {
+ *     wrong: "print('debug: $value');",
+ *     correct: "logger.d('debug: $value');",
+ *   },
+ *   action: {
+ *     code: "logger.d('debug: $value');",
+ *   },
+ *   objective: "Usar logger adequado para produção.",
+ *   file: "lib/service.dart",
+ *   line: 42,
+ * });
+ * ```
+ */
+export function sendFormattedWarn(opts: FormattedMessageOptions): void {
+  const msg = buildFormattedMessage(opts);
+  sendWarn(msg, opts.file, opts.line);
+}
+
+/**
  * Envia conteúdo markdown formatado no Pull Request
  *
  * Use para enviar tabelas, listas, ou conteúdo rico em formatação.

@@ -109,6 +109,45 @@ sendFail("Testes falhando");
 sendFail("API key hardcoded!", "lib/config.dart", 8);
 ```
 
+### sendFormattedFail(opts)
+
+Envia um erro formatado no padrao Danger Bot. Monta automaticamente o layout com titulo, problema, acao e objetivo.
+
+```typescript
+function sendFormattedFail(opts: FormattedMessageOptions): void
+```
+
+```typescript
+sendFormattedFail({
+  title: "TRY-CATCH NA PRESENTATION",
+  description: "Detectado `try-catch` na camada Presentation.",
+  problem: {
+    wrong: "try {\n  await usecase.execute();\n} catch (e) {\n  // ...\n}",
+    correct: "final result = await usecase.execute();\nresult.fold((failure) => ..., (success) => ...);",
+  },
+  action: {
+    code: "final result = await usecase.execute();\nresult.fold(\n  (failure) => showError(failure),\n  (success) => updateState(success),\n);",
+  },
+  objective: "Tratar erros via **Either/Result** no UseCase.",
+  reference: {
+    text: "Clean Architecture",
+    url: "https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html",
+  },
+  file: "lib/presentation/page.dart",
+  line: 42,
+});
+```
+
+### sendFormattedWarn(opts)
+
+Mesmo que `sendFormattedFail`, mas envia como aviso (nao falha o build).
+
+```typescript
+function sendFormattedWarn(opts: FormattedMessageOptions): void
+```
+
+> Detalhes dos campos: [Guia de Plugins](GUIA_PLUGINS.md#forma-simplificada--sendformattedfail--sendformattedwarn)
+
 ### sendMarkdown(msg, file?, line?)
 
 Envia conteudo markdown formatado.

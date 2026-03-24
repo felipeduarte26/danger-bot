@@ -115,39 +115,30 @@ exports.default = (0, _types_1.createPlugin)(
         if (alreadyUsesBarrel) continue;
         const importLines = group.imports.map((imp) => `import 'package:${imp}';`).join("\n");
         const packagePrefix = group.imports[0].split("/").slice(0, -1).join("/");
-        (0, _types_1.sendFail)(
-          `BARREL FILE RECOMENDADO
-
-**${group.imports.length} imports** da mesma pasta \`${folderName}/\` poderiam usar um barrel file.
-
-### Problema Identificado
-
-Imports verbosos da mesma pasta:
-
-\`\`\`dart
-// ❌ Atual — ${group.imports.length} imports separados
-${importLines}
-
-// ✅ Com barrel file — 1 import
-import 'package:${packagePrefix}/${barrelName}';
-\`\`\`
-
-### 🎯 AÇÃO NECESSÁRIA
-
-Crie \`${barrelName}\` na pasta \`${folderName}/\`:
-
-\`\`\`dart
-${group.imports.map((imp) => `export '${imp.split("/").pop()}';`).join("\n")}
-\`\`\`
-
-### 🚀 Objetivo
-
-Simplificar **imports** e melhorar **organização**.
-
-📖 [Guia completo sobre Barrel Files](https://medium.com/@ugamakelechi501/barrel-files-in-dart-and-flutter-a-guide-to-simplifying-imports-9b245dbe516a)`,
+        const exportLines = group.imports
+          .map((imp) => `export '${imp.split("/").pop()}';`)
+          .join("\n");
+        (0, _types_1.sendFormattedFail)({
+          title: "BARREL FILE RECOMENDADO",
+          description: `**${group.imports.length} imports** da mesma pasta \`${folderName}/\` poderiam usar um barrel file.`,
+          problem: {
+            wrong: importLines,
+            correct: `import 'package:${packagePrefix}/${barrelName}';`,
+            wrongLabel: `Atual — ${group.imports.length} imports separados`,
+            correctLabel: "Com barrel file — 1 import",
+          },
+          action: {
+            text: `Crie \`${barrelName}\` na pasta \`${folderName}/\`:`,
+            code: exportLines,
+          },
+          objective: "Simplificar **imports** e melhorar **organização**.",
+          reference: {
+            text: "Guia completo sobre Barrel Files",
+            url: "https://medium.com/@ugamakelechi501/barrel-files-in-dart-and-flutter-a-guide-to-simplifying-imports-9b245dbe516a",
+          },
           file,
-          group.lines[0]
-        );
+          line: group.lines[0],
+        });
       }
     }
   }

@@ -62,6 +62,8 @@ var __importStar =
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.loadLocalPlugins =
   exports.loadConfig =
+  exports.sendFormattedWarn =
+  exports.sendFormattedFail =
   exports.verboseLog =
   exports.isVerbose =
   exports.setVerbose =
@@ -250,6 +252,18 @@ Object.defineProperty(exports, "verboseLog", {
   enumerable: true,
   get: function () {
     return helpers_1.verboseLog;
+  },
+});
+Object.defineProperty(exports, "sendFormattedFail", {
+  enumerable: true,
+  get: function () {
+    return helpers_1.sendFormattedFail;
+  },
+});
+Object.defineProperty(exports, "sendFormattedWarn", {
+  enumerable: true,
+  get: function () {
+    return helpers_1.sendFormattedWarn;
   },
 });
 var config_1 = require("./config");

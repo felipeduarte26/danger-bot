@@ -221,6 +221,56 @@ Simplificar **imports** e melhorar **organizacao**.
 | Objetivo | Frase curta (1 linha) |
 | Link | Emoji 📖 + link markdown |
 
+### Forma simplificada — sendFormattedFail / sendFormattedWarn
+
+Para evitar montar o template literal manualmente, use `sendFormattedFail` ou `sendFormattedWarn`. A funcao monta o layout padrao automaticamente:
+
+```typescript
+sendFormattedFail({
+  title: "BARREL FILE RECOMENDADO",
+  description: "**3 imports** da mesma pasta `models/` poderiam usar um barrel file.",
+  problem: {
+    wrong: "import '...user_entity.dart';\nimport '...address_entity.dart';\nimport '...role_entity.dart';",
+    correct: "import '...entities.dart';",
+    wrongLabel: "Atual — 3 imports separados",
+    correctLabel: "Com barrel file — 1 import",
+  },
+  action: {
+    text: "Crie `entities.dart` na pasta `entities/`:",
+    code: "export 'user_entity.dart';\nexport 'address_entity.dart';\nexport 'role_entity.dart';",
+  },
+  objective: "Simplificar **imports** e melhorar **organização**.",
+  reference: {
+    text: "Guia sobre Barrel Files",
+    url: "https://medium.com/@ugamakelechi501/barrel-files-in-dart-and-flutter",
+  },
+  file: "lib/main.dart",
+  line: 5,
+});
+```
+
+**Parametros de `FormattedMessageOptions`:**
+
+| Campo | Tipo | Obrigatorio | Descricao |
+|-------|------|-------------|-----------|
+| `title` | `string` | Sim | Titulo em CAPS |
+| `description` | `string` | Sim | Descricao curta do problema |
+| `problem.wrong` | `string` | Sim | Codigo errado (exibido com ❌) |
+| `problem.correct` | `string` | Sim | Codigo correto (exibido com ✅) |
+| `problem.wrongLabel` | `string` | Nao | Label do errado (default: `"Errado"`) |
+| `problem.correctLabel` | `string` | Nao | Label do correto (default: `"Correto"`) |
+| `problem.language` | `string` | Nao | Linguagem do bloco (default: `dart`) |
+| `action.code` | `string` | Sim | Codigo da correcao |
+| `action.text` | `string` | Nao | Texto antes do bloco de codigo |
+| `action.language` | `string` | Nao | Linguagem do bloco (default: `dart`) |
+| `objective` | `string` | Sim | Frase curta sobre o beneficio |
+| `reference.text` | `string` | Nao | Texto do link |
+| `reference.url` | `string` | Nao | URL do link |
+| `file` | `string` | Nao | Arquivo para comentario inline |
+| `line` | `number` | Nao | Linha para comentario inline |
+
+> `sendFormattedWarn` funciona da mesma forma, mas envia como aviso (nao falha o build).
+
 ---
 
 ## Plugins Locais do Projeto
@@ -379,7 +429,7 @@ import {
   getDanger,
 
   // Mensagens
-  sendMessage, sendWarn, sendFail, sendMarkdown, scheduleTask,
+  sendMessage, sendWarn, sendFail, sendFormattedFail, sendFormattedWarn, sendMarkdown, scheduleTask,
 
   // Arquivos
   getAllChangedFiles, getDartFiles, getDartFilesInDirectory,

@@ -11,7 +11,8 @@ Referencia completa da API publica do Danger Bot.
 export { executeDangerBot } from "@felipeduarte26/danger-bot";
 
 // Helpers de mensagem
-export { getDanger, sendMessage, sendWarn, sendFail, sendMarkdown, scheduleTask };
+export { getDanger, sendMessage, sendWarn, sendFail, sendFormattedFail, sendFormattedWarn, sendMarkdown, scheduleTask };
+export type { FormattedMessageOptions };
 
 // Helpers de arquivos
 export {
@@ -154,6 +155,33 @@ Envia erro no PR. **Falha o build.**
 sendFail("Testes falhando");
 sendFail("API key hardcoded!", "lib/config.dart", 8);
 ```
+
+### sendFormattedFail(opts) / sendFormattedWarn(opts)
+
+Enviam mensagens formatadas no padrao Danger Bot. Montam automaticamente o layout com titulo, problema, acao e objetivo, sem precisar escrever template literals verbosos.
+
+```typescript
+function sendFormattedFail(opts: FormattedMessageOptions): void
+function sendFormattedWarn(opts: FormattedMessageOptions): void
+```
+
+```typescript
+sendFormattedFail({
+  title: "TRY-CATCH NA PRESENTATION",
+  description: "Detectado `try-catch` na camada Presentation.",
+  problem: {
+    wrong: "try { await usecase.execute(); } catch (e) { }",
+    correct: "final result = await usecase.execute();\nresult.fold(...);",
+  },
+  action: { code: "result.fold(\n  (failure) => showError(failure),\n  (success) => updateState(success),\n);" },
+  objective: "Tratar erros via Either/Result no UseCase.",
+  reference: { text: "Clean Architecture", url: "https://..." },
+  file: "lib/page.dart",
+  line: 42,
+});
+```
+
+> Referencia completa dos campos: [Guia de Plugins](GUIA_PLUGINS.md#forma-simplificada--sendformattedfail--sendformattedwarn)
 
 ### sendMarkdown(msg, file?, line?)
 

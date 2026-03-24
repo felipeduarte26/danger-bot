@@ -38,7 +38,10 @@ export {
   setVerbose,
   isVerbose,
   verboseLog,
+  sendFormattedFail,
+  sendFormattedWarn,
 } from "./helpers";
+export type { FormattedMessageOptions } from "./helpers";
 
 export { loadConfig, loadLocalPlugins } from "./config";
 export type { DangerBotConfig } from "./config";
