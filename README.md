@@ -1,7 +1,7 @@
 <p align="center">
   <h1 align="center">Danger Bot</h1>
   <p align="center">
-    Automação inteligente de code review para projetos Flutter/Dart com Danger JS
+    Automação de code review para projetos Flutter/Dart
   </p>
 </p>
 
@@ -24,7 +24,6 @@
 - **Zero configuracao** - funciona com uma unica linha de codigo
 - **Multi-plataforma** - GitHub, Bitbucket Cloud, Bitbucket Server, GitLab
 - **CLI integrada** - crie e gerencie plugins pelo terminal
-- **TypeScript** - type-safe com IntelliSense completo
 
 ---
 
