@@ -21,7 +21,6 @@
 
 - **Plugins prontos** cobrindo arquitetura, performance, seguranca, nomenclatura e mais
 - **Plugins locais** - crie regras customizadas no seu projeto via `danger-bot.yaml`
-- **Zero configuracao** - funciona com uma unica linha de codigo
 - **Multi-plataforma** - GitHub, Bitbucket Cloud, Bitbucket Server, GitLab
 - **CLI integrada** - crie e gerencie plugins pelo terminal
 
