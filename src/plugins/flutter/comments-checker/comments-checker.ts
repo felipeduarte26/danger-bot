@@ -11,7 +11,7 @@ export default createPlugin(
   },
   async () => {
     const danger = getDanger();
-    const dartFiles = getDartFiles();
+    const dartFiles = await getDartFiles();
 
     for (const file of dartFiles) {
       try {
