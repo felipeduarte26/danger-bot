@@ -35,3 +35,4 @@ export { default as barrelFilesEnforcerPlugin } from "./barrel-files-enforcer";
 export { default as identifierLanguagePlugin } from "./identifier-language";
 export { default as classNamingConventionPlugin } from "./class-naming-convention";
 export { default as presentationTryCatchCheckerPlugin } from "./presentation-try-catch-checker";
+export { default as mergeConflictCheckerPlugin } from "./merge-conflict-checker";

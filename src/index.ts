@@ -36,10 +36,11 @@ export {
   identifierLanguagePlugin,
   classNamingConventionPlugin,
   presentationTryCatchCheckerPlugin,
+  mergeConflictCheckerPlugin,
 } from "./plugins/flutter";
 
 /**
- * All available Flutter plugins in a single array (25 plugins)
+ * All available Flutter plugins in a single array (27 plugins)
  * Use this for quick setup with all plugins enabled
  */
 export const allFlutterPlugins = [
@@ -69,6 +70,7 @@ export const allFlutterPlugins = [
   require("./plugins/flutter/identifier-language").default,
   require("./plugins/flutter/class-naming-convention").default,
   require("./plugins/flutter/presentation-try-catch-checker").default,
+  require("./plugins/flutter/merge-conflict-checker").default,
 ];
 
 // Export arrays for specific layers/categories

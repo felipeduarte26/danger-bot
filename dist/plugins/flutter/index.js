@@ -10,7 +10,8 @@ var __importDefault =
     return mod && mod.__esModule ? mod : { default: mod };
   };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.presentationTryCatchCheckerPlugin =
+exports.mergeConflictCheckerPlugin =
+  exports.presentationTryCatchCheckerPlugin =
   exports.classNamingConventionPlugin =
   exports.identifierLanguagePlugin =
   exports.barrelFilesEnforcerPlugin =
@@ -220,5 +221,12 @@ Object.defineProperty(exports, "presentationTryCatchCheckerPlugin", {
   enumerable: true,
   get: function () {
     return __importDefault(presentation_try_catch_checker_1).default;
+  },
+});
+var merge_conflict_checker_1 = require("./merge-conflict-checker");
+Object.defineProperty(exports, "mergeConflictCheckerPlugin", {
+  enumerable: true,
+  get: function () {
+    return __importDefault(merge_conflict_checker_1).default;
   },
 });
