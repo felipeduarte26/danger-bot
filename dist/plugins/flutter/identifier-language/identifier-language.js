@@ -611,27 +611,28 @@ exports.default = (0, _types_1.createPlugin)(
       const key = `${c.file}::${c.line}`;
       if (commentSeen.has(key)) continue;
       commentSeen.add(key);
-      (0, _types_1.sendFail)(
-        `${c.type.toUpperCase()} DEVE SER EM INGLÊS
-
-\`${c.text}${c.text.length >= 80 ? "..." : ""}\`
-
-### Problema Identificado
-
-O padrão do projeto é documentação e comentários **100% em inglês**.
-
-### 🎯 AÇÃO NECESSÁRIA
-
-Reescreva em inglês.
-
-### 🚀 Objetivo
-
-Manter **consistência** com o ecossistema (SDK, docs, frameworks) e facilitar **colaboração** entre equipes.
-
-📖 [Effective Dart: Documentation](https://dart.dev/effective-dart/documentation)`,
-        c.file,
-        c.line
-      );
+      const snippet = `${c.text}${c.text.length >= 80 ? "..." : ""}`;
+      (0, _types_1.sendFormattedFail)({
+        title: `${c.type.toUpperCase()} DEVE SER EM INGLÊS`,
+        description: `\`${snippet}\``,
+        problem: {
+          wrong: `${c.type === "documentação (///)" ? "///" : "//"} ${snippet}`,
+          correct: `${c.type === "documentação (///)" ? "///" : "//"} (rewrite in English)`,
+          wrongLabel: "Atual",
+          correctLabel: "Em inglês",
+        },
+        action: {
+          code: `${c.type === "documentação (///)" ? "///" : "//"} (translate to English)`,
+        },
+        objective:
+          "Manter **consistência** com o ecossistema (SDK, docs, frameworks) e facilitar **colaboração** entre equipes.",
+        reference: {
+          text: "Effective Dart: Documentation",
+          url: "https://dart.dev/effective-dart/documentation",
+        },
+        file: c.file,
+        line: c.line,
+      });
     }
     if (matches.length === 0) return;
     const seen = new Set();
@@ -639,35 +640,38 @@ Manter **consistência** com o ecossistema (SDK, docs, frameworks) e facilitar *
       const key = `${m.file}::${m.line}::${m.identifier}`;
       if (seen.has(key)) continue;
       seen.add(key);
-      (0, _types_1.sendFail)(
-        `IDENTIFICADOR DEVE SER EM INGLÊS
-
-\`${m.identifier}\` (${m.kind}) — palavras: **${m.ptWords.join(", ")}**
-
-### Problema Identificado
-
-O padrão do projeto é código **100% em inglês**.
-
-### 🎯 AÇÃO NECESSÁRIA
-
-Renomeie para inglês:
-
-\`\`\`dart
-// ❌ Atual
-${m.kind === "classe" ? `class ${m.identifier}` : m.kind === "método" ? `void ${m.identifier}()` : `final ${m.identifier}`}
-
-// ✅ Em inglês
-${m.kind === "classe" ? `class ${suggestEnglish(m.identifier, m.ptWords)}` : m.kind === "método" ? `void ${suggestEnglish(m.identifier, m.ptWords)}()` : `final ${suggestEnglish(m.identifier, m.ptWords)}`}
-\`\`\`
-
-### 🚀 Objetivo
-
-Manter **consistência** e facilitar **colaboração** em equipe.
-
-📖 [Clean Code: Naming](https://medium.com/@mikhailhusyev/writing-clean-code-naming-variables-functions-methods-and-classes-6074a6796c7b)`,
-        m.file,
-        m.line
-      );
+      const currentDecl =
+        m.kind === "classe"
+          ? `class ${m.identifier}`
+          : m.kind === "método"
+            ? `void ${m.identifier}()`
+            : `final ${m.identifier}`;
+      const suggestedDecl =
+        m.kind === "classe"
+          ? `class ${suggestEnglish(m.identifier, m.ptWords)}`
+          : m.kind === "método"
+            ? `void ${suggestEnglish(m.identifier, m.ptWords)}()`
+            : `final ${suggestEnglish(m.identifier, m.ptWords)}`;
+      (0, _types_1.sendFormattedFail)({
+        title: "IDENTIFICADOR DEVE SER EM INGLÊS",
+        description: `\`${m.identifier}\` (${m.kind}) — palavras: **${m.ptWords.join(", ")}**`,
+        problem: {
+          wrong: currentDecl,
+          correct: suggestedDecl,
+          wrongLabel: "Atual",
+          correctLabel: "Em inglês",
+        },
+        action: {
+          code: suggestedDecl,
+        },
+        objective: "Manter **consistência** e facilitar **colaboração** em equipe.",
+        reference: {
+          text: "Clean Code: Naming",
+          url: "https://medium.com/@mikhailhusyev/writing-clean-code-naming-variables-functions-methods-and-classes-6074a6796c7b",
+        },
+        file: m.file,
+        line: m.line,
+      });
     }
   }
 );

@@ -7,7 +7,7 @@
  * 1. Dicionário interno (~400 palavras PT comuns em código) — rápido e preciso
  * 2. eld v2 (Efficient Language Detector) — detecta PT e ES (línguas próximas)
  */
-import { createPlugin, getDanger, sendFail } from "@types";
+import { createPlugin, getDanger, sendFormattedFail } from "@types";
 import * as fs from "fs";
 
 let _eld: any = null;
@@ -591,27 +591,29 @@ export default createPlugin(
       if (commentSeen.has(key)) continue;
       commentSeen.add(key);
 
-      sendFail(
-        `${c.type.toUpperCase()} DEVE SER EM INGLÊS
+      const snippet = `${c.text}${c.text.length >= 80 ? "..." : ""}`;
 
-\`${c.text}${c.text.length >= 80 ? "..." : ""}\`
-
-### Problema Identificado
-
-O padrão do projeto é documentação e comentários **100% em inglês**.
-
-### 🎯 AÇÃO NECESSÁRIA
-
-Reescreva em inglês.
-
-### 🚀 Objetivo
-
-Manter **consistência** com o ecossistema (SDK, docs, frameworks) e facilitar **colaboração** entre equipes.
-
-📖 [Effective Dart: Documentation](https://dart.dev/effective-dart/documentation)`,
-        c.file,
-        c.line
-      );
+      sendFormattedFail({
+        title: `${c.type.toUpperCase()} DEVE SER EM INGLÊS`,
+        description: `\`${snippet}\``,
+        problem: {
+          wrong: `${c.type === "documentação (///)" ? "///" : "//"} ${snippet}`,
+          correct: `${c.type === "documentação (///)" ? "///" : "//"} (rewrite in English)`,
+          wrongLabel: "Atual",
+          correctLabel: "Em inglês",
+        },
+        action: {
+          code: `${c.type === "documentação (///)" ? "///" : "//"} (translate to English)`,
+        },
+        objective:
+          "Manter **consistência** com o ecossistema (SDK, docs, frameworks) e facilitar **colaboração** entre equipes.",
+        reference: {
+          text: "Effective Dart: Documentation",
+          url: "https://dart.dev/effective-dart/documentation",
+        },
+        file: c.file,
+        line: c.line,
+      });
     }
 
     if (matches.length === 0) return;
@@ -623,35 +625,39 @@ Manter **consistência** com o ecossistema (SDK, docs, frameworks) e facilitar *
       if (seen.has(key)) continue;
       seen.add(key);
 
-      sendFail(
-        `IDENTIFICADOR DEVE SER EM INGLÊS
+      const currentDecl =
+        m.kind === "classe"
+          ? `class ${m.identifier}`
+          : m.kind === "método"
+            ? `void ${m.identifier}()`
+            : `final ${m.identifier}`;
+      const suggestedDecl =
+        m.kind === "classe"
+          ? `class ${suggestEnglish(m.identifier, m.ptWords)}`
+          : m.kind === "método"
+            ? `void ${suggestEnglish(m.identifier, m.ptWords)}()`
+            : `final ${suggestEnglish(m.identifier, m.ptWords)}`;
 
-\`${m.identifier}\` (${m.kind}) — palavras: **${m.ptWords.join(", ")}**
-
-### Problema Identificado
-
-O padrão do projeto é código **100% em inglês**.
-
-### 🎯 AÇÃO NECESSÁRIA
-
-Renomeie para inglês:
-
-\`\`\`dart
-// ❌ Atual
-${m.kind === "classe" ? `class ${m.identifier}` : m.kind === "método" ? `void ${m.identifier}()` : `final ${m.identifier}`}
-
-// ✅ Em inglês
-${m.kind === "classe" ? `class ${suggestEnglish(m.identifier, m.ptWords)}` : m.kind === "método" ? `void ${suggestEnglish(m.identifier, m.ptWords)}()` : `final ${suggestEnglish(m.identifier, m.ptWords)}`}
-\`\`\`
-
-### 🚀 Objetivo
-
-Manter **consistência** e facilitar **colaboração** em equipe.
-
-📖 [Clean Code: Naming](https://medium.com/@mikhailhusyev/writing-clean-code-naming-variables-functions-methods-and-classes-6074a6796c7b)`,
-        m.file,
-        m.line
-      );
+      sendFormattedFail({
+        title: "IDENTIFICADOR DEVE SER EM INGLÊS",
+        description: `\`${m.identifier}\` (${m.kind}) — palavras: **${m.ptWords.join(", ")}**`,
+        problem: {
+          wrong: currentDecl,
+          correct: suggestedDecl,
+          wrongLabel: "Atual",
+          correctLabel: "Em inglês",
+        },
+        action: {
+          code: suggestedDecl,
+        },
+        objective: "Manter **consistência** e facilitar **colaboração** em equipe.",
+        reference: {
+          text: "Clean Code: Naming",
+          url: "https://medium.com/@mikhailhusyev/writing-clean-code-naming-variables-functions-methods-and-classes-6074a6796c7b",
+        },
+        file: m.file,
+        line: m.line,
+      });
     }
   }
 );
