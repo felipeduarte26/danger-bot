@@ -1,46 +1,36 @@
 /**
  * Identifier Language Plugin
- * Detecta nomes de classes, métodos e variáveis em português.
+ * Detecta nomes de classes, métodos e variáveis que não estão em inglês.
  * O padrão do projeto é código 100% em inglês.
  *
  * Usa duas camadas de detecção:
  * 1. Dicionário interno (~400 palavras PT comuns em código) — rápido e preciso
- * 2. cld3-asm (Google CLD3) como fallback — para palavras fora do dicionário
+ * 2. eld v2 (Efficient Language Detector) — detecta PT e ES (línguas próximas)
  */
 import { createPlugin, getDanger, sendFail } from "@types";
 import * as fs from "fs";
 
-let _cld3Identifier: any = null;
-let _cld3Loaded = false;
+let _eld: any = null;
+let _eldLoaded = false;
 
-async function getCld3(): Promise<any> {
-  if (_cld3Loaded) return _cld3Identifier;
-  _cld3Loaded = true;
-
+async function loadEld(): Promise<void> {
+  if (_eldLoaded) return;
+  _eldLoaded = true;
   try {
-    const cld3 = require("cld3-asm");
-
-    if (typeof cld3.loadModule === "function") {
-      const mod = await cld3.loadModule();
-      _cld3Identifier = mod.create(0, 512);
-    } else if (typeof cld3.createIdentifier === "function") {
-      _cld3Identifier = cld3.createIdentifier();
-    } else if (cld3.default && typeof cld3.default.loadModule === "function") {
-      const mod = await cld3.default.loadModule();
-      _cld3Identifier = mod.create(0, 512);
-    }
+    const mod = await import("eld/large" as string);
+    _eld = mod.eld ?? mod.default?.eld ?? mod;
   } catch {
-    // cld3 nao disponivel — segue so com dicionario
+    // eld nao disponivel
   }
-
-  return _cld3Identifier;
 }
 
-function isCld3Portuguese(text: string): boolean {
-  if (!_cld3Identifier || text.length < 6) return false;
+const NON_ENGLISH_LANGS = new Set(["pt", "es"]);
+
+function isNonEnglish(text: string): boolean {
+  if (!_eld || text.length < 8) return false;
   try {
-    const result = _cld3Identifier.findLanguage(text);
-    return result?.language === "pt" && result.probability > 0.7;
+    const result = _eld.detect(text);
+    return NON_ENGLISH_LANGS.has(result?.language) && result.isReliable();
   } catch {
     return false;
   }
@@ -514,13 +504,13 @@ interface IdentifierMatch {
 export default createPlugin(
   {
     name: "identifier-language",
-    description: "Detecta identificadores em português no código Dart",
+    description: "Detecta identificadores e comentários que não estão em inglês",
     enabled: true,
   },
   async () => {
     const { git } = getDanger();
 
-    await getCld3();
+    await loadEld();
 
     const dartFiles = [...git.modified_files, ...git.created_files].filter(
       (f: string) =>
@@ -544,7 +534,7 @@ export default createPlugin(
         const line = lines[i];
         const trimmed = line.trim();
 
-        // Detectar comentarios e documentacao em portugues
+        // Detectar comentarios e documentacao que nao estao em ingles
         const docMatch = trimmed.match(/^\/\/\/\s*(.+)/);
         const commentMatch = !docMatch ? trimmed.match(/^\/\/\s*(.+)/) : null;
 
@@ -564,7 +554,7 @@ export default createPlugin(
             continue;
           }
 
-          if (isCld3Portuguese(text)) {
+          if (isNonEnglish(text)) {
             commentMatches.push({
               file,
               line: i + 1,
@@ -574,7 +564,7 @@ export default createPlugin(
           }
         }
 
-        // Detectar identificadores em portugues
+        // Detectar identificadores que nao estao em ingles
         const cleaned = stripCommentsAndStrings(line);
         if (!cleaned.trim()) continue;
 
@@ -584,7 +574,7 @@ export default createPlugin(
           const ptWords = words.filter((w) => {
             if (AMBIGUOUS.has(w)) return false;
             if (PT_WORDS.has(w)) return true;
-            if (w.length >= 6 && isCld3Portuguese(w)) return true;
+            if (w.length >= 6 && isNonEnglish(w)) return true;
             return false;
           });
 
@@ -595,7 +585,6 @@ export default createPlugin(
       }
     }
 
-    // Reportar comentarios em portugues
     const commentSeen = new Set<string>();
     for (const c of commentMatches) {
       const key = `${c.file}::${c.line}`;
@@ -603,7 +592,7 @@ export default createPlugin(
       commentSeen.add(key);
 
       sendFail(
-        `${c.type.toUpperCase()} EM PORTUGUÊS
+        `${c.type.toUpperCase()} DEVE SER EM INGLÊS
 
 \`${c.text}${c.text.length >= 80 ? "..." : ""}\`
 
@@ -613,7 +602,7 @@ O padrão do projeto é documentação e comentários **100% em inglês**.
 
 ### 🎯 AÇÃO NECESSÁRIA
 
-Traduza para inglês.
+Reescreva em inglês.
 
 ### 🚀 Objetivo
 
@@ -625,7 +614,6 @@ Manter **consistência** com o ecossistema (SDK, docs, frameworks) e facilitar *
       );
     }
 
-    // Reportar identificadores em portugues
     if (matches.length === 0) return;
 
     const seen = new Set<string>();
@@ -636,21 +624,20 @@ Manter **consistência** com o ecossistema (SDK, docs, frameworks) e facilitar *
       seen.add(key);
 
       sendFail(
-        `IDENTIFICADOR EM PORTUGUÊS
+        `IDENTIFICADOR DEVE SER EM INGLÊS
 
 \`${m.identifier}\` (${m.kind}) — palavras: **${m.ptWords.join(", ")}**
 
 ### Problema Identificado
 
-O padrão do projeto é código 100% em inglês.
-Identificadores em português dificultam colaboração e consistência.
+O padrão do projeto é código **100% em inglês**.
 
 ### 🎯 AÇÃO NECESSÁRIA
 
 Renomeie para inglês:
 
 \`\`\`dart
-// ❌ Em português
+// ❌ Atual
 ${m.kind === "classe" ? `class ${m.identifier}` : m.kind === "método" ? `void ${m.identifier}()` : `final ${m.identifier}`}
 
 // ✅ Em inglês

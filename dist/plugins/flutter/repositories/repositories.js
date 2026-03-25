@@ -217,7 +217,11 @@ Arquivo de implementação deve terminar com \`_repository.dart\`.
   for (let i = 0; i < lines.length; i++) {
     const match = lines[i].match(/(?:final\s+)?class\s+([A-Za-z_]\w*)/);
     if (match && !lines[i].includes("abstract")) {
-      classes.push({ name: match[1], line: i + 1, raw: lines[i] });
+      let declaration = lines[i];
+      for (let j = i + 1; j < lines.length && !declaration.includes("{"); j++) {
+        declaration += " " + lines[j].trim();
+      }
+      classes.push({ name: match[1], line: i + 1, declaration });
     }
   }
   if (classes.length === 0) return;
@@ -255,7 +259,7 @@ A classe \`${cls.name}\` deve terminar com \`Repository\`.
         cls.line
       );
     }
-    if (!cls.raw.includes("implements")) {
+    if (!cls.declaration.includes("implements")) {
       (0, _types_1.sendFail)(
         `REPOSITORY SEM INTERFACE
 
@@ -275,7 +279,7 @@ Garantir **inversão de dependência** — Domain define o contrato, Data implem
         cls.line
       );
     }
-    if (!cls.raw.includes("extends BaseRepository")) {
+    if (!cls.declaration.includes("extends BaseRepository")) {
       (0, _types_1.sendFail)(
         `REPOSITORY SEM BaseRepository
 
