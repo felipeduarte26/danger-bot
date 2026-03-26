@@ -288,10 +288,6 @@ exports.default = (0, _types_1.createPlugin)(
         console.log(`  ✅ ${file} — aprovado pela IA`);
       } else {
         issues++;
-        (0, _types_1.sendWarn)(
-          `🤖 **AI CODE REVIEW** — \`${file}\`\n\n${result.text}\n\n---\n_Revisão automática por Danger Bot AI Code Review. Valide as sugestões antes de aplicar._`,
-          file
-        );
         console.log(`  🤖 ${file} — review gerado`);
       }
       if (i < filesToAnalyze.length - 1) {
