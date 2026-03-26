@@ -18,7 +18,7 @@ const REQUEST_TIMEOUT_MS = 30000;
 const MAX_CONTENT_CHARS = 30000;
 const FILES_PER_KEY = 15;
 const DELAY_BETWEEN_REQUESTS_MS = 10000;
-const RETRY_BACKOFF_MS = 10000;
+const MAX_CONSECUTIVE_RATE_LIMITS = 10;
 
 const SYSTEM_PROMPT = `Você é um code reviewer sênior especialista em Flutter/Dart, Clean Architecture, Clean Code e SOLID.
 
@@ -70,7 +70,7 @@ function getApiKeys(): string[] {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-async function callGeminiWithKey(
+async function callGemini(
   prompt: string,
   key: string
 ): Promise<{ text: string | null; rateLimited: boolean }> {
@@ -181,13 +181,16 @@ export default createPlugin(
     let skipped = 0;
     let keyIndex = 0;
     let usedWithCurrentKey = 0;
+    let consecutiveRateLimits = 0;
+    let aborted = false;
 
     for (let i = 0; i < filesToAnalyze.length; i++) {
+      if (aborted) break;
+
       const file = filesToAnalyze[i];
       const content = fs.readFileSync(file, "utf-8");
-      const lines = content.split("\n");
 
-      if (lines.length < 5) {
+      if (content.split("\n").length < 5) {
         skipped++;
         continue;
       }
@@ -195,34 +198,48 @@ export default createPlugin(
       if (usedWithCurrentKey >= FILES_PER_KEY && keyIndex < apiKeys.length - 1) {
         keyIndex++;
         usedWithCurrentKey = 0;
+        consecutiveRateLimits = 0;
         console.log(
           `  🔑 Trocando para key ${keyIndex + 1}/${apiKeys.length} ...${apiKeys[keyIndex].slice(-6)}`
         );
       }
 
-      const currentKey = apiKeys[keyIndex];
       const trimmed = truncateContent(content);
       const prompt = `${SYSTEM_PROMPT}\n\nArquivo: ${file}\n\n\`\`\`dart\n${trimmed}\n\`\`\``;
 
-      let result = await callGeminiWithKey(prompt, currentKey);
+      const result = await callGemini(prompt, apiKeys[keyIndex]);
 
       if (result.rateLimited) {
+        consecutiveRateLimits++;
         console.log(
-          `  ⚠️ Rate limit na key ...${currentKey.slice(-6)}, aguardando ${RETRY_BACKOFF_MS / 1000}s...`
+          `  ⚠️ Rate limit na key ...${apiKeys[keyIndex].slice(-6)} (${consecutiveRateLimits}/${MAX_CONSECUTIVE_RATE_LIMITS})`
         );
-        await sleep(RETRY_BACKOFF_MS);
-        result = await callGeminiWithKey(prompt, currentKey);
+
+        if (consecutiveRateLimits >= MAX_CONSECUTIVE_RATE_LIMITS) {
+          if (keyIndex < apiKeys.length - 1) {
+            keyIndex++;
+            usedWithCurrentKey = 0;
+            consecutiveRateLimits = 0;
+            console.log(
+              `  🔑 Trocando para key ${keyIndex + 1}/${apiKeys.length} ...${apiKeys[keyIndex].slice(-6)}`
+            );
+            i--;
+            continue;
+          }
+
+          console.log(
+            "  🛑 Todas as keys atingiram rate limit consecutivo. Interrompendo AI Code Review para não travar a pipeline."
+          );
+          aborted = true;
+          break;
+        }
+
+        await sleep(DELAY_BETWEEN_REQUESTS_MS);
+        i--;
+        continue;
       }
 
-      if (result.rateLimited && keyIndex < apiKeys.length - 1) {
-        keyIndex++;
-        usedWithCurrentKey = 0;
-        console.log(
-          `  🔑 Trocando para key ${keyIndex + 1}/${apiKeys.length} ...${apiKeys[keyIndex].slice(-6)}`
-        );
-        result = await callGeminiWithKey(prompt, apiKeys[keyIndex]);
-      }
-
+      consecutiveRateLimits = 0;
       usedWithCurrentKey++;
 
       if (!result.text) {
@@ -252,7 +269,15 @@ export default createPlugin(
       }
     }
 
-    if (reviewed > 0) {
+    if (aborted && reviewed > 0) {
+      sendMessage(
+        `🤖 **AI Code Review**: IA analisou **${reviewed} arquivo(s)** antes de atingir o rate limit — **${approved} aprovado(s)**, **${issues} com sugestões**. Alguns arquivos não foram analisados.`
+      );
+    } else if (aborted) {
+      sendMessage(
+        "🤖 **AI Code Review**: Rate limit atingido em todas as API keys. Nenhum arquivo foi analisado. Tente novamente mais tarde ou adicione mais keys."
+      );
+    } else if (reviewed > 0) {
       if (issues === 0) {
         sendMessage(
           `🤖 **AI Code Review**: IA analisou **${reviewed} arquivo(s)** e aprovou todos. Nenhuma sugestão encontrada.`
