@@ -1,7 +1,16 @@
 /**
- * Verifica uso correto de comentários
+ * Verifica uso correto de comentários.
+ *
+ * Tags permitidas que não disparam erro:
+ *   - // TODO: ...
+ *   - // FIXME: ...
+ *   - // ignore: ...          (ignore do Dart analyzer)
+ *   - // coverage:ignore-...  (ignore de coverage)
+ *   - // danger:ignore        (tag do Danger Bot — na mesma linha ou na linha anterior)
  */
-import { createPlugin, getDanger, sendFail, getDartFiles } from "@types";
+import { createPlugin, getDanger, sendFormattedFail, getDartFiles } from "@types";
+
+const ALLOWED_PREFIXES = /^\/\/\s*(TODO|FIXME|ignore:|coverage:ignore|danger:ignore)/i;
 
 export default createPlugin(
   {
@@ -19,48 +28,45 @@ export default createPlugin(
         if (!diff) continue;
 
         for (const chunk of diff.chunks) {
-          const changes = (chunk as any).changes ?? [];
-          for (const change of changes) {
+          const changes: any[] = (chunk as any).changes ?? [];
+
+          for (let i = 0; i < changes.length; i++) {
+            const change = changes[i];
             if (change.type !== "add") continue;
 
             const line = (change.content as string).replace(/^\+/, "").trim();
             if (!line.match(/^\/\/(?!\/)/)) continue;
 
+            if (ALLOWED_PREFIXES.test(line)) continue;
+
+            const prevChange = i > 0 ? changes[i - 1] : null;
+            if (prevChange) {
+              const prevLine = (prevChange.content as string).replace(/^\+/, "").trim();
+              if (/\/\/\s*danger:ignore/i.test(prevLine)) continue;
+            }
+
             const lineNum = change.ln ?? change.ln2 ?? 0;
+            const commentText = line.replace(/^\/\/\s*/, "");
 
-            sendFail(
-              `## 💬 COMENTÁRIO // PROIBIDO
-
-Comentário \`//\` encontrado. Comentários \`//\` não geram documentação.
-
----
-
-### ⚠️ Problema Identificado
-
-\`\`\`dart
-// ❌ ${line}
-\`\`\`
-
----
-
-### 🎯 AÇÃO NECESSÁRIA
-
-Use comentários de documentação \`///\` ao invés de \`//\`:
-
-\`\`\`dart
-// ✅ CORRETO
-/// ${line.replace(/^\/\/\s*/, "")}
-\`\`\`
-
-**Benefícios de \`///\`:**
-- ✅ Gera documentação automática (DartDoc)
-- ✅ Aparece no IDE (hover/autocomplete)
-- ✅ Suporta Markdown
-
-> **Regra:** Sempre use \`///\` para documentar código público!`,
+            sendFormattedFail({
+              title: "COMENTÁRIO // PROIBIDO",
+              description:
+                "Comentários `//` não geram documentação. Use `///` para documentar código público.",
+              problem: {
+                wrong: line,
+                correct: `/// ${commentText}`,
+                wrongLabel: "Comentário // não gera documentação",
+                correctLabel: "Comentário /// gera documentação (DartDoc)",
+              },
+              action: {
+                text: "Se o comentário for realmente necessário como `//`, adicione a tag `danger:ignore` na linha anterior:",
+                code: `// danger:ignore\n${line}`,
+              },
+              objective:
+                "Gerar **documentação automática** com DartDoc. Tags permitidas: `TODO:`, `FIXME:`, `ignore:`, `coverage:ignore`, `danger:ignore`.",
               file,
-              lineNum
-            );
+              line: lineNum,
+            });
           }
         }
       } catch {
