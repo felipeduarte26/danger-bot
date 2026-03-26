@@ -15,73 +15,51 @@ exports.default = (0, _types_1.createPlugin)(
     const dartFiles = await (0, _types_1.getDartFiles)();
     for (const file of dartFiles) {
       try {
-        const content = await danger.git.structuredDiffForFile(file);
-        if (!content) continue;
-        const fileText = content.chunks.map((c) => c.content).join("\n");
-        const lines = fileText.split("\n");
-        for (let i = 0; i < lines.length; i++) {
-          const line = lines[i].trim();
-          // Detectar comentário // (mas não ///)
-          if (line.match(/^\/\/(?!\/)/)) {
+        const diff = await danger.git.structuredDiffForFile(file);
+        if (!diff) continue;
+        for (const chunk of diff.chunks) {
+          const changes = chunk.changes ?? [];
+          for (const change of changes) {
+            if (change.type !== "add") continue;
+            const line = change.content.replace(/^\+/, "").trim();
+            if (!line.match(/^\/\/(?!\/)/)) continue;
+            const lineNum = change.ln ?? change.ln2 ?? 0;
             (0, _types_1.sendFail)(
               `## 💬 COMENTÁRIO // PROIBIDO
 
-Comentário \`//\` encontrado na linha ${i + 1}.
+Comentário \`//\` encontrado. Comentários \`//\` não geram documentação.
 
 ---
 
 ### ⚠️ Problema Identificado
 
-Comentários \`//\` não geram documentação.
+\`\`\`dart
+// ❌ ${line}
+\`\`\`
 
 ---
 
 ### 🎯 AÇÃO NECESSÁRIA
 
-**Use comentários de documentação:**
+Use comentários de documentação \`///\` ao invés de \`//\`:
 
 \`\`\`dart
-// ❌ INCORRETO
-// Esta função calcula o total
-double calculateTotal(List<double> values) {
-  return values.reduce((a, b) => a + b);
-}
-
 // ✅ CORRETO
-/// Calcula o total somando todos os valores da lista.
-///
-/// Retorna a soma de todos os elementos em [values].
-/// Se a lista estiver vazia, retorna 0.0.
-///
-/// Exemplo:
-/// \`\`\`dart
-/// final total = calculateTotal([1.0, 2.0, 3.0]); // 6.0
-/// \`\`\`
-double calculateTotal(List<double> values) {
-  if (values.isEmpty) return 0.0;
-  return values.reduce((a, b) => a + b);
-}
+/// ${line.replace(/^\/\/\s*/, "")}
 \`\`\`
 
 **Benefícios de \`///\`:**
-- ✅ Gera documentação automática
+- ✅ Gera documentação automática (DartDoc)
 - ✅ Aparece no IDE (hover/autocomplete)
-- ✅ Pode incluir exemplos e links
 - ✅ Suporta Markdown
-
----
-
-### 🚀 Objetivo
-
-Gerar **documentação automática** com DartDoc.
 
 > **Regra:** Sempre use \`///\` para documentar código público!`,
               file,
-              i + 1
+              lineNum
             );
           }
         }
-      } catch (e) {
+      } catch {
         // Ignore
       }
     }
