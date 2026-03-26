@@ -52,10 +52,10 @@ function buildChatMessage() {
   let statusText;
   if (fails > 0) {
     statusEmoji = "🔴";
-    statusText = `${fails} erro(s) encontrado(s)`;
+    statusText = "Problemas encontrados no code review";
   } else if (warnings > 0) {
     statusEmoji = "🟡";
-    statusText = `${warnings} aviso(s) encontrado(s)`;
+    statusText = "Avisos encontrados no code review";
   } else {
     statusEmoji = "🟢";
     statusText = "Nenhum problema encontrado";
