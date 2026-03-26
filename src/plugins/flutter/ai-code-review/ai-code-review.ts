@@ -257,7 +257,7 @@ export default createPlugin(
         issues++;
 
         sendWarn(
-          `🤖 **AI CODE REVIEW** — \`${file}\`\n\n${result.text}\n\n---\n_Revisão automática por Gemini (${GEMINI_MODEL}). Valide as sugestões antes de aplicar._`,
+          `🤖 **AI CODE REVIEW** — \`${file}\`\n\n${result.text}\n\n---\n_Revisão automática por Danger Bot AI Code Review. Valide as sugestões antes de aplicar._`,
           file
         );
 
