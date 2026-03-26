@@ -6,7 +6,7 @@
  * - Campos devem ser final (imutabilidade)
  * - Somente uma classe Model por arquivo
  */
-import { createPlugin, getDanger, sendFail } from "@types";
+import { createPlugin, getDanger, sendFormattedFail } from "@types";
 import * as fs from "fs";
 
 export default createPlugin(
@@ -30,20 +30,21 @@ export default createPlugin(
       const fileName = file.split("/").pop() || "";
 
       if (!fileName.endsWith("_model.dart")) {
-        sendFail(
-          `NOMENCLATURA DE MODEL INCORRETA
-
-Arquivo deve terminar com \`_model.dart\`.
-
-### 🎯 AÇÃO NECESSÁRIA
-
-\`\`\`dart
-// ❌ ${fileName}
-// ✅ ${fileName.replace(".dart", "")}_model.dart
-\`\`\``,
+        sendFormattedFail({
+          title: "NOMENCLATURA DE MODEL INCORRETA",
+          description: "Arquivo de Model deve terminar com `_model.dart`.",
+          problem: {
+            wrong: fileName,
+            correct: `${fileName.replace(".dart", "")}_model.dart`,
+          },
+          action: {
+            text: "Renomeie o arquivo:",
+            code: `${fileName.replace(".dart", "")}_model.dart`,
+          },
+          objective: "Manter **consistência** na nomenclatura da camada Data.",
           file,
-          1
-        );
+          line: 1,
+        });
         continue;
       }
 
@@ -76,70 +77,65 @@ Arquivo deve terminar com \`_model.dart\`.
       }
 
       if (classes.length > 1) {
-        sendFail(
-          `MÚLTIPLAS CLASSES EM UM ARQUIVO MODEL
-
-Encontradas **${classes.length} classes** neste arquivo: ${classes.map((c) => `\`${c.name}\``).join(", ")}.
-
-### Problema Identificado
-
-Cada Model deve estar em seu próprio arquivo para manter organização e facilitar manutenção.
-
-### 🎯 AÇÃO NECESSÁRIA
-
-Separe cada classe em um arquivo individual:
-
-${classes.map((c) => `- \`${c.name}\` → \`${toSnakeCase(c.name)}.dart\``).join("\n")}
-
-### 🚀 Objetivo
-
-**Uma classe por arquivo** — facilita navegação e reduz conflitos de merge.`,
+        sendFormattedFail({
+          title: "MÚLTIPLAS CLASSES EM UM ARQUIVO MODEL",
+          description: `Encontradas **${classes.length} classes**: ${classes.map((c) => `\`${c.name}\``).join(", ")}.`,
+          problem: {
+            wrong: classes.map((c) => `class ${c.name} { }`).join("\n"),
+            correct: classes
+              .map((c) => `// ${toSnakeCase(c.name)}.dart\nclass ${c.name} { }`)
+              .join("\n\n"),
+            wrongLabel: `${classes.length} classes no mesmo arquivo`,
+            correctLabel: "Uma classe por arquivo",
+          },
+          action: {
+            text: "Separe cada classe em um arquivo individual:",
+            code: classes.map((c) => `${toSnakeCase(c.name)}.dart → class ${c.name}`).join("\n"),
+          },
+          objective: "**Uma classe por arquivo** — facilita navegação e reduz conflitos de merge.",
           file,
-          classes[1].line
-        );
+          line: classes[1].line,
+        });
       }
 
       for (const cls of classes) {
         if (!cls.name.endsWith("Model")) {
-          sendFail(
-            `CLASSE DE MODEL SEM SUFIXO
-
-A classe \`${cls.name}\` deve terminar com \`Model\`.
-
-### 🎯 AÇÃO NECESSÁRIA
-
-\`\`\`dart
-// ❌ class ${cls.name} { }
-// ✅ class ${cls.name}Model { }
-\`\`\``,
+          sendFormattedFail({
+            title: "CLASSE DE MODEL SEM SUFIXO",
+            description: `A classe \`${cls.name}\` deve terminar com \`Model\`.`,
+            problem: {
+              wrong: `class ${cls.name} { }`,
+              correct: `class ${cls.name}Model { }`,
+            },
+            action: {
+              text: "Renomeie a classe:",
+              code: `class ${cls.name}Model { }`,
+            },
+            objective: "Manter **consistência** na nomenclatura de Models.",
             file,
-            cls.line
-          );
+            line: cls.line,
+          });
         }
       }
 
       if (hasNonFinalField) {
-        sendFail(
-          `MODEL COM CAMPO MUTÁVEL
-
-Campo \`${nonFinalFieldName}\` não é \`final\`. Models devem ser **imutáveis**.
-
-### 🎯 AÇÃO NECESSÁRIA
-
-\`\`\`dart
-// ❌ Mutável
-String ${nonFinalFieldName};
-
-// ✅ Imutável
-final String ${nonFinalFieldName};
-\`\`\`
-
-### 🚀 Objetivo
-
-Models imutáveis são **thread-safe** e mais previsíveis.`,
+        sendFormattedFail({
+          title: "MODEL COM CAMPO MUTÁVEL",
+          description: `Campo \`${nonFinalFieldName}\` não é \`final\`. Models devem ser **imutáveis**.`,
+          problem: {
+            wrong: `String ${nonFinalFieldName};`,
+            correct: `final String ${nonFinalFieldName};`,
+            wrongLabel: "Campo mutável",
+            correctLabel: "Campo imutável (final)",
+          },
+          action: {
+            text: "Adicione `final` ao campo:",
+            code: `final String ${nonFinalFieldName};`,
+          },
+          objective: "Models imutáveis são **thread-safe** e mais previsíveis.",
           file,
-          nonFinalFieldLine
-        );
+          line: nonFinalFieldLine,
+        });
       }
     }
   }

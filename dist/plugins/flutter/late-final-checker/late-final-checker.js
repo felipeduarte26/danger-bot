@@ -84,33 +84,29 @@ exports.default = (0, _types_1.createPlugin)(
         const line = lines[i];
         const match = line.match(LATE_FINAL_WITH_VALUE);
         if (!match) continue;
-        const varName = match[1];
         const trimmed = line.trim();
-        (0, _types_1.sendFail)(
-          `LATE FINAL DESNECESSÁRIO
-
-\`late final\` com valor atribuído na declaração não faz sentido.
-
-\`\`\`dart
-// ❌ Atual
-${trimmed}
-
-// ✅ Correto — remova late
-${trimmed.replace(/late\s+/, "")}
-\`\`\`
-
-### Problema Identificado
-
-\`late final ${varName} = ...\` atribui o valor imediatamente. O \`late\` só é necessário quando a atribuição acontece **depois** (ex: em \`initState\`, \`didChangeDependencies\`).
-
-### 🚀 Objetivo
-
-Usar \`late\` apenas quando necessário — código mais claro e previsível.
-
-📖 [Effective Dart: Usage](https://dart.dev/effective-dart/usage#dont-use-late-when-a-constructor-initializer-will-do)`,
+        (0, _types_1.sendFormattedFail)({
+          title: "LATE FINAL DESNECESSÁRIO",
+          description:
+            "`late final` com valor atribuído na declaração não faz sentido. O `late` só é necessário quando a atribuição acontece **depois** (ex: `initState`, `didChangeDependencies`).",
+          problem: {
+            wrong: trimmed,
+            correct: trimmed.replace(/late\s+/, ""),
+            wrongLabel: "late final com valor imediato",
+            correctLabel: "Apenas final (sem late)",
+          },
+          action: {
+            text: "Remova o `late` — o valor já é atribuído na declaração:",
+            code: trimmed.replace(/late\s+/, ""),
+          },
+          objective: "Usar `late` apenas quando necessário — código mais claro e previsível.",
+          reference: {
+            text: "Effective Dart: Usage",
+            url: "https://dart.dev/effective-dart/usage#dont-use-late-when-a-constructor-initializer-will-do",
+          },
           file,
-          i + 1
-        );
+          line: i + 1,
+        });
       }
     }
   }

@@ -9,7 +9,7 @@
  *
  * Usa wordpos (WordNet) para detecção gramatical real.
  */
-import { createPlugin, getDanger, sendFail } from "@types";
+import { createPlugin, getDanger, sendFormattedFail } from "@types";
 import * as fs from "fs";
 
 const AGENT_NOUN_SUFFIXES = [
@@ -58,8 +58,6 @@ const AGENT_NOUN_SUFFIXES = [
   "emitter",
 ];
 
-// Verbos de ação que NÃO devem iniciar nomes de classes,
-// mesmo que o WordNet os classifique também como noun.
 const ACTION_VERBS = new Set([
   "get",
   "set",
@@ -323,41 +321,29 @@ export default createPlugin(
 
     for (const v of violations) {
       const verbs = v.verbWords.map((w) => `\`${w}\``).join(", ");
-      const suggestion = buildSuggestion(v.className, v.verbWords);
+      const suggestion = buildSuggestion(v.verbWords);
 
-      sendFail(
-        `CLASSE COM VERBO NO NOME
-
-**${v.layer}:** \`${v.className}\`
-Verbo(s) detectado(s): ${verbs}
-
-### Problema Identificado
-
-Classes representam **coisas** (substantivos), não **ações** (verbos).
-Uma classe com verbo no nome confunde responsabilidade com comportamento:
-
-\`\`\`dart
-// ❌ Verbo no nome da classe
-class ${v.className} { }
-
-// ✅ Substantivo no nome da classe
-class ${suggestClassName(v.className, v.verbWords)} { }
-\`\`\`
-
-### 🎯 AÇÃO NECESSÁRIA
-
-${suggestion}
-
-> Sufixos aceitos: -Handler, -Builder, -Processor, -Observer, -Validator, etc.
-
-### 🚀 Objetivo
-
-Seguir **Clean Code** — classes como substantivos, métodos como verbos.
-
-📖 [Clean Code: Naming Classes & Methods](https://medium.com/@mikhailhusyev/writing-clean-code-naming-variables-functions-methods-and-classes-6074a6796c7b)`,
-        v.file,
-        v.line
-      );
+      sendFormattedFail({
+        title: "CLASSE COM VERBO NO NOME",
+        description: `**${v.layer}:** \`${v.className}\` — verbo(s) detectado(s): ${verbs}. Classes representam **coisas** (substantivos), não **ações** (verbos).`,
+        problem: {
+          wrong: `class ${v.className} { }`,
+          correct: `class ${suggestClassName(v.className, v.verbWords)} { }`,
+          wrongLabel: "Verbo no nome da classe",
+          correctLabel: "Substantivo no nome da classe",
+        },
+        action: {
+          text: suggestion,
+          code: `class ${suggestClassName(v.className, v.verbWords)} { }`,
+        },
+        objective: "Seguir **Clean Code** — classes como substantivos, métodos como verbos.",
+        reference: {
+          text: "Clean Code: Naming Classes & Methods",
+          url: "https://medium.com/@mikhailhusyev/writing-clean-code-naming-variables-functions-methods-and-classes-6074a6796c7b",
+        },
+        file: v.file,
+        line: v.line,
+      });
     }
   }
 );
@@ -371,7 +357,7 @@ function suggestClassName(className: string, verbWords: string[]): string {
   return result || className;
 }
 
-function buildSuggestion(className: string, verbWords: string[]): string {
+function buildSuggestion(verbWords: string[]): string {
   const replacements: Record<string, string> = {
     get: "Getter / Retriever / Fetcher",
     fetch: "Fetcher / Retriever",
@@ -413,5 +399,5 @@ function buildSuggestion(className: string, verbWords: string[]): string {
     })
     .join("\n");
 
-  return `**Sugestao:**\n${suggestions}`;
+  return `Sufixos aceitos: -Handler, -Builder, -Processor, -Observer, -Validator, etc.\n\n**Sugestão:**\n${suggestions}`;
 }

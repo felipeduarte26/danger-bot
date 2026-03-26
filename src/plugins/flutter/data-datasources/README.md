@@ -1,68 +1,35 @@
-# Data Datasources Plugin
+# Data Datasources
 
-Plugin que valida nomenclatura de datasources na camada Data.
+Valida arquivos em `/datasources/` (exceto `datasources.dart`): nomenclatura, contrato `abstract interface class` com prefixo **I** e sufixo **Datasource**, implementação `final class` com sufixo **Datasource**, e **um par interface+impl por arquivo**.
 
-## 📋 Descrição
+## O que verifica
 
-Datasources fazem chamadas HTTP, acessam database local, etc. Devem seguir nomenclatura padrão.
+- Nome do arquivo deve terminar com `_datasource.dart`
+- Presença de `abstract interface class I…Datasource`
+- Implementação `final class … implements …` com sufixo `Datasource`
+- Não permite múltiplas interfaces ou múltiplas implementações no mesmo arquivo
 
-## ✨ Regras
+## Severidade
 
-- ✅ Arquivo: \`*_datasource.dart\`
-- ✅ Interface + Implementação
-- ✅ Sufixo: \`Datasource\`
+- **Tipo:** `fail`
 
-## 📦 Uso
+## Exemplo
 
-\`\`\`typescript
-import { dataDatasources } from '@danger-bot/flutter';
-export default async () => { await dataDatasources.run(); };
-\`\`\`
+```dart
+// ❌ Errado
+final class UserRemote { }
 
-## 💡 Exemplo Correto
-
-\`\`\`dart
-// Arquivo: user_datasource.dart
-
-// Interface
-abstract interface class IUserDatasource {
-  Future<UserModel> fetchUser(String id);
-  Future<void> saveUser(UserModel user);
+// ✅ Correto
+abstract interface class IUserRemoteDatasource {
+  Future<List<UserModel>> fetchAll();
 }
 
-// Implementação Remote
-final class UserRemoteDatasource implements IUserDatasource {
-  final http.Client client;
-  
-  UserRemoteDatasource({required this.client});
-  
+final class UserRemoteDatasource implements IUserRemoteDatasource {
   @override
-  Future<UserModel> fetchUser(String id) async {
-    final response = await client.get('/users/$id');
-    return UserModel.fromJson(response.data);
-  }
-  
-  @override
-  Future<void> saveUser(UserModel user) async {
-    await client.post('/users', body: user.toJson());
-  }
+  Future<List<UserModel>> fetchAll() async { /* ... */ }
 }
+```
 
-// Implementação Local
-final class UserLocalDatasource implements IUserDatasource {
-  final Database db;
-  
-  @override
-  Future<UserModel> fetchUser(String id) async {
-    final data = await db.query('users', where: 'id = ?', whereArgs: [id]);
-    return UserModel.fromMap(data.first);
-  }
-}
-\`\`\`
+## Referências
 
-## ❌ Exemplo Incorreto
-
-\`\`\`dart
-// ❌ Arquivo: user_api.dart (deveria ser user_datasource.dart)
-// ❌ Classe: UserApi (deveria ter Datasource no nome)
-\`\`\`
+- [Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)

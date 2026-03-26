@@ -1,196 +1,29 @@
-# 🔌 Avoid Setstate After Async
+# Avoid setState After Async
 
-> Detecta chamadas de setState apos await sem verificar mounted
+Em classes `State<>` / `ViewState<>`, detecta `setState(` após um `await` na mesma função assíncrona **sem** uso de `mounted` entre o `await` e o `setState`, risco de `setState() called after dispose()`.
 
----
+## O que verifica
 
-## 📋 Visão Geral
+- Arquivos com `extends State<` ou `extends ViewState<` e `setState`
+- Padrão: após `await`, antes do próximo `setState`, deve haver verificação envolvendo `mounted`
 
-Este plugin do Danger Bot ajuda a manter:
-- ✅ Qualidade do código
-- ✅ Boas práticas
-- ✅ Consistência no projeto
+## Severidade
 
----
+- **Tipo:** `warn`
 
-## 🎯 Objetivo
+## Exemplo
 
-Detecta chamadas de setState apos await sem verificar mounted
+```dart
+// ❌ Errado
+await fetchData();
+setState(() { _data = result; });
 
-O plugin analisa automaticamente as mudanças no Pull Request e fornece feedback instantâneo sobre possíveis melhorias ou problemas detectados.
-
----
-
-## ⚙️ Como Funciona
-
-1. **Análise**: Examina arquivos modificados/criados no PR
-2. **Validação**: Executa verificações específicas
-3. **Feedback**: Reporta descobertas diretamente no PR
-
----
-
-## 🚀 Configuração
-
-### Importação
-
-```typescript
-import { avoidSetstateAfterAsyncPlugin } from "@felipeduarte26/danger-bot";
+// ✅ Correto
+await fetchData();
+if (!mounted) return;
+setState(() { _data = result; });
 ```
 
-### Uso Básico
+## Referências
 
-```typescript
-// dangerfile.ts
-import { avoidSetstateAfterAsyncPlugin, executeDangerBot } from "@felipeduarte26/danger-bot";
-
-executeDangerBot([
-  avoidSetstateAfterAsyncPlugin, // Habilitado por padrão
-]);
-```
-
-### Personalização
-
-```typescript
-// Desabilitar o plugin
-avoidSetstateAfterAsyncPlugin.config.enabled = false;
-
-// Modificar configuração
-avoidSetstateAfterAsyncPlugin.config.description = "Minha descrição customizada";
-```
-
----
-
-## 📊 Exemplos de Saída
-
-### ✅ Quando tudo está OK
-
-```
-✅ Avoid Setstate After Async: Todas as verificações passaram!
-```
-
-### ⚠️ Quando problemas são encontrados
-
-```
-⚠️ Avoid Setstate After Async: Verificação detectou problemas
-
-[Mensagem de aviso detalhada]
-```
-
-### ❌ Quando há erros críticos
-
-```
-❌ Avoid Setstate After Async: Erro crítico detectado
-
-[Descrição do erro e sugestão de correção]
-```
-
----
-
-## 🎨 Boas Práticas
-
-- Siga as recomendações do plugin
-- Mantenha o código limpo e manutenível
-- Documente suas mudanças adequadamente
-- Revise o feedback antes de fazer merge
-
----
-
-## 🔧 Opções Avançadas
-
-### Configuração Condicional
-
-```typescript
-// Habilitar apenas para branches específicas
-const d = getDanger();
-const isMainBranch = d.github?.pr?.base?.ref === "main";
-
-if (isMainBranch) {
-  avoidSetstateAfterAsyncPlugin.config.enabled = true;
-}
-```
-
-### Integração com Outros Plugins
-
-```typescript
-import {
-  avoidSetstateAfterAsyncPlugin,
-  prSizeCheckerPlugin,
-  changelogCheckerPlugin,
-  executeDangerBot
-} from "@felipeduarte26/danger-bot";
-
-executeDangerBot([
-  prSizeCheckerPlugin,
-  avoidSetstateAfterAsyncPlugin,
-  changelogCheckerPlugin,
-]);
-```
-
----
-
-## 🌍 Plataformas Suportadas
-
-| Plataforma | Status |
-|------------|--------|
-| GitHub | ✅ Suportado |
-| Bitbucket Cloud | ✅ Suportado |
-| Bitbucket Server | ✅ Suportado |
-| GitLab | ✅ Suportado |
-
----
-
-## 📦 Dependências
-
-| Pacote | Versão | Uso |
-|--------|--------|-----|
-| `danger` | ^13.0.0 | Framework base (peer dependency) |
-| `@felipeduarte26/danger-bot` | latest | Helpers e tipos |
-
----
-
-## 🔗 Plugins Relacionados
-
-- [`pr-size-checker`](../pr-size-checker/README.md) - Validação de tamanho de PR
-- [`changelog-checker`](../changelog-checker/README.md) - Validação de CHANGELOG
-- [`flutter-analyze`](../flutter-analyze/README.md) - Análise estática Flutter
-- [`spell-checker`](../spell-checker/README.md) - Verificação ortográfica
-
----
-
-## 📚 Recursos Adicionais
-
-- [Documentação Completa](../../docs/README.md)
-- [Guia de Plugins](../../docs/GUIA_PLUGINS.md)
-- [API Reference](../../docs/API.md)
-- [Exemplos](../../docs/EXEMPLOS.md)
-
----
-
-## 🐛 Problemas Conhecidos
-
-Nenhum problema conhecido no momento.
-
----
-
-## 💡 Dicas
-
-- Execute o plugin localmente antes de fazer push: `npm run danger:local`
-- Use o CLI para validar: `danger-bot validate src/plugins/avoid-setstate-after-async/avoid-setstate-after-async.ts`
-- Combine com outros plugins para máxima cobertura
-
----
-
-## 📝 Notas
-
-**Nota**: Esta documentação é gerada automaticamente pelo CLI do Danger Bot. Atualize conforme necessário para refletir funcionalidades específicas do seu plugin.
-
----
-
-<div align="center">
-
-**[Danger Bot](https://github.com/felipeduarte26/danger-bot)**
-
-[![Danger Bot](https://img.shields.io/badge/Danger-Bot-success)](https://github.com/felipeduarte26/danger-bot)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](../../LICENSE)
-
-</div>
+- [State.mounted (Flutter)](https://api.flutter.dev/flutter/widgets/State/mounted.html)

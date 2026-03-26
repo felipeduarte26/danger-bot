@@ -10,7 +10,7 @@
  * - Arquivo: *_viewmodel.dart ou *_view_model.dart
  * - Classe: extends ViewModelBase
  */
-import { createPlugin, getDanger, sendFail } from "@types";
+import { createPlugin, getDanger, sendFormattedFail } from "@types";
 import * as fs from "fs";
 
 const FORBIDDEN_FIELD_TYPES = [
@@ -50,7 +50,6 @@ export default createPlugin(
 
       const lines = content.split("\n");
 
-      // ── 1. Verificar imports proibidos (Data Layer) ──
       for (let i = 0; i < lines.length; i++) {
         const importMatch = lines[i].match(IMPORT_RE);
         if (!importMatch) continue;
@@ -59,32 +58,28 @@ export default createPlugin(
 
         for (const { pattern, label } of FORBIDDEN_IMPORTS) {
           if (pattern.test(importPath)) {
-            sendFail(
-              `VIEWMODEL IMPORTA ${label.toUpperCase()}
-
-Import \`${importPath}\` traz dependência direta da **camada Data**.
-
-ViewModel deve importar apenas da **camada Domain** (UseCases, Entities, Failures).
-
-\`\`\`dart
-// ❌ Import direto da Data Layer
-import 'package:app/features/user/data/models/user_model.dart';
-
-// ✅ Import apenas da Domain Layer
-import 'package:app/features/user/domain/usecases/get_user_usecase.dart';
-import 'package:app/features/user/domain/entities/user_entity.dart';
-\`\`\`
-
-ViewModel → **UseCase** → Repository → Datasource/Model. Nunca pular camadas.`,
+            sendFormattedFail({
+              title: `VIEWMODEL IMPORTA ${label.toUpperCase()}`,
+              description: `Import \`${importPath}\` traz dependência direta da **camada Data**. ViewModel deve importar apenas da **camada Domain**.`,
+              problem: {
+                wrong: `import 'package:app/.../data/models/user_model.dart';`,
+                correct: `import 'package:app/.../domain/usecases/get_user_usecase.dart';\nimport 'package:app/.../domain/entities/user_entity.dart';`,
+                wrongLabel: "Import direto da Data Layer",
+                correctLabel: "Import apenas da Domain Layer",
+              },
+              action: {
+                text: "Substitua imports de Data por imports de Domain:",
+                code: `import 'package:app/.../domain/usecases/get_user_usecase.dart';\nimport 'package:app/.../domain/entities/user_entity.dart';`,
+              },
+              objective: "ViewModel → **UseCase** → Repository → Datasource. Nunca pular camadas.",
               file,
-              i + 1
-            );
+              line: i + 1,
+            });
             break;
           }
         }
       }
 
-      // ── 2. Verificar campos (fields) proibidos ──
       let insideClass = false;
       let braceDepth = 0;
 
@@ -118,29 +113,23 @@ ViewModel → **UseCase** → Repository → Datasource/Model. Nunca pular camad
 
         for (const { pattern, label } of FORBIDDEN_FIELD_TYPES) {
           if (pattern.test(fieldType)) {
-            sendFail(
-              `VIEWMODEL DEPENDE DE ${label.toUpperCase()} DIRETAMENTE
-
-Campo \`${fieldName}\` é do tipo \`${fieldType}\` — ViewModel deve depender apenas de **UseCases**.
-
-ViewModel acessando ${label} diretamente viola Clean Architecture. A camada Presentation só deve conhecer Domain (UseCases e Entities).
-
-\`\`\`dart
-// ❌ Dependência direta de ${label}
-final class MyViewModel extends ViewModelBase<MyState> {
-  final ${fieldType} ${fieldName};
-}
-
-// ✅ Dependência via UseCase
-final class MyViewModel extends ViewModelBase<MyState> {
-  final IGetDataUsecase _getDataUsecase;
-}
-\`\`\`
-
-ViewModel → **UseCase** → Repository → Datasource. Nunca pular camadas.`,
+            sendFormattedFail({
+              title: `VIEWMODEL DEPENDE DE ${label.toUpperCase()} DIRETAMENTE`,
+              description: `Campo \`${fieldName}\` é do tipo \`${fieldType}\` — ViewModel deve depender apenas de **UseCases**.`,
+              problem: {
+                wrong: `final ${fieldType} ${fieldName};`,
+                correct: `final IGetDataUsecase _getDataUsecase;`,
+                wrongLabel: `Dependência direta de ${label}`,
+                correctLabel: "Dependência via UseCase",
+              },
+              action: {
+                text: "Substitua a dependência direta por um UseCase:",
+                code: `final class MyViewModel extends ViewModelBase<MyState> {\n  final IGetDataUsecase _getDataUsecase;\n}`,
+              },
+              objective: "ViewModel → **UseCase** → Repository → Datasource. Nunca pular camadas.",
               file,
-              i + 1
-            );
+              line: i + 1,
+            });
             break;
           }
         }

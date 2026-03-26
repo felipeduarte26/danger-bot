@@ -1,16 +1,28 @@
-# Barrel Files Enforcer Plugin
+# Barrel Files Enforcer
 
-Força uso de barrel files para organizar exports.
+Lê `pubspec.yaml` para obter o nome do pacote e, em cada arquivo Dart alterado, agrupa imports `package:<seu_app>/...` que apontam para **dois ou mais arquivos na mesma pasta** — sugere criar um barrel (`<pasta>.dart`) e unificar em um único import.
 
-## 📋 Descrição
+## O que verifica
 
-Verifica se pastas importantes (entities, models, etc) têm barrel files (`entities.dart`) para simplificar imports.
+- Ignora `dart:`, imports relativos `../` e pacotes externos
+- Só age quando há **≥2** imports do mesmo diretório do próprio pacote
+- Não reporta se já existe import de barrel (`pasta.dart` ou `pasta/pasta.dart`)
 
-## ✅ Uso
-```typescript
-import { barrelFilesEnforcer } from '@danger-bot/flutter';
-export default async () => { await barrelFilesEnforcer.run(); };
+## Severidade
+
+- **Tipo:** `fail`
+
+## Exemplo
+
+```dart
+// ❌ Errado
+import 'package:app/features/auth/login_page.dart';
+import 'package:app/features/auth/login_controller.dart';
+
+// ✅ Correto
+import 'package:app/features/auth/auth.dart';
 ```
 
-## 📚 O que é Barrel File?
-Arquivo que re-exporta outros arquivos da mesma pasta, simplificando imports.
+## Referências
+
+- [Barrel files in Dart/Flutter (guia)](https://medium.com/@ugamakelechi501/barrel-files-in-dart-and-flutter-a-guide-to-simplifying-imports-9b245dbe516a)

@@ -93,23 +93,6 @@ function classifyTry(lines, start) {
   if (hasFinally) return "try-finally";
   return null;
 }
-function extractSnippet(lines, start, max = 8) {
-  const result = [];
-  let braces = 0;
-  let opened = false;
-  for (let i = start; i < lines.length && result.length < max; i++) {
-    result.push(lines[i]);
-    for (const ch of lines[i]) {
-      if (ch === "{") {
-        braces++;
-        opened = true;
-      }
-      if (ch === "}") braces--;
-    }
-    if (opened && braces <= 0) break;
-  }
-  return result.map((l) => l.trimEnd()).join("\n");
-}
 exports.default = (0, _types_1.createPlugin)(
   {
     name: "presentation-try-catch-checker",
@@ -135,68 +118,28 @@ exports.default = (0, _types_1.createPlugin)(
         if (!TRY_RE.test(lines[i])) continue;
         const kind = classifyTry(lines, i);
         if (!kind) continue;
-        const snippet = extractSnippet(lines, i);
-        (0, _types_1.sendFail)(
-          `TRY-CATCH NA CAMADA PRESENTATION
-
-Uso de \`${kind}\` detectado na **camada Presentation**.
-
-### Problema Identificado
-
-\`\`\`dart
-${snippet}
-\`\`\`
-
-A Presentation Layer **não deve tratar exceções** diretamente. Erros de servidor/rede devem ser tratados nos **Repositories** (retornando \`Either<Failure, Success>\`), e regras de negócio nos **UseCases**.
-
-### 🎯 AÇÃO NECESSÁRIA
-
-\`\`\`dart
-// ❌ Presentation com try-catch
-class MyViewModel {
-  Future<void> loadData() async {
-    try {
-      final data = await repository.getData();
-      state = SuccessState(data);
-    } catch (e) {
-      state = ErrorState(e.toString());
-    }
-  }
-}
-
-// ✅ Repository trata o erro e retorna Either
-class MyRepositoryImpl implements IMyRepository {
-  @override
-  Future<Either<Failure, Data>> getData() async {
-    try {
-      final response = await datasource.fetch();
-      return Right(response.toEntity());
-    } catch (e) {
-      return Left(ServerFailure(e.toString()));
-    }
-  }
-}
-
-// ✅ ViewModel consome o resultado já tratado
-class MyViewModel {
-  Future<void> loadData() async {
-    final result = await getDataUseCase.execute();
-    result.fold(
-      (failure) => state = ErrorState(failure.message),
-      (data) => state = SuccessState(data),
-    );
-  }
-}
-\`\`\`
-
-### 🚀 Objetivo
-
-Manter **separação de responsabilidades**: erros são tratados onde ocorrem (Data/Domain), não onde são exibidos (Presentation).
-
-📖 [Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)`,
+        (0, _types_1.sendFormattedFail)({
+          title: "TRY-CATCH NA CAMADA PRESENTATION",
+          description: `Uso de \`${kind}\` detectado na **camada Presentation**. Erros devem ser tratados nos **Repositories** ou **UseCases**, não na Presentation.`,
+          problem: {
+            wrong: `class MyViewModel {\n  Future<void> loadData() async {\n    try {\n      final data = await repository.getData();\n    } catch (e) {\n      state = ErrorState(e.toString());\n    }\n  }\n}`,
+            correct: `class MyViewModel {\n  Future<void> loadData() async {\n    final result = await getDataUseCase.execute();\n    result.fold(\n      (failure) => state = ErrorState(failure.message),\n      (data) => state = SuccessState(data),\n    );\n  }\n}`,
+            wrongLabel: "Presentation com try-catch",
+            correctLabel: "ViewModel consome resultado já tratado",
+          },
+          action: {
+            text: "Mova o tratamento de erro para o **Repository** (retornando `Either<Failure, Success>`):",
+            code: `class MyRepositoryImpl implements IMyRepository {\n  @override\n  Future<Either<Failure, Data>> getData() async {\n    try {\n      final response = await datasource.fetch();\n      return Right(response.toEntity());\n    } catch (e) {\n      return Left(ServerFailure(e.toString()));\n    }\n  }\n}`,
+          },
+          objective:
+            "Manter **separação de responsabilidades**: erros são tratados onde ocorrem (Data/Domain), não onde são exibidos (Presentation).",
+          reference: {
+            text: "Clean Architecture",
+            url: "https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html",
+          },
           file,
-          i + 1
-        );
+          line: i + 1,
+        });
       }
     }
   }

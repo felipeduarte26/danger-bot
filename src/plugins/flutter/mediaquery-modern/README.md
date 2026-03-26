@@ -1,18 +1,27 @@
-# MediaQuery Modern Plugin
+# Mediaquery Modern
 
-Força uso de APIs modernas do MediaQuery (Flutter 3.10+).
+Substitui padrões `MediaQuery.of(context).propriedade` e `final mq = MediaQuery.of(context)` por APIs **específicas** (`sizeOf`, `paddingOf`, …) quando há mapeamento, reduzindo rebuilds desnecessários (Flutter 3.10+).
 
-## 📋 Descrição
+## O que verifica
 
-Detecta uso de `MediaQuery.of(context).size` (deprecated) e sugere APIs modernas como `MediaQuery.sizeOf(context)`.
+- `MediaQuery.of(ctx).<prop>` para propriedades conhecidas (`size`, `padding`, `orientation`, …)
+- Atribuição `final/var/MediaQueryData x = MediaQuery.of(...)`
+- Uso subsequente `x.<prop>` após a atribuição detectada no mesmo arquivo
 
-## ✅ APIs Modernas
-- `MediaQuery.sizeOf(context)` - Tamanho
-- `MediaQuery.paddingOf(context)` - Padding
-- `MediaQuery.viewInsetsOf(context)` - View insets
+## Severidade
 
-## 📦 Uso
-```typescript
-import { mediaqueryModern } from '@danger-bot/flutter';
-export default async () => { await mediaqueryModern.run(); };
+- **Tipo:** `fail`
+
+## Exemplo
+
+```dart
+// ❌ Errado
+final size = MediaQuery.of(context).size;
+
+// ✅ Correto
+final size = MediaQuery.sizeOf(context);
 ```
+
+## Referências
+
+- [MediaQuery (Flutter API)](https://api.flutter.dev/flutter/widgets/MediaQuery-class.html)

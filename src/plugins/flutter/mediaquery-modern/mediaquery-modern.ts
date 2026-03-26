@@ -10,7 +10,7 @@
  *   final mq = MediaQuery.of(context);
  *   mq.size / mq.padding / etc.
  */
-import { createPlugin, getDanger, sendFail } from "@types";
+import { createPlugin, getDanger, sendFormattedFail } from "@types";
 import * as fs from "fs";
 
 const PROPERTY_ALTERNATIVES: Record<string, string> = {
@@ -63,28 +63,28 @@ export default createPlugin(
         if (assignMatch) {
           mqVarNames.add(assignMatch[1]);
 
-          sendFail(
-            `MEDIAQUERY.OF() — USE API MODERNA
-
-Atribuição de \`MediaQuery.of()\` a variável causa rebuilds desnecessários.
-
-\`\`\`dart
-// ❌ Atual — rebuild quando QUALQUER propriedade muda
-${line.trim()}
-
-// ✅ Use APIs específicas diretamente
-final size = MediaQuery.sizeOf(context);
-final padding = MediaQuery.paddingOf(context);
-\`\`\`
-
-### 🚀 Objetivo
-
-APIs específicas fazem rebuild **apenas quando a propriedade usada muda**.
-
-📖 [Flutter MediaQuery](https://api.flutter.dev/flutter/widgets/MediaQuery-class.html)`,
+          sendFormattedFail({
+            title: "MEDIAQUERY.OF() — USE API MODERNA",
+            description:
+              "Atribuição de `MediaQuery.of()` a variável causa rebuilds desnecessários quando **qualquer** propriedade muda.",
+            problem: {
+              wrong: line.trim(),
+              correct: `final size = MediaQuery.sizeOf(context);\nfinal padding = MediaQuery.paddingOf(context);`,
+              wrongLabel: "Rebuild quando QUALQUER propriedade muda",
+              correctLabel: "APIs específicas — rebuild seletivo",
+            },
+            action: {
+              text: "Substitua por APIs específicas conforme a propriedade usada:",
+              code: `final size = MediaQuery.sizeOf(context);\nfinal padding = MediaQuery.paddingOf(context);\nfinal orientation = MediaQuery.orientationOf(context);`,
+            },
+            objective: "APIs específicas fazem rebuild **apenas quando a propriedade usada muda**.",
+            reference: {
+              text: "Flutter MediaQuery",
+              url: "https://api.flutter.dev/flutter/widgets/MediaQuery-class.html",
+            },
             file,
-            i + 1
-          );
+            line: i + 1,
+          });
           continue;
         }
 
@@ -94,27 +94,27 @@ APIs específicas fazem rebuild **apenas quando a propriedade usada muda**.
           const alternative = PROPERTY_ALTERNATIVES[property];
 
           if (alternative) {
-            sendFail(
-              `MEDIAQUERY.OF() — USE API MODERNA
-
-\`MediaQuery.of(...).${property}\` causa rebuilds desnecessários.
-
-\`\`\`dart
-// ❌ Atual — rebuild quando QUALQUER propriedade muda
-${line.trim()}
-
-// ✅ Correto — rebuild apenas quando ${property} muda
-${line.trim().replace(MQ_OF_RE, alternative)}
-\`\`\`
-
-### 🚀 Objetivo
-
-Melhor **performance** com rebuilds mais eficientes.
-
-📖 [Flutter MediaQuery](https://api.flutter.dev/flutter/widgets/MediaQuery-class.html)`,
+            sendFormattedFail({
+              title: "MEDIAQUERY.OF() — USE API MODERNA",
+              description: `\`MediaQuery.of(...).${property}\` causa rebuilds desnecessários.`,
+              problem: {
+                wrong: line.trim(),
+                correct: line.trim().replace(MQ_OF_RE, alternative),
+                wrongLabel: "Rebuild quando QUALQUER propriedade muda",
+                correctLabel: `Rebuild apenas quando ${property} muda`,
+              },
+              action: {
+                text: `Substitua por \`${alternative}\`:`,
+                code: line.trim().replace(MQ_OF_RE, alternative),
+              },
+              objective: "Melhor **performance** com rebuilds mais eficientes.",
+              reference: {
+                text: "Flutter MediaQuery",
+                url: "https://api.flutter.dev/flutter/widgets/MediaQuery-class.html",
+              },
               file,
-              i + 1
-            );
+              line: i + 1,
+            });
           }
           continue;
         }
@@ -129,28 +129,27 @@ Melhor **performance** com rebuilds mais eficientes.
               const alternative = PROPERTY_ALTERNATIVES[property];
 
               if (alternative) {
-                sendFail(
-                  `MEDIAQUERY.OF() — USE API MODERNA
-
-\`${varName}.${property}\` vem de \`MediaQuery.of()\` — causa rebuilds desnecessários.
-
-\`\`\`dart
-// ❌ Atual
-final ${varName} = MediaQuery.of(context);
-... ${varName}.${property} ...
-
-// ✅ Correto — use diretamente
-final ${property} = ${alternative};
-\`\`\`
-
-### 🚀 Objetivo
-
-Melhor **performance** com rebuilds mais eficientes.
-
-📖 [Flutter MediaQuery](https://api.flutter.dev/flutter/widgets/MediaQuery-class.html)`,
+                sendFormattedFail({
+                  title: "MEDIAQUERY.OF() — USE API MODERNA",
+                  description: `\`${varName}.${property}\` vem de \`MediaQuery.of()\` — causa rebuilds desnecessários.`,
+                  problem: {
+                    wrong: `final ${varName} = MediaQuery.of(context);\n... ${varName}.${property} ...`,
+                    correct: `final ${property} = ${alternative};`,
+                    wrongLabel: "Via variável intermediária",
+                    correctLabel: "API específica diretamente",
+                  },
+                  action: {
+                    text: `Substitua por \`${alternative}\`:`,
+                    code: `final ${property} = ${alternative};`,
+                  },
+                  objective: "Melhor **performance** com rebuilds mais eficientes.",
+                  reference: {
+                    text: "Flutter MediaQuery",
+                    url: "https://api.flutter.dev/flutter/widgets/MediaQuery-class.html",
+                  },
                   file,
-                  i + 1
-                );
+                  line: i + 1,
+                });
               }
             }
           }

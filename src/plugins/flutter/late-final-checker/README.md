@@ -1,16 +1,25 @@
-# Late Final Checker Plugin
+# Late Final Checker
 
-Detecta uso de `late final` e sugere alternativas mais seguras.
+Detecta `late final` com **atribuição na mesma linha** da declaração. Nesse caso, `late` é desnecessário — prefira `final` (ou `const` quando aplicável).
 
-## 📋 Descrição
+## O que verifica
 
-O plugin identifica declarações `late final` que podem causar runtime errors e sugere alternativas mais seguras como inicialização no constructor ou uso de nullable.
+- Regex em linhas de arquivos Dart alterados: `late final … nome = …;`
 
-## ✅ Uso
-```typescript
-import { lateFinalChecker } from '@danger-bot/flutter';
-export default async () => { await lateFinalChecker.run(); };
+## Severidade
+
+- **Tipo:** `fail`
+
+## Exemplo
+
+```dart
+// ❌ Errado
+late final String title = 'Home';
+
+// ✅ Correto
+final String title = 'Home';
 ```
 
-## 📚 Referência
-- [Effective Dart: Late Variables](https://dart.dev/guides/language/effective-dart/usage#avoid-using-late-variables-if-you-need-to-check-whether-they-are-initialized)
+## Referências
+
+- [Effective Dart — Usage](https://dart.dev/effective-dart/usage#dont-use-late-when-a-constructor-initializer-will-do)

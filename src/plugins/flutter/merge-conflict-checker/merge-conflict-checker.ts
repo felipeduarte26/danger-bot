@@ -3,7 +3,7 @@
  * Detecta conflitos de merge entre o branch atual e o branch de destino
  * usando `git merge-tree` para simular o merge sem alterar o working directory.
  */
-import { createPlugin, sendFail } from "@types";
+import { createPlugin, sendFormattedFail } from "@types";
 import { execSync } from "child_process";
 
 interface ConflictInfo {
@@ -122,46 +122,28 @@ export default createPlugin(
     if (conflicts.length === 0) return;
 
     for (const conflict of conflicts) {
-      sendFail(
-        `CONFLITO DE MERGE DETECTADO
-
-Este arquivo possui **conflito** com o branch de destino \`${branchName}\`.
-
-### Problema Identificado
-
-\`\`\`
-<<<<<<< .our (sua branch)
-  // suas alterações
-=======
-  // alterações no ${branchName}
->>>>>>> .their (${branchName})
-\`\`\`
-
-O merge automático **não é possível**. Existem alterações concorrentes que precisam ser resolvidas manualmente.
-
-### 🎯 AÇÃO NECESSÁRIA
-
-\`\`\`bash
-# ❌ PR com conflito — não pode ser mergeada
-
-# ✅ Resolva o conflito atualizando sua branch
-git fetch origin
-git merge origin/${branchName}
-
-# Resolva os conflitos, depois:
-git add .
-git commit -m "fix: resolver conflitos com ${branchName}"
-git push
-\`\`\`
-
-### 🚀 Objetivo
-
-Garantir que a PR possa ser **mergeada sem conflitos**, evitando problemas no branch de destino.
-
-📖 [Git - Resolving Merge Conflicts](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/addressing-merge-conflicts/resolving-a-merge-conflict-using-the-command-line)`,
-        conflict.file,
-        conflict.line
-      );
+      sendFormattedFail({
+        title: "CONFLITO DE MERGE DETECTADO",
+        description: `Este arquivo possui **conflito** com o branch de destino \`${branchName}\`. O merge automático **não é possível**.`,
+        problem: {
+          wrong: `<<<<<<< .our (sua branch)\n  // suas alterações\n=======\n  // alterações no ${branchName}\n>>>>>>> .their (${branchName})`,
+          correct: `// Código resolvido manualmente\n// Combinando as alterações de ambas as branches`,
+          wrongLabel: "Conflito no arquivo",
+          correctLabel: "Após resolução manual",
+        },
+        action: {
+          text: "Resolva o conflito atualizando sua branch:",
+          code: `git fetch origin\ngit merge origin/${branchName}\n# Resolva os conflitos, depois:\ngit add .\ngit commit -m "fix: resolver conflitos com ${branchName}"\ngit push`,
+        },
+        objective:
+          "Garantir que a PR possa ser **mergeada sem conflitos**, evitando problemas no branch de destino.",
+        reference: {
+          text: "Git - Resolving Merge Conflicts",
+          url: "https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/addressing-merge-conflicts/resolving-a-merge-conflict-using-the-command-line",
+        },
+        file: conflict.file,
+        line: conflict.line,
+      });
     }
   }
 );

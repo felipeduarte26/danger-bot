@@ -11,7 +11,7 @@
  *
  * Exclui arquivos de teste (*_test.dart) e ignora matches em comentários.
  */
-import { createPlugin, getDanger, sendFail, sendWarn } from "@types";
+import { createPlugin, getDanger, sendFormattedFail, sendWarn } from "@types";
 import * as fs from "fs";
 
 interface SecretPattern {
@@ -22,7 +22,6 @@ interface SecretPattern {
 }
 
 const SECRET_PATTERNS: SecretPattern[] = [
-  // ── API Keys de provedores ──
   {
     id: "google-api",
     regex: /['"]AIza[0-9A-Za-z_-]{35}['"]/,
@@ -89,8 +88,6 @@ const SECRET_PATTERNS: SecretPattern[] = [
     label: "JWT Token",
     severity: "critical",
   },
-
-  // ── Senhas e secrets genéricos ──
   {
     id: "password-assign",
     regex: /(?:password|passwd|pwd)\s*=\s*['"][^'"]{4,}['"]/,
@@ -115,8 +112,6 @@ const SECRET_PATTERNS: SecretPattern[] = [
     label: "Private Key",
     severity: "critical",
   },
-
-  // ── Headers com credenciais ──
   {
     id: "bearer-header",
     regex: /['"](?:Authorization|authorization)['"]\s*:\s*['"]Bearer\s+[A-Za-z0-9_.=-]{20,}['"]/,
@@ -135,8 +130,6 @@ const SECRET_PATTERNS: SecretPattern[] = [
     label: "API Key em header",
     severity: "high",
   },
-
-  // ── URLs com credenciais ──
   {
     id: "url-with-key",
     regex:
@@ -199,7 +192,6 @@ export default createPlugin(
 
     const allFiles = [...git.created_files, ...git.modified_files];
 
-    // ── 1. Verificar secrets em arquivos .dart ──
     const dartFiles = allFiles.filter(
       (f: string) =>
         f.endsWith(".dart") &&
@@ -224,69 +216,56 @@ export default createPlugin(
         for (const { regex, label, severity } of SECRET_PATTERNS) {
           if (!regex.test(line)) continue;
 
-          const icon = severity === "critical" ? "🚨" : severity === "high" ? "⚠️" : "💡";
+          const icon = severity === "critical" ? "🚨" : "⚠️";
 
-          sendFail(
-            `${icon} SEGURANÇA — ${label.toUpperCase()}
-
-\`${line.trim()}\`
-
-Credencial detectada diretamente no código-fonte. Isso é um **risco ${severity === "critical" ? "crítico" : "alto"}** de segurança.
-
-**Consequências:**
-
-- Exposição de credenciais em repositório
-- Uso não autorizado por terceiros
-- Possível violação de dados
-
-**Ação necessária:**
-
-1. Remova a credencial do código
-2. Revogue a credencial no provedor (considere comprometida)
-3. Use variáveis de ambiente:
-
-\`\`\`dart
-// ❌ Hardcoded
-const apiKey = 'AIzaSyD-9tNTn...';
-
-// ✅ Variável de ambiente
-const apiKey = String.fromEnvironment('API_KEY');
-
-// ✅ flutter_dotenv
-final apiKey = dotenv.env['API_KEY'] ?? '';
-\`\`\``,
+          sendFormattedFail({
+            title: `${icon} SEGURANÇA — ${label.toUpperCase()}`,
+            description: `Credencial detectada diretamente no código-fonte. Risco **${severity === "critical" ? "crítico" : "alto"}** de segurança.`,
+            problem: {
+              wrong: `const apiKey = 'AIzaSyD-9tNTn...';`,
+              correct: `const apiKey = String.fromEnvironment('API_KEY');`,
+              wrongLabel: "Credencial hardcoded",
+              correctLabel: "Variável de ambiente",
+            },
+            action: {
+              text: "1. Remova a credencial do código\n2. Revogue no provedor (considere comprometida)\n3. Use variáveis de ambiente:",
+              code: `// Variável de ambiente\nconst apiKey = String.fromEnvironment('API_KEY');\n\n// flutter_dotenv\nfinal apiKey = dotenv.env['API_KEY'] ?? '';`,
+            },
+            objective: "Proteger **credenciais** contra exposição em repositórios.",
             file,
-            i + 1
-          );
+            line: i + 1,
+          });
           break;
         }
       }
     }
 
-    // ── 2. Verificar arquivos sensíveis commitados ──
     for (const file of allFiles) {
       const fileName = file.split("/").pop() ?? "";
 
       const matched = SENSITIVE_FILES.find((s) => fileName === s || file.endsWith(`/${s}`));
 
       if (matched) {
-        sendFail(
-          `🚨 ARQUIVO SENSÍVEL COMMITADO — \`${fileName}\`
-
-O arquivo \`${file}\` **não deve ser commitado** no repositório. Ele pode conter credenciais, chaves ou configurações sensíveis.
-
-**Ação necessária:**
-
-1. Remova o arquivo do commit: \`git rm --cached ${file}\`
-2. Adicione ao \`.gitignore\`: \`${fileName}\`
-3. Se continha credenciais, revogue e gere novas`,
+        sendFormattedFail({
+          title: "ARQUIVO SENSÍVEL COMMITADO",
+          description: `O arquivo \`${fileName}\` **não deve ser commitado** no repositório.`,
+          problem: {
+            wrong: `git add ${file}`,
+            correct: `echo "${fileName}" >> .gitignore`,
+            wrongLabel: "Arquivo sensível no repositório",
+            correctLabel: "Arquivo no .gitignore",
+          },
+          action: {
+            text: "Remova o arquivo e adicione ao `.gitignore`:",
+            code: `git rm --cached ${file}\necho "${fileName}" >> .gitignore`,
+          },
+          objective: "Proteger **dados sensíveis** contra exposição.",
           file,
-          1
-        );
+          line: 1,
+        });
       }
     }
 
-    // ── 3. Verificar .gitignore ──
     if (fs.existsSync(".gitignore")) {
       const gitignoreContent = fs.readFileSync(".gitignore", "utf-8");
       const missing: string[] = [];

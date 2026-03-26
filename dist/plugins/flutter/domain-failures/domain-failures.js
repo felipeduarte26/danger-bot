@@ -80,20 +80,21 @@ exports.default = (0, _types_1.createPlugin)(
     for (const file of files) {
       const fileName = file.split("/").pop() || "";
       if (!fileName.endsWith("_failure.dart")) {
-        (0, _types_1.sendFail)(
-          `NOMENCLATURA DE FAILURE INCORRETA
-
-Arquivo deve terminar com \`_failure.dart\`.
-
-### 🎯 AÇÃO NECESSÁRIA
-
-\`\`\`dart
-// ❌ ${fileName}
-// ✅ ${fileName.replace(".dart", "")}_failure.dart
-\`\`\``,
+        (0, _types_1.sendFormattedFail)({
+          title: "NOMENCLATURA DE FAILURE INCORRETA",
+          description: "Arquivo de Failure deve terminar com `_failure.dart`.",
+          problem: {
+            wrong: fileName,
+            correct: `${fileName.replace(".dart", "")}_failure.dart`,
+          },
+          action: {
+            text: "Renomeie o arquivo:",
+            code: `${fileName.replace(".dart", "")}_failure.dart`,
+          },
+          objective: "Manter **consistência** na nomenclatura da camada Domain.",
           file,
-          1
-        );
+          line: 1,
+        });
         continue;
       }
       const content = fs.readFileSync(file, "utf-8");
@@ -112,99 +113,75 @@ Arquivo deve terminar com \`_failure.dart\`.
         }
       }
       if (!sealedClass) {
-        (0, _types_1.sendFail)(
-          `FAILURE SEM SEALED CLASS
-
-Arquivo de Failure deve ter uma \`sealed class\` como classe base.
-
-### Problema Identificado
-
-\`sealed class\` permite pattern matching exaustivo e garante hierarquia fechada.
-
-### 🎯 AÇÃO NECESSÁRIA
-
-\`\`\`dart
-sealed class AuthFailure {
-  AuthFailure([this.message = '']);
-  final String message;
-}
-
-final class AuthUnexpectedFailure extends AuthFailure {
-  AuthUnexpectedFailure([super.message]);
-}
-\`\`\`
-
-### 🚀 Objetivo
-
-Garantir **type safety** e **exhaustiveness** no tratamento de erros.`,
+        (0, _types_1.sendFormattedFail)({
+          title: "FAILURE SEM SEALED CLASS",
+          description:
+            "Arquivo de Failure deve ter uma `sealed class` como classe base para pattern matching exaustivo.",
+          problem: {
+            wrong: `class AuthFailure { }`,
+            correct: `sealed class AuthFailure {\n  AuthFailure([this.message = '']);\n  final String message;\n}`,
+          },
+          action: {
+            text: "Crie uma `sealed class` com subclasses:",
+            code: `sealed class AuthFailure {\n  AuthFailure([this.message = '']);\n  final String message;\n}\n\nfinal class AuthUnexpectedFailure extends AuthFailure {\n  AuthUnexpectedFailure([super.message]);\n}`,
+          },
+          objective: "Garantir **type safety** e **exhaustiveness** no tratamento de erros.",
           file,
-          1
-        );
+          line: 1,
+        });
         continue;
       }
       if (!sealedClass.name.endsWith("Failure")) {
-        (0, _types_1.sendFail)(
-          `SEALED CLASS SEM SUFIXO FAILURE
-
-A classe \`${sealedClass.name}\` deve terminar com \`Failure\`.
-
-### 🎯 AÇÃO NECESSÁRIA
-
-\`\`\`dart
-// ❌ sealed class ${sealedClass.name} { }
-// ✅ sealed class ${sealedClass.name}Failure { }
-\`\`\``,
+        (0, _types_1.sendFormattedFail)({
+          title: "SEALED CLASS SEM SUFIXO FAILURE",
+          description: `A classe \`${sealedClass.name}\` deve terminar com \`Failure\`.`,
+          problem: {
+            wrong: `sealed class ${sealedClass.name} { }`,
+            correct: `sealed class ${sealedClass.name}Failure { }`,
+          },
+          action: {
+            text: "Renomeie a classe:",
+            code: `sealed class ${sealedClass.name}Failure { }`,
+          },
+          objective: "Manter **consistência** na nomenclatura de Failures.",
           file,
-          sealedClass.line
-        );
+          line: sealedClass.line,
+        });
       }
       if (finalClasses.length === 0) {
-        (0, _types_1.sendFail)(
-          `FAILURE SEM IMPLEMENTAÇÕES
-
-A sealed class \`${sealedClass.name}\` não tem nenhuma \`final class\` que a estende.
-
-### Problema Identificado
-
-Uma sealed class sozinha não tem utilidade. Precisa de pelo menos uma subclasse.
-
-### 🎯 AÇÃO NECESSÁRIA
-
-\`\`\`dart
-sealed class ${sealedClass.name} {
-  ${sealedClass.name}([this.message = '']);
-  final String message;
-}
-
-// ✅ Adicione pelo menos uma subclasse
-final class ${sealedClass.name.replace("Failure", "")}UnexpectedFailure extends ${sealedClass.name} {
-  ${sealedClass.name.replace("Failure", "")}UnexpectedFailure([super.message]);
-}
-\`\`\`
-
-### 🚀 Objetivo
-
-Definir **tipos específicos de erro** para tratamento adequado.`,
+        (0, _types_1.sendFormattedFail)({
+          title: "FAILURE SEM IMPLEMENTAÇÕES",
+          description: `A sealed class \`${sealedClass.name}\` não tem nenhuma \`final class\` que a estende.`,
+          problem: {
+            wrong: `sealed class ${sealedClass.name} { }`,
+            correct: `sealed class ${sealedClass.name} { }\n\nfinal class ${sealedClass.name.replace("Failure", "")}UnexpectedFailure extends ${sealedClass.name} { }`,
+          },
+          action: {
+            text: "Adicione pelo menos uma subclasse:",
+            code: `final class ${sealedClass.name.replace("Failure", "")}UnexpectedFailure extends ${sealedClass.name} {\n  ${sealedClass.name.replace("Failure", "")}UnexpectedFailure([super.message]);\n}`,
+          },
+          objective: "Definir **tipos específicos de erro** para tratamento adequado.",
           file,
-          sealedClass.line
-        );
+          line: sealedClass.line,
+        });
       }
       for (const cls of finalClasses) {
         if (!cls.name.endsWith("Failure")) {
-          (0, _types_1.sendFail)(
-            `SUBCLASSE DE FAILURE SEM SUFIXO
-
-A classe \`${cls.name}\` deve terminar com \`Failure\`.
-
-### 🎯 AÇÃO NECESSÁRIA
-
-\`\`\`dart
-// ❌ final class ${cls.name} extends ${cls.extendsName} { }
-// ✅ final class ${cls.name}Failure extends ${cls.extendsName} { }
-\`\`\``,
+          (0, _types_1.sendFormattedFail)({
+            title: "SUBCLASSE DE FAILURE SEM SUFIXO",
+            description: `A classe \`${cls.name}\` deve terminar com \`Failure\`.`,
+            problem: {
+              wrong: `final class ${cls.name} extends ${cls.extendsName} { }`,
+              correct: `final class ${cls.name}Failure extends ${cls.extendsName} { }`,
+            },
+            action: {
+              text: "Renomeie a classe:",
+              code: `final class ${cls.name}Failure extends ${cls.extendsName} { }`,
+            },
+            objective: "Manter **consistência** na nomenclatura de Failures.",
             file,
-            cls.line
-          );
+            line: cls.line,
+          });
         }
       }
     }

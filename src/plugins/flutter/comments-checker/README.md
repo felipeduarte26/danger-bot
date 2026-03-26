@@ -1,16 +1,26 @@
-# Comments Checker Plugin
+# Comments Checker
 
-Proíbe comentários `//` e força uso de `///` (documentation comments).
+Analisa **apenas linhas adicionadas** no diff. Comentários de linha `//` que não sejam casos permitidos geram falha: o projeto prefere `///` para documentação pública (DartDoc).
 
-## 📋 Descrição
+## O que verifica
 
-Garante que todo código use comentários de documentação (`///`) ao invés de comentários simples (`//`), gerando documentação automática com DartDoc.
+- Linhas novas que começam com `//` (não `///`)
+- Prefixos permitidos sem falhar: `TODO:`, `FIXME:`, `ignore:`, `coverage:ignore`, `danger:ignore` (na mesma linha ou linha anterior)
 
-## ✅ Uso
-```typescript
-import { commentsChecker } from '@danger-bot/flutter';
-export default async () => { await commentsChecker.run(); };
+## Severidade
+
+- **Tipo:** `fail`
+
+## Exemplo
+
+```dart
+// ❌ Errado (linha adicionada no diff)
+// calcula o total
+
+// ✅ Correto
+/// Calculates the total for the cart.
 ```
 
-## 📚 Referência
-- [Effective Dart: Documentation](https://dart.dev/guides/language/effective-dart/documentation)
+## Referências
+
+- [Effective Dart — Documentation](https://dart.dev/effective-dart/documentation)

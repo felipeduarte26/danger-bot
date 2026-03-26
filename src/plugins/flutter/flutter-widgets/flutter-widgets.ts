@@ -9,7 +9,7 @@
  *
  * Analisa o arquivo completo e trata cada classe separadamente.
  */
-import { createPlugin, getDanger, sendFail } from "@types";
+import { createPlugin, getDanger, sendFormattedFail } from "@types";
 import * as fs from "fs";
 
 type MethodKind = "override" | "public" | "private";
@@ -59,48 +59,27 @@ export default createPlugin(
 
         const violation = findOrderViolation(methods);
         if (violation) {
-          sendFail(
-            `ORDEM DE MÉTODOS INCORRETA
-
-Classe \`${cls.name}\`: método \`${violation.offender.name}\` (${kindLabel(violation.offender.kind)}) aparece **antes** de \`${violation.shouldBeAfter.name}\` (${kindLabel(violation.shouldBeAfter.kind)}).
-
-### Problema Identificado
-
-A ordem correta dos métodos é:
-
-1. **@override** — lifecycle (initState, build, dispose, etc.)
-2. **Públicos** — métodos acessíveis externamente
-3. **Privados** — métodos com prefixo \`_\`
-
-\`\`\`dart
-class ${cls.name} extends State<...> {
-  // 1️⃣ @override methods
-  @override
-  void initState() { ... }
-
-  @override
-  Widget build(BuildContext context) { ... }
-
-  @override
-  void dispose() { ... }
-
-  // 2️⃣ Public methods
-  void handleTap() { ... }
-
-  // 3️⃣ Private methods
-  void _loadData() { ... }
-  void _formatValue() { ... }
-}
-\`\`\`
-
-### 🚀 Objetivo
-
-Manter **consistência** e facilitar **leitura** do código.
-
-📖 [Effective Dart: Style](https://dart.dev/effective-dart/style)`,
+          sendFormattedFail({
+            title: "ORDEM DE MÉTODOS INCORRETA",
+            description: `Classe \`${cls.name}\`: método \`${violation.offender.name}\` (${kindLabel(violation.offender.kind)}) aparece **antes** de \`${violation.shouldBeAfter.name}\` (${kindLabel(violation.shouldBeAfter.kind)}).`,
+            problem: {
+              wrong: `class ${cls.name} {\n  void _privateMethod() { ... }  // privado\n  @override\n  Widget build(...) { ... }       // @override\n}`,
+              correct: `class ${cls.name} {\n  @override\n  Widget build(...) { ... }       // 1️⃣ @override\n  void handleTap() { ... }        // 2️⃣ público\n  void _privateMethod() { ... }   // 3️⃣ privado\n}`,
+              wrongLabel: "Ordem incorreta",
+              correctLabel: "Ordem correta: @override → público → privado",
+            },
+            action: {
+              text: "Reorganize os métodos seguindo a ordem:",
+              code: `// 1️⃣ @override methods (lifecycle)\n@override void initState() { ... }\n@override Widget build(...) { ... }\n@override void dispose() { ... }\n\n// 2️⃣ Public methods\nvoid handleTap() { ... }\n\n// 3️⃣ Private methods\nvoid _loadData() { ... }`,
+            },
+            objective: "Manter **consistência** e facilitar **leitura** do código.",
+            reference: {
+              text: "Effective Dart: Style",
+              url: "https://dart.dev/effective-dart/style",
+            },
             file,
-            violation.offender.line
-          );
+            line: violation.offender.line,
+          });
         }
       }
     }

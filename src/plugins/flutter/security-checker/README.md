@@ -1,21 +1,27 @@
-# Security Checker Plugin
+# Security Checker
 
-Detecta problemas de segurança no código.
+Varre Dart alterado e arquivos tocados pelo PR em busca de **credenciais** e **artefatos sensíveis** (regex para keys JWT, AWS, Stripe, etc.; arquivos `.env`, keystores, plist/json do Firebase, …).
 
-## 📋 Descrição
+## O que verifica
 
-Identifica API keys hardcoded, uso de `eval()`, e outras vulnerabilidades de segurança.
+- Padrões de segredo em linhas não comentadas de `.dart` (exclui testes/mocks)
+- Nomes de arquivo sensíveis entre criados/modificados
+- `.gitignore` sem entradas recomendadas → **`warn`** agrupado
 
-## 🔒 Detecta
-- API keys hardcoded (Google, OpenAI, AWS)
-- Uso de `eval()`
-- Secrets no código fonte
+## Severidade
 
-## 📦 Uso
-```typescript
-import { securityChecker } from '@danger-bot/flutter';
-export default async () => { await securityChecker.run(); };
+- **Tipo:** `fail` (segredos / arquivos sensíveis) e `warn` (gitignore)
+
+## Exemplo
+
+```dart
+// ❌ Errado
+const apiKey = 'AIzaSyD-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx';
+
+// ✅ Correto
+const apiKey = String.fromEnvironment('API_KEY');
 ```
 
-## 📚 Referência
-- [OWASP Mobile Security](https://owasp.org/www-project-mobile-security/)
+## Referências
+
+- [OWASP — Secrets management](https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html)

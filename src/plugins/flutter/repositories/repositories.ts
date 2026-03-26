@@ -14,7 +14,7 @@
  * - Deve estender BaseRepository
  * - Somente uma classe por arquivo
  */
-import { createPlugin, getDanger, sendFail } from "@types";
+import { createPlugin, getDanger, sendFormattedFail } from "@types";
 import * as fs from "fs";
 
 export default createPlugin(
@@ -48,20 +48,21 @@ function validateDomainRepository(file: string): void {
   const fileName = file.split("/").pop() || "";
 
   if (!fileName.endsWith("_repository_interface.dart")) {
-    sendFail(
-      `NOMENCLATURA DE REPOSITORY INTERFACE INCORRETA
-
-Arquivo de interface deve terminar com \`_repository_interface.dart\`.
-
-### 🎯 AÇÃO NECESSÁRIA
-
-\`\`\`dart
-// ❌ ${fileName}
-// ✅ ${fileName.replace(".dart", "")}_repository_interface.dart
-\`\`\``,
+    sendFormattedFail({
+      title: "NOMENCLATURA DE REPOSITORY INTERFACE INCORRETA",
+      description: "Arquivo de interface deve terminar com `_repository_interface.dart`.",
+      problem: {
+        wrong: fileName,
+        correct: `${fileName.replace(".dart", "")}_repository_interface.dart`,
+      },
+      action: {
+        text: "Renomeie o arquivo:",
+        code: `${fileName.replace(".dart", "")}_repository_interface.dart`,
+      },
+      objective: "Manter **consistência** na nomenclatura de interfaces.",
       file,
-      1
-    );
+      line: 1,
+    });
     return;
   }
 
@@ -78,75 +79,77 @@ Arquivo de interface deve terminar com \`_repository_interface.dart\`.
   }
 
   if (interfaces.length === 0) {
-    sendFail(
-      `REPOSITORY SEM abstract interface class
-
-Arquivo de interface deve conter \`abstract interface class\`.
-
-### 🎯 AÇÃO NECESSÁRIA
-
-\`\`\`dart
-abstract interface class IUserRepository {
-  Future<Result<Failure, UserEntity>> getUser(String id);
-}
-\`\`\``,
+    sendFormattedFail({
+      title: "REPOSITORY SEM ABSTRACT INTERFACE CLASS",
+      description: "Arquivo de interface deve conter `abstract interface class`.",
+      problem: {
+        wrong: `// Arquivo sem interface`,
+        correct: `abstract interface class IUserRepository {\n  Future<Result<Failure, UserEntity>> getUser(String id);\n}`,
+      },
+      action: {
+        text: "Adicione a interface:",
+        code: `abstract interface class IUserRepository {\n  Future<Result<Failure, UserEntity>> getUser(String id);\n}`,
+      },
+      objective: "Definir o **contrato** do Repository na camada Domain.",
       file,
-      1
-    );
+      line: 1,
+    });
     return;
   }
 
   if (interfaces.length > 1) {
-    sendFail(
-      `MÚLTIPLAS INTERFACES EM UM ARQUIVO
-
-Encontradas **${interfaces.length} interfaces**: ${interfaces.map((i) => `\`${i.name}\``).join(", ")}.
-
-### 🎯 AÇÃO NECESSÁRIA
-
-Cada interface deve estar em seu próprio arquivo.
-
-### 🚀 Objetivo
-
-**Uma interface por arquivo** — facilita navegação e manutenção.`,
+    sendFormattedFail({
+      title: "MÚLTIPLAS INTERFACES EM UM ARQUIVO",
+      description: `Encontradas **${interfaces.length} interfaces**: ${interfaces.map((i) => `\`${i.name}\``).join(", ")}.`,
+      problem: {
+        wrong: interfaces.map((i) => `abstract interface class ${i.name} { }`).join("\n"),
+        correct: `// Uma interface por arquivo\nabstract interface class ${interfaces[0].name} { }`,
+      },
+      action: {
+        text: "Separe cada interface em seu próprio arquivo:",
+        code: interfaces.map((i) => `${i.name.toLowerCase()}_repository_interface.dart`).join("\n"),
+      },
+      objective: "**Uma interface por arquivo** — facilita navegação e manutenção.",
       file,
-      interfaces[1].line
-    );
+      line: interfaces[1].line,
+    });
   }
 
   for (const iface of interfaces) {
     if (!iface.name.startsWith("I")) {
-      sendFail(
-        `REPOSITORY INTERFACE SEM PREFIXO I
-
-A interface \`${iface.name}\` deve começar com \`I\`.
-
-### 🎯 AÇÃO NECESSÁRIA
-
-\`\`\`dart
-// ❌ abstract interface class ${iface.name} { }
-// ✅ abstract interface class I${iface.name} { }
-\`\`\``,
+      sendFormattedFail({
+        title: "REPOSITORY INTERFACE SEM PREFIXO I",
+        description: `A interface \`${iface.name}\` deve começar com \`I\`.`,
+        problem: {
+          wrong: `abstract interface class ${iface.name} { }`,
+          correct: `abstract interface class I${iface.name} { }`,
+        },
+        action: {
+          text: "Adicione o prefixo `I`:",
+          code: `abstract interface class I${iface.name} { }`,
+        },
+        objective: "Manter **padrão de nomenclatura** para interfaces.",
         file,
-        iface.line
-      );
+        line: iface.line,
+      });
     }
 
     if (!iface.name.endsWith("Repository")) {
-      sendFail(
-        `REPOSITORY INTERFACE SEM SUFIXO
-
-A interface \`${iface.name}\` deve terminar com \`Repository\`.
-
-### 🎯 AÇÃO NECESSÁRIA
-
-\`\`\`dart
-// ❌ abstract interface class ${iface.name} { }
-// ✅ abstract interface class ${iface.name}Repository { }
-\`\`\``,
+      sendFormattedFail({
+        title: "REPOSITORY INTERFACE SEM SUFIXO",
+        description: `A interface \`${iface.name}\` deve terminar com \`Repository\`.`,
+        problem: {
+          wrong: `abstract interface class ${iface.name} { }`,
+          correct: `abstract interface class ${iface.name}Repository { }`,
+        },
+        action: {
+          text: "Adicione o sufixo `Repository`:",
+          code: `abstract interface class ${iface.name}Repository { }`,
+        },
+        objective: "Manter **consistência** na nomenclatura de Repositories.",
         file,
-        iface.line
-      );
+        line: iface.line,
+      });
     }
   }
 }
@@ -155,20 +158,21 @@ function validateDataRepository(file: string): void {
   const fileName = file.split("/").pop() || "";
 
   if (!fileName.endsWith("_repository.dart")) {
-    sendFail(
-      `NOMENCLATURA DE REPOSITORY INCORRETA
-
-Arquivo de implementação deve terminar com \`_repository.dart\`.
-
-### 🎯 AÇÃO NECESSÁRIA
-
-\`\`\`dart
-// ❌ ${fileName}
-// ✅ ${fileName.replace(".dart", "")}_repository.dart
-\`\`\``,
+    sendFormattedFail({
+      title: "NOMENCLATURA DE REPOSITORY INCORRETA",
+      description: "Arquivo de implementação deve terminar com `_repository.dart`.",
+      problem: {
+        wrong: fileName,
+        correct: `${fileName.replace(".dart", "")}_repository.dart`,
+      },
+      action: {
+        text: "Renomeie o arquivo:",
+        code: `${fileName.replace(".dart", "")}_repository.dart`,
+      },
+      objective: "Manter **consistência** na nomenclatura de Repositories.",
       file,
-      1
-    );
+      line: 1,
+    });
     return;
   }
 
@@ -191,87 +195,77 @@ Arquivo de implementação deve terminar com \`_repository.dart\`.
   if (classes.length === 0) return;
 
   if (classes.length > 1) {
-    sendFail(
-      `MÚLTIPLAS CLASSES EM UM ARQUIVO REPOSITORY
-
-Encontradas **${classes.length} classes**: ${classes.map((c) => `\`${c.name}\``).join(", ")}.
-
-### 🎯 AÇÃO NECESSÁRIA
-
-Cada Repository deve estar em seu próprio arquivo.
-
-### 🚀 Objetivo
-
-**Uma classe por arquivo** — facilita navegação e reduz conflitos de merge.`,
+    sendFormattedFail({
+      title: "MÚLTIPLAS CLASSES EM UM ARQUIVO REPOSITORY",
+      description: `Encontradas **${classes.length} classes**: ${classes.map((c) => `\`${c.name}\``).join(", ")}.`,
+      problem: {
+        wrong: classes.map((c) => `class ${c.name} { }`).join("\n"),
+        correct: `// Uma classe por arquivo\nclass ${classes[0].name} { }`,
+      },
+      action: {
+        text: "Separe cada Repository em seu próprio arquivo:",
+        code: classes.map((c) => `${c.name.toLowerCase()}_repository.dart`).join("\n"),
+      },
+      objective: "**Uma classe por arquivo** — facilita navegação e reduz conflitos de merge.",
       file,
-      classes[1].line
-    );
+      line: classes[1].line,
+    });
   }
 
   for (const cls of classes) {
     if (!cls.name.endsWith("Repository")) {
-      sendFail(
-        `REPOSITORY SEM SUFIXO
-
-A classe \`${cls.name}\` deve terminar com \`Repository\`.
-
-### 🎯 AÇÃO NECESSÁRIA
-
-\`\`\`dart
-// ❌ class ${cls.name} { }
-// ✅ class ${cls.name}Repository { }
-\`\`\``,
+      sendFormattedFail({
+        title: "REPOSITORY SEM SUFIXO",
+        description: `A classe \`${cls.name}\` deve terminar com \`Repository\`.`,
+        problem: {
+          wrong: `class ${cls.name} { }`,
+          correct: `class ${cls.name}Repository { }`,
+        },
+        action: {
+          text: "Renomeie a classe:",
+          code: `class ${cls.name}Repository { }`,
+        },
+        objective: "Manter **consistência** na nomenclatura de Repositories.",
         file,
-        cls.line
-      );
+        line: cls.line,
+      });
     }
 
     if (!cls.declaration.includes("implements")) {
-      sendFail(
-        `REPOSITORY SEM INTERFACE
-
-A classe \`${cls.name}\` deve implementar uma interface de Repository.
-
-### 🎯 AÇÃO NECESSÁRIA
-
-\`\`\`dart
-// ❌ class ${cls.name} { }
-// ✅ class ${cls.name} implements I${cls.name} { }
-\`\`\`
-
-### 🚀 Objetivo
-
-Garantir **inversão de dependência** — Domain define o contrato, Data implementa.`,
+      sendFormattedFail({
+        title: "REPOSITORY SEM INTERFACE",
+        description: `A classe \`${cls.name}\` deve implementar uma interface de Repository.`,
+        problem: {
+          wrong: `class ${cls.name} { }`,
+          correct: `class ${cls.name} implements I${cls.name} { }`,
+        },
+        action: {
+          text: "Adicione `implements` com a interface correspondente:",
+          code: `class ${cls.name} implements I${cls.name} { }`,
+        },
+        objective:
+          "Garantir **inversão de dependência** — Domain define o contrato, Data implementa.",
         file,
-        cls.line
-      );
+        line: cls.line,
+      });
     }
 
     if (!cls.declaration.includes("extends BaseRepository")) {
-      sendFail(
-        `REPOSITORY SEM BaseRepository
-
-A classe \`${cls.name}\` deve estender \`BaseRepository\`.
-
-### Problema Identificado
-
-\`BaseRepository\` fornece tratamento padronizado de erros via \`execute()\`.
-
-### 🎯 AÇÃO NECESSÁRIA
-
-\`\`\`dart
-// ❌ class ${cls.name} implements I${cls.name} { }
-
-// ✅ class ${cls.name} extends BaseRepository<XxxFailure>
-//     implements I${cls.name} { }
-\`\`\`
-
-### 🚀 Objetivo
-
-Tratamento de **erros padronizado** em todos os Repositories.`,
+      sendFormattedFail({
+        title: "REPOSITORY SEM BASEREPOSITORY",
+        description: `A classe \`${cls.name}\` deve estender \`BaseRepository\` para tratamento padronizado de erros.`,
+        problem: {
+          wrong: `class ${cls.name} implements I${cls.name} { }`,
+          correct: `class ${cls.name} extends BaseRepository<XxxFailure>\n    implements I${cls.name} { }`,
+        },
+        action: {
+          text: "Adicione `extends BaseRepository`:",
+          code: `class ${cls.name} extends BaseRepository<XxxFailure>\n    implements I${cls.name} { }`,
+        },
+        objective: "Tratamento de **erros padronizado** em todos os Repositories.",
         file,
-        cls.line
-      );
+        line: cls.line,
+      });
     }
   }
 }

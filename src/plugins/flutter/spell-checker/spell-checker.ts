@@ -8,7 +8,7 @@
  *
  * Agrupa erros por arquivo para evitar ruído excessivo.
  */
-import { createPlugin, getDanger, sendFail, sendMessage } from "@types";
+import { createPlugin, getDanger, sendFormattedFail, sendMessage } from "@types";
 import { execSync } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
@@ -773,26 +773,27 @@ export default createPlugin(
           const items = ptErrors
             .map(
               (e) =>
-                `- \`${e.word}\` em ${typeMap[e.type] || e.type} \`${e.identifier}\` (linha ${e.line})`
+                `\`${e.word}\` em ${typeMap[e.type] || e.type} \`${e.identifier}\` (linha ${e.line})`
             )
             .join("\n");
 
-          const extra =
-            errors.filter((e) => e.reason === "portuguese").length > 10
-              ? `\n\n_...e mais ${errors.filter((e) => e.reason === "portuguese").length - 10} ocorrência(s)_`
-              : "";
-
-          sendFail(
-            `IDENTIFICADOR EM PORTUGUÊS — ${ptErrors.length} palavra(s) em português detectada(s)
-
-${items}${extra}
-
-Identificadores devem ser escritos em **inglês**. Código em português dificulta manutenção em equipes internacionais e padronização.
-
-**Ação:** Renomeie para inglês.`,
+          sendFormattedFail({
+            title: "IDENTIFICADOR EM PORTUGUÊS",
+            description: `**${ptErrors.length} palavra(s)** em português detectada(s). Identificadores devem ser em **inglês**.`,
+            problem: {
+              wrong: items,
+              correct: `// Renomeie para inglês`,
+              wrongLabel: "Palavras em português",
+              correctLabel: "Ação",
+            },
+            action: {
+              text: "Renomeie os identificadores para inglês:",
+              code: `// Exemplo: usuario → user, pedido → order`,
+            },
+            objective: "Código em inglês facilita **manutenção** e **padronização**.",
             file,
-            ptErrors[0].line
-          );
+            line: ptErrors[0].line,
+          });
         }
 
         if (typoErrors.length > 0) {
@@ -800,24 +801,27 @@ Identificadores devem ser escritos em **inglês**. Código em português dificul
           const items = typoErrors
             .map(
               (e) =>
-                `- \`${e.word}\` em ${typeMap[e.type] || e.type} \`${e.identifier}\` (linha ${e.line})`
+                `\`${e.word}\` em ${typeMap[e.type] || e.type} \`${e.identifier}\` (linha ${e.line})`
             )
             .join("\n");
 
-          const extra =
-            errors.filter((e) => e.reason === "typo").length > 10
-              ? `\n\n_...e mais ${errors.filter((e) => e.reason === "typo").length - 10} erro(s)_`
-              : "";
-
-          sendFail(
-            `ERRO ORTOGRÁFICO — ${typoErrors.length} palavra(s) com possível typo
-
-${items}${extra}
-
-**Ação:** Corrija o nome ou adicione ao dicionário (\`.vscode/settings.json\` → \`cSpell.words\`)`,
+          sendFormattedFail({
+            title: "ERRO ORTOGRÁFICO",
+            description: `**${typoErrors.length} palavra(s)** com possível typo detectada(s).`,
+            problem: {
+              wrong: items,
+              correct: `// Corrija ou adicione ao dicionário`,
+              wrongLabel: "Possíveis typos",
+              correctLabel: "Ação",
+            },
+            action: {
+              text: "Corrija o nome ou adicione ao dicionário:",
+              code: `// .vscode/settings.json → "cSpell.words": ["palavra"]`,
+            },
+            objective: "Nomes corretos melhoram **legibilidade** do código.",
             file,
-            typoErrors[0].line
-          );
+            line: typoErrors[0].line,
+          });
         }
       }
 

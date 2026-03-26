@@ -394,13 +394,17 @@ function buildFormattedMessage(opts: FormattedMessageOptions): string {
 
 ${opts.description}
 
-### Problema Identificado
+### ⚠️ Problema Identificado
+
+❌ **${wrongLabel}**
 
 \`\`\`${lang}
-// ❌ ${wrongLabel}
 ${opts.problem.wrong}
+\`\`\`
 
-// ✅ ${correctLabel}
+✅ **${correctLabel}**
+
+\`\`\`${lang}
 ${opts.problem.correct}
 \`\`\`
 

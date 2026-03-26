@@ -1,196 +1,30 @@
-# 🔌 merge-conflict-checker
+# Merge Conflict Checker
 
-> Detecta conflitos de merge entre o branch atual e o branch de destino
+Faz `git fetch` e simula merge com `git merge-tree --write-tree HEAD origin/<branch_base>` para detectar **conflitos** entre a branch atual e a base do PR (GitHub, Bitbucket Cloud ou GitLab).
 
----
+## O que verifica
 
-## 📋 Visão Geral
+- Saída do `merge-tree` com marcadores `CONFLICT` e arquivos afetados
+- Linha aproximada do conflito a partir dos hunks da saída
 
-Este plugin do Danger Bot ajuda a manter:
-- ✅ Qualidade do código
-- ✅ Boas práticas
-- ✅ Consistência no projeto
+## Severidade
 
----
+- **Tipo:** `fail`
 
-## 🎯 Objetivo
+## Exemplo
 
-Detecta conflitos de merge entre o branch atual e o branch de destino
+```text
+// ❌ Errado (conteúdo após merge problemático)
+<<<<<<< HEAD
+  return a;
+=======
+  return b;
+>>>>>>> main
 
-O plugin analisa automaticamente as mudanças no Pull Request e fornece feedback instantâneo sobre possíveis melhorias ou problemas detectados.
-
----
-
-## ⚙️ Como Funciona
-
-1. **Análise**: Examina arquivos modificados/criados no PR
-2. **Validação**: Executa verificações específicas
-3. **Feedback**: Reporta descobertas diretamente no PR
-
----
-
-## 🚀 Configuração
-
-### Importação
-
-```typescript
-import { mergeConflictCheckerPlugin } from "@felipeduarte26/danger-bot";
+// ✅ Correto
+  return resolved();
 ```
 
-### Uso Básico
+## Referências
 
-```typescript
-// dangerfile.ts
-import { mergeConflictCheckerPlugin, executeDangerBot } from "@felipeduarte26/danger-bot";
-
-executeDangerBot([
-  mergeConflictCheckerPlugin, // Habilitado por padrão
-]);
-```
-
-### Personalização
-
-```typescript
-// Desabilitar o plugin
-mergeConflictCheckerPlugin.config.enabled = false;
-
-// Modificar configuração
-mergeConflictCheckerPlugin.config.description = "Minha descrição customizada";
-```
-
----
-
-## 📊 Exemplos de Saída
-
-### ✅ Quando tudo está OK
-
-```
-✅ merge-conflict-checker: Todas as verificações passaram!
-```
-
-### ⚠️ Quando problemas são encontrados
-
-```
-⚠️ merge-conflict-checker: Verificação detectou problemas
-
-[Mensagem de aviso detalhada]
-```
-
-### ❌ Quando há erros críticos
-
-```
-❌ merge-conflict-checker: Erro crítico detectado
-
-[Descrição do erro e sugestão de correção]
-```
-
----
-
-## 🎨 Boas Práticas
-
-- Siga as recomendações do plugin
-- Mantenha o código limpo e manutenível
-- Documente suas mudanças adequadamente
-- Revise o feedback antes de fazer merge
-
----
-
-## 🔧 Opções Avançadas
-
-### Configuração Condicional
-
-```typescript
-// Habilitar apenas para branches específicas
-const d = getDanger();
-const isMainBranch = d.github?.pr?.base?.ref === "main";
-
-if (isMainBranch) {
-  mergeConflictCheckerPlugin.config.enabled = true;
-}
-```
-
-### Integração com Outros Plugins
-
-```typescript
-import {
-  mergeConflictCheckerPlugin,
-  prSizeCheckerPlugin,
-  changelogCheckerPlugin,
-  executeDangerBot
-} from "@felipeduarte26/danger-bot";
-
-executeDangerBot([
-  prSizeCheckerPlugin,
-  mergeConflictCheckerPlugin,
-  changelogCheckerPlugin,
-]);
-```
-
----
-
-## 🌍 Plataformas Suportadas
-
-| Plataforma | Status |
-|------------|--------|
-| GitHub | ✅ Suportado |
-| Bitbucket Cloud | ✅ Suportado |
-| Bitbucket Server | ✅ Suportado |
-| GitLab | ✅ Suportado |
-
----
-
-## 📦 Dependências
-
-| Pacote | Versão | Uso |
-|--------|--------|-----|
-| `danger` | ^13.0.0 | Framework base (peer dependency) |
-| `@felipeduarte26/danger-bot` | latest | Helpers e tipos |
-
----
-
-## 🔗 Plugins Relacionados
-
-- [`pr-size-checker`](../pr-size-checker/README.md) - Validação de tamanho de PR
-- [`changelog-checker`](../changelog-checker/README.md) - Validação de CHANGELOG
-- [`flutter-analyze`](../flutter-analyze/README.md) - Análise estática Flutter
-- [`spell-checker`](../spell-checker/README.md) - Verificação ortográfica
-
----
-
-## 📚 Recursos Adicionais
-
-- [Documentação Completa](../../docs/README.md)
-- [Guia de Plugins](../../docs/GUIA_PLUGINS.md)
-- [API Reference](../../docs/API.md)
-- [Exemplos](../../docs/EXEMPLOS.md)
-
----
-
-## 🐛 Problemas Conhecidos
-
-Nenhum problema conhecido no momento.
-
----
-
-## 💡 Dicas
-
-- Execute o plugin localmente antes de fazer push: `npm run danger:local`
-- Use o CLI para validar: `danger-bot validate src/plugins/merge-conflict-checker/merge-conflict-checker.ts`
-- Combine com outros plugins para máxima cobertura
-
----
-
-## 📝 Notas
-
-**Nota**: Esta documentação é gerada automaticamente pelo CLI do Danger Bot. Atualize conforme necessário para refletir funcionalidades específicas do seu plugin.
-
----
-
-<div align="center">
-
-**[Danger Bot](https://github.com/felipeduarte26/danger-bot)**
-
-[![Danger Bot](https://img.shields.io/badge/Danger-Bot-success)](https://github.com/felipeduarte26/danger-bot)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](../../LICENSE)
-
-</div>
+- [Resolving merge conflicts (GitHub)](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/addressing-merge-conflicts/resolving-a-merge-conflict-using-the-command-line)

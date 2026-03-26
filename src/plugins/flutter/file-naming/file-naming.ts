@@ -1,9 +1,5 @@
-import { createPlugin, getDanger, sendFail } from "@types";
+import { createPlugin, getDanger, sendFormattedFail } from "@types";
 
-/**
- * 📁 File Naming Plugin
- * Verifica se os arquivos .dart seguem a convenção snake_case
- */
 export default createPlugin(
   {
     name: "file-naming",
@@ -28,69 +24,29 @@ export default createPlugin(
           .toLowerCase()
           .replace(/^_/, "")
           .replace(/_+/g, "_");
-        sendFail(
-          `## 📁 NOMENCLATURA DE ARQUIVO INCORRETA
 
-O arquivo \`${file}\` **não segue** a convenção de nomenclatura do Dart.
-
----
-
-### ⚠️ Problema Identificado
-
-Nomenclatura inconsistente dificulta:
-- 🔍 Navegação no projeto
-- 🤝 Colaboração entre desenvolvedores  
-- 📚 Manutenibilidade do código
-- ⚡ Ferramentas de busca e refatoração
-
-**📍 Arquivo problemático:** \`${file}\`
-**📍 Sugestão:** \`${suggestion}\`
-
----
-
-### 🎯 AÇÃO NECESSÁRIA
-
-**Regras da convenção snake_case:**
-
-| ✅ Permitido | ❌ Não Permitido |
-|--------------|------------------|
-| Letras minúsculas (a-z) | Letras maiúsculas (A-Z) |
-| Números (0-9) | Espaços em branco |
-| Underscores (_) | Hífens (-) |
-| | camelCase |
-| | PascalCase |
-
----
-
-### 💡 Exemplos de Correção
-
-\`\`\`dart
-// ❌ INCORRETO
-lib/
-  HomePage.dart              // PascalCase
-  user-profile.dart          // kebab-case
-  MyBigComponent.dart        // PascalCase
-  user Profile.dart          // Espaços
-  userData.dart              // camelCase
-
-// ✅ CORRETO
-lib/
-  home_page.dart            // snake_case ✓
-  user_profile.dart         // snake_case ✓
-  my_big_component.dart     // snake_case ✓
-  user_data.dart            // snake_case ✓
-\`\`\`
-
----
-
-### 🚀 Objetivo
-
-Manter **consistência** com padrões oficiais do Dart/Flutter e facilitar colaboração.
-
-> **Referência:** [Effective Dart: Style Guide](https://dart.dev/guides/language/effective-dart/style)`,
+        sendFormattedFail({
+          title: "NOMENCLATURA DE ARQUIVO INCORRETA",
+          description: `O arquivo \`${fileName}\` **não segue** a convenção snake_case do Dart.`,
+          problem: {
+            wrong: fileName,
+            correct: suggestion,
+            wrongLabel: "Nome atual",
+            correctLabel: "Nome correto (snake_case)",
+          },
+          action: {
+            text: "Renomeie o arquivo seguindo as regras snake_case: letras minúsculas (a-z), números (0-9) e underscores (_).",
+            code: `# Renomear\nmv ${fileName} ${suggestion}`,
+          },
+          objective:
+            "Manter **consistência** com padrões oficiais do Dart/Flutter e facilitar colaboração.",
+          reference: {
+            text: "Effective Dart: Style Guide",
+            url: "https://dart.dev/guides/language/effective-dart/style",
+          },
           file,
-          1
-        );
+          line: 1,
+        });
       }
     }
   }

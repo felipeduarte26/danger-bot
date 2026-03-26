@@ -1,84 +1,33 @@
-# Data Models Plugin
+# Data Models
 
-Plugin que valida models na camada Data.
+Valida arquivos em `/models/` (exceto `models.dart`): sufixo `_model.dart`, **uma** classe model por arquivo, nome da classe terminando em **Model**, campos de instância devem ser **final** (imutabilidade).
 
-## 📋 Descrição
+## O que verifica
 
-Models são DTOs que fazem conversão entre JSON/DB e Entities. Devem ser imutáveis.
+- Nome: `*_model.dart`
+- Mais de uma classe concreta no arquivo
+- Classe sem sufixo `Model`
+- Campo declarado sem `final`/`const`/`static`/`late`/`@override` (heurística de tipos comuns)
 
-## ✨ Regras
+## Severidade
 
-- ✅ Arquivo: `*_model.dart`
-- ✅ Classe: `final class NomeModel`
-- ✅ Constructor: `const`
-- ✅ Campos: `final`
-- ✅ Métodos: `fromJson`, `toJson`, `toEntity`
+- **Tipo:** `fail`
 
-## 📦 Uso
-
-```typescript
-import { dataModelsPlugin } from '@danger-bot/flutter';
-export default async () => { await dataModelsPlugin.run(); };
-```
-
-## 💡 Exemplo Correto
+## Exemplo
 
 ```dart
-// Arquivo: user_model.dart
-import '../../domain/entities/user_entity.dart';
+// ❌ Errado
+class UserModel {
+  String name;
+}
 
-final class UserModel {
-  final String id;
+// ✅ Correto
+class UserModel {
+  const UserModel({required this.name});
   final String name;
-  final String email;
-  
-  const UserModel({
-    required this.id,
-    required this.name,
-    required this.email,
-  });
-  
-  // JSON → Model factory
-  UserModel.fromJson(Map<String, dynamic> json) {
-    return UserModel(
-      id: json['id'],
-      name: json['name'],
-      email: json['email'],
-    );
-  }
-  
-  // Model → JSON
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'name': name,
-      'email': email,
-    };
-  }
-  
-  // Model → Entity
-  UserEntity toEntity() {
-    return UserEntity(
-      id: id,
-      name: name,
-      email: email,
-    );
-  }
-  
-  // Entity → Model factory
-  UserModel.fromEntity(UserEntity entity) {
-    return UserModel(
-      id: entity.id,
-      name: entity.name,
-      email: entity.email,
-    );
-  }
 }
 ```
 
-## ❌ Exemplo Incorreto
+## Referências
 
-```dart
-// ❌ Arquivo: user.dart (deveria ser user_model.dart)
-// ❌ Classe mutável class UserModel { String name; // ❌ Sem final }
-```
+- [Effective Dart — Design](https://dart.dev/effective-dart/design)

@@ -5,7 +5,7 @@
  * late final só faz sentido quando o valor é atribuído DEPOIS (ex: initState).
  * Se já tem valor na declaração, deve ser apenas final ou const.
  */
-import { createPlugin, getDanger, sendFail } from "@types";
+import { createPlugin, getDanger, sendFormattedFail } from "@types";
 import * as fs from "fs";
 
 const LATE_FINAL_WITH_VALUE = /late\s+final\s+(?:[\w<>,?\s]+\s+)?(\w+)\s*=\s*.+;/;
@@ -36,34 +36,30 @@ export default createPlugin(
         const match = line.match(LATE_FINAL_WITH_VALUE);
         if (!match) continue;
 
-        const varName = match[1];
         const trimmed = line.trim();
 
-        sendFail(
-          `LATE FINAL DESNECESSÁRIO
-
-\`late final\` com valor atribuído na declaração não faz sentido.
-
-\`\`\`dart
-// ❌ Atual
-${trimmed}
-
-// ✅ Correto — remova late
-${trimmed.replace(/late\s+/, "")}
-\`\`\`
-
-### Problema Identificado
-
-\`late final ${varName} = ...\` atribui o valor imediatamente. O \`late\` só é necessário quando a atribuição acontece **depois** (ex: em \`initState\`, \`didChangeDependencies\`).
-
-### 🚀 Objetivo
-
-Usar \`late\` apenas quando necessário — código mais claro e previsível.
-
-📖 [Effective Dart: Usage](https://dart.dev/effective-dart/usage#dont-use-late-when-a-constructor-initializer-will-do)`,
+        sendFormattedFail({
+          title: "LATE FINAL DESNECESSÁRIO",
+          description:
+            "`late final` com valor atribuído na declaração não faz sentido. O `late` só é necessário quando a atribuição acontece **depois** (ex: `initState`, `didChangeDependencies`).",
+          problem: {
+            wrong: trimmed,
+            correct: trimmed.replace(/late\s+/, ""),
+            wrongLabel: "late final com valor imediato",
+            correctLabel: "Apenas final (sem late)",
+          },
+          action: {
+            text: "Remova o `late` — o valor já é atribuído na declaração:",
+            code: trimmed.replace(/late\s+/, ""),
+          },
+          objective: "Usar `late` apenas quando necessário — código mais claro e previsível.",
+          reference: {
+            text: "Effective Dart: Usage",
+            url: "https://dart.dev/effective-dart/usage#dont-use-late-when-a-constructor-initializer-will-do",
+          },
           file,
-          i + 1
-        );
+          line: i + 1,
+        });
       }
     }
   }

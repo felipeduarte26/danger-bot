@@ -115,46 +115,27 @@ exports.default = (0, _types_1.createPlugin)(
       for (const { lineIndex, text } of preReturnLines) {
         for (const pattern of HEAVY_PATTERNS) {
           if (pattern.regex.test(text)) {
-            (0, _types_1.sendFail)(
-              `OPERAÇÃO CUSTOSA NO BUILD()
-
-${pattern.description}
-
-### Problema Identificado
-
-\`build()\` é chamado a cada rebuild do widget. Operações pesadas aqui causam **jank** (queda de FPS).
-
-\`\`\`dart
-${text.trim()}
-\`\`\`
-
-### 🎯 AÇÃO NECESSÁRIA
-
-Mova para \`initState()\`, campo da classe, ou compute fora do build:
-
-\`\`\`dart
-// ❌ Dentro do build()
-Widget build(BuildContext context) {
-  final sorted = items.sort(); // roda a cada rebuild
-  return ListView(...);
-}
-
-// ✅ Fora do build()
-late final sorted = items..sort(); // computa uma vez
-
-Widget build(BuildContext context) {
-  return ListView(children: sorted.map(...));
-}
-\`\`\`
-
-### 🚀 Objetivo
-
-Manter **60fps** com builds rápidos.
-
-📖 [Flutter Performance Best Practices](https://docs.flutter.dev/perf/best-practices)`,
+            (0, _types_1.sendFormattedFail)({
+              title: "OPERAÇÃO CUSTOSA NO BUILD()",
+              description: `${pattern.description}. \`build()\` é chamado a cada rebuild — operações pesadas aqui causam **jank** (queda de FPS).`,
+              problem: {
+                wrong: `Widget build(BuildContext context) {\n  ${text.trim()}\n  return ...;\n}`,
+                correct: `late final sorted = items..sort();\n\nWidget build(BuildContext context) {\n  return ListView(children: sorted.map(...));\n}`,
+                wrongLabel: "Dentro do build() — roda a cada rebuild",
+                correctLabel: "Fora do build() — computa uma vez",
+              },
+              action: {
+                text: "Mova para `initState()`, campo da classe, ou compute fora do build:",
+                code: text.trim(),
+              },
+              objective: "Manter **60fps** com builds rápidos.",
+              reference: {
+                text: "Flutter Performance Best Practices",
+                url: "https://docs.flutter.dev/perf/best-practices",
+              },
               file,
-              lineIndex + 1
-            );
+              line: lineIndex + 1,
+            });
             break;
           }
         }
@@ -162,9 +143,6 @@ Manter **60fps** com builds rápidos.
     }
   }
 );
-/**
- * Encontra a linha onde o método build() começa.
- */
 function findBuildMethodStart(lines) {
   for (let i = 0; i < lines.length; i++) {
     if (lines[i].match(/Widget\s+build\s*\(\s*BuildContext/)) {
@@ -173,12 +151,6 @@ function findBuildMethodStart(lines) {
   }
   return -1;
 }
-/**
- * Extrai as linhas entre o início do build() e o primeiro `return`.
- * Essas são as linhas onde operações pesadas não deveriam estar.
- *
- * Se o build usa arrow syntax (=>), não há código antes do return — retorna vazio.
- */
 function extractPreReturnLines(lines, buildStart) {
   const buildLine = lines[buildStart];
   if (buildLine.includes("=>")) return [];
