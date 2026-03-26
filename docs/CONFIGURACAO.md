@@ -158,18 +158,21 @@ Configuracoes gerais do Danger Bot.
 | Opcao              | Tipo       | Default | Descricao |
 | ------------------ | ---------- | ------- | --------- |
 | `verbose`          | `boolean`  | `false` | Exibe logs detalhados durante a execucao |
-| `gemini_api_keys`  | `string[]` | `[]`    | Lista de API keys do Google Gemini para o plugin **ai-code-review** (suporta rotacao entre varias keys) |
+| `gemini_api_keys`  | `string[]` | `[]`    | API keys do Google Gemini para o plugin **ai-code-review** (rotacao automatica) |
 
 ```yaml
 settings:
   verbose: true
+  gemini_api_keys:
+    - "AIzaSy..."
+    - "AIzaSy..."
 ```
 
 ### `gemini_api_keys` (plugin ai-code-review)
 
-Usado pelo plugin **ai-code-review**, que chama a API do **Google Gemini** (modelo `gemini-2.5-flash-lite`, tier gratuito).
+O plugin **ai-code-review** usa a API do **Google Gemini** (modelo `gemini-2.5-flash-lite`, tier gratuito).
 
-Voce pode informar keys de **tres** formas; o plugin **reune todas as fontes** (YAML + variaveis de ambiente) e remove duplicatas:
+Voce pode informar keys de **tres** formas; o plugin **reune todas as fontes** e remove duplicatas:
 
 1. **`danger-bot.yaml`** — `settings.gemini_api_keys` como lista de strings:
 
@@ -180,17 +183,17 @@ Voce pode informar keys de **tres** formas; o plugin **reune todas as fontes** (
        - "AIzaSy..."
    ```
 
-2. **`GEMINI_API_KEYS`** — varias keys na mesma variavel, **separadas por virgula**.
+2. **`GEMINI_API_KEYS`** (env var) — varias keys separadas por virgula.
 
-3. **`GEMINI_API_KEY`** — uma unica key.
+3. **`GEMINI_API_KEY`** (env var) — uma unica key.
 
-Ordem em que entram na lista interna: primeiro entradas do YAML, depois `GEMINI_API_KEYS`, depois `GEMINI_API_KEY`.
+Ordem: primeiro YAML, depois `GEMINI_API_KEYS`, depois `GEMINI_API_KEY`. Duplicatas sao removidas.
 
 Gere keys gratuitas em: [https://aistudio.google.com/apikey](https://aistudio.google.com/apikey)
 
 **Rotacao:** com varias keys distintas, o plugin tenta outra key em caso de rate limit (HTTP 429) e distribui uso entre elas. Limites tipicos do **free tier** (por key): **15 requisicoes/minuto** e **1.000 requisicoes/dia** — confirme limites atuais na documentacao do Google.
 
-> Sem nenhuma key configurada, o plugin solicita a configuracao e nao chama a API.
+> Sem nenhuma key configurada, o plugin exibe um aviso no log e nao chama a API.
 
 Mais detalhes: [README do plugin](../src/plugins/flutter/ai-code-review/README.md).
 

@@ -409,7 +409,6 @@ interface DangerBotConfig {
   settings?: {
     fail_on_errors?: boolean;
     verbose?: boolean;
-    /** API keys do Gemini para o plugin ai-code-review (rotacao entre varias keys) */
     gemini_api_keys?: string[];
   };
 }

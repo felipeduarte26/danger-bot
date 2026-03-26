@@ -59,12 +59,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * Foca em: Clean Code, SOLID, Clean Architecture, segurança, bugs e refatoração.
  *
  * Suporta rotation de API keys para contornar rate limits do free tier.
- * Keys são lidas de:
- *   1. danger-bot.yaml → settings.gemini_api_keys: [...]
- *   2. Env var GEMINI_API_KEYS (separadas por vírgula)
- *   3. Env var GEMINI_API_KEY (uma única key)
+ * Keys são lidas de: danger-bot.yaml (settings.gemini_api_keys) ou env vars.
  */
 const _types_1 = require("../../../types");
+const config_1 = require("../../../config");
 const fs = __importStar(require("fs"));
 const GEMINI_MODEL = "gemini-2.5-flash-lite";
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
@@ -89,11 +87,29 @@ REGRAS:
 - NÃO comente sobre imports faltantes (você não tem o contexto completo)
 - NÃO comente sobre formatação ou estilo (isso é responsabilidade do linter)
 - Seja direto e objetivo`;
-const API_KEYS = [
-  "AIzaSyCc3qwEI0xUY5Ecwnqy2xjrPYWukaFZrig",
-  "AIzaSyB6EXYLp5rQqj2fMt5iFVI-7LIC3oB9qVY",
-  "AIzaSyBd98igWVuXLznvJX8l5yCjcW5cjWiK0mM",
-];
+function getApiKeys() {
+  const keys = [];
+  try {
+    const cfg = (0, config_1.loadConfig)();
+    const yamlKeys = cfg.settings?.gemini_api_keys;
+    if (Array.isArray(yamlKeys)) {
+      keys.push(...yamlKeys.map((k) => String(k).trim()).filter(Boolean));
+    }
+  } catch {
+    // danger-bot.yaml não encontrado ou inválido
+  }
+  if (process.env.GEMINI_API_KEYS) {
+    keys.push(
+      ...process.env.GEMINI_API_KEYS.split(",")
+        .map((k) => k.trim())
+        .filter(Boolean)
+    );
+  }
+  if (process.env.GEMINI_API_KEY) {
+    keys.push(process.env.GEMINI_API_KEY.trim());
+  }
+  return [...new Set(keys)];
+}
 async function callGemini(prompt, apiKeys) {
   for (const key of apiKeys) {
     try {
@@ -147,7 +163,14 @@ exports.default = (0, _types_1.createPlugin)(
     enabled: true,
   },
   async () => {
-    const apiKeys = API_KEYS;
+    const apiKeys = getApiKeys();
+    if (apiKeys.length === 0) {
+      console.log(
+        "⚠️ ai-code-review: nenhuma API key configurada. " +
+          "Defina GEMINI_API_KEYS (separadas por vírgula) ou GEMINI_API_KEY como variável de ambiente no CI/CD."
+      );
+      return;
+    }
     const { git } = (0, _types_1.getDanger)();
     const dartFiles = [...git.modified_files, ...git.created_files].filter(
       (f) => f.endsWith(".dart") && shouldAnalyzeFile(f) && fs.existsSync(f)

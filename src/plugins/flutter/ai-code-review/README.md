@@ -32,13 +32,11 @@ O plugin **ignora** (não envia à API):
 - Arquivos `.g.dart`, `.freezed.dart` e `*_test.dart`
 - Caminhos que contenham `generated/` ou `l10n/`
 
-Arquivos com **mais de 500 linhas** são ignorados para esta análise.
-
 ---
 
 ## 🚀 Configuração das API keys (3 formas)
 
-Todas as fontes abaixo são **combinadas**; valores duplicados são removidos.
+Todas as fontes são **combinadas**; duplicatas são removidas automaticamente.
 
 ### 1. `danger-bot.yaml` (`settings.gemini_api_keys`)
 
@@ -49,7 +47,7 @@ settings:
     - "AIzaSy..."
 ```
 
-### 2. Variável `GEMINI_API_KEYS`
+### 2. Variável de ambiente `GEMINI_API_KEYS`
 
 Várias keys em uma única variável, **separadas por vírgula**:
 
@@ -57,7 +55,7 @@ Várias keys em uma única variável, **separadas por vírgula**:
 export GEMINI_API_KEYS="key1,key2,key3"
 ```
 
-### 3. Variável `GEMINI_API_KEY`
+### 3. Variável de ambiente `GEMINI_API_KEY`
 
 Uma única key:
 
@@ -66,6 +64,8 @@ export GEMINI_API_KEY="AIzaSy..."
 ```
 
 **Link para gerar keys gratuitas:** [Google AI Studio — API key](https://aistudio.google.com/apikey)
+
+Sem nenhuma key configurada, o plugin exibe um aviso no log e não chama a API.
 
 ---
 

@@ -56,11 +56,11 @@ settings:
   # ─────────────────────────────────────────────
   # AI Code Review (Google Gemini)
   # ─────────────────────────────────────────────
-  # API keys do Google Gemini para o plugin ai-code-review.
+  # O plugin ai-code-review usa o Google Gemini (free tier).
   # Gere keys gratuitas em: https://aistudio.google.com/apikey
   # Múltiplas keys permitem rotation automática (rate limit).
   #
-  # Alternativa: use a env var GEMINI_API_KEYS (separadas por vírgula)
+  # Alternativa: env vars GEMINI_API_KEYS (separadas por vírgula)
   # ou GEMINI_API_KEY (uma única key).
   #
   # Exemplo:

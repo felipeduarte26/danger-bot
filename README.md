@@ -143,7 +143,7 @@ executeDangerBot(domainLayerPlugins);
 
 O plugin **ai-code-review** envia sugestoes de revisao com o modelo **Google Gemini** (`gemini-2.5-flash-lite`) no tier gratuito. As mensagens sao **avisos** (`warn`) — nao falham o pipeline.
 
-Configure uma ou mais API keys em `danger-bot.yaml` (`settings.gemini_api_keys`), na variavel `GEMINI_API_KEYS` (varias keys separadas por virgula) ou em `GEMINI_API_KEY` (uma key). Multiplas keys permitem **rotacao** para distribuir o uso dentro dos limites do free tier (15 requisicoes/minuto e 1.000 requisicoes/dia **por key**). Gere keys gratuitas em [Google AI Studio](https://aistudio.google.com/apikey).
+Configure uma ou mais API keys no `danger-bot.yaml` (`settings.gemini_api_keys`) ou via env vars (`GEMINI_API_KEYS` / `GEMINI_API_KEY`). Multiplas keys permitem **rotacao** para distribuir o uso dentro dos limites do free tier (15 requisicoes/minuto e 1.000 requisicoes/dia **por key**). Gere keys gratuitas em [Google AI Studio](https://aistudio.google.com/apikey).
 
 Detalhes: [Configuracao — settings](docs/CONFIGURACAO.md#settings) e [README do plugin](src/plugins/flutter/ai-code-review/README.md).
 
