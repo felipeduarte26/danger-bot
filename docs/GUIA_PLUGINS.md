@@ -134,6 +134,7 @@ executeDangerBot(plugins);
 | `avoidGodClassPlugin` | `avoid-god-class` | Detecta classes muito grandes (SRP — responsabilidade unica) |
 | `avoidSetstateAfterAsyncPlugin` | `avoid-setstate-after-async` | Detecta setState apos await sem verificar mounted |
 | `dateTypeCheckerPlugin` | `date-type-checker` | Detecta campos de data declarados como String ao inves de DateTime |
+| `aiCodeReviewPlugin` | `ai-code-review` | Code review com IA (Gemini) — Clean Code, SOLID, seguranca e bugs (mensagens como aviso) |
 
 ### Performance e Flutter
 

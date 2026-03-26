@@ -40,3 +40,4 @@ export { default as avoidGodClassPlugin } from "./avoid-god-class";
 export { default as avoidSetstateAfterAsyncPlugin } from "./avoid-setstate-after-async";
 export { default as columnRowSpacingPlugin } from "./column-row-spacing";
 export { default as dateTypeCheckerPlugin } from "./date-type-checker";
+export { default as aiCodeReviewPlugin } from "./ai-code-review";

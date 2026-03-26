@@ -10,7 +10,8 @@ var __importDefault =
     return mod && mod.__esModule ? mod : { default: mod };
   };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.dateTypeCheckerPlugin =
+exports.aiCodeReviewPlugin =
+  exports.dateTypeCheckerPlugin =
   exports.columnRowSpacingPlugin =
   exports.avoidSetstateAfterAsyncPlugin =
   exports.avoidGodClassPlugin =
@@ -260,5 +261,12 @@ Object.defineProperty(exports, "dateTypeCheckerPlugin", {
   enumerable: true,
   get: function () {
     return __importDefault(date_type_checker_1).default;
+  },
+});
+var ai_code_review_1 = require("./ai-code-review");
+Object.defineProperty(exports, "aiCodeReviewPlugin", {
+  enumerable: true,
+  get: function () {
+    return __importDefault(ai_code_review_1).default;
   },
 });

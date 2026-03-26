@@ -391,7 +391,7 @@ export default createPlugin(
 | `dataLayerPlugins` | datasources, models | 2 |
 | `presentationLayerPlugins` | viewmodels, try-catch-checker | 2 |
 | `cleanArchitecturePlugins` | domain + data + presentation + clean-architecture | 9 |
-| `codeQualityPlugins` | late-final, memory-leak, comments, security, barrel, identifier-language, class-naming, avoid-god-class, avoid-setstate-after-async, date-type-checker | 10 |
+| `codeQualityPlugins` | late-final, memory-leak, comments, security, barrel, identifier-language, class-naming, avoid-god-class, avoid-setstate-after-async, date-type-checker, ai-code-review | 11 |
 | `performancePlugins` | flutter-performance, mediaquery-modern, column-row-spacing | 3 |
 
 ---
@@ -409,6 +409,8 @@ interface DangerBotConfig {
   settings?: {
     fail_on_errors?: boolean;
     verbose?: boolean;
+    /** API keys do Gemini para o plugin ai-code-review (rotacao entre varias keys) */
+    gemini_api_keys?: string[];
   };
 }
 ```

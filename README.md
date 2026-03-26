@@ -106,6 +106,7 @@ O Danger Bot inclui plugins organizados em categorias:
 | **avoid-god-class**         | Detecta classes muito grandes (SRP — responsabilidade unica)  |
 | **avoid-setstate-after-async** | Detecta setState apos await sem verificar mounted          |
 | **date-type-checker**       | Detecta campos de data declarados como String ao inves de DateTime |
+| **ai-code-review**          | Code review com IA (Gemini) — Clean Code, SOLID, seguranca e bugs (aviso, nao falha o CI) |
 
 ### Performance e Flutter
 
@@ -130,13 +131,21 @@ import {
   dataLayerPlugins, // 2 plugins (datasources, models)
   presentationLayerPlugins, // 2 plugins (viewmodels, try-catch-checker)
   cleanArchitecturePlugins, // 9 plugins (todas as camadas + validacao cross-layer)
-  codeQualityPlugins, // 10 plugins (late-final, memory-leak, comments, security, barrel, identifier-language, class-naming, avoid-god-class, avoid-setstate-after-async, date-type-checker)
+  codeQualityPlugins, // 11 plugins (late-final, memory-leak, comments, security, barrel, identifier-language, class-naming, avoid-god-class, avoid-setstate-after-async, date-type-checker, ai-code-review)
   performancePlugins, // 3 plugins (flutter-performance, mediaquery-modern, column-row-spacing)
   executeDangerBot,
 } from "@felipeduarte26/danger-bot";
 
 executeDangerBot(domainLayerPlugins);
 ```
+
+### AI Code Review (Gemini)
+
+O plugin **ai-code-review** envia sugestoes de revisao com o modelo **Google Gemini** (`gemini-2.5-flash-lite`) no tier gratuito. As mensagens sao **avisos** (`warn`) — nao falham o pipeline.
+
+Configure uma ou mais API keys em `danger-bot.yaml` (`settings.gemini_api_keys`), na variavel `GEMINI_API_KEYS` (varias keys separadas por virgula) ou em `GEMINI_API_KEY` (uma key). Multiplas keys permitem **rotacao** para distribuir o uso dentro dos limites do free tier (15 requisicoes/minuto e 1.000 requisicoes/dia **por key**). Gere keys gratuitas em [Google AI Studio](https://aistudio.google.com/apikey).
+
+Detalhes: [Configuracao — settings](docs/CONFIGURACAO.md#settings) e [README do plugin](src/plugins/flutter/ai-code-review/README.md).
 
 Ou selecione plugins individuais:
 

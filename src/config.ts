@@ -21,6 +21,8 @@ export interface DangerBotConfig {
     fail_on_errors?: boolean;
     /** Se true, exibe logs detalhados (default: false) */
     verbose?: boolean;
+    /** API keys do Google Gemini para o plugin ai-code-review (rotation automática) */
+    gemini_api_keys?: string[];
   };
 }
 

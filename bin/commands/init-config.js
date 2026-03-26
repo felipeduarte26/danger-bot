@@ -52,6 +52,22 @@ ignore_files: []
 settings:
   # Se true, exibe logs detalhados durante a execução
   verbose: false
+
+  # ─────────────────────────────────────────────
+  # AI Code Review (Google Gemini)
+  # ─────────────────────────────────────────────
+  # API keys do Google Gemini para o plugin ai-code-review.
+  # Gere keys gratuitas em: https://aistudio.google.com/apikey
+  # Múltiplas keys permitem rotation automática (rate limit).
+  #
+  # Alternativa: use a env var GEMINI_API_KEYS (separadas por vírgula)
+  # ou GEMINI_API_KEY (uma única key).
+  #
+  # Exemplo:
+  #   gemini_api_keys:
+  #     - "AIzaSy..."
+  #     - "AIzaSy..."
+  gemini_api_keys: []
 `;
 
 export async function initConfig() {

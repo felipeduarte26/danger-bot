@@ -76,6 +76,7 @@ export const allFlutterPlugins = [
   require("./plugins/flutter/avoid-setstate-after-async").default,
   require("./plugins/flutter/column-row-spacing").default,
   require("./plugins/flutter/date-type-checker").default,
+  require("./plugins/flutter/ai-code-review").default,
 ];
 
 // Export arrays for specific layers/categories
@@ -102,6 +103,7 @@ import {
   avoidSetstateAfterAsyncPlugin,
   columnRowSpacingPlugin,
   dateTypeCheckerPlugin,
+  aiCodeReviewPlugin,
 } from "./plugins/flutter";
 
 export const domainLayerPlugins = [
@@ -136,6 +138,7 @@ export const codeQualityPlugins = [
   avoidGodClassPlugin,
   avoidSetstateAfterAsyncPlugin,
   dateTypeCheckerPlugin,
+  aiCodeReviewPlugin,
 ];
 
 export const performancePlugins = [
