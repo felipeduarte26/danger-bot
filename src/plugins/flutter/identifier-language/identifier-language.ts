@@ -3,15 +3,21 @@
  * Detecta nomes de classes, métodos e variáveis que não estão em inglês.
  * O padrão do projeto é código 100% em inglês.
  *
- * Usa duas camadas de detecção:
+ * Detecção:
  * 1. Dicionário interno (~400 palavras PT comuns em código) — rápido e preciso
  * 2. eld v2 (Efficient Language Detector) — detecta PT e ES (línguas próximas)
+ * 3. eld palavra por palavra — pega textos misturados PT+EN
+ *
+ * Tradução:
+ * - Identificadores: dicionário PT→EN interno
+ * - Comentários/documentação: Google Translate (lib translate, sem API key)
  */
 import { createPlugin, getDanger, sendFormattedFail } from "@types";
 import * as fs from "fs";
 
 let _eld: any = null;
 let _eldLoaded = false;
+let _translate: any = null;
 
 async function loadEld(): Promise<void> {
   if (_eldLoaded) return;
@@ -21,6 +27,25 @@ async function loadEld(): Promise<void> {
     _eld = mod.eld ?? mod.default?.eld ?? mod;
   } catch {
     // eld nao disponivel
+  }
+  try {
+    const tMod = await import("translate" as string);
+    _translate = tMod.default ?? tMod;
+  } catch {
+    // translate nao disponivel
+  }
+}
+
+async function translateToEnglish(text: string): Promise<string | null> {
+  if (!_translate) return null;
+  try {
+    const result = await Promise.race([
+      _translate(text, { from: "pt", to: "en" }),
+      new Promise<null>((_, reject) => setTimeout(() => reject(new Error("timeout")), 5000)),
+    ]);
+    return typeof result === "string" && result !== text ? result : null;
+  } catch {
+    return null;
   }
 }
 
@@ -699,18 +724,25 @@ export default createPlugin(
       commentSeen.add(key);
 
       const snippet = `${c.text}${c.text.length >= 80 ? "..." : ""}`;
+      const prefix = c.type === "documentação (///)" ? "///" : "//";
+
+      const translated = await translateToEnglish(c.text);
+      const correctText = translated
+        ? `${prefix} ${translated}`
+        : `${prefix} (translate to English)`;
+      const correctLabel = translated ? "Sugestão em inglês" : "Em inglês";
 
       sendFormattedFail({
         title: `${c.type.toUpperCase()} DEVE SER EM INGLÊS`,
         description: `\`${snippet}\``,
         problem: {
-          wrong: `${c.type === "documentação (///)" ? "///" : "//"} ${snippet}`,
-          correct: `${c.type === "documentação (///)" ? "///" : "//"} (rewrite in English)`,
+          wrong: `${prefix} ${snippet}`,
+          correct: correctText,
           wrongLabel: "Atual",
-          correctLabel: "Em inglês",
+          correctLabel,
         },
         action: {
-          code: `${c.type === "documentação (///)" ? "///" : "//"} (translate to English)`,
+          code: correctText,
         },
         objective:
           "Manter **consistência** com o ecossistema (SDK, docs, frameworks) e facilitar **colaboração** entre equipes.",
