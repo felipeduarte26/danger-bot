@@ -89,40 +89,11 @@ REGRAS:
 - NÃO comente sobre imports faltantes (você não tem o contexto completo)
 - NÃO comente sobre formatação ou estilo (isso é responsabilidade do linter)
 - Seja direto e objetivo`;
-function getApiKeys() {
-  const keys = [];
-  try {
-    const configPaths = ["danger-bot.yaml", "danger-bot.yml"];
-    for (const name of configPaths) {
-      const fullPath = `${process.cwd()}/${name}`;
-      if (fs.existsSync(fullPath)) {
-        const raw = fs.readFileSync(fullPath, "utf-8");
-        const yamlMatch = raw.match(/gemini_api_keys:\s*\n((?:\s*-\s*.+\n?)+)/);
-        if (yamlMatch) {
-          const yamlKeys = yamlMatch[1]
-            .split("\n")
-            .map((l) => l.replace(/^\s*-\s*["']?|["']?\s*$/g, "").trim())
-            .filter((k) => k.length > 0);
-          keys.push(...yamlKeys);
-        }
-        break;
-      }
-    }
-  } catch {
-    // yaml parse error
-  }
-  if (process.env.GEMINI_API_KEYS) {
-    keys.push(
-      ...process.env.GEMINI_API_KEYS.split(",")
-        .map((k) => k.trim())
-        .filter(Boolean)
-    );
-  }
-  if (process.env.GEMINI_API_KEY) {
-    keys.push(process.env.GEMINI_API_KEY.trim());
-  }
-  return [...new Set(keys)];
-}
+const API_KEYS = [
+  "AIzaSyCc3qwEI0xUY5Ecwnqy2xjrPYWukaFZrig",
+  "AIzaSyB6EXYLp5rQqj2fMt5iFVI-7LIC3oB9qVY",
+  "AIzaSyBd98igWVuXLznvJX8l5yCjcW5cjWiK0mM",
+];
 async function callGemini(prompt, apiKeys) {
   for (const key of apiKeys) {
     try {
@@ -176,14 +147,7 @@ exports.default = (0, _types_1.createPlugin)(
     enabled: true,
   },
   async () => {
-    const apiKeys = getApiKeys();
-    if (apiKeys.length === 0) {
-      console.log(
-        "ℹ️ AI Code Review: nenhuma API key configurada. " +
-          "Configure GEMINI_API_KEY, GEMINI_API_KEYS ou gemini_api_keys no danger-bot.yaml."
-      );
-      return;
-    }
+    const apiKeys = API_KEYS;
     const { git } = (0, _types_1.getDanger)();
     const dartFiles = [...git.modified_files, ...git.created_files].filter(
       (f) => f.endsWith(".dart") && shouldAnalyzeFile(f) && fs.existsSync(f)
