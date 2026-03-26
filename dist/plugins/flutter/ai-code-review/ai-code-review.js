@@ -86,11 +86,35 @@ Analise o código abaixo e aponte APENAS problemas reais e relevantes. Foque em:
 REGRAS:
 - Responda SEMPRE em PT-BR
 - Máximo 5 pontos por arquivo
-- Cada ponto deve ter: emoji de severidade (🔴 crítico, 🟡 atenção, 🔵 sugestão), título curto e explicação em 1-2 linhas
-- Se o código estiver bom, responda apenas: "✅ Código aprovado — nenhum problema encontrado."
+- Se o código estiver bom, responda APENAS: "✅ Código aprovado — nenhum problema encontrado."
 - NÃO comente sobre imports faltantes (você não tem o contexto completo)
 - NÃO comente sobre formatação ou estilo (isso é responsabilidade do linter)
-- Seja direto e objetivo`;
+
+FORMATO OBRIGATÓRIO para cada ponto encontrado (use exatamente este template markdown):
+
+---
+
+### {emoji} {TÍTULO EM MAIÚSCULO}
+
+{Explicação curta do problema em 1-2 linhas}
+
+**❌ Problema encontrado:**
+\`\`\`dart
+// código atual com problema (trecho relevante)
+\`\`\`
+
+**✅ Sugestão de correção:**
+\`\`\`dart
+// código corrigido/sugerido
+\`\`\`
+
+**🎯 Ação:** {O que o dev precisa fazer, em 1 linha}
+
+---
+
+Emojis de severidade: 🔴 crítico, 🟡 atenção, 🔵 sugestão.
+Sempre inclua os blocos de código com o problema e a sugestão de correção.
+Seja direto e objetivo.`;
 function getApiKeys() {
   const keys = [];
   try {
@@ -265,7 +289,7 @@ exports.default = (0, _types_1.createPlugin)(
       } else {
         issues++;
         (0, _types_1.sendWarn)(
-          `🤖 **AI CODE REVIEW** — \`${file}\`\n\n${result.text}\n\n---\n_Revisão automática por Gemini (${GEMINI_MODEL}). Valide as sugestões antes de aplicar._`,
+          `🤖 **AI CODE REVIEW** — \`${file}\`\n\n${result.text}\n\n---\n_Revisão automática por Danger Bot AI Code Review. Valide as sugestões antes de aplicar._`,
           file
         );
         console.log(`  🤖 ${file} — review gerado`);
