@@ -36,6 +36,37 @@ function isNonEnglish(text: string): boolean {
   }
 }
 
+function cleanTextForDetection(text: string): string {
+  return text
+    .replace(/[^a-zA-ZáàâãéèêíïóôõúüçÁÀÂÃÉÈÊÍÏÓÔÕÚÜÇ\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function detectWordLang(word: string): string | null {
+  if (!_eld || word.length < 4) return null;
+  try {
+    const result = _eld.detect(word);
+    return result?.isReliable() ? result.language : null;
+  } catch {
+    return null;
+  }
+}
+
+function isNonEnglishComment(text: string): boolean {
+  const cleaned = cleanTextForDetection(text);
+
+  if (isNonEnglish(cleaned)) return true;
+
+  const words = cleaned.split(/\s+/).filter((w) => w.length >= 4);
+  let nonEnCount = 0;
+  for (const w of words) {
+    const lang = detectWordLang(w);
+    if (lang && lang !== "en") nonEnCount++;
+  }
+  return nonEnCount >= 2;
+}
+
 const PT_WORDS = new Set([
   // Substantivos comuns em código
   "pessoa",
@@ -242,6 +273,72 @@ const PT_WORDS = new Set([
   "fornecedores",
   "lote",
   "lotes",
+  "remetente",
+  "remetentes",
+  "destinatario",
+  "destinatarios",
+  "transportadora",
+  "transportadoras",
+  "rastreamento",
+  "rastreio",
+  "envio",
+  "envios",
+  "despacho",
+  "remessa",
+  "remessas",
+  "frete",
+  "fretes",
+  "romaneio",
+  "etiqueta",
+  "etiquetas",
+  "embalagem",
+  "embalagens",
+  "logistica",
+  "armazem",
+  "deposito",
+  "coleta",
+  "coletas",
+  "devolucao",
+  "devolucoes",
+  "recebimento",
+  "expedicao",
+  "conferencia",
+  "conferencias",
+  "inventario",
+  "inventarios",
+  "nota",
+  "fiscal",
+  "imposto",
+  "impostos",
+  "tributo",
+  "tributos",
+  "aliquota",
+  "descricao",
+  "observacao",
+  "observacoes",
+  "situacao",
+  "aprovacao",
+  "rejeicao",
+  "emissao",
+  "vencimento",
+  "cobranca",
+  "cobrancas",
+  "recibo",
+  "recibos",
+  "comprovante",
+  "comprovantes",
+  "lancamento",
+  "lancamentos",
+  "extrato",
+  "saldo",
+  "debito",
+  "credito",
+  "transferencia",
+  "transferencias",
+  "deposito",
+  "depositos",
+  "movimentacao",
+  "movimentacoes",
 
   // Verbos comuns em métodos
   "calcular",
@@ -493,6 +590,17 @@ const AMBIGUOUS = new Set([
   "volume",
 ]);
 
+function commentContainsPtWords(text: string): boolean {
+  const words = text
+    .toLowerCase()
+    .replace(/[^a-záàâãéèêíïóôõúüç\s]/g, " ")
+    .split(/\s+/)
+    .filter((w) => w.length > 2);
+
+  const ptFound = words.filter((w) => PT_WORDS.has(w) && !AMBIGUOUS.has(w));
+  return ptFound.length >= 2;
+}
+
 interface IdentifierMatch {
   file: string;
   line: number;
@@ -541,7 +649,6 @@ export default createPlugin(
         if (docMatch || commentMatch) {
           const text = (docMatch || commentMatch)![1].trim();
 
-          // Ignorar pragmas, annotations, templates Dart
           if (
             text.startsWith("ignore:") ||
             text.startsWith("coverage:") ||
@@ -549,12 +656,12 @@ export default createPlugin(
             text.startsWith("FIXME") ||
             text.startsWith("{@") ||
             text.startsWith("@") ||
-            text.length < 15
+            text.length < 10
           ) {
             continue;
           }
 
-          if (isNonEnglish(text)) {
+          if (isNonEnglishComment(text) || commentContainsPtWords(text)) {
             commentMatches.push({
               file,
               line: i + 1,
