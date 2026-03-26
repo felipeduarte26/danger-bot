@@ -72,6 +72,10 @@ export const allFlutterPlugins = [
   require("./plugins/flutter/class-naming-convention").default,
   require("./plugins/flutter/presentation-try-catch-checker").default,
   require("./plugins/flutter/merge-conflict-checker").default,
+  avoidGodClassPlugin,
+  avoidSetstateAfterAsyncPlugin,
+  columnRowSpacingPlugin,
+  dateTypeCheckerPlugin,
 ];
 
 // Export arrays for specific layers/categories
@@ -94,6 +98,10 @@ import {
   flutterPerformancePlugin,
   mediaqueryModernPlugin,
   presentationTryCatchCheckerPlugin,
+  avoidGodClassPlugin,
+  avoidSetstateAfterAsyncPlugin,
+  columnRowSpacingPlugin,
+  dateTypeCheckerPlugin,
 } from "./plugins/flutter";
 
 export const domainLayerPlugins = [
@@ -125,6 +133,13 @@ export const codeQualityPlugins = [
   barrelFilesEnforcerPlugin,
   identifierLanguagePlugin,
   classNamingConventionPlugin,
+  avoidGodClassPlugin,
+  avoidSetstateAfterAsyncPlugin,
+  dateTypeCheckerPlugin,
 ];
 
-export const performancePlugins = [flutterPerformancePlugin, mediaqueryModernPlugin];
+export const performancePlugins = [
+  flutterPerformancePlugin,
+  mediaqueryModernPlugin,
+  columnRowSpacingPlugin,
+];

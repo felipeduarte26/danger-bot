@@ -129,8 +129,11 @@ executeDangerBot(plugins);
 | `barrelFilesEnforcerPlugin` | `barrel-files-enforcer` | Sugere barrel files quando multiplos imports vem da mesma pasta |
 | `securityCheckerPlugin` | `security-checker` | Detecta problemas de seguranca (keys, secrets, arquivos sensiveis) |
 | `spellCheckerPlugin` | `spell-checker` | Verifica ortografia em identificadores Dart |
-| `identifierLanguagePlugin` | `identifier-language` | Detecta identificadores em portugues no codigo Dart |
+| `identifierLanguagePlugin` | `identifier-language` | Detecta identificadores e comentarios que nao estao em ingles |
 | `classNamingConventionPlugin` | `class-naming-convention` | Verifica se nomes de classes usam substantivos (Clean Code) |
+| `avoidGodClassPlugin` | `avoid-god-class` | Detecta classes muito grandes (SRP — responsabilidade unica) |
+| `avoidNestedConditionalPlugin` | `avoid-nested-conditional` | Detecta ternarios aninhados que prejudicam legibilidade |
+| `avoidSetstateAfterAsyncPlugin` | `avoid-setstate-after-async` | Detecta setState apos await sem verificar mounted |
 
 ### Performance e Flutter
 
@@ -138,6 +141,7 @@ executeDangerBot(plugins);
 |--------|-------------|-----------|
 | `flutterAnalyzePlugin` | `flutter-analyze` | Executa flutter analyze e reporta problemas |
 | `flutterPerformancePlugin` | `flutter-performance` | Detecta operacoes custosas no build() |
+| `columnRowSpacingPlugin` | `column-row-spacing` | Sugere propriedade `spacing` (Flutter 3.27+) em Column/Row em vez de SizedBox intercalados |
 | `flutterWidgetsPlugin` | `flutter-widgets` | Verifica ordem dos metodos em widgets Flutter |
 | `mediaqueryModernPlugin` | `mediaquery-modern` | Sugere APIs modernas do MediaQuery (Flutter 3.10+) |
 | `memoryLeakDetectorPlugin` | `memory-leak-detector` | Detecta possiveis memory leaks em States |

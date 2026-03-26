@@ -71,9 +71,9 @@ O Danger Bot inclui plugins organizados em categorias:
 
 | Plugin                  | Descricao                                                |
 | ----------------------- | -------------------------------------------------------- |
-| **domain-entities**     | Valida entities (`final class`, `const`, sufixo correto) |
+| **domain-entities**     | Valida entities, enums e subpastas dentro de /entities/  |
 | **domain-failures**     | Valida failures (`sealed class`, pattern matching)       |
-| **domain-repositories** | Valida interfaces de repository (`abstract interface`)   |
+| **repositories**        | Valida interfaces e implementacoes de repository         |
 | **domain-usecases**     | Valida usecases (interface + implementacao)              |
 
 ### Clean Architecture - Data
@@ -101,8 +101,11 @@ O Danger Bot inclui plugins organizados em categorias:
 | **barrel-files-enforcer**   | Forca uso de barrel files para organizar exports            |
 | **security-checker**        | Detecta API keys hardcoded, `eval()` e vulnerabilidades     |
 | **spell-checker**           | Verifica ortografia em identificadores Dart                 |
-| **identifier-language**     | Detecta identificadores em portugues no codigo Dart         |
-| **class-naming-convention** | Verifica se nomes de classes usam substantivos (Clean Code) |
+| **identifier-language**     | Detecta identificadores e comentarios que nao estao em ingles |
+| **class-naming-convention** | Verifica se nomes de classes usam substantivos (Clean Code)   |
+| **avoid-god-class**         | Detecta classes muito grandes (SRP — responsabilidade unica)  |
+| **avoid-nested-conditional** | Detecta ternarios aninhados que prejudicam legibilidade      |
+| **avoid-setstate-after-async** | Detecta setState apos await sem verificar mounted          |
 
 ### Performance e Flutter
 
@@ -110,6 +113,7 @@ O Danger Bot inclui plugins organizados em categorias:
 | ------------------------ | -------------------------------------------------- |
 | **flutter-analyze**      | Executa `flutter analyze` e reporta problemas      |
 | **flutter-performance**  | Detecta operacoes custosas no `build()`            |
+| **column-row-spacing**   | Sugere `spacing` (Flutter 3.27+) em Column/Row em vez de SizedBox intercalados |
 | **flutter-widgets**      | Verifica ordem de funcoes em widgets               |
 | **mediaquery-modern**    | Forca APIs modernas do MediaQuery (Flutter 3.10+)  |
 | **memory-leak-detector** | Detecta Controllers/Timers/Streams sem `dispose()` |
@@ -126,8 +130,8 @@ import {
   dataLayerPlugins, // 2 plugins (datasources, models)
   presentationLayerPlugins, // 2 plugins (viewmodels, try-catch-checker)
   cleanArchitecturePlugins, // 9 plugins (todas as camadas + validacao cross-layer)
-  codeQualityPlugins, // 7 plugins (late-final, memory-leak, comments, security, barrel, identifier-language, class-naming)
-  performancePlugins, // 2 plugins (flutter-performance, mediaquery-modern)
+  codeQualityPlugins, // 10 plugins (late-final, memory-leak, comments, security, barrel, identifier-language, class-naming, avoid-god-class, avoid-nested-conditional, avoid-setstate-after-async)
+  performancePlugins, // 3 plugins (flutter-performance, mediaquery-modern, column-row-spacing)
   executeDangerBot,
 } from "@felipeduarte26/danger-bot";
 
@@ -266,7 +270,7 @@ danger-bot/
 | [Commander](https://github.com/tj/commander.js)        | 14     | CLI                                |
 | [js-yaml](https://github.com/nodeca/js-yaml)           | 4      | Parser do danger-bot.yaml          |
 | [CSpell](https://github.com/streetsidesoftware/cspell) | 9      | Spell checking                     |
-| [cld3-asm](https://www.npmjs.com/package/cld3-asm)     | 4      | Deteccao de idioma                 |
+| [eld](https://www.npmjs.com/package/eld)               | 2      | Deteccao de idioma                 |
 | [wordpos](https://www.npmjs.com/package/wordpos)       | 2.1    | Classificacao gramatical (WordNet) |
 | [ESLint](https://eslint.org/)                          | 9      | Linting                            |
 | [Prettier](https://prettier.io/)                       | 3      | Formatacao                         |

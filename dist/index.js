@@ -267,6 +267,10 @@ exports.allFlutterPlugins = [
   require("./plugins/flutter/class-naming-convention").default,
   require("./plugins/flutter/presentation-try-catch-checker").default,
   require("./plugins/flutter/merge-conflict-checker").default,
+  flutter_2.avoidGodClassPlugin,
+  flutter_2.avoidSetstateAfterAsyncPlugin,
+  flutter_2.columnRowSpacingPlugin,
+  flutter_2.dateTypeCheckerPlugin,
 ];
 // Export arrays for specific layers/categories
 const flutter_2 = require("./plugins/flutter");
@@ -295,5 +299,12 @@ exports.codeQualityPlugins = [
   flutter_2.barrelFilesEnforcerPlugin,
   flutter_2.identifierLanguagePlugin,
   flutter_2.classNamingConventionPlugin,
+  flutter_2.avoidGodClassPlugin,
+  flutter_2.avoidSetstateAfterAsyncPlugin,
+  flutter_2.dateTypeCheckerPlugin,
 ];
-exports.performancePlugins = [flutter_2.flutterPerformancePlugin, flutter_2.mediaqueryModernPlugin];
+exports.performancePlugins = [
+  flutter_2.flutterPerformancePlugin,
+  flutter_2.mediaqueryModernPlugin,
+  flutter_2.columnRowSpacingPlugin,
+];

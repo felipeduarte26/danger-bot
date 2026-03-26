@@ -391,8 +391,8 @@ export default createPlugin(
 | `dataLayerPlugins` | datasources, models | 2 |
 | `presentationLayerPlugins` | viewmodels, try-catch-checker | 2 |
 | `cleanArchitecturePlugins` | domain + data + presentation + clean-architecture | 9 |
-| `codeQualityPlugins` | late-final, memory-leak, comments, security, barrel, identifier-language, class-naming-convention | 7 |
-| `performancePlugins` | flutter-performance, mediaquery-modern | 2 |
+| `codeQualityPlugins` | late-final, memory-leak, comments, security, barrel, identifier-language, class-naming, avoid-god-class, avoid-nested-conditional, avoid-setstate-after-async | 10 |
+| `performancePlugins` | flutter-performance, mediaquery-modern, column-row-spacing | 3 |
 
 ---
 

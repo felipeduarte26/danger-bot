@@ -68,9 +68,16 @@ const DISPOSE_TYPES = [
   "ScrollController",
   "PageController",
   "TabController",
+  "DraggableScrollableController",
+  "SearchController",
+  "ExpansionTileController",
   "FocusNode",
+  "FocusScopeNode",
   "ChangeNotifier",
   "ValueNotifier",
+  "TransformationController",
+  "UndoHistoryController",
+  "OverlayPortalController",
 ];
 const CANCEL_TYPES = ["Timer", "StreamSubscription", "StreamController"];
 const FIELD_RE = /^\s+(?:late\s+)?(?:final\s+)?(?:([\w<>,?\s]+?)\s+)?(_?\w+)\s*[=;]/;
@@ -105,35 +112,26 @@ exports.default = (0, _types_1.createPlugin)(
           disposeBody.includes(`${d.name}?.cancel()`);
         if (hasCleanup) continue;
         const action = d.needsCancel ? "cancel" : "dispose";
-        (0, _types_1.sendFail)(
-          `VAZAMENTO DE MEMÓRIA — ${d.type} SEM ${action.toUpperCase()}()
-
-\`${d.name}\` (${d.type}) não tem \`${action}()\` no método \`dispose()\`.
-
-### Problema Identificado
-
-Recursos não liberados causam vazamento de memória, lentidão e consumo excessivo de bateria.
-
-\`\`\`dart
-// ❌ Atual — sem cleanup
-${d.type} ${d.name} = ...;
-
-// ✅ Correto — adicione no dispose()
-@override
-void dispose() {
-  ${cleanupCall};
-  super.dispose();
-}
-\`\`\`
-
-### 🚀 Objetivo
-
-Todo **${d.type}** deve ter \`${action}()\` no método \`dispose()\`.
-
-📖 [Flutter: dispose method](https://api.flutter.dev/flutter/widgets/State/dispose.html)`,
+        (0, _types_1.sendFormattedFail)({
+          title: `VAZAMENTO DE MEMÓRIA — ${d.type} SEM ${action.toUpperCase()}()`,
+          description: `\`${d.name}\` (${d.type}) não tem \`${action}()\` no método \`dispose()\`.`,
+          problem: {
+            wrong: `${d.type} ${d.name} = ...;\n// Sem ${action}() no dispose()`,
+            correct: `@override\nvoid dispose() {\n  ${cleanupCall};\n  super.dispose();\n}`,
+            wrongLabel: `Sem ${action}() — vazamento de memória`,
+            correctLabel: `Com ${action}() no dispose()`,
+          },
+          action: {
+            code: `@override\nvoid dispose() {\n  ${cleanupCall};\n  super.dispose();\n}`,
+          },
+          objective: `Todo **${d.type}** deve ter \`${action}()\` no método \`dispose()\`.`,
+          reference: {
+            text: "Flutter: State.dispose()",
+            url: "https://api.flutter.dev/flutter/widgets/State/dispose.html",
+          },
           file,
-          d.line
-        );
+          line: d.line,
+        });
       }
     }
   }
