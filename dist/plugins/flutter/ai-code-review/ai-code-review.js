@@ -70,7 +70,7 @@ const MAX_OUTPUT_TOKENS = 1024;
 const REQUEST_TIMEOUT_MS = 30000;
 const MAX_CONTENT_CHARS = 30000;
 const FILES_PER_KEY = 15;
-const DELAY_BETWEEN_REQUESTS_MS = 2000;
+const DELAY_BETWEEN_REQUESTS_MS = 10000;
 const RETRY_BACKOFF_MS = 10000;
 const SYSTEM_PROMPT = `Você é um code reviewer sênior especialista em Flutter/Dart, Clean Architecture, Clean Code e SOLID.
 
