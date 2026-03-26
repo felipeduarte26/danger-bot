@@ -16,8 +16,8 @@ const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GE
 const MAX_OUTPUT_TOKENS = 1024;
 const REQUEST_TIMEOUT_MS = 30000;
 const MAX_CONTENT_CHARS = 30000;
-const DELAY_BETWEEN_REQUESTS_MS = 4500;
-const MAX_RETRIES_PER_KEY = 2;
+const FILES_PER_KEY = 15;
+const DELAY_BETWEEN_REQUESTS_MS = 2000;
 const RETRY_BACKOFF_MS = 10000;
 
 const SYSTEM_PROMPT = `Você é um code reviewer sênior especialista em Flutter/Dart, Clean Architecture, Clean Code e SOLID.
@@ -70,70 +70,54 @@ function getApiKeys(): string[] {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-let currentKeyIndex = 0;
+async function callGeminiWithKey(
+  prompt: string,
+  key: string
+): Promise<{ text: string | null; rateLimited: boolean }> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
-async function callGemini(prompt: string, apiKeys: string[]): Promise<string | null> {
-  let attempts = 0;
-  const maxAttempts = apiKeys.length * MAX_RETRIES_PER_KEY;
+    const res = await fetch(`${GEMINI_URL}?key=${key}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          maxOutputTokens: MAX_OUTPUT_TOKENS,
+          temperature: 0.3,
+        },
+      }),
+      signal: controller.signal,
+    });
 
-  while (attempts < maxAttempts) {
-    const key = apiKeys[currentKeyIndex % apiKeys.length];
-    attempts++;
+    clearTimeout(timeout);
 
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-
-      const res = await fetch(`${GEMINI_URL}?key=${key}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            maxOutputTokens: MAX_OUTPUT_TOKENS,
-            temperature: 0.3,
-          },
-        }),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeout);
-
-      if (res.status === 429) {
-        console.log(
-          `⚠️ Gemini rate limit na key ...${key.slice(-6)}, aguardando ${RETRY_BACKOFF_MS / 1000}s...`
-        );
-        currentKeyIndex++;
-        await sleep(RETRY_BACKOFF_MS);
-        continue;
-      }
-
-      if (res.status === 400) {
-        const errBody = await res.text();
-        console.log(`⚠️ Gemini erro 400 na key ...${key.slice(-6)}: ${errBody.slice(0, 200)}`);
-        return null;
-      }
-
-      if (!res.ok) {
-        console.log(`⚠️ Gemini erro ${res.status} na key ...${key.slice(-6)}, tentando próxima...`);
-        currentKeyIndex++;
-        continue;
-      }
-
-      const data = (await res.json()) as {
-        candidates?: { content?: { parts?: { text?: string }[] } }[];
-      };
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
-      if (text) return text;
-    } catch {
-      console.log(`⚠️ Gemini falha na key ...${key.slice(-6)}, tentando próxima...`);
-      currentKeyIndex++;
-      continue;
+    if (res.status === 429) {
+      return { text: null, rateLimited: true };
     }
-  }
 
-  return null;
+    if (res.status === 400) {
+      const errBody = await res.text();
+      console.log(`  ⚠️ Gemini erro 400: ${errBody.slice(0, 200)}`);
+      return { text: null, rateLimited: false };
+    }
+
+    if (!res.ok) {
+      console.log(`  ⚠️ Gemini erro ${res.status} na key ...${key.slice(-6)}`);
+      return { text: null, rateLimited: false };
+    }
+
+    const data = (await res.json()) as {
+      candidates?: { content?: { parts?: { text?: string }[] } }[];
+    };
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    return { text: text ?? null, rateLimited: false };
+  } catch {
+    console.log(`  ⚠️ Gemini falha na key ...${key.slice(-6)}`);
+    return { text: null, rateLimited: false };
+  }
 }
 
 function shouldAnalyzeFile(filePath: string): boolean {
@@ -177,15 +161,29 @@ export default createPlugin(
 
     if (dartFiles.length === 0) return;
 
-    console.log(`🤖 AI Code Review: analisando ${dartFiles.length} arquivo(s) com Gemini...`);
+    const maxFiles = FILES_PER_KEY * apiKeys.length;
+    const filesToAnalyze = dartFiles.slice(0, maxFiles);
+
+    if (filesToAnalyze.length < dartFiles.length) {
+      console.log(
+        `🤖 AI Code Review: ${dartFiles.length} arquivo(s) encontrados, analisando ${filesToAnalyze.length} ` +
+          `(${FILES_PER_KEY} por key × ${apiKeys.length} keys). Adicione mais keys para cobrir todos.`
+      );
+    } else {
+      console.log(
+        `🤖 AI Code Review: analisando ${filesToAnalyze.length} arquivo(s) com Gemini...`
+      );
+    }
 
     let reviewed = 0;
     let approved = 0;
     let issues = 0;
     let skipped = 0;
+    let keyIndex = 0;
+    let usedWithCurrentKey = 0;
 
-    for (let i = 0; i < dartFiles.length; i++) {
-      const file = dartFiles[i];
+    for (let i = 0; i < filesToAnalyze.length; i++) {
+      const file = filesToAnalyze[i];
       const content = fs.readFileSync(file, "utf-8");
       const lines = content.split("\n");
 
@@ -194,12 +192,40 @@ export default createPlugin(
         continue;
       }
 
+      if (usedWithCurrentKey >= FILES_PER_KEY && keyIndex < apiKeys.length - 1) {
+        keyIndex++;
+        usedWithCurrentKey = 0;
+        console.log(
+          `  🔑 Trocando para key ${keyIndex + 1}/${apiKeys.length} ...${apiKeys[keyIndex].slice(-6)}`
+        );
+      }
+
+      const currentKey = apiKeys[keyIndex];
       const trimmed = truncateContent(content);
       const prompt = `${SYSTEM_PROMPT}\n\nArquivo: ${file}\n\n\`\`\`dart\n${trimmed}\n\`\`\``;
 
-      const review = await callGemini(prompt, apiKeys);
+      let result = await callGeminiWithKey(prompt, currentKey);
 
-      if (!review) {
+      if (result.rateLimited) {
+        console.log(
+          `  ⚠️ Rate limit na key ...${currentKey.slice(-6)}, aguardando ${RETRY_BACKOFF_MS / 1000}s...`
+        );
+        await sleep(RETRY_BACKOFF_MS);
+        result = await callGeminiWithKey(prompt, currentKey);
+      }
+
+      if (result.rateLimited && keyIndex < apiKeys.length - 1) {
+        keyIndex++;
+        usedWithCurrentKey = 0;
+        console.log(
+          `  🔑 Trocando para key ${keyIndex + 1}/${apiKeys.length} ...${apiKeys[keyIndex].slice(-6)}`
+        );
+        result = await callGeminiWithKey(prompt, apiKeys[keyIndex]);
+      }
+
+      usedWithCurrentKey++;
+
+      if (!result.text) {
         console.log(`  ❌ ${file} — falha na API`);
         skipped++;
         continue;
@@ -207,21 +233,21 @@ export default createPlugin(
 
       reviewed++;
 
-      if (review.includes("Código aprovado")) {
+      if (result.text.includes("Código aprovado")) {
         approved++;
         console.log(`  ✅ ${file} — aprovado pela IA`);
       } else {
         issues++;
 
         sendWarn(
-          `🤖 **AI CODE REVIEW** — \`${file}\`\n\n${review}\n\n---\n_Revisão automática por Gemini (${GEMINI_MODEL}). Valide as sugestões antes de aplicar._`,
+          `🤖 **AI CODE REVIEW** — \`${file}\`\n\n${result.text}\n\n---\n_Revisão automática por Gemini (${GEMINI_MODEL}). Valide as sugestões antes de aplicar._`,
           file
         );
 
         console.log(`  🤖 ${file} — review gerado`);
       }
 
-      if (i < dartFiles.length - 1) {
+      if (i < filesToAnalyze.length - 1) {
         await sleep(DELAY_BETWEEN_REQUESTS_MS);
       }
     }
