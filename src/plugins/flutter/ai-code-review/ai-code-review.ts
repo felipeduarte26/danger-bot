@@ -239,7 +239,7 @@ export default createPlugin(
           `  ⚠️ Rate limit na key ...${apiKeys[keyIndex].slice(-6)} (${consecutiveRateLimits}/${MAX_CONSECUTIVE_RATE_LIMITS})`
         );
 
-        await sleep(DELAY_BETWEEN_REQUESTS_MS);
+        await sleep(1000);
 
         if (consecutiveRateLimits >= MAX_CONSECUTIVE_RATE_LIMITS) {
           if (keyIndex < apiKeys.length - 1) {
