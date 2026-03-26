@@ -289,6 +289,7 @@ exports.default = (0, _types_1.createPlugin)(
         console.log(`  ✅ ${file} — aprovado pela IA`);
       } else {
         issues++;
+        (0, _types_1.sendWarn)(`🤖 **AI CODE REVIEW** — \`${file}\` ${result.text}`, file);
         console.log(`  🤖 ${file} — review gerado`);
       }
       if (i < filesToAnalyze.length - 1) {

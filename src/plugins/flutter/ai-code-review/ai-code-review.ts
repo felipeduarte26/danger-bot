@@ -7,7 +7,7 @@
  * Suporta rotation de API keys para contornar rate limits do free tier.
  * Keys são lidas de: danger-bot.yaml (settings.gemini_api_keys) ou env vars.
  */
-import { createPlugin, getDanger, sendMessage } from "@types";
+import { createPlugin, getDanger, sendMessage, sendWarn } from "@types";
 import { loadConfig } from "../../../config";
 import * as fs from "fs";
 
@@ -281,6 +281,8 @@ export default createPlugin(
         console.log(`  ✅ ${file} — aprovado pela IA`);
       } else {
         issues++;
+
+        sendWarn(`🤖 **AI CODE REVIEW** — \`${file}\` ${result.text}`, file);
 
         console.log(`  🤖 ${file} — review gerado`);
       }
