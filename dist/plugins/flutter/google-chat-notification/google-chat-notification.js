@@ -15,6 +15,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const _types_1 = require("../../../types");
 const config_1 = require("../../../config");
+const helpers_1 = require("../../../helpers");
 const REQUEST_TIMEOUT_MS = 10000;
 function getWebhookUrl() {
   try {
@@ -48,6 +49,7 @@ function getPRUrl() {
 function buildChatMessage() {
   const { fails, warnings } = getDangerResults();
   const prUrl = getPRUrl();
+  const prTitle = (0, helpers_1.getPRTitle)() || "Pull Request";
   let statusEmoji;
   let statusText;
   if (fails > 0) {
@@ -95,6 +97,7 @@ function buildChatMessage() {
         card: {
           header: {
             title: "Danger Bot — Code Review",
+            subtitle: prTitle,
             imageUrl: "https://cdn-icons-png.flaticon.com/128/4712/4712109.png",
             imageType: "CIRCLE",
           },

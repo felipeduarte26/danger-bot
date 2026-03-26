@@ -14,6 +14,7 @@
 
 import { createPlugin, getDanger } from "@types";
 import { loadConfig } from "../../../config";
+import { getPRTitle } from "../../../helpers";
 
 const REQUEST_TIMEOUT_MS = 10000;
 
@@ -58,6 +59,7 @@ function getPRUrl(): string {
 function buildChatMessage(): object {
   const { fails, warnings } = getDangerResults();
   const prUrl = getPRUrl();
+  const prTitle = getPRTitle() || "Pull Request";
 
   let statusEmoji: string;
   let statusText: string;
@@ -110,6 +112,7 @@ function buildChatMessage(): object {
         card: {
           header: {
             title: "Danger Bot — Code Review",
+            subtitle: prTitle,
             imageUrl: "https://cdn-icons-png.flaticon.com/128/4712/4712109.png",
             imageType: "CIRCLE",
           },
