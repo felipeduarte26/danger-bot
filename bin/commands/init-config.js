@@ -68,6 +68,16 @@ settings:
   #     - "AIzaSy..."
   #     - "AIzaSy..."
   gemini_api_keys: []
+
+  # ─────────────────────────────────────────────
+  # Notificação Google Chat
+  # ─────────────────────────────────────────────
+  # Webhook URL do Google Chat para receber notificações do code review.
+  # Crie em: Google Chat > Espaço > Apps e integrações > Webhooks
+  #
+  # Alternativa: env var GOOGLE_CHAT_WEBHOOK
+  #
+  # google_chat_webhook: "https://chat.googleapis.com/v1/spaces/..."
 `;
 
 export async function initConfig() {

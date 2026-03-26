@@ -410,6 +410,7 @@ interface DangerBotConfig {
     fail_on_errors?: boolean;
     verbose?: boolean;
     gemini_api_keys?: string[];
+    google_chat_webhook?: string;
   };
 }
 ```

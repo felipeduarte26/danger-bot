@@ -77,6 +77,7 @@ export const allFlutterPlugins = [
   require("./plugins/flutter/column-row-spacing").default,
   require("./plugins/flutter/date-type-checker").default,
   require("./plugins/flutter/ai-code-review").default,
+  require("./plugins/flutter/google-chat-notification").default,
 ];
 
 // Export arrays for specific layers/categories

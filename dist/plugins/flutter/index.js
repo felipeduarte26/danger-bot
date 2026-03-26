@@ -10,7 +10,8 @@ var __importDefault =
     return mod && mod.__esModule ? mod : { default: mod };
   };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.aiCodeReviewPlugin =
+exports.googleChatNotificationPlugin =
+  exports.aiCodeReviewPlugin =
   exports.dateTypeCheckerPlugin =
   exports.columnRowSpacingPlugin =
   exports.avoidSetstateAfterAsyncPlugin =
@@ -268,5 +269,12 @@ Object.defineProperty(exports, "aiCodeReviewPlugin", {
   enumerable: true,
   get: function () {
     return __importDefault(ai_code_review_1).default;
+  },
+});
+var google_chat_notification_1 = require("./google-chat-notification");
+Object.defineProperty(exports, "googleChatNotificationPlugin", {
+  enumerable: true,
+  get: function () {
+    return __importDefault(google_chat_notification_1).default;
   },
 });

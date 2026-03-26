@@ -118,6 +118,7 @@ O Danger Bot inclui plugins organizados em categorias:
 | **flutter-widgets**      | Verifica ordem de funcoes em widgets               |
 | **mediaquery-modern**    | Forca APIs modernas do MediaQuery (Flutter 3.10+)  |
 | **memory-leak-detector** | Detecta Controllers/Timers/Streams sem `dispose()` |
+| **google-chat-notification** | Envia notificacao ao Google Chat (webhook) ao terminar o code review — Cards V2, gratuito (Workspace) |
 
 ---
 
@@ -146,6 +147,16 @@ O plugin **ai-code-review** envia sugestoes de revisao com o modelo **Google Gem
 Configure uma ou mais API keys no `danger-bot.yaml` (`settings.gemini_api_keys`) ou via env vars (`GEMINI_API_KEYS` / `GEMINI_API_KEY`). Multiplas keys permitem **rotacao** para distribuir o uso dentro dos limites do free tier (15 requisicoes/minuto e 1.000 requisicoes/dia **por key**). Gere keys gratuitas em [Google AI Studio](https://aistudio.google.com/apikey).
 
 Detalhes: [Configuracao — settings](docs/CONFIGURACAO.md#settings) e [README do plugin](src/plugins/flutter/ai-code-review/README.md).
+
+### Notificacoes no Google Chat
+
+O plugin **google-chat-notification** envia um resumo ao **Google Chat** via **webhook de entrada** (incoming webhook, parte do Google Workspace — sem custo adicional para o envio pelo bot). A mensagem usa o formato **Cards V2** e mostra: **status** visual (verde / amarelo / vermelho conforme o resultado), **titulo do PR**, **autor**, contagens de **falhas**, **avisos** e **mensagens**, e **link para o PR**.
+
+Configure `settings.google_chat_webhook` no `danger-bot.yaml` ou a variavel de ambiente `GOOGLE_CHAT_WEBHOOK`. O plugin deve ser o **ultimo** na fila (ja vem por ultimo em `allFlutterPlugins`) para refletir o resultado final da revisao.
+
+Para criar o webhook: no Google Chat, abra o **Espaco** desejado > **Apps e integracoes** > **Webhooks** > **Adicionar webhook**.
+
+Detalhes: [Configuracao — google_chat_webhook](docs/CONFIGURACAO.md#google_chat_webhook-plugin-google-chat-notification) e [README do plugin](src/plugins/flutter/google-chat-notification/README.md).
 
 Ou selecione plugins individuais:
 

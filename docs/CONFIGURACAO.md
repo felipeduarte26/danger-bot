@@ -155,10 +155,11 @@ Quando um arquivo esta na lista de `ignore_files`, ele nao aparece nos resultado
 
 Configuracoes gerais do Danger Bot.
 
-| Opcao              | Tipo       | Default | Descricao |
-| ------------------ | ---------- | ------- | --------- |
-| `verbose`          | `boolean`  | `false` | Exibe logs detalhados durante a execucao |
-| `gemini_api_keys`  | `string[]` | `[]`    | API keys do Google Gemini para o plugin **ai-code-review** (rotacao automatica) |
+| Opcao                 | Tipo       | Default | Descricao |
+| --------------------- | ---------- | ------- | --------- |
+| `verbose`             | `boolean`  | `false` | Exibe logs detalhados durante a execucao |
+| `gemini_api_keys`     | `string[]` | `[]`    | API keys do Google Gemini para o plugin **ai-code-review** (rotacao automatica) |
+| `google_chat_webhook` | `string`   | —       | URL do webhook do Google Chat para o plugin **google-chat-notification** (opcional) |
 
 ```yaml
 settings:
@@ -196,6 +197,31 @@ Gere keys gratuitas em: [https://aistudio.google.com/apikey](https://aistudio.go
 > Sem nenhuma key configurada, o plugin exibe um aviso no log e nao chama a API.
 
 Mais detalhes: [README do plugin](../src/plugins/flutter/ai-code-review/README.md).
+
+### `google_chat_webhook` (plugin google-chat-notification)
+
+O plugin **google-chat-notification** envia uma notificacao ao **Google Chat** quando o Danger Bot termina o code review da PR. O card (formato **Cards V2**) inclui status (verde / amarelo / vermelho), titulo do PR, autor, quantidade de falhas, avisos e mensagens, e link para o PR.
+
+**Configuracao:**
+
+1. **`danger-bot.yaml`** — `settings.google_chat_webhook` com a URL completa do webhook:
+
+   ```yaml
+   settings:
+     google_chat_webhook: "https://chat.googleapis.com/v1/spaces/.../messages?key=..."
+   ```
+
+2. **`GOOGLE_CHAT_WEBHOOK`** (env var) — mesma URL; usada se preferir nao commitar o webhook no repositorio (recomendado em CI com secrets).
+
+Se nenhuma das duas estiver definida, o plugin registra um aviso no log e nao envia mensagem.
+
+**Ordem de execucao:** o plugin deve rodar por ultimo para refletir o resultado final; no pacote ele ja e o ultimo item de `allFlutterPlugins`.
+
+**Webhook no Google Chat:** Espaco > **Apps e integracoes** > **Webhooks** > **Adicionar webhook**. Copie a URL gerada para o YAML ou para a env var.
+
+O recurso usa **incoming webhooks** do Google Workspace; nao ha cobranca separada pelo Danger Bot para essa integracao.
+
+Mais detalhes: [README do plugin](../src/plugins/flutter/google-chat-notification/README.md).
 
 ---
 

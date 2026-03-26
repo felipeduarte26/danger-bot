@@ -12,6 +12,8 @@ export interface DangerBotConfig {
     verbose?: boolean;
     /** API keys do Google Gemini para o plugin ai-code-review (rotation automática) */
     gemini_api_keys?: string[];
+    /** URL do webhook do Google Chat para notificações */
+    google_chat_webhook?: string;
   };
 }
 export declare function loadConfig(): DangerBotConfig;

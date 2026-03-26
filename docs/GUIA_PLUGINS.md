@@ -146,6 +146,7 @@ executeDangerBot(plugins);
 | `flutterWidgetsPlugin` | `flutter-widgets` | Verifica ordem dos metodos em widgets Flutter |
 | `mediaqueryModernPlugin` | `mediaquery-modern` | Sugere APIs modernas do MediaQuery (Flutter 3.10+) |
 | `memoryLeakDetectorPlugin` | `memory-leak-detector` | Detecta possiveis memory leaks em States |
+| `googleChatNotificationPlugin` | `google-chat-notification` | Envia notificacao ao Google Chat (webhook, Cards V2) ao final do code review — deve rodar por ultimo |
 
 ---
 
