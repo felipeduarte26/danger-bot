@@ -72,10 +72,10 @@ export const allFlutterPlugins = [
   require("./plugins/flutter/class-naming-convention").default,
   require("./plugins/flutter/presentation-try-catch-checker").default,
   require("./plugins/flutter/merge-conflict-checker").default,
-  avoidGodClassPlugin,
-  avoidSetstateAfterAsyncPlugin,
-  columnRowSpacingPlugin,
-  dateTypeCheckerPlugin,
+  require("./plugins/flutter/avoid-god-class").default,
+  require("./plugins/flutter/avoid-setstate-after-async").default,
+  require("./plugins/flutter/column-row-spacing").default,
+  require("./plugins/flutter/date-type-checker").default,
 ];
 
 // Export arrays for specific layers/categories

@@ -267,10 +267,10 @@ exports.allFlutterPlugins = [
   require("./plugins/flutter/class-naming-convention").default,
   require("./plugins/flutter/presentation-try-catch-checker").default,
   require("./plugins/flutter/merge-conflict-checker").default,
-  flutter_2.avoidGodClassPlugin,
-  flutter_2.avoidSetstateAfterAsyncPlugin,
-  flutter_2.columnRowSpacingPlugin,
-  flutter_2.dateTypeCheckerPlugin,
+  require("./plugins/flutter/avoid-god-class").default,
+  require("./plugins/flutter/avoid-setstate-after-async").default,
+  require("./plugins/flutter/column-row-spacing").default,
+  require("./plugins/flutter/date-type-checker").default,
 ];
 // Export arrays for specific layers/categories
 const flutter_2 = require("./plugins/flutter");
