@@ -104,8 +104,8 @@ O Danger Bot inclui plugins organizados em categorias:
 | **identifier-language**     | Detecta identificadores e comentarios que nao estao em ingles |
 | **class-naming-convention** | Verifica se nomes de classes usam substantivos (Clean Code)   |
 | **avoid-god-class**         | Detecta classes muito grandes (SRP — responsabilidade unica)  |
-| **avoid-nested-conditional** | Detecta ternarios aninhados que prejudicam legibilidade      |
 | **avoid-setstate-after-async** | Detecta setState apos await sem verificar mounted          |
+| **date-type-checker**       | Detecta campos de data declarados como String ao inves de DateTime |
 
 ### Performance e Flutter
 
@@ -130,7 +130,7 @@ import {
   dataLayerPlugins, // 2 plugins (datasources, models)
   presentationLayerPlugins, // 2 plugins (viewmodels, try-catch-checker)
   cleanArchitecturePlugins, // 9 plugins (todas as camadas + validacao cross-layer)
-  codeQualityPlugins, // 10 plugins (late-final, memory-leak, comments, security, barrel, identifier-language, class-naming, avoid-god-class, avoid-nested-conditional, avoid-setstate-after-async)
+  codeQualityPlugins, // 10 plugins (late-final, memory-leak, comments, security, barrel, identifier-language, class-naming, avoid-god-class, avoid-setstate-after-async, date-type-checker)
   performancePlugins, // 3 plugins (flutter-performance, mediaquery-modern, column-row-spacing)
   executeDangerBot,
 } from "@felipeduarte26/danger-bot";

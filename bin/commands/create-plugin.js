@@ -174,18 +174,16 @@ export async function createPlugin() {
         }
       }
 
-      // 2. Adicionar no array allFlutterPlugins
+      // 2. Adicionar no array allFlutterPlugins (usando require().default para evitar referência circular)
       const arrayRegex = /export const allFlutterPlugins = \[([\s\S]*?)\];/;
       const arrayMatch = mainIndexContent.match(arrayRegex);
 
       if (arrayMatch) {
         const currentPlugins = arrayMatch[1];
-        const newPlugin = `${camelName}Plugin`;
+        const requireLine = `require("./plugins/flutter/${kebabName}").default`;
 
-        // Verificar se já existe
-        if (!currentPlugins.includes(newPlugin)) {
-          // Adicionar no final do array
-          const updatedPlugins = currentPlugins.trim() + `,\n  ${newPlugin}`;
+        if (!currentPlugins.includes(kebabName)) {
+          const updatedPlugins = currentPlugins.trim() + `,\n  ${requireLine}`;
           mainIndexContent = mainIndexContent.replace(
             arrayRegex,
             `export const allFlutterPlugins = [\n  ${updatedPlugins}\n];`

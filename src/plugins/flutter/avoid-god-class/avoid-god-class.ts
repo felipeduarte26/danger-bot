@@ -124,8 +124,8 @@ export default createPlugin(
             objective:
               "Seguir o **Princípio de Responsabilidade Única** (SRP) — cada classe deve ter um único motivo para mudar.",
             reference: {
-              text: "Clean Code: Classes — Robert C. Martin",
-              url: "https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html",
+              text: "SOLID: Single Responsibility Principle",
+              url: "https://blog.cleancoder.com/uncle-bob/2014/05/08/SingleReponsibilityPrinciple.html",
             },
             file,
             line: cls.startLine,
@@ -151,8 +151,8 @@ export default createPlugin(
             },
             objective: "Manter classes **coesas** e com **baixo acoplamento**.",
             reference: {
-              text: "Clean Code: Classes — Robert C. Martin",
-              url: "https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html",
+              text: "SOLID: Single Responsibility Principle",
+              url: "https://blog.cleancoder.com/uncle-bob/2014/05/08/SingleReponsibilityPrinciple.html",
             },
             file,
             line: cls.startLine,

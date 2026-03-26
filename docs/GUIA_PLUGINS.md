@@ -132,8 +132,8 @@ executeDangerBot(plugins);
 | `identifierLanguagePlugin` | `identifier-language` | Detecta identificadores e comentarios que nao estao em ingles |
 | `classNamingConventionPlugin` | `class-naming-convention` | Verifica se nomes de classes usam substantivos (Clean Code) |
 | `avoidGodClassPlugin` | `avoid-god-class` | Detecta classes muito grandes (SRP — responsabilidade unica) |
-| `avoidNestedConditionalPlugin` | `avoid-nested-conditional` | Detecta ternarios aninhados que prejudicam legibilidade |
 | `avoidSetstateAfterAsyncPlugin` | `avoid-setstate-after-async` | Detecta setState apos await sem verificar mounted |
+| `dateTypeCheckerPlugin` | `date-type-checker` | Detecta campos de data declarados como String ao inves de DateTime |
 
 ### Performance e Flutter
 
@@ -324,7 +324,10 @@ A CLI pergunta nome e descricao, e gera automaticamente:
 - Arquivo do plugin com `createPlugin`
 - `index.ts` com export
 - `README.md` com documentacao
-- Atualiza barrel files e `allFlutterPlugins`
+- Atualiza barrel files (`src/plugins/flutter/index.ts`)
+- Adiciona no `allFlutterPlugins` em `src/index.ts` usando `require().default`
+
+> **Sempre use a CLI para criar plugins do pacote.** Ela garante o padrao correto automaticamente.
 
 ### Plugin local do projeto
 
@@ -332,12 +335,14 @@ Crie um arquivo `.ts` no seu projeto (ex: `danger/plugins/meu-plugin.ts`) e apon
 
 ### Manualmente (para plugins do pacote)
 
+> **Atenção:** Prefira sempre a CLI. Se criar manualmente, siga rigorosamente o padrao abaixo.
+
 Crie uma pasta em `src/plugins/flutter/meu-plugin/`:
 
 **`meu-plugin.ts`:**
 
 ```typescript
-import { createPlugin, getDanger, sendFail } from "@types";
+import { createPlugin, getDanger, sendFormattedFail } from "@types";
 import * as fs from "fs";
 
 export default createPlugin(
@@ -364,35 +369,24 @@ export default createPlugin(
       for (let i = 0; i < lines.length; i++) {
         // sua logica de deteccao aqui
 
-        sendFail(
-          `TITULO DO PROBLEMA
-
-Descricao curta do que foi detectado.
-
-### Problema Identificado
-
-\`\`\`dart
-${lines[i].trim()}
-\`\`\`
-
-### 🎯 ACAO NECESSARIA
-
-\`\`\`dart
-// ❌ Errado
-codigo_errado();
-
-// ✅ Correto
-codigo_correto();
-\`\`\`
-
-### 🚀 Objetivo
-
-Frase curta sobre o beneficio.
-
-📖 [Referencia](https://link.com)`,
+        sendFormattedFail({
+          title: "TITULO DO PROBLEMA",
+          description: "Descricao curta do que foi detectado.",
+          problem: {
+            wrong: "codigo_errado();",
+            correct: "codigo_correto();",
+          },
+          action: {
+            code: "codigo_correto();",
+          },
+          objective: "Frase curta sobre o beneficio.",
+          reference: {
+            text: "Referencia",
+            url: "https://link.com",
+          },
           file,
-          i + 1
-        );
+          line: i + 1,
+        });
       }
     }
   }
@@ -405,7 +399,47 @@ Frase curta sobre o beneficio.
 export { default } from "./meu-plugin";
 ```
 
-Depois, adicione o export em `src/plugins/flutter/index.ts` e no array `allFlutterPlugins` em `src/index.ts`.
+**Registrar o plugin (3 passos):**
+
+1. Adicione o export em `src/plugins/flutter/index.ts`:
+
+```typescript
+export { default as meuPluginPlugin } from "./meu-plugin";
+```
+
+2. Adicione no `allFlutterPlugins` em `src/index.ts` usando **`require().default`**:
+
+```typescript
+export const allFlutterPlugins = [
+  // ... plugins existentes ...
+  require("./plugins/flutter/meu-plugin").default,  // ✅ Correto
+];
+```
+
+3. Adicione no import e no array de categoria correspondente em `src/index.ts`:
+
+```typescript
+import {
+  // ... imports existentes ...
+  meuPluginPlugin,
+} from "./plugins/flutter";
+
+export const codeQualityPlugins = [
+  // ... plugins existentes ...
+  meuPluginPlugin,
+];
+```
+
+> **IMPORTANTE — Padrao do `allFlutterPlugins`**
+>
+> O array `allFlutterPlugins` **deve** usar `require("./plugins/flutter/nome").default` para cada plugin.
+> **Nunca** use variaveis importadas diretamente neste array (ex: `meuPluginPlugin`).
+>
+> Isso evita erro de referencia circular no JavaScript compilado:
+> `ReferenceError: Cannot access 'flutter_2' before initialization`
+>
+> Os arrays de categoria (`codeQualityPlugins`, `performancePlugins`, etc.) podem usar
+> variaveis importadas normalmente, pois sao declarados apos o `import`.
 
 ### Validar o plugin
 
