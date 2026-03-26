@@ -18,7 +18,7 @@ const REQUEST_TIMEOUT_MS = 30000;
 const MAX_CONTENT_CHARS = 30000;
 const FILES_PER_KEY = 15;
 const DELAY_BETWEEN_REQUESTS_MS = 10000;
-const MAX_CONSECUTIVE_RATE_LIMITS = 10;
+const MAX_CONSECUTIVE_RATE_LIMITS = 3;
 
 const SYSTEM_PROMPT = `Você é um code reviewer sênior especialista em Flutter/Dart, Clean Architecture, Clean Code e SOLID.
 
