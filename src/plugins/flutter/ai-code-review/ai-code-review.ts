@@ -10,7 +10,7 @@
  *   2. Env var GEMINI_API_KEYS (separadas por vírgula)
  *   3. Env var GEMINI_API_KEY (uma única key)
  */
-import { createPlugin, getDanger, sendWarn } from "@types";
+import { createPlugin, getDanger, sendMessage, sendWarn } from "@types";
 import * as fs from "fs";
 
 const GEMINI_MODEL = "gemini-2.5-flash-lite";
@@ -120,6 +120,10 @@ export default createPlugin(
 
     console.log(`🤖 AI Code Review: analisando ${dartFiles.length} arquivo(s) com Gemini...`);
 
+    let reviewed = 0;
+    let approved = 0;
+    let issues = 0;
+
     for (const file of dartFiles) {
       const content = fs.readFileSync(file, "utf-8");
       const lines = content.split("\n");
@@ -135,10 +139,15 @@ export default createPlugin(
         continue;
       }
 
-      if (review.includes("✅ Código aprovado")) {
+      reviewed++;
+
+      if (review.includes("Código aprovado")) {
+        approved++;
         console.log(`  ✅ ${file} — aprovado pela IA`);
         continue;
       }
+
+      issues++;
 
       sendWarn(
         `🤖 **AI CODE REVIEW** — \`${file}\`\n\n${review}\n\n---\n_Revisão automática por Gemini (${GEMINI_MODEL}). Valide as sugestões antes de aplicar._`,
@@ -146,6 +155,18 @@ export default createPlugin(
       );
 
       console.log(`  🤖 ${file} — review gerado`);
+    }
+
+    if (reviewed > 0) {
+      if (issues === 0) {
+        sendMessage(
+          `🤖 **AI Code Review**: IA analisou **${reviewed} arquivo(s)** e aprovou todos. Nenhuma sugestão encontrada.`
+        );
+      } else {
+        sendMessage(
+          `🤖 **AI Code Review**: IA analisou **${reviewed} arquivo(s)** — **${approved} aprovado(s)**, **${issues} com sugestões**.`
+        );
+      }
     }
   }
 );

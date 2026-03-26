@@ -154,6 +154,9 @@ exports.default = (0, _types_1.createPlugin)(
     );
     if (dartFiles.length === 0) return;
     console.log(`🤖 AI Code Review: analisando ${dartFiles.length} arquivo(s) com Gemini...`);
+    let reviewed = 0;
+    let approved = 0;
+    let issues = 0;
     for (const file of dartFiles) {
       const content = fs.readFileSync(file, "utf-8");
       const lines = content.split("\n");
@@ -164,15 +167,29 @@ exports.default = (0, _types_1.createPlugin)(
         console.log(`  ❌ ${file} — falha na API (todas as keys falharam)`);
         continue;
       }
-      if (review.includes("✅ Código aprovado")) {
+      reviewed++;
+      if (review.includes("Código aprovado")) {
+        approved++;
         console.log(`  ✅ ${file} — aprovado pela IA`);
         continue;
       }
+      issues++;
       (0, _types_1.sendWarn)(
         `🤖 **AI CODE REVIEW** — \`${file}\`\n\n${review}\n\n---\n_Revisão automática por Gemini (${GEMINI_MODEL}). Valide as sugestões antes de aplicar._`,
         file
       );
       console.log(`  🤖 ${file} — review gerado`);
+    }
+    if (reviewed > 0) {
+      if (issues === 0) {
+        (0, _types_1.sendMessage)(
+          `🤖 **AI Code Review**: IA analisou **${reviewed} arquivo(s)** e aprovou todos. Nenhuma sugestão encontrada.`
+        );
+      } else {
+        (0, _types_1.sendMessage)(
+          `🤖 **AI Code Review**: IA analisou **${reviewed} arquivo(s)** — **${approved} aprovado(s)**, **${issues} com sugestões**.`
+        );
+      }
     }
   }
 );
