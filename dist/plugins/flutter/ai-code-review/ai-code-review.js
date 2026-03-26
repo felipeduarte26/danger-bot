@@ -68,6 +68,10 @@ const GEMINI_MODEL = "gemini-2.5-flash-lite";
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 const MAX_OUTPUT_TOKENS = 1024;
 const REQUEST_TIMEOUT_MS = 30000;
+const MAX_CONTENT_CHARS = 30000;
+const DELAY_BETWEEN_REQUESTS_MS = 4500;
+const MAX_RETRIES_PER_KEY = 2;
+const RETRY_BACKOFF_MS = 10000;
 const SYSTEM_PROMPT = `Você é um code reviewer sênior especialista em Flutter/Dart, Clean Architecture, Clean Code e SOLID.
 
 Analise o código abaixo e aponte APENAS problemas reais e relevantes. Foque em:
@@ -110,8 +114,14 @@ function getApiKeys() {
   }
   return [...new Set(keys)];
 }
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+let currentKeyIndex = 0;
 async function callGemini(prompt, apiKeys) {
-  for (const key of apiKeys) {
+  let attempts = 0;
+  const maxAttempts = apiKeys.length * MAX_RETRIES_PER_KEY;
+  while (attempts < maxAttempts) {
+    const key = apiKeys[currentKeyIndex % apiKeys.length];
+    attempts++;
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -129,11 +139,21 @@ async function callGemini(prompt, apiKeys) {
       });
       clearTimeout(timeout);
       if (res.status === 429) {
-        console.log(`⚠️ Gemini rate limit na key ...${key.slice(-6)}, tentando próxima...`);
+        console.log(
+          `⚠️ Gemini rate limit na key ...${key.slice(-6)}, aguardando ${RETRY_BACKOFF_MS / 1000}s...`
+        );
+        currentKeyIndex++;
+        await sleep(RETRY_BACKOFF_MS);
         continue;
+      }
+      if (res.status === 400) {
+        const errBody = await res.text();
+        console.log(`⚠️ Gemini erro 400 na key ...${key.slice(-6)}: ${errBody.slice(0, 200)}`);
+        return null;
       }
       if (!res.ok) {
         console.log(`⚠️ Gemini erro ${res.status} na key ...${key.slice(-6)}, tentando próxima...`);
+        currentKeyIndex++;
         continue;
       }
       const data = await res.json();
@@ -141,6 +161,7 @@ async function callGemini(prompt, apiKeys) {
       if (text) return text;
     } catch {
       console.log(`⚠️ Gemini falha na key ...${key.slice(-6)}, tentando próxima...`);
+      currentKeyIndex++;
       continue;
     }
   }
@@ -156,6 +177,10 @@ function shouldAnalyzeFile(filePath) {
     !lower.includes("/l10n/")
   );
 }
+function truncateContent(content) {
+  if (content.length <= MAX_CONTENT_CHARS) return content;
+  return content.slice(0, MAX_CONTENT_CHARS) + "\n// ... (arquivo truncado para análise)";
+}
 exports.default = (0, _types_1.createPlugin)(
   {
     name: "ai-code-review",
@@ -167,7 +192,7 @@ exports.default = (0, _types_1.createPlugin)(
     if (apiKeys.length === 0) {
       console.log(
         "⚠️ ai-code-review: nenhuma API key configurada. " +
-          "Defina GEMINI_API_KEYS (separadas por vírgula) ou GEMINI_API_KEY como variável de ambiente no CI/CD."
+          "Defina gemini_api_keys no danger-bot.yaml ou GEMINI_API_KEYS/GEMINI_API_KEY como variável de ambiente."
       );
       return;
     }
@@ -180,28 +205,38 @@ exports.default = (0, _types_1.createPlugin)(
     let reviewed = 0;
     let approved = 0;
     let issues = 0;
-    for (const file of dartFiles) {
+    let skipped = 0;
+    for (let i = 0; i < dartFiles.length; i++) {
+      const file = dartFiles[i];
       const content = fs.readFileSync(file, "utf-8");
       const lines = content.split("\n");
-      if (lines.length < 5) continue;
-      const prompt = `${SYSTEM_PROMPT}\n\nArquivo: ${file}\n\n\`\`\`dart\n${content}\n\`\`\``;
+      if (lines.length < 5) {
+        skipped++;
+        continue;
+      }
+      const trimmed = truncateContent(content);
+      const prompt = `${SYSTEM_PROMPT}\n\nArquivo: ${file}\n\n\`\`\`dart\n${trimmed}\n\`\`\``;
       const review = await callGemini(prompt, apiKeys);
       if (!review) {
-        console.log(`  ❌ ${file} — falha na API (todas as keys falharam)`);
+        console.log(`  ❌ ${file} — falha na API`);
+        skipped++;
         continue;
       }
       reviewed++;
       if (review.includes("Código aprovado")) {
         approved++;
         console.log(`  ✅ ${file} — aprovado pela IA`);
-        continue;
+      } else {
+        issues++;
+        (0, _types_1.sendWarn)(
+          `🤖 **AI CODE REVIEW** — \`${file}\`\n\n${review}\n\n---\n_Revisão automática por Gemini (${GEMINI_MODEL}). Valide as sugestões antes de aplicar._`,
+          file
+        );
+        console.log(`  🤖 ${file} — review gerado`);
       }
-      issues++;
-      (0, _types_1.sendWarn)(
-        `🤖 **AI CODE REVIEW** — \`${file}\`\n\n${review}\n\n---\n_Revisão automática por Gemini (${GEMINI_MODEL}). Valide as sugestões antes de aplicar._`,
-        file
-      );
-      console.log(`  🤖 ${file} — review gerado`);
+      if (i < dartFiles.length - 1) {
+        await sleep(DELAY_BETWEEN_REQUESTS_MS);
+      }
     }
     if (reviewed > 0) {
       if (issues === 0) {
@@ -213,6 +248,10 @@ exports.default = (0, _types_1.createPlugin)(
           `🤖 **AI Code Review**: IA analisou **${reviewed} arquivo(s)** — **${approved} aprovado(s)**, **${issues} com sugestões**.`
         );
       }
+    } else if (skipped > 0) {
+      console.log(
+        `⚠️ ai-code-review: nenhum arquivo analisado com sucesso (${skipped} falharam/ignorados).`
+      );
     }
   }
 );
