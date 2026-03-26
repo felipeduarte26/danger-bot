@@ -63,6 +63,27 @@ Object.defineProperty(exports, "__esModule", { value: true });
  */
 const _types_1 = require("../../../types");
 const fs = __importStar(require("fs"));
+function parseClasses(lines) {
+  const interfaces = [];
+  const implementations = [];
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const ifaceMatch = line.match(/abstract\s+interface\s+class\s+([A-Za-z_]\w*)/);
+    if (ifaceMatch) {
+      interfaces.push({ name: ifaceMatch[1], line: i + 1 });
+      continue;
+    }
+    const classMatch = line.match(/(?:final\s+)?class\s+([A-Za-z_]\w*)/);
+    if (classMatch && !line.includes("abstract")) {
+      let declaration = line;
+      for (let j = i + 1; j < lines.length && !declaration.includes("{"); j++) {
+        declaration += " " + lines[j].trim();
+      }
+      implementations.push({ name: classMatch[1], line: i + 1, declaration });
+    }
+  }
+  return { interfaces, implementations };
+}
 exports.default = (0, _types_1.createPlugin)(
   {
     name: "domain-usecases",
@@ -81,174 +102,163 @@ exports.default = (0, _types_1.createPlugin)(
     for (const file of files) {
       const fileName = file.split("/").pop() || "";
       if (!fileName.endsWith("_usecase.dart")) {
-        (0, _types_1.sendFail)(
-          `NOMENCLATURA DE USECASE INCORRETA
-
-Arquivo deve terminar com \`_usecase.dart\`.
-
-### 🎯 AÇÃO NECESSÁRIA
-
-\`\`\`dart
-// ❌ ${fileName}
-// ✅ ${fileName.replace(".dart", "")}_usecase.dart
-\`\`\``,
+        (0, _types_1.sendFormattedFail)({
+          title: "NOMENCLATURA DE USECASE INCORRETA",
+          description: "Arquivo deve terminar com `_usecase.dart`.",
+          problem: {
+            wrong: fileName,
+            correct: `${fileName.replace(".dart", "")}_usecase.dart`,
+            wrongLabel: "Nome atual",
+            correctLabel: "Nome correto",
+          },
+          action: {
+            code: `// Renomeie o arquivo:\n// ${fileName} → ${fileName.replace(".dart", "")}_usecase.dart`,
+          },
+          objective: "Manter **consistência** na nomenclatura da Domain Layer.",
           file,
-          1
-        );
+          line: 1,
+        });
         continue;
       }
       const content = fs.readFileSync(file, "utf-8");
       const lines = content.split("\n");
-      const interfaces = [];
-      const implementations = [];
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        const ifaceMatch = line.match(/abstract\s+interface\s+class\s+([A-Za-z_]\w*)/);
-        if (ifaceMatch) {
-          interfaces.push({ name: ifaceMatch[1], line: i + 1 });
-        }
-        const implMatch = line.match(
-          /(?:final\s+)?class\s+([A-Za-z_]\w*)\s+(?:implements|extends)\s+([A-Za-z_]\w*)/
-        );
-        if (implMatch && !line.includes("abstract")) {
-          implementations.push({ name: implMatch[1], line: i + 1, raw: line });
-        }
-      }
+      const { interfaces, implementations } = parseClasses(lines);
       if (interfaces.length > 1) {
-        (0, _types_1.sendFail)(
-          `MÚLTIPLAS INTERFACES EM UM ARQUIVO USECASE
-
-Encontradas **${interfaces.length} interfaces**: ${interfaces.map((i) => `\`${i.name}\``).join(", ")}.
-
-### 🎯 AÇÃO NECESSÁRIA
-
-Cada UseCase (interface + implementação) deve estar em seu próprio arquivo.
-
-### 🚀 Objetivo
-
-**Um UseCase por arquivo** — facilita navegação e manutenção.`,
+        (0, _types_1.sendFormattedFail)({
+          title: "MÚLTIPLAS INTERFACES EM UM ARQUIVO USECASE",
+          description: `Encontradas **${interfaces.length} interfaces**: ${interfaces.map((i) => `\`${i.name}\``).join(", ")}.`,
+          problem: {
+            wrong: interfaces.map((i) => `abstract interface class ${i.name} { }`).join("\n"),
+            correct: interfaces
+              .map(
+                (i) =>
+                  `// ${i.name
+                    .replace(/^I/, "")
+                    .replace(/([A-Z])/g, "_$1")
+                    .toLowerCase()
+                    .slice(1)}_usecase.dart`
+              )
+              .join("\n"),
+            wrongLabel: `${interfaces.length} interfaces no mesmo arquivo`,
+            correctLabel: "Uma interface por arquivo",
+          },
+          action: {
+            code: "Separe cada UseCase (interface + implementação) em seu próprio arquivo.",
+            language: "text",
+          },
+          objective: "**Um UseCase por arquivo** — facilita navegação e manutenção.",
           file,
-          interfaces[1].line
-        );
+          line: interfaces[1].line,
+        });
       }
       if (interfaces.length === 0) {
-        (0, _types_1.sendFail)(
-          `USECASE SEM INTERFACE
-
-Arquivo de UseCase deve ter \`abstract interface class\`.
-
-### 🎯 AÇÃO NECESSÁRIA
-
-\`\`\`dart
-abstract interface class IGetUserUsecase {
-  Future<Result<Failure, UserEntity>> call(String id);
-}
-
-final class GetUserUsecase implements IGetUserUsecase {
-  const GetUserUsecase(this._repository);
-  final IUserRepository _repository;
-
-  @override
-  Future<Result<Failure, UserEntity>> call(String id) async {
-    return _repository.getUser(id);
-  }
-}
-\`\`\`
-
-### 🚀 Objetivo
-
-Permitir **injeção de dependência** e facilitar **testes**.`,
+        (0, _types_1.sendFormattedFail)({
+          title: "USECASE SEM INTERFACE",
+          description: "Arquivo de UseCase deve ter `abstract interface class`.",
+          problem: {
+            wrong:
+              implementations.length > 0
+                ? `class ${implementations[0].name} { }`
+                : `// Sem interface`,
+            correct: `abstract interface class IGetUserUsecase {\n  Future<Result<Failure, UserEntity>> call(String id);\n}`,
+          },
+          action: {
+            code: `abstract interface class IGetUserUsecase {\n  Future<Result<Failure, UserEntity>> call(String id);\n}\n\nfinal class GetUserUsecase implements IGetUserUsecase {\n  // implementação\n}`,
+          },
+          objective: "Permitir **injeção de dependência** e facilitar **testes**.",
           file,
-          1
-        );
+          line: 1,
+        });
       }
       for (const iface of interfaces) {
         if (!iface.name.startsWith("I")) {
-          (0, _types_1.sendFail)(
-            `INTERFACE DE USECASE SEM PREFIXO I
-
-A interface \`${iface.name}\` deve começar com \`I\`.
-
-### 🎯 AÇÃO NECESSÁRIA
-
-\`\`\`dart
-// ❌ abstract interface class ${iface.name} { }
-// ✅ abstract interface class I${iface.name} { }
-\`\`\``,
+          (0, _types_1.sendFormattedFail)({
+            title: "INTERFACE DE USECASE SEM PREFIXO I",
+            description: `A interface \`${iface.name}\` deve começar com \`I\`.`,
+            problem: {
+              wrong: `abstract interface class ${iface.name} { }`,
+              correct: `abstract interface class I${iface.name} { }`,
+            },
+            action: {
+              code: `abstract interface class I${iface.name} { }`,
+            },
+            objective: "Manter **consistência** na nomenclatura de interfaces.",
             file,
-            iface.line
-          );
+            line: iface.line,
+          });
         }
         if (!iface.name.endsWith("Usecase")) {
-          (0, _types_1.sendFail)(
-            `INTERFACE DE USECASE SEM SUFIXO
-
-A interface \`${iface.name}\` deve terminar com \`Usecase\`.
-
-### 🎯 AÇÃO NECESSÁRIA
-
-\`\`\`dart
-// ❌ abstract interface class ${iface.name} { }
-// ✅ abstract interface class ${iface.name}Usecase { }
-\`\`\``,
+          (0, _types_1.sendFormattedFail)({
+            title: "INTERFACE DE USECASE SEM SUFIXO",
+            description: `A interface \`${iface.name}\` deve terminar com \`Usecase\`.`,
+            problem: {
+              wrong: `abstract interface class ${iface.name} { }`,
+              correct: `abstract interface class ${iface.name}Usecase { }`,
+            },
+            action: {
+              code: `abstract interface class ${iface.name}Usecase { }`,
+            },
+            objective: "Manter **consistência** na nomenclatura de UseCases.",
             file,
-            iface.line
-          );
+            line: iface.line,
+          });
         }
       }
       if (implementations.length === 0 && interfaces.length > 0) {
-        (0, _types_1.sendFail)(
-          `USECASE SEM IMPLEMENTAÇÃO
-
-Arquivo tem interface mas não tem a implementação.
-
-### 🎯 AÇÃO NECESSÁRIA
-
-\`\`\`dart
-final class ${interfaces[0].name.replace(/^I/, "")} implements ${interfaces[0].name} {
-  // implementação
-}
-\`\`\``,
+        const ifaceName = interfaces[0].name;
+        const implName = ifaceName.replace(/^I/, "");
+        (0, _types_1.sendFormattedFail)({
+          title: "USECASE SEM IMPLEMENTAÇÃO",
+          description: "Arquivo tem interface mas não tem a implementação.",
+          problem: {
+            wrong: `abstract interface class ${ifaceName} { }\n// Sem implementação`,
+            correct: `abstract interface class ${ifaceName} { }\n\nfinal class ${implName} implements ${ifaceName} { }`,
+            wrongLabel: "Apenas interface",
+            correctLabel: "Interface + implementação",
+          },
+          action: {
+            code: `final class ${implName} implements ${ifaceName} {\n  // implementação\n}`,
+          },
+          objective: "Cada UseCase deve ter **interface + implementação** no mesmo arquivo.",
           file,
-          interfaces[0].line
-        );
+          line: interfaces[0].line,
+        });
       }
       for (const impl of implementations) {
         if (!impl.name.endsWith("Usecase")) {
-          (0, _types_1.sendFail)(
-            `IMPLEMENTAÇÃO DE USECASE SEM SUFIXO
-
-A classe \`${impl.name}\` deve terminar com \`Usecase\`.
-
-### 🎯 AÇÃO NECESSÁRIA
-
-\`\`\`dart
-// ❌ class ${impl.name} { }
-// ✅ class ${impl.name}Usecase { }
-\`\`\``,
+          (0, _types_1.sendFormattedFail)({
+            title: "IMPLEMENTAÇÃO DE USECASE SEM SUFIXO",
+            description: `A classe \`${impl.name}\` deve terminar com \`Usecase\`.`,
+            problem: {
+              wrong: `class ${impl.name} { }`,
+              correct: `class ${impl.name}Usecase { }`,
+            },
+            action: {
+              code: `final class ${impl.name}Usecase implements I${impl.name}Usecase { }`,
+            },
+            objective: "Manter **consistência** na nomenclatura de UseCases.",
             file,
-            impl.line
-          );
+            line: impl.line,
+          });
         }
-        if (impl.raw.match(/extends\s+I\w+/)) {
-          (0, _types_1.sendFail)(
-            `USECASE COM EXTENDS INCORRETO
-
-UseCase deve usar \`implements\`, não \`extends\`.
-
-### Problema Identificado
-
-\`extends\` é para herança de classes. Interfaces devem ser implementadas.
-
-### 🎯 AÇÃO NECESSÁRIA
-
-\`\`\`dart
-// ❌ class ${impl.name} extends ${interfaces[0]?.name || "IXxxUsecase"} { }
-// ✅ class ${impl.name} implements ${interfaces[0]?.name || "IXxxUsecase"} { }
-\`\`\``,
+        if (impl.declaration.match(/extends\s+I\w+/)) {
+          const ifaceName = interfaces[0]?.name || "IXxxUsecase";
+          (0, _types_1.sendFormattedFail)({
+            title: "USECASE COM EXTENDS INCORRETO",
+            description: "UseCase deve usar `implements`, não `extends`.",
+            problem: {
+              wrong: `class ${impl.name} extends ${ifaceName} { }`,
+              correct: `class ${impl.name} implements ${ifaceName} { }`,
+              wrongLabel: "extends (herança)",
+              correctLabel: "implements (contrato)",
+            },
+            action: {
+              code: `final class ${impl.name} implements ${ifaceName} { }`,
+            },
+            objective: "Interfaces devem ser **implementadas**, não estendidas.",
             file,
-            impl.line
-          );
+            line: impl.line,
+          });
         }
       }
     }
