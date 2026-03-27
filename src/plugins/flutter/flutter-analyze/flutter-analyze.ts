@@ -442,7 +442,7 @@ function getDocumentationLink(ruleName: string): string | null {
   ];
 
   if (diagnosticMessages.includes(ruleName)) {
-    return `https://dart.dev/tools/diagnostic-messages#${ruleName}`;
+    return `https://dart.dev/tools/diagnostics/${ruleName}`;
   }
 
   return `https://dart.dev/tools/linter-rules/${ruleName}`;
