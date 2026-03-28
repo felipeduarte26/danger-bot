@@ -54,8 +54,8 @@ Exemplo de resposta correta (note a ordem por severidade):
 
 - Responda SEMPRE em PT-BR
 - SEMPRE ordene: 🔴 primeiro, depois 🟡, depois 🔵
-- NUNCA use blocos de código (proibido usar \`\`\`). Use apenas \`backticks simples\` para nomes inline
-- NUNCA inclua exemplos de código multi-linha
+- Use \`backticks simples\` para nomes de classes, métodos e variáveis inline
+- Se incluir exemplo de código, use blocos curtos (máximo 5 linhas) e SEMPRE feche o bloco com \`\`\`
 - Se o código estiver bom, responda apenas: "✅ Código aprovado — nenhum problema encontrado."
 - NÃO comente sobre imports faltantes (você não tem o contexto completo)
 - NÃO comente sobre formatação ou estilo (isso é responsabilidade do linter)
