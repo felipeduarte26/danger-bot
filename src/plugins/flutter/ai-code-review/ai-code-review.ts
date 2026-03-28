@@ -20,42 +20,43 @@ const FILES_PER_KEY = 15;
 const DELAY_BETWEEN_REQUESTS_MS = 10000;
 const MAX_CONSECUTIVE_RATE_LIMITS = 3;
 
-const SYSTEM_PROMPT = `Você é um code reviewer sênior especialista em Flutter/Dart,
-Clean Architecture, Clean Code e SOLID.
+const SYSTEM_PROMPT = `Você é um code reviewer sênior especialista em Flutter/Dart, Clean Architecture, Clean Code e SOLID.
 
 Analise o código abaixo e aponte APENAS problemas reais e relevantes.
 
 ## FOCO DA ANÁLISE:
 
-1. **Bugs e erros lógicos** — condições invertidas, null safety,
-   race conditions, async mal tratado
+1. **Bugs e erros lógicos** — condições invertidas, null safety, race conditions, async mal tratado
 2. **SOLID** — violações de SRP, DIP, OCP, ISP, LSP
-3. **Clean Architecture** — imports entre camadas incorretos,
-   dependências invertidas, lógica de negócio na camada errada
-4. **Segurança** — keys/secrets hardcoded, dados sensíveis expostos,
-   logs com informação sensível
-5. **Complexidade** — métodos longos (>50 linhas), aninhamento
-   excessivo (>3 níveis), god classes
-6. **Performance Flutter** — dispose de controllers/streams,
-   rebuilds desnecessários, uso correto de const,
-   ListView.builder vs Column para listas, setState em
-   árvores pesadas
+3. **Clean Architecture** — imports entre camadas incorretos, dependências invertidas, lógica de negócio na camada errada
+4. **Segurança** — keys/secrets hardcoded, dados sensíveis expostos, logs com informação sensível
+5. **Complexidade** — métodos longos (>50 linhas), aninhamento excessivo (>3 níveis), god classes
+6. **Performance Flutter** — dispose de controllers/streams, rebuilds desnecessários, uso correto de const, ListView.builder vs Column para listas, setState em árvores pesadas
 
-## REGRAS:
+## FORMATO DE RESPOSTA (siga exatamente):
+
+Cada achado deve ser UMA linha com este formato:
+EMOJI **Título curto** — Explicação em 1-2 frases. Use \`backticks\` para nomes de classes, métodos ou variáveis.
+
+Emojis de severidade: 🔴 crítico | 🟡 atenção | 🔵 sugestão
+
+Exemplo de resposta correta:
+🔴 **Dependência invertida** — \`UserModel\` importa diretamente \`UserEntity\`. A camada de dados não deve depender do domínio. Use uma interface ou mapper.
+🟡 **Falta dispose** — O \`StreamController\` em \`_authStream\` nunca é fechado. Adicione \`_authStream.close()\` no \`dispose()\`.
+🔵 **Método longo** — \`fetchData()\` tem 60 linhas. Considere extrair a lógica de retry para um helper.
+
+## REGRAS OBRIGATÓRIAS:
 
 - Responda SEMPRE em PT-BR
 - Ordene os achados por severidade (críticos primeiro)
-- Cada ponto deve ter:
-  - Emoji de severidade: 🔴 crítico | 🟡 atenção | 🔵 sugestão
-  - Título curto
-  - Explicação em 1-3 linhas
-  - Snippet curto de como corrigir (quando aplicável)
-- Se o código estiver bom, responda apenas:
-  "✅ Código aprovado — nenhum problema encontrado."
-- NÃO comente sobre imports faltantes (contexto incompleto)
-- NÃO comente sobre formatação/estilo (responsabilidade do linter)
+- Máximo 5 achados por arquivo
+- NUNCA use blocos de código (proibido usar \`\`\`). Use apenas \`backticks simples\` para nomes inline
+- NUNCA inclua exemplos de código multi-linha
+- Se o código estiver bom, responda apenas: "✅ Código aprovado — nenhum problema encontrado."
+- NÃO comente sobre imports faltantes (você não tem o contexto completo)
+- NÃO comente sobre formatação ou estilo (isso é responsabilidade do linter)
 - NÃO invente problemas — se há poucos achados, liste poucos
-- Seja direto e objetivo`;
+- Seja direto e objetivo, cada achado em UMA linha`;
 
 function getApiKeys(): string[] {
   const keys: string[] = [];
@@ -135,6 +136,19 @@ async function callGemini(
     console.log(`  ⚠️ Gemini falha na key ...${key.slice(-6)}`);
     return { text: null, rateLimited: false };
   }
+}
+
+function sanitizeAiOutput(text: string): string {
+  let result = text;
+
+  const openBlocks = (result.match(/```/g) || []).length;
+  if (openBlocks % 2 !== 0) {
+    result += "\n```";
+  }
+
+  result = result.replace(/<\/?(?:sub|sup|b|i|em|strong|br|hr|div|span|p)[^>]*>/gi, "");
+
+  return result.trim();
 }
 
 function buildReviewMarkdown(file: string, text: string): string {
@@ -328,8 +342,10 @@ export default createPlugin(
       } else {
         issues++;
 
+        const cleanText = sanitizeAiOutput(result.text);
+
         sendWarn(`🤖 **AI CODE REVIEW** — \`${file}\`: Aqui está a análise do código.`);
-        sendMarkdown(buildReviewMarkdown(file, result.text));
+        sendMarkdown(buildReviewMarkdown(file, cleanText));
 
         console.log(`  🤖 ${file} — review gerado`);
       }
