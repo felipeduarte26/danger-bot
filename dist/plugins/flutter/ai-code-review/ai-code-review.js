@@ -72,7 +72,7 @@ const MAX_CONTENT_CHARS = 30000;
 const FILES_PER_KEY = 15;
 const DELAY_BETWEEN_REQUESTS_MS = 15000;
 const MAX_CONSECUTIVE_RATE_LIMITS = 3;
-const MIN_LINES_FOR_REVIEW = 20;
+const MIN_LINES_FOR_REVIEW = 10;
 const MIN_CHANGED_LINES = 5;
 const SYSTEM_PROMPT = `Você é um code reviewer sênior especialista em Flutter/Dart, Clean Architecture, Clean Code e SOLID.
 
