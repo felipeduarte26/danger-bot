@@ -76,17 +76,17 @@ const SYSTEM_PROMPT = `Você é um code reviewer sênior especialista em Flutter
 
 Analise o código abaixo e aponte APENAS problemas reais e relevantes. Foque em:
 
-1. **Bugs e erros lógicos** — condições invertidas, null safety, race conditions, setState após async sem mounted check
+1. **Bugs e erros lógicos** — condições invertidas, null safety, race conditions, e possíveis bugs
 2. **SOLID** — violações de SRP, DIP, OCP, ISP, LSP
 3. **Clean Architecture** — imports entre camadas incorretos, dependências invertidas, lógica de negócio na camada errada
-4. **Segurança** — keys/secrets hardcoded, dados sensíveis expostos, SQL injection, XSS
+4. **Segurança** — keys/secrets hardcoded, dados sensíveis expostos
 5. **Complexidade** — métodos muito longos, aninhamento excessivo, god classes
 6. **Boas práticas Flutter** — dispose de controllers, uso correto de const, performance em build()
 
 REGRAS:
 - Responda SEMPRE em PT-BR
 - Máximo 5 pontos por arquivo
-- Cada ponto deve ter: emoji de severidade (🔴 crítico, 🟡 atenção, 🔵 sugestão), título curto e explicação em 1-2 linhas
+- Cada ponto deve ter: emoji de severidade (🔴 crítico, 🟡 atenção, 🔵 sugestão), título curto e explicação em 1-3 linhas
 - Se o código estiver bom, responda apenas: "✅ Código aprovado — nenhum problema encontrado."
 - NÃO comente sobre imports faltantes (você não tem o contexto completo)
 - NÃO comente sobre formatação ou estilo (isso é responsabilidade do linter)
@@ -151,6 +151,26 @@ async function callGemini(prompt, key) {
     console.log(`  ⚠️ Gemini falha na key ...${key.slice(-6)}`);
     return { text: null, rateLimited: false };
   }
+}
+function splitReviewPoints(text) {
+  const lines = text.split("\n");
+  const points = [];
+  let current = [];
+  for (const line of lines) {
+    const isNewPoint =
+      /^\s*(?:[•\-*]|\u{1F534}|\u{1F7E1}|\u{1F535})\s/u.test(line) || /^\s*\d+[.)]\s/.test(line);
+    if (isNewPoint && current.length > 0) {
+      points.push(current.join("\n").trim());
+      current = [];
+    }
+    current.push(line);
+  }
+  if (current.length > 0) {
+    const trimmed = current.join("\n").trim();
+    if (trimmed) points.push(trimmed);
+  }
+  if (points.length <= 1) return [text.trim()];
+  return points;
 }
 function shouldAnalyzeFile(filePath) {
   const lower = filePath.toLowerCase();
@@ -265,31 +285,22 @@ exports.default = (0, _types_1.createPlugin)(
         console.log(`  ✅ ${file} — aprovado pela IA`);
       } else {
         issues++;
-        (0, _types_1.sendWarn)(`🤖 **AI CODE REVIEW** — \`${file}\` ${result.text}`, file);
-        console.log(`  🤖 ${file} — review gerado`);
+        const points = splitReviewPoints(result.text);
+        for (const point of points) {
+          (0, _types_1.sendWarn)(`🤖 **AI CODE REVIEW** — \`${file}\`\n\n${point}`);
+        }
+        console.log(`  🤖 ${file} — review gerado (${points.length} ponto(s))`);
       }
       if (i < filesToAnalyze.length - 1) {
         await sleep(DELAY_BETWEEN_REQUESTS_MS);
       }
     }
-    if (aborted && reviewed > 0) {
-      (0, _types_1.sendMessage)(
-        `🤖 **AI Code Review**: IA analisou **${reviewed} arquivo(s)** antes de atingir o rate limit — **${approved} aprovado(s)**, **${issues} com sugestões**. Alguns arquivos não foram analisados.`
-      );
-    } else if (aborted) {
-      (0, _types_1.sendMessage)(
-        "🤖 **AI Code Review**: Rate limit atingido em todas as API keys. Nenhum arquivo foi analisado. Tente novamente mais tarde ou adicione mais keys."
-      );
-    } else if (reviewed > 0) {
-      if (issues === 0) {
-        (0, _types_1.sendMessage)(
-          `🤖 **AI Code Review**: IA analisou **${reviewed} arquivo(s)** e aprovou todos. Nenhuma sugestão encontrada.`
-        );
-      } else {
-        (0, _types_1.sendMessage)(
-          `🤖 **AI Code Review**: IA analisou **${reviewed} arquivo(s)** — **${approved} aprovado(s)**, **${issues} com sugestões**.`
-        );
-      }
+    if (reviewed > 0) {
+      const message =
+        issues === 0
+          ? `🤖 **AI Code Review**: IA analisou **${reviewed} arquivo(s)** e aprovou todos. Nenhuma sugestão encontrada.`
+          : `🤖 **AI Code Review**: IA analisou **${reviewed} arquivo(s)** — **${approved} aprovado(s)**, **${issues} com sugestões**.`;
+      (0, _types_1.sendMessage)(message);
     } else if (skipped > 0) {
       console.log(
         `⚠️ ai-code-review: nenhum arquivo analisado com sucesso (${skipped} falharam/ignorados).`
