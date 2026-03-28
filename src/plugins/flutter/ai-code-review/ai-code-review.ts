@@ -54,7 +54,6 @@ Exemplo de resposta correta (note a ordem por severidade):
 
 - Responda SEMPRE em PT-BR
 - SEMPRE ordene: 🔴 primeiro, depois 🟡, depois 🔵
-- Máximo 5 achados por arquivo
 - NUNCA use blocos de código (proibido usar \`\`\`). Use apenas \`backticks simples\` para nomes inline
 - NUNCA inclua exemplos de código multi-linha
 - Se o código estiver bom, responda apenas: "✅ Código aprovado — nenhum problema encontrado."
