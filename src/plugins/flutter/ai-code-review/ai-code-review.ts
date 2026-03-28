@@ -152,9 +152,7 @@ function buildReviewMarkdown(file: string, text: string): string {
   }
 
   lines.push("", "---", "");
-  lines.push(
-    `<sub>Análise gerada por <b>Danger Bot AI</b> (${GEMINI_MODEL}) — revise antes de aplicar.</sub>`
-  );
+  lines.push(`*Análise gerada por **Danger Bot AI** — revise antes de aplicar.*`);
 
   return lines.join("\n");
 }
