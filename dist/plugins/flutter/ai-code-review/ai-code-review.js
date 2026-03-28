@@ -170,7 +170,7 @@ async function callGemini(prompt, key) {
   }
 }
 function buildReviewMarkdown(file, text) {
-  const lines = [`### 🤖 AI Code Review — \`${file}\``, "", "---", ""];
+  const lines = ["", "", "> ## 🤖 AI Code Review", `> **Arquivo:** \`${file}\``, "", "---", ""];
   const rawPoints = splitPoints(text);
   for (let idx = 0; idx < rawPoints.length; idx++) {
     lines.push(rawPoints[idx]);
