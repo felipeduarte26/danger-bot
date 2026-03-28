@@ -166,7 +166,14 @@ function sortBySeverity(points: string[]): string[] {
 }
 
 function buildReviewMarkdown(file: string, text: string): string {
-  const lines: string[] = ["", "", "> ## 🤖 AI Code Review", ">", `> **Arquivo:** \`${file}\``, ""];
+  const lines: string[] = [
+    "",
+    "",
+    "| 🤖 AI Code Review |",
+    "| :--- |",
+    `| **Arquivo:** \`${file}\` |`,
+    "",
+  ];
 
   const rawPoints = sortBySeverity(splitPoints(text));
 

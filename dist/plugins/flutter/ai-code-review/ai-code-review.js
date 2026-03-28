@@ -193,7 +193,7 @@ function sortBySeverity(points) {
   return [...points].sort((a, b) => severity(a) - severity(b));
 }
 function buildReviewMarkdown(file, text) {
-  const lines = ["", "", "> ## 🤖 AI Code Review", ">", `> **Arquivo:** \`${file}\``, ""];
+  const lines = ["", "", "| 🤖 AI Code Review |", "| :--- |", `| **Arquivo:** \`${file}\` |`, ""];
   const rawPoints = sortBySeverity(splitPoints(text));
   for (let idx = 0; idx < rawPoints.length; idx++) {
     lines.push(rawPoints[idx]);
@@ -341,9 +341,7 @@ exports.default = (0, _types_1.createPlugin)(
       } else {
         issues++;
         const cleanText = sanitizeAiOutput(result.text);
-        (0, _types_1.sendWarn)(
-          `🤖 **AI CODE REVIEW** — \`${file}\`: Aqui está a análise do código.`
-        );
+        (0, _types_1.sendWarn)(`🤖 **AI CODE REVIEW** — \`${file}\``);
         (0, _types_1.sendMarkdown)(buildReviewMarkdown(file, cleanText));
         console.log(`  🤖 ${file} — review gerado`);
       }
