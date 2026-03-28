@@ -350,7 +350,7 @@ export default createPlugin(
 
         const cleanText = sanitizeAiOutput(result.text);
 
-        sendWarn(`🤖 **AI CODE REVIEW** — \`${file}\`: Aqui está a análise do código.`);
+        sendWarn(`🤖 **AI CODE REVIEW** — \`${file}\``);
         sendMarkdown(buildReviewMarkdown(file, cleanText));
 
         console.log(`  🤖 ${file} — review gerado`);
