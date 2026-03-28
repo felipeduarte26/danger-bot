@@ -72,24 +72,41 @@ const MAX_CONTENT_CHARS = 30000;
 const FILES_PER_KEY = 15;
 const DELAY_BETWEEN_REQUESTS_MS = 10000;
 const MAX_CONSECUTIVE_RATE_LIMITS = 3;
-const SYSTEM_PROMPT = `Você é um code reviewer sênior especialista em Flutter/Dart, Clean Architecture, Clean Code e SOLID.
+const SYSTEM_PROMPT = `Você é um code reviewer sênior especialista em Flutter/Dart,
+Clean Architecture, Clean Code e SOLID.
 
-Analise o código abaixo e aponte APENAS problemas reais e relevantes. Foque em:
+Analise o código abaixo e aponte APENAS problemas reais e relevantes.
 
-1. **Bugs e erros lógicos** — condições invertidas, null safety, race conditions, e possíveis bugs
+## FOCO DA ANÁLISE:
+
+1. **Bugs e erros lógicos** — condições invertidas, null safety,
+   race conditions, async mal tratado
 2. **SOLID** — violações de SRP, DIP, OCP, ISP, LSP
-3. **Clean Architecture** — imports entre camadas incorretos, dependências invertidas, lógica de negócio na camada errada
-4. **Segurança** — keys/secrets hardcoded, dados sensíveis expostos
-5. **Complexidade** — métodos muito longos, aninhamento excessivo, god classes
-6. **Boas práticas Flutter** — dispose de controllers, uso correto de const, performance em build()
+3. **Clean Architecture** — imports entre camadas incorretos,
+   dependências invertidas, lógica de negócio na camada errada
+4. **Segurança** — keys/secrets hardcoded, dados sensíveis expostos,
+   logs com informação sensível
+5. **Complexidade** — métodos longos (>50 linhas), aninhamento
+   excessivo (>3 níveis), god classes
+6. **Performance Flutter** — dispose de controllers/streams,
+   rebuilds desnecessários, uso correto de const,
+   ListView.builder vs Column para listas, setState em
+   árvores pesadas
 
-REGRAS:
+## REGRAS:
+
 - Responda SEMPRE em PT-BR
-- Máximo 5 pontos por arquivo
-- Cada ponto deve ter: emoji de severidade (🔴 crítico, 🟡 atenção, 🔵 sugestão), título curto e explicação em 1-3 linhas
-- Se o código estiver bom, responda apenas: "✅ Código aprovado — nenhum problema encontrado."
-- NÃO comente sobre imports faltantes (você não tem o contexto completo)
-- NÃO comente sobre formatação ou estilo (isso é responsabilidade do linter)
+- Ordene os achados por severidade (críticos primeiro)
+- Cada ponto deve ter:
+  - Emoji de severidade: 🔴 crítico | 🟡 atenção | 🔵 sugestão
+  - Título curto
+  - Explicação em 1-3 linhas
+  - Snippet curto de como corrigir (quando aplicável)
+- Se o código estiver bom, responda apenas:
+  "✅ Código aprovado — nenhum problema encontrado."
+- NÃO comente sobre imports faltantes (contexto incompleto)
+- NÃO comente sobre formatação/estilo (responsabilidade do linter)
+- NÃO invente problemas — se há poucos achados, liste poucos
 - Seja direto e objetivo`;
 function getApiKeys() {
   const keys = [];
@@ -152,7 +169,24 @@ async function callGemini(prompt, key) {
     return { text: null, rateLimited: false };
   }
 }
-function splitReviewPoints(text) {
+function buildReviewMarkdown(file, text) {
+  const lines = [`### 🤖 AI Code Review — \`${file}\``, "", "---", ""];
+  const rawPoints = splitPoints(text);
+  for (let idx = 0; idx < rawPoints.length; idx++) {
+    lines.push(rawPoints[idx]);
+    if (idx < rawPoints.length - 1) {
+      lines.push("");
+      lines.push("---");
+      lines.push("");
+    }
+  }
+  lines.push("", "---", "");
+  lines.push(
+    `<sub>Análise gerada por <b>Danger Bot AI</b> (${GEMINI_MODEL}) — revise antes de aplicar.</sub>`
+  );
+  return lines.join("\n");
+}
+function splitPoints(text) {
   const lines = text.split("\n");
   const points = [];
   let current = [];
@@ -285,11 +319,11 @@ exports.default = (0, _types_1.createPlugin)(
         console.log(`  ✅ ${file} — aprovado pela IA`);
       } else {
         issues++;
-        const points = splitReviewPoints(result.text);
-        for (const point of points) {
-          (0, _types_1.sendWarn)(`🤖 **AI CODE REVIEW** — \`${file}\`\n\n${point}`);
-        }
-        console.log(`  🤖 ${file} — review gerado (${points.length} ponto(s))`);
+        (0, _types_1.sendWarn)(
+          `🤖 **AI CODE REVIEW** — \`${file}\`: Aqui está a análise do código.`
+        );
+        (0, _types_1.sendMarkdown)(buildReviewMarkdown(file, result.text));
+        console.log(`  🤖 ${file} — review gerado`);
       }
       if (i < filesToAnalyze.length - 1) {
         await sleep(DELAY_BETWEEN_REQUESTS_MS);

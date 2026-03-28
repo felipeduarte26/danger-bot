@@ -7,7 +7,7 @@
  * Suporta rotation de API keys para contornar rate limits do free tier.
  * Keys são lidas de: danger-bot.yaml (settings.gemini_api_keys) ou env vars.
  */
-import { createPlugin, getDanger, sendMessage, sendWarn } from "@types";
+import { createPlugin, getDanger, sendMarkdown, sendMessage, sendWarn } from "@types";
 import { loadConfig } from "../../../config";
 import * as fs from "fs";
 
@@ -137,7 +137,29 @@ async function callGemini(
   }
 }
 
-function splitReviewPoints(text: string): string[] {
+function buildReviewMarkdown(file: string, text: string): string {
+  const lines: string[] = [`### 🤖 AI Code Review — \`${file}\``, "", "---", ""];
+
+  const rawPoints = splitPoints(text);
+
+  for (let idx = 0; idx < rawPoints.length; idx++) {
+    lines.push(rawPoints[idx]);
+    if (idx < rawPoints.length - 1) {
+      lines.push("");
+      lines.push("---");
+      lines.push("");
+    }
+  }
+
+  lines.push("", "---", "");
+  lines.push(
+    `<sub>Análise gerada por <b>Danger Bot AI</b> (${GEMINI_MODEL}) — revise antes de aplicar.</sub>`
+  );
+
+  return lines.join("\n");
+}
+
+function splitPoints(text: string): string[] {
   const lines = text.split("\n");
   const points: string[] = [];
   let current: string[] = [];
@@ -300,12 +322,10 @@ export default createPlugin(
       } else {
         issues++;
 
-        const points = splitReviewPoints(result.text);
-        for (const point of points) {
-          sendWarn(`🤖 **AI CODE REVIEW** — \`${file}\`\n\n${point}`);
-        }
+        sendWarn(`🤖 **AI CODE REVIEW** — \`${file}\`: Aqui está a análise do código.`);
+        sendMarkdown(buildReviewMarkdown(file, result.text));
 
-        console.log(`  🤖 ${file} — review gerado (${points.length} ponto(s))`);
+        console.log(`  🤖 ${file} — review gerado`);
       }
 
       if (i < filesToAnalyze.length - 1) {
