@@ -90,9 +90,14 @@ Analise o código abaixo e aponte APENAS problemas reais e relevantes.
 Cada achado deve ser UMA linha com este formato:
 EMOJI **Título curto** — Explicação em 1-2 frases. Use \`backticks\` para nomes de classes, métodos ou variáveis.
 
-Emojis de severidade: 🔴 crítico | 🟡 atenção | 🔵 sugestão
+Emojis de severidade (SEMPRE comece a linha com um destes):
+- 🔴 = crítico (bugs, segurança, crashes)
+- 🟡 = atenção (violações de arquitetura, code smells sérios)
+- 🔵 = sugestão (melhorias, refatorações)
 
-Exemplo de resposta correta:
+ORDEM OBRIGATÓRIA: primeiro todos os 🔴, depois todos os 🟡, depois todos os 🔵.
+
+Exemplo de resposta correta (note a ordem por severidade):
 🔴 **Dependência invertida** — \`UserModel\` importa diretamente \`UserEntity\`. A camada de dados não deve depender do domínio. Use uma interface ou mapper.
 🟡 **Falta dispose** — O \`StreamController\` em \`_authStream\` nunca é fechado. Adicione \`_authStream.close()\` no \`dispose()\`.
 🔵 **Método longo** — \`fetchData()\` tem 60 linhas. Considere extrair a lógica de retry para um helper.
@@ -100,7 +105,7 @@ Exemplo de resposta correta:
 ## REGRAS OBRIGATÓRIAS:
 
 - Responda SEMPRE em PT-BR
-- Ordene os achados por severidade (críticos primeiro)
+- SEMPRE ordene: 🔴 primeiro, depois 🟡, depois 🔵
 - Máximo 5 achados por arquivo
 - NUNCA use blocos de código (proibido usar \`\`\`). Use apenas \`backticks simples\` para nomes inline
 - NUNCA inclua exemplos de código multi-linha
@@ -179,9 +184,18 @@ function sanitizeAiOutput(text) {
   result = result.replace(/<\/?(?:sub|sup|b|i|em|strong|br|hr|div|span|p)[^>]*>/gi, "");
   return result.trim();
 }
+function sortBySeverity(points) {
+  const severity = (p) => {
+    if (p.includes("\u{1F534}")) return 0; // 🔴
+    if (p.includes("\u{1F7E1}")) return 1; // 🟡
+    if (p.includes("\u{1F535}")) return 2; // 🔵
+    return 3;
+  };
+  return [...points].sort((a, b) => severity(a) - severity(b));
+}
 function buildReviewMarkdown(file, text) {
   const lines = ["", "", "> ## 🤖 AI Code Review", `> **Arquivo:** \`${file}\``, "", "---", ""];
-  const rawPoints = splitPoints(text);
+  const rawPoints = sortBySeverity(splitPoints(text));
   for (let idx = 0; idx < rawPoints.length; idx++) {
     lines.push(rawPoints[idx]);
     if (idx < rawPoints.length - 1) {
