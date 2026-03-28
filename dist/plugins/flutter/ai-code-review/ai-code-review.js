@@ -70,8 +70,10 @@ const MAX_OUTPUT_TOKENS = 1024;
 const REQUEST_TIMEOUT_MS = 30000;
 const MAX_CONTENT_CHARS = 30000;
 const FILES_PER_KEY = 15;
-const DELAY_BETWEEN_REQUESTS_MS = 10000;
+const DELAY_BETWEEN_REQUESTS_MS = 15000;
 const MAX_CONSECUTIVE_RATE_LIMITS = 3;
+const MIN_LINES_FOR_REVIEW = 20;
+const MIN_CHANGED_LINES = 5;
 const SYSTEM_PROMPT = `Você é um code reviewer sênior especialista em Flutter/Dart, Clean Architecture, Clean Code e SOLID.
 
 Analise o código abaixo e aponte APENAS problemas reais e relevantes.
@@ -237,6 +239,25 @@ function shouldAnalyzeFile(filePath) {
     !lower.includes("/l10n/")
   );
 }
+function isFileWorthReviewing(content) {
+  const lineCount = content.split("\n").length;
+  return lineCount >= MIN_LINES_FOR_REVIEW;
+}
+async function countChangedLines(git, file) {
+  try {
+    const diff = await git.structuredDiffForFile(file);
+    if (!diff) return 0;
+    let added = 0;
+    for (const chunk of diff.chunks) {
+      for (const change of chunk.changes) {
+        if (change.type === "add") added++;
+      }
+    }
+    return added;
+  } catch {
+    return 999;
+  }
+}
 function truncateContent(content) {
   if (content.length <= MAX_CONTENT_CHARS) return content;
   return content.slice(0, MAX_CONTENT_CHARS) + "\n// ... (arquivo truncado para análise)";
@@ -261,18 +282,33 @@ exports.default = (0, _types_1.createPlugin)(
       (f) => f.endsWith(".dart") && shouldAnalyzeFile(f) && fs.existsSync(f)
     );
     if (dartFiles.length === 0) return;
-    const maxFiles = FILES_PER_KEY * apiKeys.length;
-    const filesToAnalyze = dartFiles.slice(0, maxFiles);
-    if (filesToAnalyze.length < dartFiles.length) {
-      console.log(
-        `🤖 AI Code Review: ${dartFiles.length} arquivo(s) encontrados, analisando ${filesToAnalyze.length} ` +
-          `(${FILES_PER_KEY} por key × ${apiKeys.length} keys). Adicione mais keys para cobrir todos.`
-      );
-    } else {
-      console.log(
-        `🤖 AI Code Review: analisando ${filesToAnalyze.length} arquivo(s) com Gemini...`
-      );
+    const candidates = [];
+    for (const file of dartFiles) {
+      const content = fs.readFileSync(file, "utf-8");
+      if (!isFileWorthReviewing(content)) {
+        console.log(`  ⏭️ ${file} — ignorado (< ${MIN_LINES_FOR_REVIEW} linhas)`);
+        continue;
+      }
+      const changed = await countChangedLines(git, file);
+      if (changed < MIN_CHANGED_LINES) {
+        console.log(`  ⏭️ ${file} — ignorado (${changed} linha(s) alterada(s))`);
+        continue;
+      }
+      candidates.push({ file, changedLines: changed });
     }
+    candidates.sort((a, b) => b.changedLines - a.changedLines);
+    const maxFiles = FILES_PER_KEY * apiKeys.length;
+    const filesToAnalyze = candidates.slice(0, maxFiles).map((c) => c.file);
+    if (filesToAnalyze.length === 0) {
+      console.log("🤖 AI Code Review: nenhum arquivo com mudanças significativas para analisar.");
+      return;
+    }
+    const filtered = dartFiles.length - candidates.length;
+    console.log(
+      `🤖 AI Code Review: ${dartFiles.length} arquivo(s) .dart encontrados` +
+        (filtered > 0 ? `, ${filtered} ignorado(s) por filtro` : "") +
+        `, analisando ${filesToAnalyze.length} com Gemini...`
+    );
     let reviewed = 0;
     let approved = 0;
     let issues = 0;
@@ -285,10 +321,6 @@ exports.default = (0, _types_1.createPlugin)(
       if (aborted) break;
       const file = filesToAnalyze[i];
       const content = fs.readFileSync(file, "utf-8");
-      if (content.split("\n").length < 5) {
-        skipped++;
-        continue;
-      }
       if (usedWithCurrentKey >= FILES_PER_KEY && keyIndex < apiKeys.length - 1) {
         keyIndex++;
         usedWithCurrentKey = 0;
