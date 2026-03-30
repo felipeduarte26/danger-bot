@@ -31,25 +31,9 @@ exports.default = (0, _types_1.createPlugin)(
     );
     if (dartFiles.length === 0) return;
     if (dartFiles.length > MAX_DART_FILES) {
-      (0, _types_1.sendFormattedFail)({
-        title: "PR COM MUITOS ARQUIVOS",
-        description: `Esta PR altera **${dartFiles.length} arquivos .dart** (limite: ${MAX_DART_FILES}).`,
-        problem: {
-          wrong: `${dartFiles.length} arquivos .dart alterados`,
-          correct: `Máximo ${MAX_DART_FILES} arquivos .dart por PR`,
-          wrongLabel: "Atual",
-          correctLabel: "Limite recomendado",
-        },
-        action: {
-          text: "Divida em PRs menores agrupando por:",
-          code: "1. Feature ou módulo\n2. Camada (domain, data, presentation)\n3. Tipo de mudança (refactor, feature, fix)",
-        },
-        objective: "PRs menores = revisões melhores = menos bugs em produção.",
-        reference: {
-          text: "Google Engineering: Small CLs",
-          url: "https://google.github.io/eng-practices/review/developer/small-cls.html",
-        },
-      });
+      (0, _types_1.sendFail)(
+        `❌ **PR muito grande** — ${dartFiles.length} arquivos .dart alterados (limite: ${MAX_DART_FILES}). Divida em PRs menores.`
+      );
     } else if (dartFiles.length > 60) {
       (0, _types_1.sendWarn)(
         `**PR grande** — ${dartFiles.length} arquivos .dart alterados. Considere dividir em PRs menores.`
