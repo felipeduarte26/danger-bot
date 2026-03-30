@@ -162,11 +162,25 @@ function extractMethods(lines, startLine, endLine) {
       if (ch === "}") depth--;
     }
     if (!classBodyStarted || depth !== 1) continue;
+    const trimmed = line.trim();
+    if (
+      trimmed.startsWith("with ") ||
+      trimmed.startsWith("extends ") ||
+      trimmed.startsWith("implements ") ||
+      trimmed.startsWith("final ") ||
+      trimmed.startsWith("late ") ||
+      trimmed.startsWith("var ") ||
+      trimmed.startsWith("const ") ||
+      trimmed.startsWith("///") ||
+      trimmed.startsWith("//")
+    )
+      continue;
     const methodMatch = line.match(/^\s+(?:[\w<>,?\s]+)\s+([a-zA-Z_]\w*)\s*[(<]/);
     if (!methodMatch) continue;
     const name = methodMatch[1];
     if (name === "const" || name === "super" || name === "factory" || name === "operator") continue;
     if (line.includes("static ")) continue;
+    if (line.includes(" = ") || line.trimEnd().endsWith(";")) continue;
     const isOverride = i > 0 && lines[i - 1].trim() === "@override";
     const isPrivate = name.startsWith("_");
     let kind;
