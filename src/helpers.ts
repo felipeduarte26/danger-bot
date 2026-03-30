@@ -288,7 +288,10 @@ export function sendWarn(msg: string, file?: string, line?: number): void {
   const warnFn = (global as any).warn || (globalThis as any).warn;
   if (warnFn) {
     if (file && line !== undefined) {
-      warnFn(formatted, file, line);
+      const markdownFn = (global as any).markdown || (globalThis as any).markdown;
+      if (markdownFn) {
+        markdownFn(formatted, file, line);
+      }
       const title = extractTitle(msg);
       trackWarnSummary(title, file);
     } else {
@@ -328,7 +331,10 @@ export function sendFail(msg: string, file?: string, line?: number): void {
   const failFn = (global as any).fail || (globalThis as any).fail;
   if (failFn) {
     if (file && line !== undefined) {
-      failFn(formatted, file, line);
+      const markdownFn = (global as any).markdown || (globalThis as any).markdown;
+      if (markdownFn) {
+        markdownFn(formatted, file, line);
+      }
       const title = extractTitle(msg);
       trackSummary(title, file);
     } else {

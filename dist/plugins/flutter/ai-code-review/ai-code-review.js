@@ -339,7 +339,7 @@ exports.default = (0, _types_1.createPlugin)(
         console.log(
           `  ⚠️ Rate limit na key ...${apiKeys[keyIndex].slice(-6)} (${consecutiveRateLimits}/${MAX_CONSECUTIVE_RATE_LIMITS})`
         );
-        await sleep(5000);
+        await sleep(2000);
         if (consecutiveRateLimits >= MAX_CONSECUTIVE_RATE_LIMITS) {
           if (keyIndex < apiKeys.length - 1) {
             keyIndex++;

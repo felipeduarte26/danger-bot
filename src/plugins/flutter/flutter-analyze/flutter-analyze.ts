@@ -54,7 +54,7 @@ export default createPlugin(
 
       const issueRegex = /^(error|warning|info)\s*•\s*(.+?)\s*•\s*(.+?):(\d+):(\d+)\s*•\s*(.+)$/;
       const markdownFn = (global as any).markdown || (globalThis as any).markdown;
-      const issueCounts = new Map<string, number>();
+      let totalIssues = 0;
 
       for (const line of filteredLines) {
         const trimmedLine = line.trim();
@@ -88,14 +88,13 @@ export default createPlugin(
               markdownFn(fullMessage, relativePath, parseInt(lineNumber, 10));
             }
 
-            const key = severity.toUpperCase();
-            issueCounts.set(key, (issueCounts.get(key) || 0) + 1);
+            totalIssues++;
           }
         }
       }
 
-      for (const [severity, count] of issueCounts) {
-        sendFail(`🔍 **FLUTTER ANALYZE (${severity})** — ${count} ocorrência(s)`);
+      if (totalIssues > 0) {
+        sendFail(`🔍 **FLUTTER ANALYZE** — ${totalIssues} ocorrência(s)`);
       }
     } catch (error) {
       sendMessage("⚠️ **Flutter Analyze**: Erro ao executar análise. Verifique os logs.");

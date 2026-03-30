@@ -326,7 +326,10 @@ function sendWarn(msg, file, line) {
   const warnFn = global.warn || globalThis.warn;
   if (warnFn) {
     if (file && line !== undefined) {
-      warnFn(formatted, file, line);
+      const markdownFn = global.markdown || globalThis.markdown;
+      if (markdownFn) {
+        markdownFn(formatted, file, line);
+      }
       const title = extractTitle(msg);
       trackWarnSummary(title, file);
     } else {
@@ -365,7 +368,10 @@ function sendFail(msg, file, line) {
   const failFn = global.fail || globalThis.fail;
   if (failFn) {
     if (file && line !== undefined) {
-      failFn(formatted, file, line);
+      const markdownFn = global.markdown || globalThis.markdown;
+      if (markdownFn) {
+        markdownFn(formatted, file, line);
+      }
       const title = extractTitle(msg);
       trackSummary(title, file);
     } else {

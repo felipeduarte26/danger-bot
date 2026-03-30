@@ -103,7 +103,7 @@ exports.default = (0, _types_1.createPlugin)(
       }
       const issueRegex = /^(error|warning|info)\s*•\s*(.+?)\s*•\s*(.+?):(\d+):(\d+)\s*•\s*(.+)$/;
       const markdownFn = global.markdown || globalThis.markdown;
-      const issueCounts = new Map();
+      let totalIssues = 0;
       for (const line of filteredLines) {
         const trimmedLine = line.trim();
         if (!trimmedLine) continue;
@@ -130,13 +130,12 @@ exports.default = (0, _types_1.createPlugin)(
             if (markdownFn) {
               markdownFn(fullMessage, relativePath, parseInt(lineNumber, 10));
             }
-            const key = severity.toUpperCase();
-            issueCounts.set(key, (issueCounts.get(key) || 0) + 1);
+            totalIssues++;
           }
         }
       }
-      for (const [severity, count] of issueCounts) {
-        (0, _types_1.sendFail)(`🔍 **FLUTTER ANALYZE (${severity})** — ${count} ocorrência(s)`);
+      if (totalIssues > 0) {
+        (0, _types_1.sendFail)(`🔍 **FLUTTER ANALYZE** — ${totalIssues} ocorrência(s)`);
       }
     } catch (error) {
       (0, _types_1.sendMessage)(
