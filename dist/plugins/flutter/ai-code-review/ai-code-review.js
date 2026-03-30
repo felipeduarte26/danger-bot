@@ -375,7 +375,6 @@ exports.default = (0, _types_1.createPlugin)(
       } else {
         issues++;
         const cleanText = sanitizeAiOutput(result.text);
-        (0, _types_1.sendWarn)(`🤖 **AI CODE REVIEW** — \`${file}\``);
         (0, _types_1.sendMarkdown)(buildReviewMarkdown(file, cleanText));
         console.log(`  🤖 ${file} — review gerado`);
       }
@@ -384,6 +383,9 @@ exports.default = (0, _types_1.createPlugin)(
       }
     }
     if (reviewed > 0) {
+      if (issues > 0) {
+        (0, _types_1.sendWarn)(`🤖 **AI CODE REVIEW** — ${issues} arquivo(s) com sugestões`);
+      }
       const message =
         issues === 0
           ? `🤖 **AI Code Review**: IA analisou **${reviewed} arquivo(s)** e aprovou todos. Nenhuma sugestão encontrada.`

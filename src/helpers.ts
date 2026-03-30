@@ -63,6 +63,11 @@ const _sentMessages = new Set<string>();
 let _ignoredFiles = new Set<string>();
 let _verbose = false;
 
+const MAX_SUMMARY_PER_TYPE = 3;
+const _failSummary = new Map<string, { count: number; files: string[] }>();
+const _warnSummary = new Map<string, { count: number; files: string[] }>();
+let _summaryFlushed = false;
+
 /**
  * Ativa ou desativa o modo verbose.
  * Chamado internamente pelo executeDangerBot ao carregar o danger-bot.yaml.
@@ -285,10 +290,7 @@ export function sendWarn(msg: string, file?: string, line?: number): void {
     if (file && line !== undefined) {
       warnFn(formatted, file, line);
       const title = extractTitle(msg);
-      const summaryMsg = `**${title}** — \`${file}\``;
-      if (!isDuplicate("warn", summaryMsg)) {
-        warnFn(summaryMsg);
-      }
+      trackWarnSummary(title, file);
     } else {
       warnFn(formatted);
     }
@@ -328,14 +330,63 @@ export function sendFail(msg: string, file?: string, line?: number): void {
     if (file && line !== undefined) {
       failFn(formatted, file, line);
       const title = extractTitle(msg);
-      const summaryMsg = `**${title}** — \`${file}\``;
-      if (!isDuplicate("fail", summaryMsg)) {
-        failFn(summaryMsg);
-      }
+      trackSummary(title, file);
     } else {
       failFn(formatted);
     }
   }
+}
+
+function trackToMap(
+  map: Map<string, { count: number; files: string[] }>,
+  title: string,
+  file: string
+): void {
+  const key = title.toUpperCase();
+  const entry = map.get(key) ?? { count: 0, files: [] };
+  entry.count++;
+  if (entry.files.length < MAX_SUMMARY_PER_TYPE) {
+    entry.files.push(file);
+  }
+  map.set(key, entry);
+}
+
+function trackSummary(title: string, file: string): void {
+  trackToMap(_failSummary, title, file);
+}
+
+function trackWarnSummary(title: string, file: string): void {
+  trackToMap(_warnSummary, title, file);
+}
+
+function flushMap(
+  map: Map<string, { count: number; files: string[] }>,
+  emitFn: (msg: string) => void
+): void {
+  for (const [title, { count, files }] of map) {
+    if (count <= MAX_SUMMARY_PER_TYPE) {
+      for (const f of files) {
+        emitFn(`**${title}** — \`${f}\``);
+      }
+    } else {
+      emitFn(`**${title}** — ${count} ocorrência(s)`);
+    }
+  }
+}
+
+/**
+ * Envia os resumos agrupados de fails/warns na tabela principal.
+ * Chamado automaticamente pelo executeDangerBot após todos os plugins.
+ */
+export function flushSummaries(): void {
+  if (_summaryFlushed) return;
+  _summaryFlushed = true;
+
+  const failFn = (global as any).fail || (globalThis as any).fail;
+  const warnFn = (global as any).warn || (globalThis as any).warn;
+
+  if (failFn && _failSummary.size > 0) flushMap(_failSummary, failFn);
+  if (warnFn && _warnSummary.size > 0) flushMap(_warnSummary, warnFn);
 }
 
 /**

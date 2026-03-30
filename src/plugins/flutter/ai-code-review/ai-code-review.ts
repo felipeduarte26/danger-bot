@@ -397,8 +397,6 @@ export default createPlugin(
         issues++;
 
         const cleanText = sanitizeAiOutput(result.text);
-
-        sendWarn(`🤖 **AI CODE REVIEW** — \`${file}\``);
         sendMarkdown(buildReviewMarkdown(file, cleanText));
 
         console.log(`  🤖 ${file} — review gerado`);
@@ -410,6 +408,10 @@ export default createPlugin(
     }
 
     if (reviewed > 0) {
+      if (issues > 0) {
+        sendWarn(`🤖 **AI CODE REVIEW** — ${issues} arquivo(s) com sugestões`);
+      }
+
       const message =
         issues === 0
           ? `🤖 **AI Code Review**: IA analisou **${reviewed} arquivo(s)** e aprovou todos. Nenhuma sugestão encontrada.`

@@ -119,6 +119,7 @@ exports.getDanger = getDanger;
 exports.sendMessage = sendMessage;
 exports.sendWarn = sendWarn;
 exports.sendFail = sendFail;
+exports.flushSummaries = flushSummaries;
 exports.sendFormattedFail = sendFormattedFail;
 exports.sendFormattedWarn = sendFormattedWarn;
 exports.sendMarkdown = sendMarkdown;
@@ -141,6 +142,10 @@ exports.getLinesChanged = getLinesChanged;
 const _sentMessages = new Set();
 let _ignoredFiles = new Set();
 let _verbose = false;
+const MAX_SUMMARY_PER_TYPE = 3;
+const _failSummary = new Map();
+const _warnSummary = new Map();
+let _summaryFlushed = false;
 /**
  * Ativa ou desativa o modo verbose.
  * Chamado internamente pelo executeDangerBot ao carregar o danger-bot.yaml.
@@ -323,10 +328,7 @@ function sendWarn(msg, file, line) {
     if (file && line !== undefined) {
       warnFn(formatted, file, line);
       const title = extractTitle(msg);
-      const summaryMsg = `**${title}** — \`${file}\``;
-      if (!isDuplicate("warn", summaryMsg)) {
-        warnFn(summaryMsg);
-      }
+      trackWarnSummary(title, file);
     } else {
       warnFn(formatted);
     }
@@ -365,14 +367,49 @@ function sendFail(msg, file, line) {
     if (file && line !== undefined) {
       failFn(formatted, file, line);
       const title = extractTitle(msg);
-      const summaryMsg = `**${title}** — \`${file}\``;
-      if (!isDuplicate("fail", summaryMsg)) {
-        failFn(summaryMsg);
-      }
+      trackSummary(title, file);
     } else {
       failFn(formatted);
     }
   }
+}
+function trackToMap(map, title, file) {
+  const key = title.toUpperCase();
+  const entry = map.get(key) ?? { count: 0, files: [] };
+  entry.count++;
+  if (entry.files.length < MAX_SUMMARY_PER_TYPE) {
+    entry.files.push(file);
+  }
+  map.set(key, entry);
+}
+function trackSummary(title, file) {
+  trackToMap(_failSummary, title, file);
+}
+function trackWarnSummary(title, file) {
+  trackToMap(_warnSummary, title, file);
+}
+function flushMap(map, emitFn) {
+  for (const [title, { count, files }] of map) {
+    if (count <= MAX_SUMMARY_PER_TYPE) {
+      for (const f of files) {
+        emitFn(`**${title}** — \`${f}\``);
+      }
+    } else {
+      emitFn(`**${title}** — ${count} ocorrência(s)`);
+    }
+  }
+}
+/**
+ * Envia os resumos agrupados de fails/warns na tabela principal.
+ * Chamado automaticamente pelo executeDangerBot após todos os plugins.
+ */
+function flushSummaries() {
+  if (_summaryFlushed) return;
+  _summaryFlushed = true;
+  const failFn = global.fail || globalThis.fail;
+  const warnFn = global.warn || globalThis.warn;
+  if (failFn && _failSummary.size > 0) flushMap(_failSummary, failFn);
+  if (warnFn && _warnSummary.size > 0) flushMap(_warnSummary, warnFn);
 }
 function buildFormattedMessage(opts) {
   const lang = opts.problem.language ?? "dart";

@@ -62,6 +62,7 @@ var __importStar =
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.loadLocalPlugins =
   exports.loadConfig =
+  exports.flushSummaries =
   exports.sendFormattedWarn =
   exports.sendFormattedFail =
   exports.verboseLog =
@@ -266,6 +267,12 @@ Object.defineProperty(exports, "sendFormattedWarn", {
     return helpers_1.sendFormattedWarn;
   },
 });
+Object.defineProperty(exports, "flushSummaries", {
+  enumerable: true,
+  get: function () {
+    return helpers_1.flushSummaries;
+  },
+});
 var config_1 = require("./config");
 Object.defineProperty(exports, "loadConfig", {
   enumerable: true,
@@ -359,9 +366,12 @@ function executeDangerBot(plugins, callbacks) {
       const { loadConfig, loadLocalPlugins } = await Promise.resolve().then(() =>
         __importStar(require("./config"))
       );
-      const { setIgnoredFiles, setVerbose, verboseLog } = await Promise.resolve().then(() =>
-        __importStar(require("./helpers"))
-      );
+      const {
+        setIgnoredFiles,
+        setVerbose,
+        verboseLog,
+        flushSummaries: flush,
+      } = await Promise.resolve().then(() => __importStar(require("./helpers")));
       const config = loadConfig();
       const verbose = config.settings?.verbose ?? false;
       setVerbose(verbose);
@@ -393,6 +403,7 @@ function executeDangerBot(plugins, callbacks) {
         }
       }
       await runPlugins(allPlugins);
+      flush();
       if (callbacks?.onSuccess) {
         await callbacks.onSuccess();
       }

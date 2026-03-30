@@ -35,6 +35,7 @@ export {
   verboseLog,
   sendFormattedFail,
   sendFormattedWarn,
+  flushSummaries,
 } from "./helpers";
 export type { FormattedMessageOptions } from "./helpers";
 export { loadConfig, loadLocalPlugins } from "./config";

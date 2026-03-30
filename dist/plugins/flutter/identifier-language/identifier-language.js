@@ -570,6 +570,7 @@ const PT_WORDS = new Set([
 ]);
 // Palavras que existem em PT e EN (falsos positivos)
 const AMBIGUOUS = new Set([
+  "converter",
   "data",
   "item",
   "status",

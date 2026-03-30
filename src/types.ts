@@ -40,6 +40,7 @@ export {
   verboseLog,
   sendFormattedFail,
   sendFormattedWarn,
+  flushSummaries,
 } from "./helpers";
 export type { FormattedMessageOptions } from "./helpers";
 
@@ -176,7 +177,12 @@ export function executeDangerBot(plugins: DangerPlugin[], callbacks?: DangerBotC
   void (async () => {
     try {
       const { loadConfig, loadLocalPlugins } = await import("./config");
-      const { setIgnoredFiles, setVerbose, verboseLog } = await import("./helpers");
+      const {
+        setIgnoredFiles,
+        setVerbose,
+        verboseLog,
+        flushSummaries: flush,
+      } = await import("./helpers");
 
       const config = loadConfig();
       const verbose = config.settings?.verbose ?? false;
@@ -216,6 +222,7 @@ export function executeDangerBot(plugins: DangerPlugin[], callbacks?: DangerBotC
       }
 
       await runPlugins(allPlugins);
+      flush();
 
       if (callbacks?.onSuccess) {
         await callbacks.onSuccess();

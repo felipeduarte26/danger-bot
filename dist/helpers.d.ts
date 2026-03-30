@@ -218,6 +218,11 @@ export declare function sendWarn(msg: string, file?: string, line?: number): voi
  */
 export declare function sendFail(msg: string, file?: string, line?: number): void;
 /**
+ * Envia os resumos agrupados de fails/warns na tabela principal.
+ * Chamado automaticamente pelo executeDangerBot após todos os plugins.
+ */
+export declare function flushSummaries(): void;
+/**
  * Opções para mensagens formatadas no padrão Danger Bot.
  * Usado por sendFormattedFail e sendFormattedWarn.
  */
