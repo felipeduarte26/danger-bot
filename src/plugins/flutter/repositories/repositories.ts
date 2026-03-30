@@ -30,6 +30,7 @@ export default createPlugin(
       (f: string) =>
         f.includes("/repositories/") &&
         f.endsWith(".dart") &&
+        !f.endsWith("_test.dart") &&
         !f.endsWith("repositories.dart") &&
         fs.existsSync(f)
     );

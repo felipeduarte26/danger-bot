@@ -122,6 +122,7 @@ export default createPlugin(
       (f: string) =>
         f.includes("/entities/") &&
         f.endsWith(".dart") &&
+        !f.endsWith("_test.dart") &&
         !f.endsWith("entities.dart") &&
         fs.existsSync(f)
     );

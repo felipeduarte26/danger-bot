@@ -103,6 +103,7 @@ exports.default = (0, _types_1.createPlugin)(
       (f) =>
         f.includes("/usecases/") &&
         f.endsWith(".dart") &&
+        !f.endsWith("_test.dart") &&
         !f.endsWith("usecases.dart") &&
         fs.existsSync(f)
     );

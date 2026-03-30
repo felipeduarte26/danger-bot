@@ -17,10 +17,11 @@ export default createPlugin(
     const dartFiles = allFiles.filter(
       (file: string) =>
         file.endsWith(".dart") &&
-        !file.includes(".g.dart") && // Arquivos gerados
-        !file.includes(".freezed.dart") && // Arquivos freezed
-        !file.includes(".mocks.dart") && // Mocks gerados
-        fs.existsSync(file) // Arquivo existe
+        !file.endsWith("_test.dart") &&
+        !file.includes(".g.dart") &&
+        !file.includes(".freezed.dart") &&
+        !file.includes(".mocks.dart") &&
+        fs.existsSync(file)
     );
 
     if (dartFiles.length === 0) {
@@ -52,6 +53,8 @@ export default createPlugin(
       }
 
       const issueRegex = /^(error|warning|info)\s*•\s*(.+?)\s*•\s*(.+?):(\d+):(\d+)\s*•\s*(.+)$/;
+      const markdownFn = (global as any).markdown || (globalThis as any).markdown;
+      const issueCounts = new Map<string, number>();
 
       for (const line of filteredLines) {
         const trimmedLine = line.trim();
@@ -81,9 +84,18 @@ export default createPlugin(
                 ? `\n📖 [Documentação oficial](${docLink})`
                 : `\n**Regra:** \`${ruleName}\``);
 
-            sendFail(fullMessage, relativePath, parseInt(lineNumber, 10));
+            if (markdownFn) {
+              markdownFn(fullMessage, relativePath, parseInt(lineNumber, 10));
+            }
+
+            const key = severity.toUpperCase();
+            issueCounts.set(key, (issueCounts.get(key) || 0) + 1);
           }
         }
+      }
+
+      for (const [severity, count] of issueCounts) {
+        sendFail(`🔍 **FLUTTER ANALYZE (${severity})** — ${count} ocorrência(s)`);
       }
     } catch (error) {
       sendMessage("⚠️ **Flutter Analyze**: Erro ao executar análise. Verifique os logs.");

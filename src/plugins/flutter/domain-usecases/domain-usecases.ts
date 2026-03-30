@@ -68,6 +68,7 @@ export default createPlugin(
       (f: string) =>
         f.includes("/usecases/") &&
         f.endsWith(".dart") &&
+        !f.endsWith("_test.dart") &&
         !f.endsWith("usecases.dart") &&
         fs.existsSync(f)
     );

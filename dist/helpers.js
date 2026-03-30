@@ -673,7 +673,7 @@ async function getDartFiles() {
   const danger = getDanger();
   const { existsSync } = await Promise.resolve().then(() => __importStar(require("fs")));
   const dartFiles = [...danger.git.modified_files, ...danger.git.created_files].filter(
-    (f) => f.endsWith(".dart") && existsSync(f)
+    (f) => f.endsWith(".dart") && !f.endsWith("_test.dart") && existsSync(f)
   );
   return dartFiles;
 }

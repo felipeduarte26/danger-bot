@@ -73,6 +73,7 @@ exports.default = (0, _types_1.createPlugin)(
       (f) =>
         f.includes("/datasources/") &&
         f.endsWith(".dart") &&
+        !f.endsWith("_test.dart") &&
         !f.endsWith("datasources.dart") &&
         fs.existsSync(f)
     );

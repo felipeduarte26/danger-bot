@@ -68,10 +68,11 @@ exports.default = (0, _types_1.createPlugin)(
     const dartFiles = allFiles.filter(
       (file) =>
         file.endsWith(".dart") &&
-        !file.includes(".g.dart") && // Arquivos gerados
-        !file.includes(".freezed.dart") && // Arquivos freezed
-        !file.includes(".mocks.dart") && // Mocks gerados
-        fs.existsSync(file) // Arquivo existe
+        !file.endsWith("_test.dart") &&
+        !file.includes(".g.dart") &&
+        !file.includes(".freezed.dart") &&
+        !file.includes(".mocks.dart") &&
+        fs.existsSync(file)
     );
     if (dartFiles.length === 0) {
       (0, _types_1.sendMessage)(
@@ -101,6 +102,8 @@ exports.default = (0, _types_1.createPlugin)(
         return;
       }
       const issueRegex = /^(error|warning|info)\s*•\s*(.+?)\s*•\s*(.+?):(\d+):(\d+)\s*•\s*(.+)$/;
+      const markdownFn = global.markdown || globalThis.markdown;
+      const issueCounts = new Map();
       for (const line of filteredLines) {
         const trimmedLine = line.trim();
         if (!trimmedLine) continue;
@@ -124,9 +127,16 @@ exports.default = (0, _types_1.createPlugin)(
               (docLink
                 ? `\n📖 [Documentação oficial](${docLink})`
                 : `\n**Regra:** \`${ruleName}\``);
-            (0, _types_1.sendFail)(fullMessage, relativePath, parseInt(lineNumber, 10));
+            if (markdownFn) {
+              markdownFn(fullMessage, relativePath, parseInt(lineNumber, 10));
+            }
+            const key = severity.toUpperCase();
+            issueCounts.set(key, (issueCounts.get(key) || 0) + 1);
           }
         }
+      }
+      for (const [severity, count] of issueCounts) {
+        (0, _types_1.sendFail)(`🔍 **FLUTTER ANALYZE (${severity})** — ${count} ocorrência(s)`);
       }
     } catch (error) {
       (0, _types_1.sendMessage)(

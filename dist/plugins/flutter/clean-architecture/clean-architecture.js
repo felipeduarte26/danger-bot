@@ -71,7 +71,7 @@ exports.default = (0, _types_1.createPlugin)(
   async () => {
     const { git } = (0, _types_1.getDanger)();
     const dartFiles = [...git.modified_files, ...git.created_files].filter(
-      (f) => f.endsWith(".dart") && fs.existsSync(f)
+      (f) => f.endsWith(".dart") && !f.endsWith("_test.dart") && fs.existsSync(f)
     );
     const violations = [];
     for (const file of dartFiles) {

@@ -407,6 +407,7 @@ exports.default = (0, _types_1.createPlugin)(
     const dartFiles = [...danger.git.created_files, ...danger.git.modified_files].filter(
       (f) =>
         f.endsWith(".dart") &&
+        !f.endsWith("_test.dart") &&
         !f.endsWith(".g.dart") &&
         !f.endsWith(".freezed.dart") &&
         !f.endsWith(".mocks.dart") &&

@@ -705,7 +705,7 @@ export async function getDartFiles(): Promise<string[]> {
   const { existsSync } = await import("fs");
 
   const dartFiles = [...danger.git.modified_files, ...danger.git.created_files].filter(
-    (f: string) => f.endsWith(".dart") && existsSync(f)
+    (f: string) => f.endsWith(".dart") && !f.endsWith("_test.dart") && existsSync(f)
   );
 
   return dartFiles;

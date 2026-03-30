@@ -92,6 +92,7 @@ exports.default = (0, _types_1.createPlugin)(
     const dartFiles = [...git.modified_files, ...git.created_files].filter(
       (f) =>
         f.endsWith(".dart") &&
+        !f.endsWith("_test.dart") &&
         !f.endsWith(".g.dart") &&
         !f.endsWith(".freezed.dart") &&
         fs.existsSync(f)

@@ -32,7 +32,7 @@ exports.default = (0, _types_1.createPlugin)(
     if (dartFiles.length === 0) return;
     if (dartFiles.length > MAX_DART_FILES) {
       (0, _types_1.sendFail)(
-        `❌ **PR muito grande** — ${dartFiles.length} arquivos .dart alterados (limite: ${MAX_DART_FILES}). Divida em PRs menores.`
+        `**PR muito grande** — ${dartFiles.length} arquivos .dart alterados (limite: ${MAX_DART_FILES}). Divida em PRs menores.`
       );
     } else if (dartFiles.length > 60) {
       (0, _types_1.sendWarn)(

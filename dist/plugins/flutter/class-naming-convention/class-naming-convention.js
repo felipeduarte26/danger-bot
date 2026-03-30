@@ -292,7 +292,8 @@ exports.default = (0, _types_1.createPlugin)(
     const allFiles = [...git.created_files, ...git.modified_files];
     const targetFiles = allFiles
       .filter((f) => {
-        if (f.endsWith(".g.dart") || f.endsWith(".freezed.dart")) return false;
+        if (f.endsWith(".g.dart") || f.endsWith(".freezed.dart") || f.endsWith("_test.dart"))
+          return false;
         return isTargetFile(f) !== null;
       })
       .filter((f) => fs.existsSync(f));

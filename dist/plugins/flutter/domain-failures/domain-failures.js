@@ -74,6 +74,7 @@ exports.default = (0, _types_1.createPlugin)(
       (f) =>
         f.includes("/failures/") &&
         f.endsWith(".dart") &&
+        !f.endsWith("_test.dart") &&
         !f.endsWith("failures.dart") &&
         fs.existsSync(f)
     );
