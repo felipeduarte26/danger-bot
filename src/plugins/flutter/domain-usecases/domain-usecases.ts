@@ -34,6 +34,14 @@ function parseClasses(lines: string[]) {
       continue;
     }
 
+    const trimmedLine = line.trim();
+    if (
+      trimmedLine.startsWith("//") ||
+      trimmedLine.startsWith("*") ||
+      trimmedLine.startsWith("///")
+    )
+      continue;
+
     const classMatch = line.match(/(?:final\s+)?class\s+([A-Za-z_]\w*)/);
     if (classMatch && !line.includes("abstract")) {
       let declaration = line;
