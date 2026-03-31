@@ -90,7 +90,12 @@ function detectAppPackage(lines) {
       importPath.includes("/data/") ||
       importPath.includes("/presentation/") ||
       importPath.includes("/core/") ||
-      importPath.includes("/features/")
+      importPath.includes("/features/") ||
+      importPath.includes("/utils/") ||
+      importPath.includes("/shared/") ||
+      importPath.includes("/common/") ||
+      importPath.includes("/modules/") ||
+      importPath.includes("/app/")
     ) {
       return importPath.replace("package:", "").split("/")[0];
     }

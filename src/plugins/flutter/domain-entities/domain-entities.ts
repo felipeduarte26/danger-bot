@@ -6,6 +6,8 @@
  * - Classe deve ter sufixo Entity
  * - Somente uma entity por arquivo
  * - Detecta subpastas incorretas (ex: extensions/ dentro de entities/)
+ * - Detecta entities vazias (sem propriedades)
+ * - Detecta entities com apenas 1 propriedade (wrapper desnecessário)
  * - Valida enums: devem estar em /enums/, sufixo _enum.dart e Enum na classe
  */
 import { createPlugin, getDanger, sendFormattedFail } from "@types";
@@ -107,6 +109,53 @@ function validateEnum(file: string, content: string): boolean {
   }
 
   return true;
+}
+
+interface ClassField {
+  name: string;
+  type: string;
+  line: number;
+}
+
+function parseClassFields(lines: string[], classStartLine: number): ClassField[] {
+  const fields: ClassField[] = [];
+  let braceDepth = 0;
+  let foundOpen = false;
+
+  for (let j = classStartLine; j < lines.length; j++) {
+    const cl = lines[j];
+
+    for (const ch of cl) {
+      if (ch === "{") {
+        braceDepth++;
+        foundOpen = true;
+      }
+      if (ch === "}") braceDepth--;
+    }
+
+    if (foundOpen && braceDepth === 1) {
+      const trimmed = cl.trim();
+      if (
+        trimmed.startsWith("//") ||
+        trimmed.startsWith("///") ||
+        trimmed.startsWith("*") ||
+        trimmed.startsWith("const ") ||
+        trimmed.startsWith("factory ") ||
+        trimmed.includes("static ")
+      ) {
+        continue;
+      }
+
+      const fieldMatch = trimmed.match(/^(?:late\s+)?final\s+(.+?)\s+([a-z_]\w*)\s*(?:=.*)?;$/);
+      if (fieldMatch) {
+        fields.push({ type: fieldMatch[1], name: fieldMatch[2], line: j + 1 });
+      }
+    }
+
+    if (foundOpen && braceDepth <= 0) break;
+  }
+
+  return fields;
 }
 
 export default createPlugin(
@@ -284,6 +333,50 @@ export default createPlugin(
               code: `final class ${cls.name} {\n  // ...\n}`,
             },
             objective: "Garantir **imutabilidade** e design correto da Domain Layer.",
+            file,
+            line: cls.line,
+          });
+        }
+
+        const fields = parseClassFields(lines, cls.line - 1);
+        if (fields.length === 0) {
+          sendFormattedFail({
+            title: "ENTITY VAZIA",
+            description: `A classe \`${cls.name}\` não tem nenhuma propriedade. Não faz sentido ter uma Entity sem campos.`,
+            problem: {
+              wrong: `final class ${cls.name} {\n  const ${cls.name}();\n}`,
+              correct: `// Remova a Entity e use NoParams ou o tipo diretamente`,
+              wrongLabel: "Entity sem nenhum campo",
+              correctLabel: "Remover Entity desnecessária",
+            },
+            action: {
+              text: "Remova a Entity vazia. Se for usada como parâmetro sem dados, use `NoParams`:",
+              code: `// Antes:\n// Future<...> call(${cls.name} params);\n\n// Depois:\n// Future<...> call(); // sem parâmetro\n// ou: Future<...> call(NoParams params);`,
+            },
+            objective:
+              "Evitar **abstrações vazias** — uma Entity deve representar um conceito de domínio com dados.",
+            file,
+            line: cls.line,
+          });
+        }
+
+        if (fields.length === 1) {
+          const field = fields[0];
+          sendFormattedFail({
+            title: "ENTITY COM APENAS UMA PROPRIEDADE",
+            description: `A classe \`${cls.name}\` tem apenas a propriedade \`${field.name}\` (\`${field.type}\`). Uma Entity com um único campo é um wrapper desnecessário — use o tipo \`${field.type}\` diretamente.`,
+            problem: {
+              wrong: `final class ${cls.name} {\n  final ${field.type} ${field.name};\n}`,
+              correct: `// Use ${field.type} diretamente como parâmetro\nFuture<Result<Failure, Entity>> call(${field.type} ${field.name});`,
+              wrongLabel: "Entity com 1 campo (wrapper desnecessário)",
+              correctLabel: "Tipo usado diretamente",
+            },
+            action: {
+              text: `Remova a Entity e use \`${field.type}\` diretamente onde ela é referenciada:`,
+              code: `// Antes:\n// Future<...> call(${cls.name} params) => ...params.${field.name}...\n\n// Depois:\n// Future<...> call(${field.type} ${field.name}) => ...${field.name}...`,
+            },
+            objective:
+              "Evitar **abstrações desnecessárias** — uma Entity deve encapsular **múltiplas propriedades** relacionadas.",
             file,
             line: cls.line,
           });
