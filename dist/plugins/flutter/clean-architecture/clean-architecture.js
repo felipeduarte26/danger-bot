@@ -128,9 +128,9 @@ exports.default = (0, _types_1.createPlugin)(
               importPath,
               rule: "DOMAIN → PACOTE EXTERNO",
               title: "VIOLAÇÃO CLEAN ARCHITECTURE — DOMAIN IMPORTA PACOTE EXTERNO",
-              description: `Domain Layer **não pode** depender do pacote \`${packageName}\`. Implementações com dependências externas pertencem à camada **Data**.`,
+              description: `Domain Layer **não pode** depender do pacote externo \`${packageName}\`. Implementações com pacotes de terceiros pertencem à camada **Infrastructure**.`,
               wrongExample: `import '${importPath}';`,
-              correctExample: `// Mova a implementação concreta para data/services/\n// Domain deve conter apenas interfaces abstratas`,
+              correctExample: `// Mova a implementação concreta para core/infrastructure/\n// Domain deve conter apenas interfaces abstratas`,
             });
           }
         }
