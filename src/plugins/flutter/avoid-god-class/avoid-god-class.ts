@@ -5,7 +5,7 @@
  *
  * Thresholds:
  * - Mais de 300 linhas → warning (padrão)
- * - Mais de 600 linhas → warning (arquivos em presentation/views/)
+ * - Mais de 600 linhas → warning (arquivos em presentation/)
  * - Mais de 15 métodos públicos → warning
  * - Exclui: classes geradas (.g.dart, .freezed.dart), enums, mixins, extensions
  */
@@ -13,13 +13,13 @@ import { createPlugin, getDanger, sendFormattedFail } from "@types";
 import * as fs from "fs";
 
 const MAX_CLASS_LINES = 300;
-const MAX_CLASS_LINES_VIEWS = 600;
+const MAX_CLASS_LINES_PRESENTATION = 600;
 const MAX_PUBLIC_METHODS = 15;
 
 function getMaxClassLines(filePath: string): number {
   const normalized = filePath.replace(/\\/g, "/");
-  if (normalized.includes("presentation/views/")) {
-    return MAX_CLASS_LINES_VIEWS;
+  if (normalized.includes("/presentation/")) {
+    return MAX_CLASS_LINES_PRESENTATION;
   }
   return MAX_CLASS_LINES;
 }
