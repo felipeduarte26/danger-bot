@@ -58,14 +58,23 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * Verifica número de métodos públicos e total de linhas da classe.
  *
  * Thresholds:
- * - Mais de 300 linhas → warning
+ * - Mais de 300 linhas → warning (padrão)
+ * - Mais de 600 linhas → warning (arquivos em presentation/views/)
  * - Mais de 15 métodos públicos → warning
  * - Exclui: classes geradas (.g.dart, .freezed.dart), enums, mixins, extensions
  */
 const _types_1 = require("../../../types");
 const fs = __importStar(require("fs"));
 const MAX_CLASS_LINES = 300;
+const MAX_CLASS_LINES_VIEWS = 600;
 const MAX_PUBLIC_METHODS = 15;
+function getMaxClassLines(filePath) {
+  const normalized = filePath.replace(/\\/g, "/");
+  if (normalized.includes("presentation/views/")) {
+    return MAX_CLASS_LINES_VIEWS;
+  }
+  return MAX_CLASS_LINES;
+}
 function parseClasses(lines) {
   const classes = [];
   let i = 0;
@@ -137,11 +146,12 @@ exports.default = (0, _types_1.createPlugin)(
       const content = fs.readFileSync(file, "utf-8");
       const lines = content.split("\n");
       const classes = parseClasses(lines);
+      const maxLines = getMaxClassLines(file);
       for (const cls of classes) {
-        if (cls.lineCount > MAX_CLASS_LINES) {
+        if (cls.lineCount > maxLines) {
           (0, _types_1.sendFormattedFail)({
             title: "CLASSE MUITO GRANDE",
-            description: `A classe \`${cls.name}\` tem **${cls.lineCount} linhas** (máximo recomendado: ${MAX_CLASS_LINES}).`,
+            description: `A classe \`${cls.name}\` tem **${cls.lineCount} linhas** (máximo recomendado: ${maxLines}).`,
             problem: {
               wrong: `class ${cls.name} { // ${cls.lineCount} linhas }`,
               correct: `class ${cls.name}A { // responsabilidade A }\nclass ${cls.name}B { // responsabilidade B }`,

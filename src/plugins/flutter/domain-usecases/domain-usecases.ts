@@ -49,7 +49,11 @@ function parseClasses(lines: string[]) {
         if (foundOpen && braceDepth === 1) {
           const trimmed = cl.trim();
           if (!trimmed.startsWith("//") && !trimmed.startsWith("///") && !trimmed.startsWith("*")) {
-            const methodMatch = cl.match(/\b([a-z]\w*)\s*\(/);
+            // Detecta somente declarações de método com tipo de retorno Dart na mesma linha:
+            // Ex: "Future<...> call(" | "void download(" | "Stream<...> watch("
+            const methodMatch = trimmed.match(
+              /^(?:Future<[^>]*(?:<[^>]*>)*>|Stream<[^>]*(?:<[^>]*>)*>|void|bool|int|double|String|List<[^>]*>|Map<[^>]*>|Set<[^>]*>|[A-Z]\w*(?:<[^>]*>)?)\s+([a-z]\w*)\s*[(<]/
+            );
             if (methodMatch) {
               methods.push({ name: methodMatch[1], line: j + 1 });
             }
