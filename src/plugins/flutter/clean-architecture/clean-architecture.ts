@@ -2,6 +2,7 @@
  * Clean Architecture Plugin
  * Detecta violações de dependência entre camadas:
  * - Domain não pode importar Data nem Presentation
+ * - Domain não pode importar pacotes externos de infraestrutura
  * - Data não pode importar Presentation nem UseCases
  * - Presentation não pode importar Data diretamente
  */
@@ -9,6 +10,38 @@ import { createPlugin, getDanger, sendFormattedFail } from "@types";
 import * as fs from "fs";
 
 const IMPORT_RE = /^\s*import\s+['"]([^'"]+)['"]/;
+
+const DOMAIN_ALLOWED_PACKAGES = new Set([
+  "meta",
+  "equatable",
+  "freezed_annotation",
+  "json_annotation",
+  "collection",
+  "dartz",
+  "fpdart",
+  "result_dart",
+  "uuid",
+]);
+
+const DOMAIN_ALLOWED_FLUTTER_IMPORTS = new Set(["package:flutter/foundation.dart"]);
+
+function detectAppPackage(lines: string[]): string | null {
+  for (const line of lines) {
+    const m = line.match(IMPORT_RE);
+    if (!m?.[1].startsWith("package:")) continue;
+    const importPath = m[1];
+    if (
+      importPath.includes("/domain/") ||
+      importPath.includes("/data/") ||
+      importPath.includes("/presentation/") ||
+      importPath.includes("/core/") ||
+      importPath.includes("/features/")
+    ) {
+      return importPath.replace("package:", "").split("/")[0];
+    }
+  }
+  return null;
+}
 
 interface Violation {
   file: string;
@@ -47,11 +80,39 @@ export default createPlugin(
 
       if (!isDomain && !isData && !isPresentation) continue;
 
+      const appPackage = isDomain ? detectAppPackage(lines) : null;
+
       for (let i = 0; i < lines.length; i++) {
         const match = lines[i].match(IMPORT_RE);
         if (!match) continue;
 
         const importPath = match[1];
+
+        if (isDomain && importPath.startsWith("package:")) {
+          const packageName = importPath.replace("package:", "").split("/")[0];
+          const isOwnPackage = packageName === appPackage;
+          const isAllowedPackage = DOMAIN_ALLOWED_PACKAGES.has(packageName);
+          const isAllowedFlutter =
+            packageName === "flutter" && DOMAIN_ALLOWED_FLUTTER_IMPORTS.has(importPath);
+
+          if (!isOwnPackage && !isAllowedPackage && !isAllowedFlutter) {
+            const suggestion =
+              packageName === "flutter"
+                ? `// Apenas 'package:flutter/foundation.dart' é permitido em Domain`
+                : `// Mova a implementação concreta para data/services/\n// Domain deve conter apenas interfaces abstratas`;
+
+            violations.push({
+              file,
+              line: i + 1,
+              importPath,
+              rule: "DOMAIN → PACOTE EXTERNO",
+              title: "VIOLAÇÃO CLEAN ARCHITECTURE — DOMAIN IMPORTA PACOTE EXTERNO",
+              description: `Domain Layer **não pode** depender do pacote \`${packageName}\`. Implementações com dependências externas pertencem à camada **Data**.`,
+              wrongExample: `import '${importPath}';`,
+              correctExample: suggestion,
+            });
+          }
+        }
 
         if (isDomain && importPath.includes("/data/")) {
           violations.push({
