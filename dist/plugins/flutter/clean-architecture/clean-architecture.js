@@ -56,6 +56,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * Clean Architecture Plugin
  * Detecta violações de dependência entre camadas:
  * - Domain não pode importar Data nem Presentation
+ * - Domain não pode importar Infrastructure diretamente (apenas interfaces)
  * - Domain não pode importar pacotes externos de infraestrutura
  * - Data não pode importar Presentation nem UseCases
  * - Presentation não pode importar Data diretamente
@@ -158,6 +159,23 @@ exports.default = (0, _types_1.createPlugin)(
               "Domain Layer **não pode** importar Presentation Layer. Domain não deve conhecer nada sobre UI.",
             wrongExample: `import 'package:app/.../presentation/pages/home_page.dart';`,
             correctExample: `// Domain não importa Presentation`,
+          });
+        }
+        if (
+          isDomain &&
+          (importPath.includes("/infrastructure/") || importPath.includes("/infra/")) &&
+          !importPath.includes("/domain/")
+        ) {
+          violations.push({
+            file,
+            line: i + 1,
+            importPath,
+            rule: "DOMAIN → INFRASTRUCTURE",
+            title: "VIOLAÇÃO CLEAN ARCHITECTURE — DOMAIN → INFRASTRUCTURE",
+            description:
+              "Domain Layer **não pode** importar Infrastructure diretamente. Use **inversão de dependência**: defina uma interface em Domain e implemente em Infrastructure.",
+            wrongExample: `import '${importPath}';`,
+            correctExample: `// Em domain/: abstract interface class IMyService { ... }\n// Em infrastructure/: class MyService implements IMyService { ... }`,
           });
         }
         if (isData && importPath.includes("/presentation/")) {

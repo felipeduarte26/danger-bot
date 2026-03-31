@@ -1,9 +1,7 @@
 /**
  * Clean Architecture Plugin
  * Detecta violações de dependência entre camadas:
- * - Domain não pode importar Data nem Presentation
- * - Domain não pode importar Infrastructure diretamente (apenas interfaces)
- * - Domain não pode importar pacotes externos de infraestrutura
+ * - Domain só pode importar: própria camada, dart SDK, Flutter e pacotes puros (whitelist)
  * - Data não pode importar Presentation nem UseCases
  * - Presentation não pode importar Data diretamente
  */
@@ -24,6 +22,13 @@ const DOMAIN_ALLOWED_PACKAGES = new Set([
   "uuid",
   "flutter",
 ]);
+
+const DOMAIN_FORBIDDEN_LAYERS: { pattern: string; label: string }[] = [
+  { pattern: "/data/", label: "Data" },
+  { pattern: "/presentation/", label: "Presentation" },
+  { pattern: "/infrastructure/", label: "Infrastructure" },
+  { pattern: "/infra/", label: "Infrastructure" },
+];
 
 function detectAppPackage(lines: string[]): string | null {
   for (const line of lines) {
@@ -88,69 +93,41 @@ export default createPlugin(
 
         const importPath = match[1];
 
-        if (isDomain && importPath.startsWith("package:")) {
-          const packageName = importPath.replace("package:", "").split("/")[0];
-          const isOwnPackage = packageName === appPackage;
-          const isAllowedPackage = DOMAIN_ALLOWED_PACKAGES.has(packageName);
+        if (isDomain) {
+          if (importPath.startsWith("package:")) {
+            const packageName = importPath.replace("package:", "").split("/")[0];
+            const isOwnPackage = packageName === appPackage;
+            const isAllowedPackage = DOMAIN_ALLOWED_PACKAGES.has(packageName);
 
-          if (!isOwnPackage && !isAllowedPackage) {
-            violations.push({
-              file,
-              line: i + 1,
-              importPath,
-              rule: "DOMAIN → PACOTE EXTERNO",
-              title: "VIOLAÇÃO CLEAN ARCHITECTURE — DOMAIN IMPORTA PACOTE EXTERNO",
-              description: `Domain Layer **não pode** depender do pacote externo \`${packageName}\`. Implementações com pacotes de terceiros pertencem à camada **Infrastructure**.`,
-              wrongExample: `import '${importPath}';`,
-              correctExample: `// Mova a implementação concreta para core/infrastructure/\n// Domain deve conter apenas interfaces abstratas`,
-            });
+            if (!isOwnPackage && !isAllowedPackage) {
+              violations.push({
+                file,
+                line: i + 1,
+                importPath,
+                rule: "DOMAIN → PACOTE EXTERNO",
+                title: "VIOLAÇÃO CLEAN ARCHITECTURE — DOMAIN IMPORTA PACOTE EXTERNO",
+                description: `Domain Layer **não pode** depender do pacote externo \`${packageName}\`. Implementações com pacotes de terceiros pertencem à camada **Infrastructure**.`,
+                wrongExample: `import '${importPath}';`,
+                correctExample: `// Mova a implementação concreta para core/infrastructure/\n// Domain deve conter apenas interfaces abstratas`,
+              });
+            }
           }
-        }
 
-        if (isDomain && importPath.includes("/data/")) {
-          violations.push({
-            file,
-            line: i + 1,
-            importPath,
-            rule: "DOMAIN → DATA",
-            title: "VIOLAÇÃO CLEAN ARCHITECTURE — DOMAIN → DATA",
-            description:
-              "Domain Layer **não pode** importar Data Layer. Domain deve depender apenas de si mesma.",
-            wrongExample: `import 'package:app/.../data/models/user_model.dart';`,
-            correctExample: `import 'package:app/.../domain/entities/user_entity.dart';`,
-          });
-        }
-
-        if (isDomain && importPath.includes("/presentation/")) {
-          violations.push({
-            file,
-            line: i + 1,
-            importPath,
-            rule: "DOMAIN → PRESENTATION",
-            title: "VIOLAÇÃO CLEAN ARCHITECTURE — DOMAIN → PRESENTATION",
-            description:
-              "Domain Layer **não pode** importar Presentation Layer. Domain não deve conhecer nada sobre UI.",
-            wrongExample: `import 'package:app/.../presentation/pages/home_page.dart';`,
-            correctExample: `// Domain não importa Presentation`,
-          });
-        }
-
-        if (
-          isDomain &&
-          (importPath.includes("/infrastructure/") || importPath.includes("/infra/")) &&
-          !importPath.includes("/domain/")
-        ) {
-          violations.push({
-            file,
-            line: i + 1,
-            importPath,
-            rule: "DOMAIN → INFRASTRUCTURE",
-            title: "VIOLAÇÃO CLEAN ARCHITECTURE — DOMAIN → INFRASTRUCTURE",
-            description:
-              "Domain Layer **não pode** importar Infrastructure diretamente. Use **inversão de dependência**: defina uma interface em Domain e implemente em Infrastructure.",
-            wrongExample: `import '${importPath}';`,
-            correctExample: `// Em domain/: abstract interface class IMyService { ... }\n// Em infrastructure/: class MyService implements IMyService { ... }`,
-          });
+          for (const layer of DOMAIN_FORBIDDEN_LAYERS) {
+            if (importPath.includes(layer.pattern) && !importPath.includes("/domain/")) {
+              violations.push({
+                file,
+                line: i + 1,
+                importPath,
+                rule: `DOMAIN → ${layer.label.toUpperCase()}`,
+                title: `VIOLAÇÃO CLEAN ARCHITECTURE — DOMAIN → ${layer.label.toUpperCase()}`,
+                description: `Domain Layer **não pode** importar ${layer.label} Layer. Domain deve depender **apenas de si mesma** (entidades, failures, interfaces de repositório e usecases).`,
+                wrongExample: `import '${importPath}';`,
+                correctExample: `// Domain só pode importar da própria camada domain/\n// Use inversão de dependência para acessar outras camadas`,
+              });
+              break;
+            }
+          }
         }
 
         if (isData && importPath.includes("/presentation/")) {
