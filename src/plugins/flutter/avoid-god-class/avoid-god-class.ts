@@ -4,7 +4,8 @@
  * Verifica número de métodos públicos e total de linhas da classe.
  *
  * Thresholds:
- * - Mais de 300 linhas → warning
+ * - Mais de 300 linhas → warning (padrão)
+ * - Mais de 600 linhas → warning (arquivos em presentation/views/)
  * - Mais de 15 métodos públicos → warning
  * - Exclui: classes geradas (.g.dart, .freezed.dart), enums, mixins, extensions
  */
@@ -12,7 +13,16 @@ import { createPlugin, getDanger, sendFormattedFail } from "@types";
 import * as fs from "fs";
 
 const MAX_CLASS_LINES = 300;
+const MAX_CLASS_LINES_VIEWS = 600;
 const MAX_PUBLIC_METHODS = 15;
+
+function getMaxClassLines(filePath: string): number {
+  const normalized = filePath.replace(/\\/g, "/");
+  if (normalized.includes("presentation/views/")) {
+    return MAX_CLASS_LINES_VIEWS;
+  }
+  return MAX_CLASS_LINES;
+}
 
 interface ClassInfo {
   name: string;
@@ -106,11 +116,13 @@ export default createPlugin(
       const lines = content.split("\n");
       const classes = parseClasses(lines);
 
+      const maxLines = getMaxClassLines(file);
+
       for (const cls of classes) {
-        if (cls.lineCount > MAX_CLASS_LINES) {
+        if (cls.lineCount > maxLines) {
           sendFormattedFail({
             title: "CLASSE MUITO GRANDE",
-            description: `A classe \`${cls.name}\` tem **${cls.lineCount} linhas** (máximo recomendado: ${MAX_CLASS_LINES}).`,
+            description: `A classe \`${cls.name}\` tem **${cls.lineCount} linhas** (máximo recomendado: ${maxLines}).`,
             problem: {
               wrong: `class ${cls.name} { // ${cls.lineCount} linhas }`,
               correct: `class ${cls.name}A { // responsabilidade A }\nclass ${cls.name}B { // responsabilidade B }`,

@@ -6,13 +6,21 @@
  * - Deve ter final class com sufixo Usecase e implements
  * - Deve usar implements, não extends para a interface
  * - Somente um usecase (interface + implementação) por arquivo
+ * - Interface do UseCase deve ter somente um método (responsabilidade única)
+ * - O método da interface deve se chamar "call" (callable class)
  */
 import { createPlugin, getDanger, sendFormattedFail } from "@types";
 import * as fs from "fs";
 
+interface ParsedMethod {
+  name: string;
+  line: number;
+}
+
 interface ParsedInterface {
   name: string;
   line: number;
+  methods: ParsedMethod[];
 }
 
 interface ParsedImpl {
@@ -30,7 +38,40 @@ function parseClasses(lines: string[]) {
 
     const ifaceMatch = line.match(/abstract\s+interface\s+class\s+([A-Za-z_]\w*)/);
     if (ifaceMatch) {
-      interfaces.push({ name: ifaceMatch[1], line: i + 1 });
+      const methods: ParsedMethod[] = [];
+      let braceDepth = 0;
+      let foundOpen = false;
+      let endIndex = i;
+
+      for (let j = i; j < lines.length; j++) {
+        const cl = lines[j];
+
+        if (foundOpen && braceDepth === 1) {
+          const trimmed = cl.trim();
+          if (!trimmed.startsWith("//") && !trimmed.startsWith("///") && !trimmed.startsWith("*")) {
+            const methodMatch = cl.match(/\b([a-z]\w*)\s*\(/);
+            if (methodMatch) {
+              methods.push({ name: methodMatch[1], line: j + 1 });
+            }
+          }
+        }
+
+        for (const ch of cl) {
+          if (ch === "{") {
+            braceDepth++;
+            foundOpen = true;
+          }
+          if (ch === "}") braceDepth--;
+        }
+
+        if (foundOpen && braceDepth <= 0) {
+          endIndex = j;
+          break;
+        }
+      }
+
+      interfaces.push({ name: ifaceMatch[1], line: i + 1, methods });
+      i = endIndex;
       continue;
     }
 
@@ -179,6 +220,63 @@ export default createPlugin(
               code: `abstract interface class ${iface.name}Usecase { }`,
             },
             objective: "Manter **consistência** na nomenclatura de UseCases.",
+            file,
+            line: iface.line,
+          });
+        }
+
+        if (iface.methods.length === 1 && iface.methods[0].name !== "call") {
+          const method = iface.methods[0];
+          sendFormattedFail({
+            title: "MÉTODO DO USECASE DEVE SE CHAMAR call",
+            description: `A interface \`${iface.name}\` tem o método \`${method.name}\` — o método do UseCase deve se chamar \`call\`.`,
+            problem: {
+              wrong: `  Future<...> ${method.name}(...);`,
+              correct: `  Future<Result<Failure, Entity>> call(Params params);`,
+              wrongLabel: `Método "${method.name}"`,
+              correctLabel: 'Método "call"',
+            },
+            action: {
+              code: `// Renomeie o método:\n// ${method.name}() → call()`,
+            },
+            objective:
+              "UseCases devem expor **apenas o método `call`** — padrão callable class do Dart.",
+            reference: {
+              text: "Dart Callable Classes",
+              url: "https://dart.dev/language/callable-objects",
+            },
+            file,
+            line: method.line,
+          });
+        }
+
+        if (iface.methods.length > 1) {
+          sendFormattedFail({
+            title: "USECASE COM MÚLTIPLOS MÉTODOS",
+            description: `A interface \`${iface.name}\` tem **${iface.methods.length} métodos** (${iface.methods.map((m) => `\`${m.name}\``).join(", ")}). Um UseCase deve ter **apenas um método**.`,
+            problem: {
+              wrong: iface.methods.map((m) => `  Future<...> ${m.name}(...);`).join("\n"),
+              correct: `  Future<Result<Failure, Entity>> call(Params params);`,
+              wrongLabel: `${iface.methods.length} métodos no UseCase`,
+              correctLabel: "Método único (call)",
+            },
+            action: {
+              text: "Separe cada responsabilidade em seu próprio UseCase:",
+              code:
+                iface.methods
+                  .filter((m) => m.name !== "call")
+                  .map((m) => {
+                    const pascalName = m.name.charAt(0).toUpperCase() + m.name.slice(1);
+                    return `// ${m.name}() → crie um ${pascalName}Usecase dedicado`;
+                  })
+                  .join("\n") + "\n// Cada UseCase deve ter apenas o método call()",
+            },
+            objective:
+              "Seguir o **Princípio de Responsabilidade Única** — cada UseCase deve executar **uma única operação**.",
+            reference: {
+              text: "Clean Architecture: Use Cases",
+              url: "https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html",
+            },
             file,
             line: iface.line,
           });
