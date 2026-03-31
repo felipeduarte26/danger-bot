@@ -73,8 +73,8 @@ const DOMAIN_ALLOWED_PACKAGES = new Set([
   "fpdart",
   "result_dart",
   "uuid",
+  "flutter",
 ]);
-const DOMAIN_ALLOWED_FLUTTER_IMPORTS = new Set(["package:flutter/foundation.dart"]);
 function detectAppPackage(lines) {
   for (const line of lines) {
     const m = line.match(IMPORT_RE);
@@ -121,13 +121,7 @@ exports.default = (0, _types_1.createPlugin)(
           const packageName = importPath.replace("package:", "").split("/")[0];
           const isOwnPackage = packageName === appPackage;
           const isAllowedPackage = DOMAIN_ALLOWED_PACKAGES.has(packageName);
-          const isAllowedFlutter =
-            packageName === "flutter" && DOMAIN_ALLOWED_FLUTTER_IMPORTS.has(importPath);
-          if (!isOwnPackage && !isAllowedPackage && !isAllowedFlutter) {
-            const suggestion =
-              packageName === "flutter"
-                ? `// Apenas 'package:flutter/foundation.dart' é permitido em Domain`
-                : `// Mova a implementação concreta para data/services/\n// Domain deve conter apenas interfaces abstratas`;
+          if (!isOwnPackage && !isAllowedPackage) {
             violations.push({
               file,
               line: i + 1,
@@ -136,7 +130,7 @@ exports.default = (0, _types_1.createPlugin)(
               title: "VIOLAÇÃO CLEAN ARCHITECTURE — DOMAIN IMPORTA PACOTE EXTERNO",
               description: `Domain Layer **não pode** depender do pacote \`${packageName}\`. Implementações com dependências externas pertencem à camada **Data**.`,
               wrongExample: `import '${importPath}';`,
-              correctExample: suggestion,
+              correctExample: `// Mova a implementação concreta para data/services/\n// Domain deve conter apenas interfaces abstratas`,
             });
           }
         }
