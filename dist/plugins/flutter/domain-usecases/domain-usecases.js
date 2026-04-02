@@ -62,9 +62,50 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * - Somente um usecase (interface + implementação) por arquivo
  * - Interface do UseCase deve ter somente um método (responsabilidade única)
  * - O método da interface deve se chamar "call" (callable class)
+ * - O método call não pode ter mais de 3 parâmetros (usar classe de params)
  */
 const _types_1 = require("../../../types");
 const fs = __importStar(require("fs"));
+const MAX_CALL_PARAMS = 3;
+function countMethodParams(lines, methodLine) {
+  let paramStr = "";
+  let parenDepth = 0;
+  let foundOpen = false;
+  outer: for (let j = methodLine; j < lines.length; j++) {
+    for (const ch of lines[j]) {
+      if (ch === "(" && !foundOpen) {
+        foundOpen = true;
+        parenDepth = 1;
+        continue;
+      }
+      if (!foundOpen) continue;
+      if (ch === "(") parenDepth++;
+      if (ch === ")") {
+        parenDepth--;
+        if (parenDepth === 0) break outer;
+      }
+      paramStr += ch;
+    }
+    if (foundOpen) paramStr += " ";
+  }
+  const cleaned = paramStr.replace(/[{}[\]]/g, " ").trim();
+  if (!cleaned) return 0;
+  let depth = 0;
+  let count = 0;
+  let hasContent = false;
+  for (const ch of cleaned) {
+    if (ch === "<" || ch === "(") depth++;
+    if (ch === ">" || ch === ")") depth--;
+    if (ch === "," && depth === 0) {
+      if (hasContent) count++;
+      hasContent = false;
+    } else if (ch.trim()) {
+      hasContent = true;
+    }
+  }
+  if (hasContent) count++;
+  return count;
+}
 function parseClasses(lines) {
   const interfaces = [];
   const implementations = [];
@@ -87,7 +128,11 @@ function parseClasses(lines) {
               /^(?:Future<[^>]*(?:<[^>]*>)*>|Stream<[^>]*(?:<[^>]*>)*>|void|bool|int|double|String|List<[^>]*>|Map<[^>]*>|Set<[^>]*>|[A-Z]\w*(?:<[^>]*>)?)\s+([a-z]\w*)\s*[(<]/
             );
             if (methodMatch) {
-              methods.push({ name: methodMatch[1], line: j + 1 });
+              methods.push({
+                name: methodMatch[1],
+                line: j + 1,
+                paramCount: countMethodParams(lines, j),
+              });
             }
           }
         }
@@ -298,6 +343,33 @@ exports.default = (0, _types_1.createPlugin)(
             },
             file,
             line: iface.line,
+          });
+        }
+        const callMethod = iface.methods.find((m) => m.name === "call");
+        if (callMethod && callMethod.paramCount > MAX_CALL_PARAMS) {
+          const baseName = iface.name.replace(/^I/, "").replace(/Usecase$/, "");
+          const paramsClassName = `${baseName}Params`;
+          (0, _types_1.sendFormattedFail)({
+            title: "USECASE COM MUITOS PARÂMETROS",
+            description: `O método \`call\` da interface \`${iface.name}\` tem **${callMethod.paramCount} parâmetros**. Máximo recomendado: **${MAX_CALL_PARAMS}**. Crie uma classe de parâmetros para agrupar os dados.`,
+            problem: {
+              wrong: `Future<...> call(param1, param2, ..., param${callMethod.paramCount});`,
+              correct: `Future<...> call(${paramsClassName} params);`,
+              wrongLabel: `${callMethod.paramCount} parâmetros soltos`,
+              correctLabel: "Classe de parâmetros",
+            },
+            action: {
+              text: `Crie a classe \`${paramsClassName}\` para encapsular os parâmetros:`,
+              code: `final class ${paramsClassName} {\n  const ${paramsClassName}({\n    // mova os parâmetros para cá\n  });\n}`,
+            },
+            objective:
+              "Seguir o **Clean Code** — métodos com muitos parâmetros são difíceis de ler e manter. Agrupe em um objeto de parâmetros.",
+            reference: {
+              text: "Clean Code: 7 tips to write clean functions",
+              url: "https://craftbettersoftware.com/p/clean-code-7-tips-to-write-clean",
+            },
+            file,
+            line: callMethod.line,
           });
         }
       }
