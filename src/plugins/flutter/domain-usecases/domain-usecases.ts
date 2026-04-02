@@ -360,7 +360,7 @@ export default createPlugin(
             objective:
               "Seguir o **Clean Code** — métodos com muitos parâmetros são difíceis de ler e manter. Agrupe em um objeto de parâmetros.",
             reference: {
-              text: "Clean Code: 7 tips to write clean functions",
+              text: "Clean Code: 7 dicas para escrever funções limpas",
               url: "https://craftbettersoftware.com/p/clean-code-7-tips-to-write-clean",
             },
             file,
