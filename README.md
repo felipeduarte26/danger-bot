@@ -19,6 +19,36 @@
 
 ---
 
+## Danger Bot em Acao
+
+Veja como o Danger Bot funciona em um Pull Request real:
+
+### Comentario automatico no PR
+
+O bot analisa o PR e deixa um comentario com **falhas**, **avisos**, **mensagens** e um **resumo completo** com metricas (arquivos alterados, camadas afetadas, risco e cobertura de testes):
+
+<p align="center">
+  <img src="assets/1.png" alt="Comentario do Danger Bot no PR com falhas, avisos, mensagens e resumo" width="700" />
+</p>
+
+### AI Code Review (Gemini)
+
+O plugin de **AI Code Review** analisa cada arquivo com o modelo Gemini e gera sugestoes detalhadas sobre **Clean Code**, **SOLID**, **seguranca** e **bugs potenciais**:
+
+<p align="center">
+  <img src="assets/2.png" alt="AI Code Review com sugestoes detalhadas de revisao" width="700" />
+</p>
+
+### Comentarios inline no codigo
+
+Alem do comentario geral, o bot tambem deixa **comentarios inline** diretamente nas linhas do codigo — como este exemplo do plugin **avoid-god-class**, que detecta classes grandes e sugere a divisao de responsabilidades (SRP):
+
+<p align="center">
+  <img src="assets/3.png" alt="Comentario inline do Danger Bot detectando God Class" width="700" />
+</p>
+
+---
+
 ## Inicio Rapido
 
 ```bash
@@ -69,12 +99,12 @@ O Danger Bot inclui plugins organizados em categorias:
 
 ### Clean Architecture - Domain
 
-| Plugin                  | Descricao                                                |
-| ----------------------- | -------------------------------------------------------- |
-| **domain-entities**     | Valida entities, enums e subpastas dentro de /entities/  |
-| **domain-failures**     | Valida failures (`sealed class`, pattern matching)       |
-| **repositories**        | Valida interfaces e implementacoes de repository         |
-| **domain-usecases**     | Valida usecases (interface + implementacao)              |
+| Plugin              | Descricao                                               |
+| ------------------- | ------------------------------------------------------- |
+| **domain-entities** | Valida entities, enums e subpastas dentro de /entities/ |
+| **domain-failures** | Valida failures (`sealed class`, pattern matching)      |
+| **repositories**    | Valida interfaces e implementacoes de repository        |
+| **domain-usecases** | Valida usecases (interface + implementacao)             |
 
 ### Clean Architecture - Data
 
@@ -92,32 +122,32 @@ O Danger Bot inclui plugins organizados em categorias:
 
 ### Qualidade de Codigo
 
-| Plugin                      | Descricao                                                   |
-| --------------------------- | ----------------------------------------------------------- |
-| **clean-architecture**      | Detecta violacoes entre camadas (imports indevidos)         |
-| **file-naming**             | Verifica nomenclatura `snake_case` em arquivos `.dart`      |
-| **comments-checker**        | Forca uso de `///` ao inves de `//`                         |
-| **late-final-checker**      | Detecta `late final` e sugere alternativas                  |
-| **barrel-files-enforcer**   | Forca uso de barrel files para organizar exports            |
-| **security-checker**        | Detecta API keys hardcoded, `eval()` e vulnerabilidades     |
-| **spell-checker**           | Verifica ortografia em identificadores Dart                 |
-| **identifier-language**     | Detecta identificadores e comentarios que nao estao em ingles |
-| **class-naming-convention** | Verifica se nomes de classes usam substantivos (Clean Code)   |
-| **avoid-god-class**         | Detecta classes muito grandes (SRP — responsabilidade unica)  |
-| **avoid-setstate-after-async** | Detecta setState apos await sem verificar mounted          |
-| **date-type-checker**       | Detecta campos de data declarados como String ao inves de DateTime |
-| **ai-code-review**          | Code review com IA (Gemini) — Clean Code, SOLID, seguranca e bugs (aviso, nao falha o CI) |
+| Plugin                         | Descricao                                                                                 |
+| ------------------------------ | ----------------------------------------------------------------------------------------- |
+| **clean-architecture**         | Detecta violacoes entre camadas (imports indevidos)                                       |
+| **file-naming**                | Verifica nomenclatura `snake_case` em arquivos `.dart`                                    |
+| **comments-checker**           | Forca uso de `///` ao inves de `//`                                                       |
+| **late-final-checker**         | Detecta `late final` e sugere alternativas                                                |
+| **barrel-files-enforcer**      | Forca uso de barrel files para organizar exports                                          |
+| **security-checker**           | Detecta API keys hardcoded, `eval()` e vulnerabilidades                                   |
+| **spell-checker**              | Verifica ortografia em identificadores Dart                                               |
+| **identifier-language**        | Detecta identificadores e comentarios que nao estao em ingles                             |
+| **class-naming-convention**    | Verifica se nomes de classes usam substantivos (Clean Code)                               |
+| **avoid-god-class**            | Detecta classes muito grandes (SRP — responsabilidade unica)                              |
+| **avoid-setstate-after-async** | Detecta setState apos await sem verificar mounted                                         |
+| **date-type-checker**          | Detecta campos de data declarados como String ao inves de DateTime                        |
+| **ai-code-review**             | Code review com IA (Gemini) — Clean Code, SOLID, seguranca e bugs (aviso, nao falha o CI) |
 
 ### Performance e Flutter
 
-| Plugin                   | Descricao                                          |
-| ------------------------ | -------------------------------------------------- |
-| **flutter-analyze**      | Executa `flutter analyze` e reporta problemas      |
-| **flutter-performance**  | Detecta operacoes custosas no `build()`            |
-| **column-row-spacing**   | Sugere `spacing` (Flutter 3.27+) em Column/Row em vez de SizedBox intercalados |
-| **flutter-widgets**      | Verifica ordem de funcoes em widgets               |
-| **mediaquery-modern**    | Forca APIs modernas do MediaQuery (Flutter 3.10+)  |
-| **memory-leak-detector** | Detecta Controllers/Timers/Streams sem `dispose()` |
+| Plugin                       | Descricao                                                                                             |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------- |
+| **flutter-analyze**          | Executa `flutter analyze` e reporta problemas                                                         |
+| **flutter-performance**      | Detecta operacoes custosas no `build()`                                                               |
+| **column-row-spacing**       | Sugere `spacing` (Flutter 3.27+) em Column/Row em vez de SizedBox intercalados                        |
+| **flutter-widgets**          | Verifica ordem de funcoes em widgets                                                                  |
+| **mediaquery-modern**        | Forca APIs modernas do MediaQuery (Flutter 3.10+)                                                     |
+| **memory-leak-detector**     | Detecta Controllers/Timers/Streams sem `dispose()`                                                    |
 | **google-chat-notification** | Envia notificacao ao Google Chat (webhook) ao terminar o code review — Cards V2, gratuito (Workspace) |
 
 ---
