@@ -33,7 +33,7 @@
 
 <p align="center">
   <img src="assets/3.png" alt="Comentario inline do Danger Bot detectando God Class" width="700" />
-  <br /><em>Comentario inline no codigo — o bot detecta classes grandes e sugere divisao de responsabilidades (SRP)</em>
+  <br /><em>Comentário inline no código</em>
 </p>
 
 ---
