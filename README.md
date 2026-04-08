@@ -19,13 +19,13 @@
 
 ---
 
-## Danger Bot em Acao
+## Danger Bot em Ação
 
 Veja como o Danger Bot funciona em um Pull Request real:
 
 ### Comentario automatico no PR
 
-O bot analisa o PR e deixa um comentario com **falhas**, **avisos**, **mensagens** e um **resumo completo** com metricas (arquivos alterados, camadas afetadas, risco e cobertura de testes):
+O bot analisa o PR e deixa um comentario com **falhas**, **avisos**, **mensagens** e um **resumo completo** com métricas (arquivos alterados, camadas afetadas, risco e cobertura de testes):
 
 <p align="center">
   <img src="assets/1.png" alt="Comentario do Danger Bot no PR com falhas, avisos, mensagens e resumo" width="700" />
