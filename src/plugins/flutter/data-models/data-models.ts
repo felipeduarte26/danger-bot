@@ -56,15 +56,51 @@ export default createPlugin(
       let hasNonFinalField = false;
       let nonFinalFieldLine = 0;
       let nonFinalFieldName = "";
+      let inBlockComment = false;
 
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
+        const trimmed = line.trimStart();
 
-        const classMatch = line.match(/(?:final\s+)?class\s+([A-Za-z_]\w*)/);
-        if (classMatch && !line.includes("abstract")) {
-          classes.push({ name: classMatch[1], line: i + 1 });
+        // ── Ignorar comentários ──────────────────────────────
+        if (inBlockComment) {
+          if (trimmed.includes("*/")) {
+            inBlockComment = false;
+          }
+          continue;
         }
 
+        if (trimmed.startsWith("/*")) {
+          inBlockComment = true;
+          if (trimmed.includes("*/")) {
+            inBlockComment = false;
+          }
+          continue;
+        }
+
+        if (trimmed.startsWith("//") || trimmed.startsWith("///")) {
+          continue;
+        }
+
+        // ── Ignorar strings que contêm "class" ──────────────
+        if (
+          !trimmed.match(
+            /^\s*(?:abstract\s+|final\s+|sealed\s+|base\s+|interface\s+|mixin\s+)*class\s/
+          )
+        ) {
+          // Se a linha não começa com uma declaração de classe real, pula detecção de classe
+        } else {
+          // ── Detectar declarações de classe reais ───────────
+          // Suporta modificadores Dart 3: final, sealed, base, interface, mixin
+          const classMatch = trimmed.match(
+            /^(?:abstract\s+|final\s+|sealed\s+|base\s+|interface\s+|mixin\s+)*class\s+([A-Za-z_]\w*)/
+          );
+          if (classMatch && !trimmed.startsWith("abstract")) {
+            classes.push({ name: classMatch[1], line: i + 1 });
+          }
+        }
+
+        // ── Detectar campos não-final ────────────────────────
         if (classes.length > 0 && !hasNonFinalField) {
           const fieldMatch = line.match(
             /^\s+(?!final\s|static\s|const\s|late\s|@override)((?:String|int|double|bool|num|List|Map|Set|DateTime|[A-Z]\w*)[?<\s][\w<>,?\s]*)\s+(\w+)\s*;/
