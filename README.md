@@ -31,10 +31,6 @@ O bot analisa o PR e deixa um comentario com **falhas**, **avisos**, **mensagens
   <img src="assets/1.png" alt="Comentario do Danger Bot no PR com falhas, avisos, mensagens e resumo" width="700" />
 </p>
 
-### AI Code Review (Gemini)
-
-O plugin de **AI Code Review** analisa cada arquivo com o modelo Gemini e gera sugestoes detalhadas sobre **Clean Code**, **SOLID**, **seguranca** e **bugs potenciais**:
-
 <p align="center">
   <img src="assets/2.png" alt="AI Code Review com sugestoes detalhadas de revisao" width="700" />
 </p>
