@@ -23,24 +23,22 @@
 
 Veja como o Danger Bot funciona em um Pull Request real:
 
-### Comentario automático no PR
-
-O bot analisa o PR e deixa um comentario com **falhas**, **avisos**, **mensagens** e um **resumo completo** com métricas (arquivos alterados, camadas afetadas, risco e cobertura de testes):
-
-<p align="center">
-  <img src="assets/1.png" alt="Comentario do Danger Bot no PR com falhas, avisos, mensagens e resumo" width="700" />
-</p>
-
-<p align="center">
-  <img src="assets/2.png" alt="AI Code Review com sugestoes detalhadas de revisao" width="700" />
-</p>
-
-### Comentarios inline no codigo
-
-Alem do comentario geral, o bot tambem deixa **comentarios inline** diretamente nas linhas do codigo — como este exemplo do plugin **avoid-god-class**, que detecta classes grandes e sugere a divisao de responsabilidades (SRP):
+<table>
+  <tr>
+    <td align="center">
+      <img src="assets/1.png" alt="Comentario do Danger Bot no PR com falhas, avisos, mensagens e resumo" width="480" />
+      <br /><em>Comentario automatico no PR — falhas, avisos, mensagens e resumo</em>
+    </td>
+    <td align="center">
+      <img src="assets/2.png" alt="AI Code Review com sugestoes detalhadas de revisao" width="480" />
+      <br /><em>AI Code Review (Gemini) — sugestoes de Clean Code, SOLID e seguranca</em>
+    </td>
+  </tr>
+</table>
 
 <p align="center">
-  <img src="assets/3.png" alt="Comentario inline do Danger Bot detectando God Class" width="700" />
+  <img src="assets/3.png" alt="Comentário inline do Danger Bot detectando God Class" width="700" />
+  <br /><em>Comentario inline no codigo — o bot detecta classes grandes e sugere divisao de responsabilidades (SRP)</em>
 </p>
 
 ---
