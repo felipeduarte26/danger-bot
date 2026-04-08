@@ -23,21 +23,18 @@
 
 Veja como o Danger Bot funciona em um Pull Request real:
 
-<table>
-  <tr>
-    <td align="center">
-      <img src="assets/1.png" alt="Comentario do Danger Bot no PR com falhas, avisos, mensagens e resumo" width="480" />
-      <br /><em>Comentario automatico no PR — falhas, avisos, mensagens e resumo</em>
-    </td>
-    <td align="center">
-      <img src="assets/2.png" alt="AI Code Review com sugestoes detalhadas de revisao" width="480" />
-      <br /><em>AI Code Review (Gemini) — sugestoes de Clean Code, SOLID e seguranca</em>
-    </td>
-  </tr>
-</table>
+<p align="center">
+  <img src="assets/1.png" alt="Comentario do Danger Bot no PR com falhas, avisos, mensagens e resumo" width="700" />
+  <br /><em>Comentario automatico no PR — falhas, avisos, mensagens e resumo</em>
+</p>
 
 <p align="center">
-  <img src="assets/3.png" alt="Comentário inline do Danger Bot detectando God Class" width="700" />
+  <img src="assets/2.png" alt="AI Code Review com sugestoes detalhadas de revisao" width="700" />
+  <br /><em>AI Code Review (Free/Prime) — sugestões de Clean Code, SOLID e segurança</em>
+</p>
+
+<p align="center">
+  <img src="assets/3.png" alt="Comentario inline do Danger Bot detectando God Class" width="700" />
   <br /><em>Comentario inline no codigo — o bot detecta classes grandes e sugere divisao de responsabilidades (SRP)</em>
 </p>
 
