@@ -19,9 +19,7 @@
 
 ---
 
-## Danger Bot em Ação
-
-Veja como o Danger Bot funciona em um Pull Request real:
+## Veja como o Danger Bot funciona em um Pull Request real
 
 <p align="center">
   <img src="assets/1.png" alt="Comentario do Danger Bot no PR com falhas, avisos, mensagens e resumo" width="700" />
