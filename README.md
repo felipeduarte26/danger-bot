@@ -15,7 +15,7 @@
 
 ---
 
-**Danger Bot** e um conjunto modular e extensivel de plugins para o [Danger JS](https://danger.systems/js/), focado em projetos **Flutter/Dart** com Clean Architecture. Ele analisa Pull Requests automaticamente durante o CI/CD e deixa comentarios com avisos, erros e sugestoes diretamente no PR.
+**Danger Bot** e um conjunto modular e extensivel de plugins, focado em projetos **Flutter/Dart** com Clean Architecture. Ele analisa Pull Requests automaticamente durante o CI/CD e deixa comentarios com avisos, erros e sugestoes diretamente no PR.
 
 ---
 
