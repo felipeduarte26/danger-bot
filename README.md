@@ -23,7 +23,7 @@
 
 Veja como o Danger Bot funciona em um Pull Request real:
 
-### Comentario automatico no PR
+### Comentario automático no PR
 
 O bot analisa o PR e deixa um comentario com **falhas**, **avisos**, **mensagens** e um **resumo completo** com métricas (arquivos alterados, camadas afetadas, risco e cobertura de testes):
 
