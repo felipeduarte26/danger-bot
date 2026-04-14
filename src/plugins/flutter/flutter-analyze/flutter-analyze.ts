@@ -164,6 +164,7 @@ function translateFlutterAnalyzeMessage(message: string, ruleName: string): stri
     sort_pub_dependencies: "Ordene dependências do pubspec.yaml alfabeticamente",
     depend_on_referenced_packages: "Dependa apenas de pacotes referenciados",
     always_use_package_imports: "Use package imports ao invés de relativos",
+    simple_directive_paths: "Use caminhos simples em diretivas de import/export",
     avoid_relative_lib_imports: "Evite imports relativos para arquivos em lib/",
     prefer_relative_imports: "Use imports relativos dentro do mesmo package",
     implementation_imports: "Evite importar arquivos de src/ de outros packages",
@@ -274,6 +275,9 @@ function translateFlutterAnalyzeMessage(message: string, ruleName: string): stri
     // ── Controle de fluxo ──
     curly_braces_in_flow_control_structures: "Use chaves em estruturas de controle",
     empty_catches: "Catch vazio — trate ou documente a exceção",
+    avoid_catches_without_on_clauses:
+      "Evite catch sem cláusula on — especifique o tipo de exceção (ex: on Exception catch(e))",
+    avoid_empty_else: "Else vazio — remova ou adicione lógica",
     empty_statements: "Statement vazio detectado",
     empty_constructor_bodies: "Corpo de construtor vazio — use ;",
     no_duplicate_case_values: "Valores duplicados em case",
@@ -291,6 +295,7 @@ function translateFlutterAnalyzeMessage(message: string, ruleName: string): stri
     library_names: "Use snake_case para nomes de bibliotecas",
     library_prefixes: "Use lowercase_with_underscores para prefixos",
     package_names: "Use snake_case para nomes de packages",
+    avoid_types_as_parameter_names: "Evite usar tipos como nomes de parâmetros",
     no_leading_underscores_for_local_identifiers: "Não use _ como prefixo em variáveis locais",
     no_leading_underscores_for_library_prefixes: "Não use _ como prefixo em library prefixes",
 
