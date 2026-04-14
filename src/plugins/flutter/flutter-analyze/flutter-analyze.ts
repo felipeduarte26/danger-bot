@@ -131,6 +131,93 @@ function translateFlutterAnalyzeMessage(message: string, ruleName: string): stri
     override_on_non_overriding_member: "@override em membro que não sobrescreve",
     missing_override_of_must_be_overridden: "Faltando override de método obrigatório",
 
+    // ── Diagnostics: Null Safety e tipos de retorno ──
+    body_might_complete_normally:
+      "Corpo da função pode terminar sem retornar — tipo de retorno é non-nullable",
+    body_might_complete_normally_nullable:
+      "Corpo da função termina sem retornar valor — tipo de retorno é nullable",
+    not_initialized_non_nullable_variable:
+      "Variável non-nullable não inicializada — atribua um valor",
+    missing_default_value_for_parameter:
+      "Parâmetro non-nullable sem valor padrão — use 'required' ou atribua valor padrão",
+    unchecked_use_of_nullable_value:
+      "Uso de valor nullable sem verificação — verifique null antes de usar",
+    dead_null_aware_expression:
+      "Operando esquerdo nunca é null — expressão null-aware desnecessária",
+
+    // ── Diagnostics: Argumentos e parâmetros ──
+    missing_required_argument: "Parâmetro obrigatório ausente na chamada",
+    extra_positional_arguments: "Argumentos posicionais em excesso",
+    not_enough_positional_arguments: "Argumentos posicionais insuficientes",
+
+    // ── Diagnostics: Override e herança ──
+    invalid_override: "Override inválido — assinatura incompatível com o método original",
+    non_abstract_class_inherits_abstract_member:
+      "Classe concreta herda membro abstrato — implemente o membro faltante",
+    must_call_super: "Método sobrescrito marcado com @mustCallSuper — chame super no override",
+
+    // ── Diagnostics: Acesso e visibilidade ──
+    invalid_use_of_protected_member:
+      "Membro protegido (@protected) — só pode ser usado em subclasses",
+    invalid_use_of_visible_for_testing_member:
+      "Membro marcado @visibleForTesting — só pode ser usado em testes",
+
+    // ── Diagnostics: Constantes ──
+    const_with_non_const: "Construtor chamado não é const",
+    const_initialized_with_non_constant_value:
+      "Variável const deve ser inicializada com valor constante",
+    const_constructor_with_non_final_field: "Construtor const não pode ter campos não-final",
+    non_constant_list_element: "Valores em listas const devem ser constantes",
+    non_constant_map_key: "Chaves em maps const devem ser constantes",
+    non_constant_map_value: "Valores em maps const devem ser constantes",
+
+    // ── Diagnostics: Atribuição e final ──
+    assignment_to_final: "Variável final não pode ser reatribuída",
+    assignment_to_final_local: "Variável local final só pode ser atribuída uma vez",
+    final_not_initialized: "Variável final não inicializada — atribua um valor",
+    final_not_initialized_constructor: "Variáveis final devem ser inicializadas no construtor",
+
+    // ── Diagnostics: Tipos e casting ──
+    unnecessary_cast: "Cast desnecessário — remova o 'as'",
+    unnecessary_type_check: "Verificação de tipo desnecessária — resultado já é conhecido",
+    use_of_void_result: "Expressão do tipo void — valor não pode ser utilizado",
+    not_a_type: "Identificador não é um tipo",
+    wrong_number_of_type_arguments: "Número incorreto de argumentos de tipo genérico",
+    type_argument_not_matching_bounds:
+      "Argumento de tipo não respeita a restrição (bound) do tipo genérico",
+    could_not_infer: "Não foi possível inferir o tipo genérico",
+    inference_failure_on_function_invocation: "Falha na inferência de tipo na chamada de função",
+
+    // ── Diagnostics: Imports e URI ──
+    uri_does_not_exist: "URI do import não existe — verifique o caminho",
+    ambiguous_import: "Import ambíguo — nome definido em múltiplas bibliotecas",
+
+    // ── Diagnostics: Classes e OOP ──
+    duplicate_definition: "Nome já definido — definição duplicada",
+    creation_with_non_type: "Identificador não é uma classe — não pode criar instância",
+    implements_non_class: "Só é possível implementar classes e mixins",
+    extends_non_class: "Só é possível estender outras classes",
+    mixin_of_non_class: "Só é possível usar mixins e classes como mixin",
+    subtype_of_sealed_class:
+      "Classe sealed não pode ser estendida, implementada ou usada como mixin fora da biblioteca",
+    implicit_this_reference_in_initializer:
+      "Membro de instância não pode ser acessado em inicializador",
+    initializing_formal_for_non_existent_field:
+      "Parâmetro de inicialização referencia campo inexistente",
+    field_initializer_not_assignable: "Tipo do inicializador incompatível com o tipo do campo",
+
+    // ── Diagnostics: Anotações ──
+    invalid_annotation_target: "Anotação usada em alvo incorreto — verifique onde é permitida",
+
+    // ── Diagnostics: Dead code (variantes) ──
+    dead_code_catch_following_catch:
+      "Código morto: cláusulas catch após 'catch(e)' genérico nunca serão alcançadas",
+    dead_code_on_catch_subtype:
+      "Código morto: catch de subtipo nunca será executado — já foi capturado acima",
+
+    // ── Diagnostics: Coleções ──
+    expected_two_map_type_arguments: "Map literal requer dois argumentos de tipo ou nenhum",
+
     // ── Documentação e APIs públicas ──
     public_member_api_docs: "Documentação ausente em membro público",
     type_annotate_public_apis: "Adicione anotações de tipo em APIs públicas",
@@ -430,9 +517,12 @@ function translateFlutterAnalyzeMessage(message: string, ruleName: string): stri
 }
 
 function getDocumentationLink(ruleName: string): string | null {
-  const diagnosticMessages = [
+  const diagnosticMessages = new Set([
     "unused_local_variable",
     "dead_code",
+    "dead_code_catch_following_catch",
+    "dead_code_on_catch_subtype",
+    "dead_null_aware_expression",
     "unreachable_code",
     "unused_import",
     "unused_element",
@@ -455,9 +545,53 @@ function getDocumentationLink(ruleName: string): string | null {
     "override_on_non_overriding_member",
     "missing_override_of_must_be_overridden",
     "must_be_immutable",
-  ];
+    "body_might_complete_normally",
+    "body_might_complete_normally_nullable",
+    "not_initialized_non_nullable_variable",
+    "missing_default_value_for_parameter",
+    "unchecked_use_of_nullable_value",
+    "missing_required_argument",
+    "extra_positional_arguments",
+    "not_enough_positional_arguments",
+    "invalid_override",
+    "non_abstract_class_inherits_abstract_member",
+    "must_call_super",
+    "invalid_use_of_protected_member",
+    "invalid_use_of_visible_for_testing_member",
+    "const_with_non_const",
+    "const_initialized_with_non_constant_value",
+    "const_constructor_with_non_final_field",
+    "non_constant_list_element",
+    "non_constant_map_key",
+    "non_constant_map_value",
+    "assignment_to_final",
+    "assignment_to_final_local",
+    "final_not_initialized",
+    "final_not_initialized_constructor",
+    "unnecessary_cast",
+    "unnecessary_type_check",
+    "use_of_void_result",
+    "not_a_type",
+    "wrong_number_of_type_arguments",
+    "type_argument_not_matching_bounds",
+    "could_not_infer",
+    "inference_failure_on_function_invocation",
+    "uri_does_not_exist",
+    "ambiguous_import",
+    "duplicate_definition",
+    "creation_with_non_type",
+    "implements_non_class",
+    "extends_non_class",
+    "mixin_of_non_class",
+    "subtype_of_sealed_class",
+    "implicit_this_reference_in_initializer",
+    "initializing_formal_for_non_existent_field",
+    "field_initializer_not_assignable",
+    "invalid_annotation_target",
+    "expected_two_map_type_arguments",
+  ]);
 
-  if (diagnosticMessages.includes(ruleName)) {
+  if (diagnosticMessages.has(ruleName)) {
     return `https://dart.dev/tools/diagnostics/${ruleName}`;
   }
 
