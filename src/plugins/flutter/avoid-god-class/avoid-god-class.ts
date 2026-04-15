@@ -14,7 +14,7 @@ import * as fs from "fs";
 
 const MAX_CLASS_LINES = 300;
 const MAX_CLASS_LINES_PRESENTATION = 600;
-const MAX_PUBLIC_METHODS = 15;
+const MAX_PUBLIC_METHODS = 20;
 
 function getMaxClassLines(filePath: string): number {
   const normalized = filePath.replace(/\\/g, "/");
