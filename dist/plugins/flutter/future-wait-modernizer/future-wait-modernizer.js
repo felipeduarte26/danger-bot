@@ -73,9 +73,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const _types_1 = require("../../../types");
 const fs = __importStar(require("fs"));
 const FUTURE_WAIT_RE = /Future\s*\.\s*wait\s*\(/;
-/**
- * Constrói máscara de linhas a ignorar (comentários e multi-line strings).
- */
 function buildSkipMask(lines) {
   const skip = new Array(lines.length).fill(false);
   let inBlock = false;
@@ -117,10 +114,6 @@ function buildSkipMask(lines) {
   }
   return skip;
 }
-/**
- * Verifica se, após "Future.wait(", o argumento é uma lista literal [...]
- * ao invés de uma variável ou expressão dinâmica.
- */
 function isLiteralListArg(lines, startLine) {
   const line = lines[startLine];
   const match = line.match(FUTURE_WAIT_RE);
@@ -137,13 +130,15 @@ function isLiteralListArg(lines, startLine) {
   return false;
 }
 /**
- * Extrai o snippet do Future.wait completo (até o fechamento do parêntese).
+ * Extrai o snippet COMPLETO do Future.wait (sem truncar),
+ * incluindo a linha de atribuição se existir.
  */
-function extractFutureWaitSnippet(lines, start, maxLines = 10) {
+function extractFullSnippet(lines, start) {
   const snippet = [];
   let parens = 0;
   let foundOpen = false;
-  for (let i = start; i < lines.length && snippet.length < maxLines; i++) {
+  let endLine = start;
+  for (let i = start; i < lines.length; i++) {
     snippet.push(lines[i]);
     for (const ch of lines[i]) {
       if (ch === "(") {
@@ -152,17 +147,170 @@ function extractFutureWaitSnippet(lines, start, maxLines = 10) {
       }
       if (ch === ")") parens--;
     }
-    if (foundOpen && parens <= 0) break;
-  }
-  if (snippet.length >= maxLines) {
-    snippet.push("    // ...");
+    if (foundOpen && parens <= 0) {
+      endLine = i;
+      const afterClose = lines[i].substring(lines[i].lastIndexOf(")") + 1).trim();
+      if (!afterClose.endsWith(";")) {
+        for (let j = i + 1; j < Math.min(i + 3, lines.length); j++) {
+          const t = lines[j].trim();
+          if (t === "") continue;
+          if (t === ";" || t === ");") {
+            snippet.push(lines[j]);
+            endLine = j;
+          }
+          break;
+        }
+      }
+      break;
+    }
   }
   const minIndent = snippet.reduce((min, l) => {
     if (l.trim() === "") return min;
     const indent = l.match(/^\s*/)?.[0].length ?? 0;
     return Math.min(min, indent);
   }, Infinity);
-  return snippet.map((l) => (minIndent < Infinity ? l.substring(minIndent) : l)).join("\n");
+  return {
+    text: snippet.map((l) => (minIndent < Infinity ? l.substring(minIndent) : l)).join("\n"),
+    endLine,
+  };
+}
+/**
+ * Extrai as chamadas individuais de dentro do Future.wait([...]).
+ * Retorna cada future como string limpa.
+ */
+function extractFutures(lines, start) {
+  let fullText = "";
+  let parens = 0;
+  let foundOuterOpen = false;
+  for (let i = start; i < lines.length; i++) {
+    fullText += lines[i] + "\n";
+    for (const ch of lines[i]) {
+      if (ch === "(") {
+        parens++;
+        foundOuterOpen = true;
+      }
+      if (ch === ")") parens--;
+    }
+    if (foundOuterOpen && parens <= 0) break;
+  }
+  const listMatch = fullText.match(/Future\s*\.\s*wait\s*\(\s*\[/);
+  if (!listMatch) return [];
+  const listStart = listMatch.index + listMatch[0].length;
+  let brackets = 1;
+  let listEnd = listStart;
+  for (let k = listStart; k < fullText.length; k++) {
+    if (fullText[k] === "[") brackets++;
+    if (fullText[k] === "]") {
+      brackets--;
+      if (brackets <= 0) {
+        listEnd = k;
+        break;
+      }
+    }
+  }
+  const listContent = fullText.substring(listStart, listEnd);
+  const futures = [];
+  let depth = 0;
+  let current = "";
+  for (const ch of listContent) {
+    if (ch === "(" || ch === "[" || ch === "{" || ch === "<") depth++;
+    if (ch === ")" || ch === "]" || ch === "}" || ch === ">") depth--;
+    if (ch === "," && depth === 0) {
+      const trimmed = current.trim();
+      if (trimmed) futures.push(trimmed);
+      current = "";
+    } else {
+      current += ch;
+    }
+  }
+  const last = current.trim();
+  if (last) futures.push(last);
+  return futures;
+}
+/**
+ * Extrai um nome de variável a partir de uma chamada de future.
+ *   _listPickingsUsecase(...)  → listPickingsResult
+ *   _repository.fetchPayments(...) → fetchPaymentsResult
+ *   fetchCartBudgetUsecase()   → fetchCartBudgetResult
+ */
+function futureToVarName(futureCall) {
+  const firstLine = futureCall.split("\n")[0].trim();
+  const dotMatch = firstLine.match(/\.(\w+)\s*[(<]/);
+  if (dotMatch) {
+    return cleanVarName(dotMatch[1]) + "Result";
+  }
+  const directMatch = firstLine.match(/^_?(\w+)\s*[(<]/);
+  if (directMatch) {
+    return cleanVarName(directMatch[1]) + "Result";
+  }
+  return cleanVarName(firstLine.replace(/[^a-zA-Z0-9]/g, "")) + "Result";
+}
+function cleanVarName(name) {
+  let clean = name.replace(/^_+/, "");
+  clean = clean.replace(/(usecase|Usecase|UseCase)$/i, "");
+  clean = clean.replace(/(repository|Repository)$/i, "");
+  clean = clean.replace(/(datasource|Datasource|DataSource)$/i, "");
+  if (!clean) return "result";
+  return clean.charAt(0).toLowerCase() + clean.slice(1);
+}
+/**
+ * Compacta uma chamada multi-line em uma única linha legível.
+ */
+function compactCall(futureCall) {
+  return futureCall
+    .split("\n")
+    .map((l) => l.trim())
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .replace(/,\s*$/, "");
+}
+/**
+ * Verifica se o Future.wait tem seu resultado atribuído a uma variável.
+ * Olha a linha atual e até 5 linhas anteriores para cobrir casos multi-line
+ * como: final [\n  result as Type,\n] = await Future.wait([...])
+ */
+function hasAssignment(lines, idx) {
+  const currentTrimmed = lines[idx].trim();
+  if (/^(final|var|const)\s/.test(currentTrimmed)) return true;
+  if (/\w+\s*=\s*await/.test(currentTrimmed)) return true;
+  if (/^]\s*=\s*await/.test(currentTrimmed)) {
+    for (let j = idx - 1; j >= Math.max(0, idx - 8); j--) {
+      const prev = lines[j].trim();
+      if (prev === "") continue;
+      if (/^(final|var|const)\s+\[/.test(prev)) return true;
+      if (prev.endsWith(";") || prev.endsWith("{") || prev.endsWith("}")) break;
+    }
+  }
+  return false;
+}
+/**
+ * Deduplicar nomes de variáveis adicionando sufixo numérico quando necessário.
+ */
+function deduplicateNames(names) {
+  const counts = new Map();
+  const result = [];
+  for (const name of names) {
+    const count = counts.get(name) ?? 0;
+    counts.set(name, count + 1);
+    if (count > 0) {
+      result.push(`${name}${count + 1}`);
+    } else {
+      const totalOccurrences = names.filter((n) => n === name).length;
+      result.push(totalOccurrences > 1 ? `${name}1` : name);
+    }
+  }
+  return result;
+}
+/**
+ * Gera a sugestão de correção baseada nas futures reais detectadas.
+ */
+function generateCorrection(futures, indent) {
+  if (futures.length === 0) return "";
+  const varNames = deduplicateNames(futures.map(futureToVarName));
+  const compacted = futures.map(compactCall);
+  const calls = compacted.map((c) => `${indent}  ${c},`).join("\n");
+  const destructuring = varNames.map((v) => `${indent}  ${v},`).join("\n");
+  return `final (\n${destructuring}\n${indent}) = await (\n${calls}\n${indent}).wait;`;
 }
 exports.default = (0, _types_1.createPlugin)(
   {
@@ -192,19 +340,28 @@ exports.default = (0, _types_1.createPlugin)(
         if (skip[i]) continue;
         if (!FUTURE_WAIT_RE.test(lines[i])) continue;
         if (!isLiteralListArg(lines, i)) continue;
-        const snippet = extractFutureWaitSnippet(lines, i);
+        if (!hasAssignment(lines, i)) continue;
+        const { text: wrongSnippet } = extractFullSnippet(lines, i);
+        const futures = extractFutures(lines, i);
+        const lineIndent = lines[i].match(/^\s*/)?.[0] ?? "";
+        const correction = generateCorrection(futures, lineIndent);
         (0, _types_1.sendFormattedFail)({
           title: "FUTURE.WAIT COM LISTA LITERAL",
-          description: `\`Future.wait([...])\` detectado (linha ${i + 1}). Prefira a sintaxe de **tupla com \`.wait\`** do Dart 3 — type-safe, sem necessidade de cast por índice e mais legível.`,
+          description:
+            "`Future.wait([...])` detectado. Prefira a sintaxe de **tupla com `.wait`** do Dart 3 — type-safe, sem necessidade de cast por índice e mais legível.",
           problem: {
-            wrong: snippet,
-            correct: `final (\n  resultA,\n  resultB,\n  resultC,\n) = await (\n  useCaseA(),\n  useCaseB(),\n  useCaseC(),\n).wait;`,
+            wrong: wrongSnippet,
+            correct:
+              correction ||
+              `final (\n  resultA,\n  resultB,\n) = await (\n  futureA(),\n  futureB(),\n).wait;`,
             wrongLabel: "Future.wait — acesso por índice, requer cast",
             correctLabel: "Tupla .wait — type-safe, destructuring direto",
           },
           action: {
             text: "Substitua `Future.wait([...])` pela sintaxe de **tupla com `.wait`**:",
-            code: `// Antes (Future.wait)\nfinal results = await Future.wait([\n  fetchUsers(),\n  fetchRoles(),\n]);\nfinal users = results[0] as List<UserEntity>; // cast manual\nfinal roles = results[1] as List<RoleEntity>; // cast manual\n\n// Depois (tupla .wait)\nfinal (\n  usersResult,\n  rolesResult,\n) = await (\n  fetchUsers(),\n  fetchRoles(),\n).wait;\n// Cada variável já tem o tipo correto, sem cast`,
+            code:
+              correction ||
+              `final (\n  resultA,\n  resultB,\n) = await (\n  futureA(),\n  futureB(),\n).wait;`,
           },
           objective:
             "Usar a sintaxe moderna de tupla com `.wait` para **type-safety**, eliminando casts manuais e acesso por índice.",

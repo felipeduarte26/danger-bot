@@ -208,7 +208,7 @@ export default createPlugin(
 
         sendFormattedFail({
           title: "CATCH VAZIO DETECTADO",
-          description: `Bloco \`catch\` vazio ou com apenas comentários detectado (linha ${i + 1}). Erros engolidos silenciosamente mascaram bugs e tornam a depuração extremamente difícil.`,
+          description: `Bloco \`catch\` vazio ou com apenas comentários detectado. Erros engolidos silenciosamente mascaram bugs e tornam a depuração extremamente difícil.`,
           problem: {
             wrong: snippet,
             correct: `} catch (e, stackTrace) {\n  logger.error('Operação falhou', error: e, stackTrace: stackTrace);\n  rethrow; // ou trate o erro adequadamente\n}`,

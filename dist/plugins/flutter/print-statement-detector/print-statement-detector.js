@@ -150,7 +150,7 @@ exports.default = (0, _types_1.createPlugin)(
         const trimmed = lines[i].trim();
         (0, _types_1.sendFormattedWarn)({
           title: "PRINT EM CÓDIGO DE PRODUÇÃO",
-          description: `Chamada \`${fn}()\` detectada (linha ${i + 1}). Prints de debug devem ser removidos antes do merge — poluem o console, podem expor dados sensíveis e dificultam a depuração.`,
+          description: `Chamada \`${fn}()\` detectada. Prints de debug devem ser removidos antes do merge — poluem o console, podem expor dados sensíveis e dificultam a depuração.`,
           problem: {
             wrong: trimmed,
             correct: `// Use um Logger dedicado se precisar de logs em produção\nlogger.info('mensagem relevante');`,

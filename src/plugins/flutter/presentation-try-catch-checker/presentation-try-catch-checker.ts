@@ -155,7 +155,7 @@ export default createPlugin(
 
         sendFormattedFail({
           title: "TRY-CATCH NA CAMADA PRESENTATION",
-          description: `Uso de \`${kind}\` detectado na **camada Presentation** (linha ${i + 1}). Erros devem ser tratados nos **Repositories** ou **UseCases**, não na Presentation.`,
+          description: `Uso de \`${kind}\` detectado na **camada Presentation**. Erros devem ser tratados nos **Repositories** ou **UseCases**, não na Presentation.`,
           problem: {
             wrong: detectedSnippet,
             correct: `final result = await useCase.execute();\nresult.fold(\n  (failure) => state = ErrorState(failure.message),\n  (data) => state = SuccessState(data),\n);`,
