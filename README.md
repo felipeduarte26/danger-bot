@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/felipeduarte26/danger-bot"><img src="https://img.shields.io/badge/version-2.0.1-blue.svg" alt="Version"></a>
+  <a href="https://github.com/felipeduarte26/danger-bot"><img src="https://img.shields.io/badge/version-2.5.5-blue.svg" alt="Version"></a>
   <a href="https://nodejs.org"><img src="https://img.shields.io/badge/node-%3E%3D25.2.1-brightgreen.svg" alt="Node"></a>
   <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.9-blue.svg" alt="TypeScript"></a>
   <a href="https://github.com/felipeduarte26/danger-bot/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License"></a>
