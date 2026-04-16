@@ -67,7 +67,7 @@ const _types_1 = require("../../../types");
 const fs = __importStar(require("fs"));
 const MAX_CLASS_LINES = 300;
 const MAX_CLASS_LINES_PRESENTATION = 600;
-const MAX_PUBLIC_METHODS = 20;
+const MAX_PUBLIC_METHODS = 15;
 function getMaxClassLines(filePath) {
   const normalized = filePath.replace(/\\/g, "/");
   if (normalized.includes("/presentation/")) {
