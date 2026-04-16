@@ -275,20 +275,46 @@ exports.default = (0, _types_1.createPlugin)(
           });
         }
         if (!iface.name.endsWith("UseCase")) {
-          (0, _types_1.sendFormattedFail)({
-            title: "INTERFACE DE USECASE SEM SUFIXO",
-            description: `A interface \`${iface.name}\` deve terminar com \`UseCase\`.`,
-            problem: {
-              wrong: `abstract interface class ${iface.name} { }`,
-              correct: `abstract interface class ${iface.name}UseCase { }`,
-            },
-            action: {
-              code: `abstract interface class ${iface.name}UseCase { }`,
-            },
-            objective: "Manter **consistência** na nomenclatura de UseCases.",
-            file,
-            line: iface.line,
-          });
+          const wrongCasing = /usecase$/i.test(iface.name);
+          if (wrongCasing) {
+            const corrected = iface.name.replace(/usecase$/i, "UseCase");
+            (0, _types_1.sendFormattedFail)({
+              title: "SUFIXO DO USECASE COM CASING INCORRETO",
+              description: `A interface \`${iface.name}\` deve usar \`UseCase\` em **PascalCase** (com C maiúsculo).`,
+              problem: {
+                wrong: `abstract interface class ${iface.name} { }`,
+                correct: `abstract interface class ${corrected} { }`,
+                wrongLabel: "Casing incorreto",
+                correctLabel: "PascalCase correto",
+              },
+              action: {
+                text: "Corrija o casing do sufixo:",
+                code: `// ${iface.name} → ${corrected}`,
+              },
+              objective: "Manter **consistência** — o sufixo correto é `UseCase` (PascalCase).",
+              reference: {
+                text: "Effective Dart: Style — Classes",
+                url: "https://dart.dev/effective-dart/style#do-name-types-using-uppercamelcase",
+              },
+              file,
+              line: iface.line,
+            });
+          } else {
+            (0, _types_1.sendFormattedFail)({
+              title: "INTERFACE DE USECASE SEM SUFIXO",
+              description: `A interface \`${iface.name}\` deve terminar com \`UseCase\`.`,
+              problem: {
+                wrong: `abstract interface class ${iface.name} { }`,
+                correct: `abstract interface class ${iface.name}UseCase { }`,
+              },
+              action: {
+                code: `abstract interface class ${iface.name}UseCase { }`,
+              },
+              objective: "Manter **consistência** na nomenclatura de UseCases.",
+              file,
+              line: iface.line,
+            });
+          }
         }
         if (iface.methods.length === 1 && iface.methods[0].name !== "call") {
           const method = iface.methods[0];
@@ -395,20 +421,46 @@ exports.default = (0, _types_1.createPlugin)(
       }
       for (const impl of implementations) {
         if (!impl.name.endsWith("UseCase")) {
-          (0, _types_1.sendFormattedFail)({
-            title: "IMPLEMENTAÇÃO DE USECASE SEM SUFIXO",
-            description: `A classe \`${impl.name}\` deve terminar com \`UseCase\`.`,
-            problem: {
-              wrong: `class ${impl.name} { }`,
-              correct: `class ${impl.name}UseCase { }`,
-            },
-            action: {
-              code: `final class ${impl.name}UseCase implements I${impl.name}UseCase { }`,
-            },
-            objective: "Manter **consistência** na nomenclatura de UseCases.",
-            file,
-            line: impl.line,
-          });
+          const wrongCasing = /usecase$/i.test(impl.name);
+          if (wrongCasing) {
+            const corrected = impl.name.replace(/usecase$/i, "UseCase");
+            (0, _types_1.sendFormattedFail)({
+              title: "SUFIXO DO USECASE COM CASING INCORRETO",
+              description: `A classe \`${impl.name}\` deve usar \`UseCase\` em **PascalCase** (com C maiúsculo).`,
+              problem: {
+                wrong: `class ${impl.name} { }`,
+                correct: `class ${corrected} { }`,
+                wrongLabel: "Casing incorreto",
+                correctLabel: "PascalCase correto",
+              },
+              action: {
+                text: "Corrija o casing do sufixo:",
+                code: `// ${impl.name} → ${corrected}`,
+              },
+              objective: "Manter **consistência** — o sufixo correto é `UseCase` (PascalCase).",
+              reference: {
+                text: "Effective Dart: Style — Classes",
+                url: "https://dart.dev/effective-dart/style#do-name-types-using-uppercamelcase",
+              },
+              file,
+              line: impl.line,
+            });
+          } else {
+            (0, _types_1.sendFormattedFail)({
+              title: "IMPLEMENTAÇÃO DE USECASE SEM SUFIXO",
+              description: `A classe \`${impl.name}\` deve terminar com \`UseCase\`.`,
+              problem: {
+                wrong: `class ${impl.name} { }`,
+                correct: `class ${impl.name}UseCase { }`,
+              },
+              action: {
+                code: `final class ${impl.name}UseCase implements I${impl.name}UseCase { }`,
+              },
+              objective: "Manter **consistência** na nomenclatura de UseCases.",
+              file,
+              line: impl.line,
+            });
+          }
         }
         if (impl.declaration.match(/extends\s+I\w+/)) {
           const ifaceName = interfaces[0]?.name || "IXxxUseCase";

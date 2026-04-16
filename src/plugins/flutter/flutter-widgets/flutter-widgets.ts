@@ -124,13 +124,74 @@ function extractClasses(lines: string[]): ClassBlock[] {
   return classes;
 }
 
+const WIDGET_METHOD_KEYWORDS = new Set([
+  "const",
+  "super",
+  "factory",
+  "operator",
+  "static",
+  "abstract",
+  "external",
+  "new",
+  "return",
+  "if",
+  "for",
+  "while",
+  "switch",
+  "var",
+  "final",
+  "late",
+  "void",
+  "class",
+  "enum",
+  "mixin",
+  "extension",
+  "throw",
+  "try",
+  "catch",
+  "assert",
+  "await",
+  "async",
+  "get",
+  "set",
+  "required",
+  "covariant",
+  "yield",
+]);
+
+const WIDGET_METHOD_WITH_TYPE_RE =
+  /^\s+(?:static\s+)?(?:Future<[^>]*(?:<[^>]*>)*>|Stream<[^>]*(?:<[^>]*>)*>|void|bool|int|double|String|Widget|List<[^>]*>|Map<[^>]*>|Set<[^>]*>|[A-Za-z_][\w<>,? ]*)\s+([a-zA-Z_]\w*)\s*[(<]/;
+
+const WIDGET_METHOD_NAME_ONLY_RE = /^\s+([a-zA-Z_]\w*)\s*[(<]/;
+
+function hasOverrideAbove(lines: string[], idx: number): boolean {
+  for (let k = idx - 1; k >= Math.max(0, idx - 5); k--) {
+    const t = lines[k].trim();
+    if (t === "@override") return true;
+    if (
+      t === "" ||
+      t.startsWith("//") ||
+      t.startsWith("///") ||
+      t.startsWith("*") ||
+      t.startsWith("@")
+    )
+      continue;
+    if (!t.includes("=") && !t.endsWith(";") && !t.endsWith("{") && !t.endsWith("}")) continue;
+    break;
+  }
+  return false;
+}
+
 function extractMethods(lines: string[], startLine: number, endLine: number): MethodInfo[] {
   const methods: MethodInfo[] = [];
   let depth = 0;
   let classBodyStarted = false;
+  let inArrowBody = false;
 
   for (let i = startLine; i <= endLine; i++) {
     const line = lines[i];
+    const trimmed = line.trim();
+    const depthBefore = depth;
 
     for (const ch of line) {
       if (ch === "{") {
@@ -140,9 +201,15 @@ function extractMethods(lines: string[], startLine: number, endLine: number): Me
       if (ch === "}") depth--;
     }
 
-    if (!classBodyStarted || depth !== 1) continue;
+    if (inArrowBody) {
+      if (depth <= 1 && trimmed.endsWith(";")) {
+        inArrowBody = false;
+      }
+      if (inArrowBody) continue;
+    }
 
-    const trimmed = line.trim();
+    if (!classBodyStarted || depthBefore !== 1) continue;
+
     if (
       trimmed.startsWith("with ") ||
       trimmed.startsWith("extends ") ||
@@ -152,19 +219,37 @@ function extractMethods(lines: string[], startLine: number, endLine: number): Me
       trimmed.startsWith("var ") ||
       trimmed.startsWith("const ") ||
       trimmed.startsWith("///") ||
-      trimmed.startsWith("//")
-    )
+      trimmed.startsWith("//") ||
+      trimmed.startsWith("@") ||
+      trimmed.startsWith("set ") ||
+      trimmed.length === 0
+    ) {
+      if (depthBefore === 1 && line.includes("=>") && !trimmed.endsWith(";")) {
+        inArrowBody = true;
+      }
       continue;
+    }
 
-    const methodMatch = line.match(/^\s+(?:[\w<>,?\s]+)\s+([a-zA-Z_]\w*)\s*[(<]/);
-    if (!methodMatch) continue;
+    let methodMatch = line.match(WIDGET_METHOD_WITH_TYPE_RE);
+
+    if (!methodMatch) {
+      const simpleMatch = line.match(WIDGET_METHOD_NAME_ONLY_RE);
+      if (simpleMatch) methodMatch = simpleMatch;
+    }
+
+    if (!methodMatch) {
+      if (line.includes("=>") && !trimmed.endsWith(";")) {
+        inArrowBody = true;
+      }
+      continue;
+    }
 
     const name = methodMatch[1];
-    if (name === "const" || name === "super" || name === "factory" || name === "operator") continue;
+    if (WIDGET_METHOD_KEYWORDS.has(name)) continue;
     if (line.includes("static ")) continue;
     if (line.includes(" = ") || line.trimEnd().endsWith(";")) continue;
 
-    const isOverride = i > 0 && lines[i - 1].trim() === "@override";
+    const isOverride = hasOverrideAbove(lines, i);
     const isPrivate = name.startsWith("_");
 
     let kind: MethodKind;
@@ -177,6 +262,10 @@ function extractMethods(lines: string[], startLine: number, endLine: number): Me
     }
 
     methods.push({ name, kind, line: i + 1 });
+
+    if (line.includes("=>") && !trimmed.endsWith(";")) {
+      inArrowBody = true;
+    }
   }
 
   return methods;

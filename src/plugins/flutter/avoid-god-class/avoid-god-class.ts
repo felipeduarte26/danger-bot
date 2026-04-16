@@ -130,6 +130,66 @@ function countConstructorLines(
   }
 }
 
+const METHOD_KEYWORDS = new Set([
+  "const",
+  "super",
+  "factory",
+  "operator",
+  "static",
+  "abstract",
+  "external",
+  "new",
+  "return",
+  "if",
+  "for",
+  "while",
+  "switch",
+  "var",
+  "final",
+  "late",
+  "void",
+  "class",
+  "enum",
+  "mixin",
+  "extension",
+  "throw",
+  "try",
+  "catch",
+  "assert",
+  "await",
+  "async",
+  "get",
+  "set",
+  "required",
+  "covariant",
+  "yield",
+  "import",
+  "export",
+]);
+
+const METHOD_WITH_TYPE_RE =
+  /^\s+(?:static\s+)?(?:Future<[^>]*(?:<[^>]*>)*>|Stream<[^>]*(?:<[^>]*>)*>|void|bool|int|double|String|List<[^>]*>|Map<[^>]*>|Set<[^>]*>|[A-Za-z_][\w<>,? ]*)\s+([a-z]\w*)\s*[(<]/;
+
+const METHOD_NAME_ONLY_RE = /^\s+([a-z]\w*)\s*\(/;
+
+function hasOverrideAbove(lines: string[], idx: number): boolean {
+  for (let k = idx - 1; k >= Math.max(0, idx - 5); k--) {
+    const t = lines[k].trim();
+    if (t === "@override") return true;
+    if (
+      t === "" ||
+      t.startsWith("//") ||
+      t.startsWith("///") ||
+      t.startsWith("*") ||
+      t.startsWith("@")
+    )
+      continue;
+    if (!t.includes("=") && !t.endsWith(";") && !t.endsWith("{") && !t.endsWith("}")) continue;
+    break;
+  }
+  return false;
+}
+
 function parseClasses(lines: string[]): ClassInfo[] {
   const classes: ClassInfo[] = [];
   let i = 0;
@@ -163,8 +223,12 @@ function parseClasses(lines: string[]): ClassInfo[] {
         if (lines[k].includes("{")) break;
       }
 
+      let inArrowBody = false;
+
       for (let j = i; j < lines.length; j++) {
         const cl = lines[j];
+        const trimmed = cl.trim();
+        const depthBefore = braceDepth;
 
         for (const ch of cl) {
           if (ch === "{") {
@@ -174,12 +238,64 @@ function parseClasses(lines: string[]): ClassInfo[] {
           if (ch === "}") braceDepth--;
         }
 
-        if (foundOpen && braceDepth === 1) {
-          const methodMatch = cl.match(
-            /^\s+(?:static\s+)?(?:Future<[^>]*>|Stream<[^>]*>|void|bool|int|double|String|List<[^>]*>|Map<[^>]*>|Set<[^>]*>|[\w<>,?\s]+?)\s+([a-z]\w*)\s*[(<]/
-          );
-          if (methodMatch && !methodMatch[1].startsWith("_") && !cl.includes("@override")) {
-            publicMethods.push(methodMatch[1]);
+        if (inArrowBody) {
+          if (braceDepth <= 1 && trimmed.endsWith(";")) {
+            inArrowBody = false;
+          }
+          if (inArrowBody) {
+            if (foundOpen && braceDepth <= 0) {
+              const constructorLineCount = countConstructorLines(lines, className, startLine, j);
+              classes.push({
+                name: className,
+                startLine: startLine + 1,
+                lineCount: j - startLine + 1,
+                constructorLineCount,
+                publicMethods,
+                extendsFrom,
+              });
+              i = j;
+              break;
+            }
+            continue;
+          }
+        }
+
+        if (foundOpen && depthBefore === 1) {
+          if (
+            trimmed.length > 0 &&
+            !trimmed.startsWith("//") &&
+            !trimmed.startsWith("///") &&
+            !trimmed.startsWith("*") &&
+            !trimmed.startsWith("@") &&
+            !trimmed.startsWith("set ")
+          ) {
+            let methodName: string | undefined;
+
+            const mMatch = cl.match(METHOD_WITH_TYPE_RE);
+            if (mMatch) {
+              methodName = mMatch[1];
+            }
+
+            if (!methodName) {
+              const simpleMatch = cl.match(METHOD_NAME_ONLY_RE);
+              if (simpleMatch) {
+                methodName = simpleMatch[1];
+              }
+            }
+
+            if (
+              methodName &&
+              !methodName.startsWith("_") &&
+              !hasOverrideAbove(lines, j) &&
+              !METHOD_KEYWORDS.has(methodName) &&
+              !cl.includes("static ")
+            ) {
+              publicMethods.push(methodName);
+            }
+          }
+
+          if (cl.includes("=>") && !trimmed.endsWith(";")) {
+            inArrowBody = true;
           }
         }
 
