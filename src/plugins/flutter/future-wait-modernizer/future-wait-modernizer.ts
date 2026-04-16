@@ -16,7 +16,7 @@
  * @see {@link https://dart.dev/language/records#multiple-returns} Dart Records
  * @see {@link https://api.dart.dev/stable/dart-async/FutureRecord2/wait.html} FutureRecord.wait
  */
-import { createPlugin, getDanger, sendFormattedWarn } from "@types";
+import { createPlugin, getDanger, sendFormattedFail } from "@types";
 import * as fs from "fs";
 
 const FUTURE_WAIT_RE = /Future\s*\.\s*wait\s*\(/;
@@ -166,7 +166,7 @@ export default createPlugin(
 
         const snippet = extractFutureWaitSnippet(lines, i);
 
-        sendFormattedWarn({
+        sendFormattedFail({
           title: "FUTURE.WAIT COM LISTA LITERAL",
           description: `\`Future.wait([...])\` detectado (linha ${i + 1}). Prefira a sintaxe de **tupla com \`.wait\`** do Dart 3 — type-safe, sem necessidade de cast por índice e mais legível.`,
           problem: {

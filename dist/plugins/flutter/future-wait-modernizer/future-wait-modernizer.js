@@ -193,7 +193,7 @@ exports.default = (0, _types_1.createPlugin)(
         if (!FUTURE_WAIT_RE.test(lines[i])) continue;
         if (!isLiteralListArg(lines, i)) continue;
         const snippet = extractFutureWaitSnippet(lines, i);
-        (0, _types_1.sendFormattedWarn)({
+        (0, _types_1.sendFormattedFail)({
           title: "FUTURE.WAIT COM LISTA LITERAL",
           description: `\`Future.wait([...])\` detectado (linha ${i + 1}). Prefira a sintaxe de **tupla com \`.wait\`** do Dart 3 — type-safe, sem necessidade de cast por índice e mais legível.`,
           problem: {
