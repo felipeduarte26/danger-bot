@@ -56,8 +56,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * Domain UseCases Plugin
  * Valida arquivos dentro de /usecases/:
  * - Nome do arquivo deve terminar com _usecase.dart
- * - Deve ter abstract interface class com prefixo I e sufixo Usecase
- * - Deve ter final class com sufixo Usecase e implements
+ * - Deve ter abstract interface class com prefixo I e sufixo UseCase
+ * - Deve ter final class com sufixo UseCase e implements
  * - Deve usar implements, não extends para a interface
  * - Somente um usecase (interface + implementação) por arquivo
  * - Interface do UseCase deve ter somente um método (responsabilidade única)
@@ -247,10 +247,10 @@ exports.default = (0, _types_1.createPlugin)(
               implementations.length > 0
                 ? `class ${implementations[0].name} { }`
                 : `// Sem interface`,
-            correct: `abstract interface class IGetUserUsecase {\n  Future<Result<Failure, UserEntity>> call(String id);\n}`,
+            correct: `abstract interface class IGetUserUseCase {\n  Future<Result<Failure, UserEntity>> call(String id);\n}`,
           },
           action: {
-            code: `abstract interface class IGetUserUsecase {\n  Future<Result<Failure, UserEntity>> call(String id);\n}\n\nfinal class GetUserUsecase implements IGetUserUsecase {\n  // implementação\n}`,
+            code: `abstract interface class IGetUserUseCase {\n  Future<Result<Failure, UserEntity>> call(String id);\n}\n\nfinal class GetUserUseCase implements IGetUserUseCase {\n  // implementação\n}`,
           },
           objective: "Permitir **injeção de dependência** e facilitar **testes**.",
           file,
@@ -274,16 +274,16 @@ exports.default = (0, _types_1.createPlugin)(
             line: iface.line,
           });
         }
-        if (!iface.name.endsWith("Usecase")) {
+        if (!iface.name.endsWith("UseCase")) {
           (0, _types_1.sendFormattedFail)({
             title: "INTERFACE DE USECASE SEM SUFIXO",
-            description: `A interface \`${iface.name}\` deve terminar com \`Usecase\`.`,
+            description: `A interface \`${iface.name}\` deve terminar com \`UseCase\`.`,
             problem: {
               wrong: `abstract interface class ${iface.name} { }`,
-              correct: `abstract interface class ${iface.name}Usecase { }`,
+              correct: `abstract interface class ${iface.name}UseCase { }`,
             },
             action: {
-              code: `abstract interface class ${iface.name}Usecase { }`,
+              code: `abstract interface class ${iface.name}UseCase { }`,
             },
             objective: "Manter **consistência** na nomenclatura de UseCases.",
             file,
@@ -331,7 +331,7 @@ exports.default = (0, _types_1.createPlugin)(
                   .filter((m) => m.name !== "call")
                   .map((m) => {
                     const pascalName = m.name.charAt(0).toUpperCase() + m.name.slice(1);
-                    return `// ${m.name}() → crie um ${pascalName}Usecase dedicado`;
+                    return `// ${m.name}() → crie um ${pascalName}UseCase dedicado`;
                   })
                   .join("\n") + "\n// Cada UseCase deve ter apenas o método call()",
             },
@@ -347,7 +347,7 @@ exports.default = (0, _types_1.createPlugin)(
         }
         const callMethod = iface.methods.find((m) => m.name === "call");
         if (callMethod && callMethod.paramCount > MAX_CALL_PARAMS) {
-          const baseName = iface.name.replace(/^I/, "").replace(/Usecase$/, "");
+          const baseName = iface.name.replace(/^I/, "").replace(/UseCase$/, "");
           const paramsClassName = `${baseName}Params`;
           (0, _types_1.sendFormattedFail)({
             title: "USECASE COM MUITOS PARÂMETROS",
@@ -394,16 +394,16 @@ exports.default = (0, _types_1.createPlugin)(
         });
       }
       for (const impl of implementations) {
-        if (!impl.name.endsWith("Usecase")) {
+        if (!impl.name.endsWith("UseCase")) {
           (0, _types_1.sendFormattedFail)({
             title: "IMPLEMENTAÇÃO DE USECASE SEM SUFIXO",
-            description: `A classe \`${impl.name}\` deve terminar com \`Usecase\`.`,
+            description: `A classe \`${impl.name}\` deve terminar com \`UseCase\`.`,
             problem: {
               wrong: `class ${impl.name} { }`,
-              correct: `class ${impl.name}Usecase { }`,
+              correct: `class ${impl.name}UseCase { }`,
             },
             action: {
-              code: `final class ${impl.name}Usecase implements I${impl.name}Usecase { }`,
+              code: `final class ${impl.name}UseCase implements I${impl.name}UseCase { }`,
             },
             objective: "Manter **consistência** na nomenclatura de UseCases.",
             file,
@@ -411,7 +411,7 @@ exports.default = (0, _types_1.createPlugin)(
           });
         }
         if (impl.declaration.match(/extends\s+I\w+/)) {
-          const ifaceName = interfaces[0]?.name || "IXxxUsecase";
+          const ifaceName = interfaces[0]?.name || "IXxxUseCase";
           (0, _types_1.sendFormattedFail)({
             title: "USECASE COM EXTENDS INCORRETO",
             description: "UseCase deve usar `implements`, não `extends`.",
