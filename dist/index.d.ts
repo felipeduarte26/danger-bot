@@ -34,6 +34,9 @@ export {
   classNamingConventionPlugin,
   presentationTryCatchCheckerPlugin,
   mergeConflictCheckerPlugin,
+  printStatementDetectorPlugin,
+  emptyCatchDetectorPlugin,
+  futureWaitModernizerPlugin,
 } from "./plugins/flutter";
 /**
  * All available Flutter plugins in a single array

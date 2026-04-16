@@ -12,6 +12,9 @@ var __importDefault =
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.googleChatNotificationPlugin =
   exports.aiCodeReviewPlugin =
+  exports.futureWaitModernizerPlugin =
+  exports.emptyCatchDetectorPlugin =
+  exports.printStatementDetectorPlugin =
   exports.dateTypeCheckerPlugin =
   exports.columnRowSpacingPlugin =
   exports.avoidSetstateAfterAsyncPlugin =
@@ -262,6 +265,27 @@ Object.defineProperty(exports, "dateTypeCheckerPlugin", {
   enumerable: true,
   get: function () {
     return __importDefault(date_type_checker_1).default;
+  },
+});
+var print_statement_detector_1 = require("./print-statement-detector");
+Object.defineProperty(exports, "printStatementDetectorPlugin", {
+  enumerable: true,
+  get: function () {
+    return __importDefault(print_statement_detector_1).default;
+  },
+});
+var empty_catch_detector_1 = require("./empty-catch-detector");
+Object.defineProperty(exports, "emptyCatchDetectorPlugin", {
+  enumerable: true,
+  get: function () {
+    return __importDefault(empty_catch_detector_1).default;
+  },
+});
+var future_wait_modernizer_1 = require("./future-wait-modernizer");
+Object.defineProperty(exports, "futureWaitModernizerPlugin", {
+  enumerable: true,
+  get: function () {
+    return __importDefault(future_wait_modernizer_1).default;
   },
 });
 var ai_code_review_1 = require("./ai-code-review");

@@ -39,6 +39,9 @@ exports.performancePlugins =
   exports.dataLayerPlugins =
   exports.domainLayerPlugins =
   exports.allFlutterPlugins =
+  exports.futureWaitModernizerPlugin =
+  exports.emptyCatchDetectorPlugin =
+  exports.printStatementDetectorPlugin =
   exports.mergeConflictCheckerPlugin =
   exports.presentationTryCatchCheckerPlugin =
   exports.classNamingConventionPlugin =
@@ -235,6 +238,24 @@ Object.defineProperty(exports, "mergeConflictCheckerPlugin", {
     return flutter_1.mergeConflictCheckerPlugin;
   },
 });
+Object.defineProperty(exports, "printStatementDetectorPlugin", {
+  enumerable: true,
+  get: function () {
+    return flutter_1.printStatementDetectorPlugin;
+  },
+});
+Object.defineProperty(exports, "emptyCatchDetectorPlugin", {
+  enumerable: true,
+  get: function () {
+    return flutter_1.emptyCatchDetectorPlugin;
+  },
+});
+Object.defineProperty(exports, "futureWaitModernizerPlugin", {
+  enumerable: true,
+  get: function () {
+    return flutter_1.futureWaitModernizerPlugin;
+  },
+});
 /**
  * All available Flutter plugins in a single array
  * Use this for quick setup with all plugins enabled
@@ -271,6 +292,9 @@ exports.allFlutterPlugins = [
   require("./plugins/flutter/avoid-setstate-after-async").default,
   require("./plugins/flutter/column-row-spacing").default,
   require("./plugins/flutter/date-type-checker").default,
+  require("./plugins/flutter/print-statement-detector").default,
+  require("./plugins/flutter/empty-catch-detector").default,
+  require("./plugins/flutter/future-wait-modernizer").default,
   require("./plugins/flutter/ai-code-review").default,
   require("./plugins/flutter/google-chat-notification").default,
 ];
@@ -304,6 +328,9 @@ exports.codeQualityPlugins = [
   flutter_2.avoidGodClassPlugin,
   flutter_2.avoidSetstateAfterAsyncPlugin,
   flutter_2.dateTypeCheckerPlugin,
+  flutter_2.printStatementDetectorPlugin,
+  flutter_2.emptyCatchDetectorPlugin,
+  flutter_2.futureWaitModernizerPlugin,
   flutter_2.aiCodeReviewPlugin,
 ];
 exports.performancePlugins = [

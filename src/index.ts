@@ -38,6 +38,9 @@ export {
   classNamingConventionPlugin,
   presentationTryCatchCheckerPlugin,
   mergeConflictCheckerPlugin,
+  printStatementDetectorPlugin,
+  emptyCatchDetectorPlugin,
+  futureWaitModernizerPlugin,
 } from "./plugins/flutter";
 
 /**
@@ -76,6 +79,9 @@ export const allFlutterPlugins = [
   require("./plugins/flutter/avoid-setstate-after-async").default,
   require("./plugins/flutter/column-row-spacing").default,
   require("./plugins/flutter/date-type-checker").default,
+  require("./plugins/flutter/print-statement-detector").default,
+  require("./plugins/flutter/empty-catch-detector").default,
+  require("./plugins/flutter/future-wait-modernizer").default,
   require("./plugins/flutter/ai-code-review").default,
   require("./plugins/flutter/google-chat-notification").default,
 ];
@@ -104,6 +110,9 @@ import {
   avoidSetstateAfterAsyncPlugin,
   columnRowSpacingPlugin,
   dateTypeCheckerPlugin,
+  printStatementDetectorPlugin,
+  emptyCatchDetectorPlugin,
+  futureWaitModernizerPlugin,
   aiCodeReviewPlugin,
 } from "./plugins/flutter";
 
@@ -139,6 +148,9 @@ export const codeQualityPlugins = [
   avoidGodClassPlugin,
   avoidSetstateAfterAsyncPlugin,
   dateTypeCheckerPlugin,
+  printStatementDetectorPlugin,
+  emptyCatchDetectorPlugin,
+  futureWaitModernizerPlugin,
   aiCodeReviewPlugin,
 ];
 

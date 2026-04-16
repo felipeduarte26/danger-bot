@@ -40,5 +40,8 @@ export { default as avoidGodClassPlugin } from "./avoid-god-class";
 export { default as avoidSetstateAfterAsyncPlugin } from "./avoid-setstate-after-async";
 export { default as columnRowSpacingPlugin } from "./column-row-spacing";
 export { default as dateTypeCheckerPlugin } from "./date-type-checker";
+export { default as printStatementDetectorPlugin } from "./print-statement-detector";
+export { default as emptyCatchDetectorPlugin } from "./empty-catch-detector";
+export { default as futureWaitModernizerPlugin } from "./future-wait-modernizer";
 export { default as aiCodeReviewPlugin } from "./ai-code-review";
 export { default as googleChatNotificationPlugin } from "./google-chat-notification";
