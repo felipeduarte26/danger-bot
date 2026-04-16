@@ -118,13 +118,13 @@ export default createPlugin(
               description: `Campo \`${fieldName}\` é do tipo \`${fieldType}\` — ViewModel deve depender apenas de **UseCases**.`,
               problem: {
                 wrong: `final ${fieldType} ${fieldName};`,
-                correct: `final IGetDataUsecase _getDataUsecase;`,
+                correct: `final IGetDataUseCase _getDataUseCase;`,
                 wrongLabel: `Dependência direta de ${label}`,
                 correctLabel: "Dependência via UseCase",
               },
               action: {
                 text: "Substitua a dependência direta por um UseCase:",
-                code: `final class MyViewModel extends ViewModelBase<MyState> {\n  final IGetDataUsecase _getDataUsecase;\n}`,
+                code: `final class MyViewModel extends ViewModelBase<MyState> {\n  final IGetDataUseCase _getDataUseCase;\n}`,
               },
               objective: "ViewModel → **UseCase** → Repository → Datasource. Nunca pular camadas.",
               file,
