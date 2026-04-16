@@ -60,6 +60,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * - Arquivo: *_repository_interface.dart
  * - abstract interface class com prefixo I e sufixo Repository
  * - Somente uma interface por arquivo
+ * - Métodos não devem repetir o contexto da classe — "Don't Add Gratuitous Context" (Clean Code, Cap. 2, p. 29)
  *
  * Data (implementação):
  * - Arquivo: *_repository.dart
@@ -194,6 +195,7 @@ function validateDomainRepository(file) {
         line: iface.line,
       });
     }
+    validateRedundantMethodNames(file, lines, iface.name, iface.line - 1, "Repository");
   }
 }
 function validateDataRepository(file) {
@@ -298,6 +300,105 @@ function validateDataRepository(file) {
         objective: "Tratamento de **erros padronizado** em todos os Repositories.",
         file,
         line: cls.line,
+      });
+    }
+  }
+}
+function extractContextFromClassName(className, suffix) {
+  let name = className;
+  if (name.startsWith("I")) name = name.slice(1);
+  if (name.endsWith(suffix)) name = name.slice(0, -suffix.length);
+  return name.length >= 2 ? name : null;
+}
+function extractMethodNames(lines, startLine) {
+  const methods = [];
+  let braceDepth = 0;
+  let foundOpen = false;
+  for (let i = startLine; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    if (foundOpen && braceDepth === 1) {
+      if (!trimmed.startsWith("//") && !trimmed.startsWith("*") && !trimmed.startsWith("/*")) {
+        const methodMatch = trimmed.match(/\b([a-z][a-zA-Z0-9_]*)\s*\(/);
+        if (methodMatch) {
+          methods.push({ name: methodMatch[1], line: i + 1 });
+        }
+        const getterMatch = trimmed.match(/\bget\s+([a-z][a-zA-Z0-9_]*)/);
+        if (getterMatch) {
+          methods.push({ name: getterMatch[1], line: i + 1 });
+        }
+      }
+    }
+    for (const ch of line) {
+      if (ch === "{") {
+        braceDepth++;
+        foundOpen = true;
+      }
+      if (ch === "}") braceDepth--;
+    }
+    if (foundOpen && braceDepth <= 0) break;
+  }
+  return methods;
+}
+function toCamelCaseStart(name) {
+  if (name === name.toUpperCase()) return name.toLowerCase();
+  return name.charAt(0).toLowerCase() + name.slice(1);
+}
+function isMethodNameRedundant(methodName, context) {
+  if (context.length < 2) return false;
+  const contextLower = toCamelCaseStart(context);
+  const contextPascal = context.charAt(0).toUpperCase() + context.slice(1);
+  const startsWithContext = new RegExp(`^${contextLower}(?=[A-Z_]|$)`).test(methodName);
+  const containsContext = new RegExp(`[a-z]${contextPascal}(?=[A-Z_]|$)`).test(methodName);
+  if (!startsWithContext && !containsContext) return false;
+  const suggested = getSuggestedMethodName(methodName, context);
+  return suggested.length >= 2 && suggested !== methodName;
+}
+function getSuggestedMethodName(methodName, context) {
+  const contextLower = toCamelCaseStart(context);
+  const contextPascal = context.charAt(0).toUpperCase() + context.slice(1);
+  if (new RegExp(`^${contextLower}(?=[A-Z_]|$)`).test(methodName)) {
+    const remaining = methodName.slice(contextLower.length);
+    if (remaining.length >= 2) {
+      return remaining.charAt(0).toLowerCase() + remaining.slice(1);
+    }
+    return methodName;
+  }
+  const idx = methodName.indexOf(contextPascal);
+  if (idx > 0 && /[a-z]/.test(methodName.charAt(idx - 1))) {
+    const before = methodName.slice(0, idx);
+    const after = methodName.slice(idx + contextPascal.length);
+    if ((before + after).length >= 2) return before + after;
+  }
+  return methodName;
+}
+function validateRedundantMethodNames(file, lines, interfaceName, interfaceStartLine, suffix) {
+  const context = extractContextFromClassName(interfaceName, suffix);
+  if (!context) return;
+  const methods = extractMethodNames(lines, interfaceStartLine);
+  for (const method of methods) {
+    if (isMethodNameRedundant(method.name, context)) {
+      const suggested = getSuggestedMethodName(method.name, context);
+      (0, _types_1.sendFormattedFail)({
+        title: "NOME DE MÉTODO REDUNDANTE",
+        description: `O método \`${method.name}\` repete o contexto \`${context}\` que já está no nome da classe \`${interfaceName}\`.`,
+        problem: {
+          wrong: `${method.name}(...)`,
+          correct: `${suggested}(...)`,
+          wrongLabel: `Redundante — "${context}" já está no nome da classe`,
+          correctLabel: "Sem redundância",
+        },
+        action: {
+          text: `Remova "${context}" do nome do método:`,
+          code: `// Em ${interfaceName}\n\n// Antes\n${method.name}(...)\n\n// Depois\n${suggested}(...)`,
+        },
+        objective: "Evitar **redundância** nos nomes — o contexto da classe já comunica o domínio.",
+        reference: {
+          text: "Clean Code — Cap. 2: Don't Add Gratuitous Context (Robert C. Martin)",
+          url: "https://medium.com/@sardorjs/clean-code-chapter-2-meaningful-names-baa554f93f17",
+        },
+        file,
+        line: method.line,
       });
     }
   }

@@ -5,6 +5,7 @@
  *
  * Thresholds:
  * - Mais de 300 linhas → warning (padrão)
+ * - Mais de 400 linhas → warning (ViewModels: *_viewmodel.dart que extends ViewModelBase)
  * - Mais de 600 linhas → warning (arquivos em presentation/)
  * - Mais de 15 métodos públicos → warning
  * - Exclui: classes geradas (.g.dart, .freezed.dart), enums, mixins, extensions
@@ -14,9 +15,17 @@ import * as fs from "fs";
 
 const MAX_CLASS_LINES = 300;
 const MAX_CLASS_LINES_PRESENTATION = 600;
+const MAX_CLASS_LINES_VIEWMODEL = 400;
 const MAX_PUBLIC_METHODS = 15;
 
-function getMaxClassLines(filePath: string): number {
+function isViewModelFile(filePath: string): boolean {
+  return filePath.replace(/\\/g, "/").endsWith("_viewmodel.dart");
+}
+
+function getMaxClassLines(filePath: string, cls: ClassInfo): number {
+  if (isViewModelFile(filePath) && cls.extendsFrom === "ViewModelBase") {
+    return MAX_CLASS_LINES_VIEWMODEL;
+  }
   const normalized = filePath.replace(/\\/g, "/");
   if (normalized.includes("/presentation/")) {
     return MAX_CLASS_LINES_PRESENTATION;
@@ -28,7 +37,97 @@ interface ClassInfo {
   name: string;
   startLine: number;
   lineCount: number;
+  constructorLineCount: number;
   publicMethods: string[];
+  extendsFrom: string | null;
+}
+
+function countConstructorLines(
+  lines: string[],
+  className: string,
+  startIdx: number,
+  endIdx: number
+): number {
+  let total = 0;
+  const pattern = new RegExp(`^(?:const\\s+|factory\\s+)?${className}(?:\\.[a-zA-Z_]\\w*)?\\s*\\(`);
+
+  let classParenDepth = 0;
+  let classBraceDepth = 0;
+  let ctorParenDepth = 0;
+  let ctorParamsComplete = false;
+  let ctorBodyBraceDepth = 0;
+  let ctorFoundBody = false;
+
+  for (let i = startIdx; i <= endIdx; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    const depthBeforeLine = classBraceDepth;
+
+    updateClassDepth(line);
+
+    if (depthBeforeLine !== 1 || !pattern.test(trimmed)) continue;
+
+    total++;
+    ctorParenDepth = 0;
+    ctorParamsComplete = false;
+    ctorBodyBraceDepth = 0;
+    ctorFoundBody = false;
+
+    processCtorChars(line);
+
+    if (isCtorDone(trimmed)) continue;
+
+    for (let j = i + 1; j <= endIdx; j++) {
+      total++;
+      const jLine = lines[j];
+      updateClassDepth(jLine);
+      processCtorChars(jLine);
+
+      if (isCtorDone(lines[j].trim())) {
+        i = j;
+        break;
+      }
+    }
+  }
+
+  return total;
+
+  function updateClassDepth(line: string) {
+    for (const ch of line) {
+      if (ch === "(") classParenDepth++;
+      if (ch === ")") classParenDepth--;
+      if (classParenDepth === 0) {
+        if (ch === "{") classBraceDepth++;
+        if (ch === "}") classBraceDepth--;
+      }
+    }
+  }
+
+  function processCtorChars(line: string) {
+    for (const ch of line) {
+      if (!ctorParamsComplete) {
+        if (ch === "(") ctorParenDepth++;
+        if (ch === ")") {
+          ctorParenDepth--;
+          if (ctorParenDepth <= 0) ctorParamsComplete = true;
+        }
+      } else {
+        if (ch === "{") {
+          ctorBodyBraceDepth++;
+          ctorFoundBody = true;
+        }
+        if (ch === "}") ctorBodyBraceDepth--;
+      }
+    }
+  }
+
+  function isCtorDone(trimmedLine: string): boolean {
+    if (!ctorParamsComplete) return false;
+    if (!ctorFoundBody && trimmedLine.endsWith(";")) return true;
+    if (ctorFoundBody && ctorBodyBraceDepth <= 0) return true;
+    return false;
+  }
 }
 
 function parseClasses(lines: string[]): ClassInfo[] {
@@ -54,6 +153,16 @@ function parseClasses(lines: string[]): ClassInfo[] {
       let foundOpen = false;
       const publicMethods: string[] = [];
 
+      let extendsFrom: string | null = null;
+      for (let k = i; k < lines.length; k++) {
+        const extMatch = lines[k].match(/extends\s+([A-Za-z_]\w*)/);
+        if (extMatch) {
+          extendsFrom = extMatch[1];
+          break;
+        }
+        if (lines[k].includes("{")) break;
+      }
+
       for (let j = i; j < lines.length; j++) {
         const cl = lines[j];
 
@@ -75,11 +184,14 @@ function parseClasses(lines: string[]): ClassInfo[] {
         }
 
         if (foundOpen && braceDepth <= 0) {
+          const constructorLineCount = countConstructorLines(lines, className, startLine, j);
           classes.push({
             name: className,
             startLine: startLine + 1,
             lineCount: j - startLine + 1,
+            constructorLineCount,
             publicMethods,
+            extendsFrom,
           });
           i = j;
           break;
@@ -116,17 +228,26 @@ export default createPlugin(
       const lines = content.split("\n");
       const classes = parseClasses(lines);
 
-      const maxLines = getMaxClassLines(file);
-
       for (const cls of classes) {
-        if (cls.lineCount > maxLines) {
+        const maxLines = getMaxClassLines(file, cls);
+        const isViewModel = isViewModelFile(file) && cls.extendsFrom === "ViewModelBase";
+        const effectiveLineCount = isViewModel
+          ? cls.lineCount - cls.constructorLineCount
+          : cls.lineCount;
+
+        if (effectiveLineCount > maxLines) {
+          const lineDetail =
+            isViewModel && cls.constructorLineCount > 0
+              ? `**${effectiveLineCount} linhas** (${cls.lineCount} total, ${cls.constructorLineCount} de construtor ignoradas)`
+              : `**${effectiveLineCount} linhas**`;
+
           sendFormattedFail({
             title: "CLASSE MUITO GRANDE",
-            description: `A classe \`${cls.name}\` tem **${cls.lineCount} linhas** (máximo recomendado: ${maxLines}).`,
+            description: `A classe \`${cls.name}\` tem ${lineDetail} (máximo recomendado: ${maxLines}).`,
             problem: {
-              wrong: `class ${cls.name} { // ${cls.lineCount} linhas }`,
+              wrong: `class ${cls.name} { // ${effectiveLineCount} linhas }`,
               correct: `class ${cls.name}A { // responsabilidade A }\nclass ${cls.name}B { // responsabilidade B }`,
-              wrongLabel: `${cls.lineCount} linhas — difícil de manter`,
+              wrongLabel: `${effectiveLineCount} linhas — difícil de manter`,
               correctLabel: "Dividida por responsabilidade",
             },
             action: {
