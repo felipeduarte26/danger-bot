@@ -12,7 +12,7 @@
  * para ser consumido pelo plugin test-coverage-summary.
  */
 import { execSync } from "child_process";
-import { createPlugin, getDanger, sendMarkdown, sendFormattedWarn } from "@types";
+import { createPlugin, getDanger, sendMarkdown, sendWarn } from "@types";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -225,7 +225,7 @@ export default createPlugin(
 
     try {
       const testFileArgs = testFiles.join(" ");
-      const cmd = `flutter test --reporter json --coverage ${testFileArgs}`;
+      const cmd = `flutter test --reporter json ${testFileArgs}`;
 
       let output = "";
       try {
@@ -248,12 +248,11 @@ export default createPlugin(
     }
 
     const allPassed = summary.failed === 0 && summary.errors === 0;
-    const durationSec = (summary.duration / 1000).toFixed(1);
 
     let md = allPassed
       ? `✅ **Testes da PR** — ${summary.passed} passou(aram)`
       : `⚠️ **Testes da PR** — ${summary.failed + summary.errors} falha(s)`;
-    md += ` (${durationSec}s)\n\n`;
+    md += "\n\n";
     md += "| Métrica | Resultado |\n";
     md += "| :-- | :--: |\n";
     md += `| Passou | **${summary.passed}** |\n`;
@@ -269,36 +268,24 @@ export default createPlugin(
     }
 
     md += `| Total | ${summary.total} |\n`;
-    md += `| Tempo | ${durationSec}s |\n`;
 
     sendMarkdown(md);
 
-    for (const failure of summary.failures.slice(0, 10)) {
-      const errorSnippet = failure.errorMessage
-        ? failure.errorMessage.split("\n").slice(0, 3).join("\n")
-        : "Sem detalhes disponíveis";
+    if (summary.failures.length > 0) {
+      const failedFiles = [
+        ...new Set(
+          summary.failures
+            .map((f) => f.file)
+            .filter(Boolean)
+            .map((f) => {
+              const parts = f!.replace(/\\/g, "/").split("/");
+              return parts[parts.length - 1];
+            })
+        ),
+      ];
 
-      sendFormattedWarn({
-        title: failure.result === "error" ? "TESTE COM ERRO" : "TESTE FALHANDO",
-        description: `\`${failure.name}\``,
-        problem: {
-          wrong: errorSnippet,
-          correct: "Teste passando ✅",
-          wrongLabel: failure.result === "error" ? "Erro" : "Falha",
-          correctLabel: "Esperado",
-        },
-        action: {
-          text: "Corrija o teste ou o código fonte:",
-          code: `flutter test ${failure.file || ""}`,
-        },
-        objective: "Garantir que todos os testes passem antes do merge.",
-        reference: {
-          text: "Flutter: Testing",
-          url: "https://docs.flutter.dev/testing",
-        },
-        file: failure.file,
-        line: 1,
-      });
+      const fileList = failedFiles.map((f) => `\`${f}\``).join(", ");
+      sendWarn(`**${summary.failed + summary.errors} teste(s) com erro:** ${fileList}`);
     }
   }
 );

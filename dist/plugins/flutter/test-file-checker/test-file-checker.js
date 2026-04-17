@@ -168,38 +168,22 @@ exports.default = (0, _types_1.createPlugin)(
       if (!getTargetLayer(f)) return false;
       return true;
     });
+    const missingTests = [];
     for (const file of sourceFiles) {
-      const layer = getTargetLayer(file);
-      const fileName = path.basename(file);
       const testPathAbsolute = computeTestPath(file);
       const testPathRelative = computeExpectedTestInPR(file);
-      const testFileName = path.basename(testPathRelative);
       const testExistsOnDisk = fs.existsSync(testPathAbsolute);
       const testInPR = allPRFiles.has(testPathRelative);
       const testFoundElsewhere = !testExistsOnDisk && findTestByName(file);
       if (!testExistsOnDisk && !testInPR && !testFoundElsewhere) {
-        (0, _types_1.sendFormattedWarn)({
-          title: "ARQUIVO SEM TESTE",
-          description: `\`${fileName}\` (${layer.label}) não possui arquivo de teste correspondente.`,
-          problem: {
-            wrong: fileName,
-            correct: testFileName,
-            wrongLabel: "Sem teste",
-            correctLabel: "Teste esperado",
-          },
-          action: {
-            text: `Crie o arquivo de teste:`,
-            code: testPathRelative,
-          },
-          objective: "Garantir **cobertura de testes** para as camadas principais da arquitetura.",
-          reference: {
-            text: "Flutter: Testing",
-            url: "https://docs.flutter.dev/testing",
-          },
-          file,
-          line: 1,
-        });
+        missingTests.push(path.basename(file));
       }
+    }
+    if (missingTests.length > 0) {
+      const fileList = missingTests.map((f) => `\`${f}\``).join(", ");
+      (0, _types_1.sendWarn)(
+        `**Detectado ${missingTests.length} arquivo(s) sem testes:** ${fileList}`
+      );
     }
   }
 );

@@ -318,10 +318,11 @@ exports.allFlutterPlugins = [
   require("./plugins/flutter/empty-catch-detector").default,
   require("./plugins/flutter/future-wait-modernizer").default,
   require("./plugins/flutter/ai-code-review").default,
-  require("./plugins/flutter/google-chat-notification").default,
   require("./plugins/flutter/test-file-checker").default,
   require("./plugins/flutter/flutter-test-runner").default,
   require("./plugins/flutter/test-coverage-summary").default,
+  // google-chat-notification deve ser sempre o último plugin
+  require("./plugins/flutter/google-chat-notification").default,
 ];
 // Export arrays for specific layers/categories
 const flutter_2 = require("./plugins/flutter");

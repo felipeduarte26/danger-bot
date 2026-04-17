@@ -18,7 +18,7 @@
  *
  * Mapeamento: lib/(...)/file.dart → test/(...)/file_test.dart
  */
-import { createPlugin, getDanger, sendFormattedWarn } from "@types";
+import { createPlugin, getDanger, sendWarn } from "@types";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -136,41 +136,24 @@ export default createPlugin(
       return true;
     });
 
-    for (const file of sourceFiles) {
-      const layer = getTargetLayer(file)!;
-      const fileName = path.basename(file);
+    const missingTests: string[] = [];
 
+    for (const file of sourceFiles) {
       const testPathAbsolute = computeTestPath(file);
       const testPathRelative = computeExpectedTestInPR(file);
-      const testFileName = path.basename(testPathRelative);
 
       const testExistsOnDisk = fs.existsSync(testPathAbsolute);
       const testInPR = allPRFiles.has(testPathRelative);
       const testFoundElsewhere = !testExistsOnDisk && findTestByName(file);
 
       if (!testExistsOnDisk && !testInPR && !testFoundElsewhere) {
-        sendFormattedWarn({
-          title: "ARQUIVO SEM TESTE",
-          description: `\`${fileName}\` (${layer.label}) não possui arquivo de teste correspondente.`,
-          problem: {
-            wrong: fileName,
-            correct: testFileName,
-            wrongLabel: "Sem teste",
-            correctLabel: "Teste esperado",
-          },
-          action: {
-            text: `Crie o arquivo de teste:`,
-            code: testPathRelative,
-          },
-          objective: "Garantir **cobertura de testes** para as camadas principais da arquitetura.",
-          reference: {
-            text: "Flutter: Testing",
-            url: "https://docs.flutter.dev/testing",
-          },
-          file,
-          line: 1,
-        });
+        missingTests.push(path.basename(file));
       }
+    }
+
+    if (missingTests.length > 0) {
+      const fileList = missingTests.map((f) => `\`${f}\``).join(", ");
+      sendWarn(`**Detectado ${missingTests.length} arquivo(s) sem testes:** ${fileList}`);
     }
   }
 );
