@@ -284,8 +284,13 @@ export default createPlugin(
         ),
       ];
 
-      const fileList = failedFiles.map((f) => `\`${f}\``).join(", ");
-      sendFail(`**${summary.failed + summary.errors} teste(s) quebrando:** ${fileList}`);
+      const count = summary.failed + summary.errors;
+      if (failedFiles.length > 0) {
+        const fileList = failedFiles.map((f) => `\`${f}\``).join(", ");
+        sendFail(`**${count} teste(s) quebrando** — ${fileList}`);
+      } else {
+        sendFail(`**${count} teste(s) quebrando**`);
+      }
     }
   }
 );

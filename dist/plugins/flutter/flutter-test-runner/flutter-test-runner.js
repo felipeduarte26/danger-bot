@@ -282,10 +282,13 @@ exports.default = (0, _types_1.createPlugin)(
             })
         ),
       ];
-      const fileList = failedFiles.map((f) => `\`${f}\``).join(", ");
-      (0, _types_1.sendFail)(
-        `**${summary.failed + summary.errors} teste(s) quebrando:** ${fileList}`
-      );
+      const count = summary.failed + summary.errors;
+      if (failedFiles.length > 0) {
+        const fileList = failedFiles.map((f) => `\`${f}\``).join(", ");
+        (0, _types_1.sendFail)(`**${count} teste(s) quebrando** — ${fileList}`);
+      } else {
+        (0, _types_1.sendFail)(`**${count} teste(s) quebrando**`);
+      }
     }
   }
 );

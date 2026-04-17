@@ -65,7 +65,6 @@ exports.default = (0, _types_1.createPlugin)(
     const danger = (0, _types_1.getDanger)();
     const { git } = danger;
     const minDescriptionLength = 15;
-    const maxDartFiles = 180;
     const requireChangelog = true;
     const prDescription = danger.github?.pr?.body || danger.bitbucket_cloud?.pr?.description || "";
     if (prDescription.length < minDescriptionLength) {
@@ -160,28 +159,6 @@ exports.default = (0, _types_1.createPlugin)(
         file: "pubspec.lock",
         line: 1,
       });
-    }
-    const dartFiles = git.modified_files
-      .concat(git.created_files)
-      .concat(git.deleted_files)
-      .filter((file) => file.endsWith(".dart"));
-    if (dartFiles.length > maxDartFiles) {
-      const suggestedPRs = Math.ceil(dartFiles.length / 40);
-      (0, _types_1.sendWarn)(
-        `🚨 **PR CRÍTICA** — ${dartFiles.length} arquivos .dart alterados (limite: ${maxDartFiles}). Sugestão: quebrar em **${suggestedPRs} PRs** menores.`
-      );
-    } else if (dartFiles.length > 80) {
-      (0, _types_1.sendWarn)(
-        `⚠️ **PR grande** — ${dartFiles.length} arquivos .dart alterados. PRs menores (30-40 arquivos) facilitam revisões.`
-      );
-    } else if (dartFiles.length > 60) {
-      (0, _types_1.sendMessage)(
-        `📏 PR média-grande — **${dartFiles.length} arquivo(s) .dart** alterado(s).`
-      );
-    } else if (dartFiles.length > 0) {
-      (0, _types_1.sendMessage)(
-        `✅ Tamanho ideal de PR — **${dartFiles.length} arquivo(s) .dart** alterado(s).`
-      );
     }
     const linesChanged = (git.insertions || 0) + (git.deletions || 0);
     const filesCreated = git.created_files.length;
