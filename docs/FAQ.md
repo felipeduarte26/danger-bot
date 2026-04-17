@@ -208,8 +208,10 @@ Os plugins do pacote estao organizados em categorias:
 - Domain — Clean Architecture (entities, failures, repositories, usecases)
 - Data — Clean Architecture (datasources, models)
 - Presentation — Clean Architecture (viewmodels, try-catch-checker)
-- Qualidade de Codigo (clean-architecture, file-naming, comments, late-final, barrel-files, security, spell-checker, identifier-language, class-naming)
-- Performance e Flutter (flutter-analyze, flutter-performance, flutter-widgets, mediaquery-modern, memory-leak-detector)
+- Qualidade de Codigo (clean-architecture, file-naming, comments, late-final, barrel-files, security, spell-checker, identifier-language, class-naming, avoid-god-class, avoid-setstate-after-async, date-type-checker, print-statement-detector, empty-catch-detector, future-wait-modernizer, ai-code-review)
+- Performance e Flutter (flutter-analyze, flutter-performance, flutter-widgets, mediaquery-modern, memory-leak-detector, column-row-spacing)
+- Testes (test-file-checker, flutter-test-runner, test-coverage-summary)
+- Notificacoes (google-chat-notification)
 
 Use `danger-bot list` para ver a lista atualizada.
 

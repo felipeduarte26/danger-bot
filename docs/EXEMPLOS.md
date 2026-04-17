@@ -42,6 +42,7 @@ import {
   cleanArchitecturePlugins,
   codeQualityPlugins,
   performancePlugins,
+  testPlugins,
   executeDangerBot,
 } from "@felipeduarte26/danger-bot";
 
@@ -49,6 +50,7 @@ executeDangerBot([
   ...cleanArchitecturePlugins,
   ...codeQualityPlugins,
   ...performancePlugins,
+  ...testPlugins,
 ]);
 ```
 

@@ -52,6 +52,7 @@ export {
   cleanArchitecturePlugins,
   codeQualityPlugins,
   performancePlugins,
+  testPlugins,
 };
 ```
 
@@ -391,8 +392,9 @@ export default createPlugin(
 | `dataLayerPlugins` | datasources, models | 2 |
 | `presentationLayerPlugins` | viewmodels, try-catch-checker | 2 |
 | `cleanArchitecturePlugins` | domain + data + presentation + clean-architecture | 9 |
-| `codeQualityPlugins` | late-final, memory-leak, comments, security, barrel, identifier-language, class-naming, avoid-god-class, avoid-setstate-after-async, date-type-checker, ai-code-review | 11 |
+| `codeQualityPlugins` | late-final, memory-leak, comments, security, barrel, identifier-language, class-naming, avoid-god-class, avoid-setstate-after-async, date-type-checker, print-statement-detector, empty-catch-detector, future-wait-modernizer, ai-code-review | 14 |
 | `performancePlugins` | flutter-performance, mediaquery-modern, column-row-spacing | 3 |
+| `testPlugins` | test-file-checker, flutter-test-runner, test-coverage-summary | 3 |
 
 ---
 

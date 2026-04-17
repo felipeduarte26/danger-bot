@@ -12,6 +12,13 @@
  */
 import { createPlugin, getDanger, sendFormattedFail } from "@types";
 import * as fs from "fs";
+import * as path from "path";
+
+function isBarrelFile(filePath: string): boolean {
+  const fileName = path.basename(filePath, ".dart");
+  const parentDir = path.basename(path.dirname(filePath));
+  return fileName === parentDir;
+}
 
 const MAX_CALL_PARAMS = 3;
 
@@ -168,6 +175,7 @@ export default createPlugin(
         f.endsWith(".dart") &&
         !f.endsWith("_test.dart") &&
         !f.endsWith("usecases.dart") &&
+        !isBarrelFile(f) &&
         fs.existsSync(f)
     );
 

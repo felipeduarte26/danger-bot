@@ -73,6 +73,11 @@ const MAX_PUBLIC_METHODS = 15;
 function isViewModelFile(filePath) {
   return filePath.replace(/\\/g, "/").endsWith("_viewmodel.dart");
 }
+const MODULE_CONFIG_SUFFIXES = ["_module_binding.dart", "_module_routing.dart", "_module.dart"];
+function isModuleConfigFile(filePath) {
+  const normalized = filePath.replace(/\\/g, "/");
+  return MODULE_CONFIG_SUFFIXES.some((suffix) => normalized.endsWith(suffix));
+}
 function getMaxClassLines(filePath, cls) {
   if (isViewModelFile(filePath) && cls.extendsFrom === "ViewModelBase") {
     return MAX_CLASS_LINES_VIEWMODEL;
@@ -334,6 +339,7 @@ exports.default = (0, _types_1.createPlugin)(
         !f.endsWith(".g.dart") &&
         !f.endsWith(".freezed.dart") &&
         !f.endsWith("_test.dart") &&
+        !isModuleConfigFile(f) &&
         fs.existsSync(f)
     );
     for (const file of dartFiles) {

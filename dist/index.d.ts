@@ -37,6 +37,9 @@ export {
   printStatementDetectorPlugin,
   emptyCatchDetectorPlugin,
   futureWaitModernizerPlugin,
+  testFileCheckerPlugin,
+  flutterTestRunnerPlugin,
+  testCoverageSummaryPlugin,
 } from "./plugins/flutter";
 /**
  * All available Flutter plugins in a single array
@@ -49,3 +52,4 @@ export declare const presentationLayerPlugins: import("./types").DangerPlugin[];
 export declare const cleanArchitecturePlugins: import("./types").DangerPlugin[];
 export declare const codeQualityPlugins: import("./types").DangerPlugin[];
 export declare const performancePlugins: import("./types").DangerPlugin[];
+export declare const testPlugins: import("./types").DangerPlugin[];

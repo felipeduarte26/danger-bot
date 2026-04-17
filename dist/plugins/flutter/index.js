@@ -10,7 +10,10 @@ var __importDefault =
     return mod && mod.__esModule ? mod : { default: mod };
   };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.googleChatNotificationPlugin =
+exports.testCoverageSummaryPlugin =
+  exports.flutterTestRunnerPlugin =
+  exports.testFileCheckerPlugin =
+  exports.googleChatNotificationPlugin =
   exports.aiCodeReviewPlugin =
   exports.futureWaitModernizerPlugin =
   exports.emptyCatchDetectorPlugin =
@@ -300,5 +303,26 @@ Object.defineProperty(exports, "googleChatNotificationPlugin", {
   enumerable: true,
   get: function () {
     return __importDefault(google_chat_notification_1).default;
+  },
+});
+var test_file_checker_1 = require("./test-file-checker");
+Object.defineProperty(exports, "testFileCheckerPlugin", {
+  enumerable: true,
+  get: function () {
+    return __importDefault(test_file_checker_1).default;
+  },
+});
+var flutter_test_runner_1 = require("./flutter-test-runner");
+Object.defineProperty(exports, "flutterTestRunnerPlugin", {
+  enumerable: true,
+  get: function () {
+    return __importDefault(flutter_test_runner_1).default;
+  },
+});
+var test_coverage_summary_1 = require("./test-coverage-summary");
+Object.defineProperty(exports, "testCoverageSummaryPlugin", {
+  enumerable: true,
+  get: function () {
+    return __importDefault(test_coverage_summary_1).default;
   },
 });

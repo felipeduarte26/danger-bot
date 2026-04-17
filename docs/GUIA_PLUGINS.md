@@ -24,6 +24,7 @@ import {
   cleanArchitecturePlugins,
   codeQualityPlugins,
   performancePlugins,
+  testPlugins,
   executeDangerBot,
 } from "@felipeduarte26/danger-bot";
 
@@ -134,6 +135,9 @@ executeDangerBot(plugins);
 | `avoidGodClassPlugin` | `avoid-god-class` | Detecta classes muito grandes (SRP — responsabilidade unica) |
 | `avoidSetstateAfterAsyncPlugin` | `avoid-setstate-after-async` | Detecta setState apos await sem verificar mounted |
 | `dateTypeCheckerPlugin` | `date-type-checker` | Detecta campos de data declarados como String ao inves de DateTime |
+| `printStatementDetectorPlugin` | `print-statement-detector` | Detecta `print()` e `debugPrint()` em codigo de producao |
+| `emptyCatchDetectorPlugin` | `empty-catch-detector` | Detecta blocos `catch` vazios sem tratamento |
+| `futureWaitModernizerPlugin` | `future-wait-modernizer` | Sugere `Future.wait` ao inves de awaits sequenciais independentes |
 | `aiCodeReviewPlugin` | `ai-code-review` | Code review com IA (Gemini) — Clean Code, SOLID, seguranca e bugs (mensagens como aviso) |
 
 ### Performance e Flutter
@@ -147,6 +151,14 @@ executeDangerBot(plugins);
 | `mediaqueryModernPlugin` | `mediaquery-modern` | Sugere APIs modernas do MediaQuery (Flutter 3.10+) |
 | `memoryLeakDetectorPlugin` | `memory-leak-detector` | Detecta possiveis memory leaks em States |
 | `googleChatNotificationPlugin` | `google-chat-notification` | Envia notificacao ao Google Chat (webhook, Cards V2) ao final do code review — deve rodar por ultimo |
+
+### Testes
+
+| Plugin | Nome interno | Descricao |
+|--------|-------------|-----------|
+| `testFileCheckerPlugin` | `test-file-checker` | Verifica se arquivos da PR possuem testes correspondentes |
+| `flutterTestRunnerPlugin` | `flutter-test-runner` | Executa testes da PR e reporta resultados (nao quebra a pipeline) |
+| `testCoverageSummaryPlugin` | `test-coverage-summary` | Mostra cobertura de testes no summary da PR (le `coverage/lcov.info`) |
 
 ---
 

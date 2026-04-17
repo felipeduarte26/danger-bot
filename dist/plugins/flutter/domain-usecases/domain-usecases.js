@@ -66,6 +66,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
  */
 const _types_1 = require("../../../types");
 const fs = __importStar(require("fs"));
+const path = __importStar(require("path"));
+function isBarrelFile(filePath) {
+  const fileName = path.basename(filePath, ".dart");
+  const parentDir = path.basename(path.dirname(filePath));
+  return fileName === parentDir;
+}
 const MAX_CALL_PARAMS = 3;
 function countMethodParams(lines, methodLine) {
   let paramStr = "";
@@ -184,6 +190,7 @@ exports.default = (0, _types_1.createPlugin)(
         f.endsWith(".dart") &&
         !f.endsWith("_test.dart") &&
         !f.endsWith("usecases.dart") &&
+        !isBarrelFile(f) &&
         fs.existsSync(f)
     );
     for (const file of files) {

@@ -32,13 +32,17 @@ var __exportStar =
         __createBinding(exports, m, p);
   };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.performancePlugins =
+exports.testPlugins =
+  exports.performancePlugins =
   exports.codeQualityPlugins =
   exports.cleanArchitecturePlugins =
   exports.presentationLayerPlugins =
   exports.dataLayerPlugins =
   exports.domainLayerPlugins =
   exports.allFlutterPlugins =
+  exports.testCoverageSummaryPlugin =
+  exports.flutterTestRunnerPlugin =
+  exports.testFileCheckerPlugin =
   exports.futureWaitModernizerPlugin =
   exports.emptyCatchDetectorPlugin =
   exports.printStatementDetectorPlugin =
@@ -256,6 +260,24 @@ Object.defineProperty(exports, "futureWaitModernizerPlugin", {
     return flutter_1.futureWaitModernizerPlugin;
   },
 });
+Object.defineProperty(exports, "testFileCheckerPlugin", {
+  enumerable: true,
+  get: function () {
+    return flutter_1.testFileCheckerPlugin;
+  },
+});
+Object.defineProperty(exports, "flutterTestRunnerPlugin", {
+  enumerable: true,
+  get: function () {
+    return flutter_1.flutterTestRunnerPlugin;
+  },
+});
+Object.defineProperty(exports, "testCoverageSummaryPlugin", {
+  enumerable: true,
+  get: function () {
+    return flutter_1.testCoverageSummaryPlugin;
+  },
+});
 /**
  * All available Flutter plugins in a single array
  * Use this for quick setup with all plugins enabled
@@ -297,6 +319,9 @@ exports.allFlutterPlugins = [
   require("./plugins/flutter/future-wait-modernizer").default,
   require("./plugins/flutter/ai-code-review").default,
   require("./plugins/flutter/google-chat-notification").default,
+  require("./plugins/flutter/test-file-checker").default,
+  require("./plugins/flutter/flutter-test-runner").default,
+  require("./plugins/flutter/test-coverage-summary").default,
 ];
 // Export arrays for specific layers/categories
 const flutter_2 = require("./plugins/flutter");
@@ -337,4 +362,9 @@ exports.performancePlugins = [
   flutter_2.flutterPerformancePlugin,
   flutter_2.mediaqueryModernPlugin,
   flutter_2.columnRowSpacingPlugin,
+];
+exports.testPlugins = [
+  flutter_2.testFileCheckerPlugin,
+  flutter_2.flutterTestRunnerPlugin,
+  flutter_2.testCoverageSummaryPlugin,
 ];

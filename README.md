@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/felipeduarte26/danger-bot"><img src="https://img.shields.io/badge/version-2.5.5-blue.svg" alt="Version"></a>
+  <a href="https://github.com/felipeduarte26/danger-bot"><img src="https://img.shields.io/badge/version-2.6.1-blue.svg" alt="Version"></a>
   <a href="https://nodejs.org"><img src="https://img.shields.io/badge/node-%3E%3D25.2.1-brightgreen.svg" alt="Node"></a>
   <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.9-blue.svg" alt="TypeScript"></a>
   <a href="https://github.com/felipeduarte26/danger-bot/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License"></a>
@@ -125,6 +125,9 @@ O Danger Bot inclui plugins organizados em categorias:
 | **avoid-god-class**            | Detecta classes muito grandes (SRP — responsabilidade unica)                              |
 | **avoid-setstate-after-async** | Detecta setState apos await sem verificar mounted                                         |
 | **date-type-checker**          | Detecta campos de data declarados como String ao inves de DateTime                        |
+| **print-statement-detector**   | Detecta `print()` e `debugPrint()` em codigo de producao                                  |
+| **empty-catch-detector**       | Detecta blocos `catch` vazios sem tratamento                                              |
+| **future-wait-modernizer**     | Sugere `Future.wait` ao inves de awaits sequenciais independentes                         |
 | **ai-code-review**             | Code review com IA (Gemini) — Clean Code, SOLID, seguranca e bugs (aviso, nao falha o CI) |
 
 ### Performance e Flutter
@@ -139,6 +142,14 @@ O Danger Bot inclui plugins organizados em categorias:
 | **memory-leak-detector**     | Detecta Controllers/Timers/Streams sem `dispose()`                                                    |
 | **google-chat-notification** | Envia notificacao ao Google Chat (webhook) ao terminar o code review — Cards V2, gratuito (Workspace) |
 
+### Testes
+
+| Plugin                       | Descricao                                                                          |
+| ---------------------------- | ---------------------------------------------------------------------------------- |
+| **test-file-checker**        | Verifica se arquivos da PR possuem testes correspondentes                          |
+| **flutter-test-runner**      | Executa testes da PR e reporta resultados (nao quebra a pipeline se falhar)        |
+| **test-coverage-summary**    | Mostra cobertura de testes no summary da PR (le `coverage/lcov.info`)              |
+
 ---
 
 ## Importacao por Categoria
@@ -151,8 +162,9 @@ import {
   dataLayerPlugins, // 2 plugins (datasources, models)
   presentationLayerPlugins, // 2 plugins (viewmodels, try-catch-checker)
   cleanArchitecturePlugins, // 9 plugins (todas as camadas + validacao cross-layer)
-  codeQualityPlugins, // 11 plugins (late-final, memory-leak, comments, security, barrel, identifier-language, class-naming, avoid-god-class, avoid-setstate-after-async, date-type-checker, ai-code-review)
+  codeQualityPlugins, // 14 plugins (late-final, memory-leak, comments, security, barrel, identifier-language, class-naming, avoid-god-class, avoid-setstate-after-async, date-type-checker, print-statement-detector, empty-catch-detector, future-wait-modernizer, ai-code-review)
   performancePlugins, // 3 plugins (flutter-performance, mediaquery-modern, column-row-spacing)
+  testPlugins, // 3 plugins (test-file-checker, flutter-test-runner, test-coverage-summary)
   executeDangerBot,
 } from "@felipeduarte26/danger-bot";
 

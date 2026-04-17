@@ -62,6 +62,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
  */
 const _types_1 = require("../../../types");
 const fs = __importStar(require("fs"));
+const path = __importStar(require("path"));
+function isBarrelFile(filePath) {
+  const fileName = path.basename(filePath, ".dart");
+  const parentDir = path.basename(path.dirname(filePath));
+  return fileName === parentDir;
+}
 exports.default = (0, _types_1.createPlugin)(
   {
     name: "data-datasources",
@@ -76,6 +82,7 @@ exports.default = (0, _types_1.createPlugin)(
         f.endsWith(".dart") &&
         !f.endsWith("_test.dart") &&
         !f.endsWith("datasources.dart") &&
+        !isBarrelFile(f) &&
         fs.existsSync(f)
     );
     for (const file of files) {
