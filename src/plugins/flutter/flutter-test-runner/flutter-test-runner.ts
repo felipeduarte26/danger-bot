@@ -12,7 +12,7 @@
  * para ser consumido pelo plugin test-coverage-summary.
  */
 import { execSync } from "child_process";
-import { createPlugin, getDanger, sendMarkdown, sendWarn } from "@types";
+import { createPlugin, getDanger, sendMarkdown, sendFail } from "@types";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -285,7 +285,7 @@ export default createPlugin(
       ];
 
       const fileList = failedFiles.map((f) => `\`${f}\``).join(", ");
-      sendWarn(`**${summary.failed + summary.errors} teste(s) com erro:** ${fileList}`);
+      sendFail(`**${summary.failed + summary.errors} teste(s) quebrando:** ${fileList}`);
     }
   }
 );

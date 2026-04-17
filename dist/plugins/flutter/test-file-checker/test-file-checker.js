@@ -180,10 +180,12 @@ exports.default = (0, _types_1.createPlugin)(
       }
     }
     if (missingTests.length > 0) {
-      const fileList = missingTests.map((f) => `\`${f}\``).join(", ");
-      (0, _types_1.sendWarn)(
-        `**Detectado ${missingTests.length} arquivo(s) sem testes:** ${fileList}`
-      );
+      (0, _types_1.sendWarn)(`**Detectado ${missingTests.length} arquivo(s) sem testes**`);
+      let md = `⚠️ **Arquivos sem testes** (${missingTests.length})\n\n`;
+      for (const f of missingTests) {
+        md += `- \`${f}\`\n`;
+      }
+      (0, _types_1.sendMarkdown)(md);
     }
   }
 );

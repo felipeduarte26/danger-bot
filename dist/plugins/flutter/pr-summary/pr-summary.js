@@ -93,17 +93,6 @@ exports.default = (0, _types_1.createPlugin)(
         md += `- ${f.label}\n`;
       }
     }
-    // ── Checklist ──
-    if (dartSource.length > 0) {
-      md += "\n---\n\n";
-      md += "**Checklist**\n\n";
-      md += "| | Item |\n";
-      md += "| :--: | :-- |\n";
-      md += "| ⬜ | Testado em dispositivo Android |\n";
-      md += "| ⬜ | Testado em dispositivo iOS |\n";
-      md += "| ⬜ | Testado em Plataforma WEB (Servidor) |\n";
-      md += "| ⬜ | UI responsiva em diferentes tamanhos de tela |\n";
-    }
     (0, _types_1.sendMarkdown)(md);
   }
 );

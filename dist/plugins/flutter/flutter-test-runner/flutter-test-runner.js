@@ -283,8 +283,8 @@ exports.default = (0, _types_1.createPlugin)(
         ),
       ];
       const fileList = failedFiles.map((f) => `\`${f}\``).join(", ");
-      (0, _types_1.sendWarn)(
-        `**${summary.failed + summary.errors} teste(s) com erro:** ${fileList}`
+      (0, _types_1.sendFail)(
+        `**${summary.failed + summary.errors} teste(s) quebrando:** ${fileList}`
       );
     }
   }

@@ -18,7 +18,7 @@
  *
  * Mapeamento: lib/(...)/file.dart → test/(...)/file_test.dart
  */
-import { createPlugin, getDanger, sendWarn } from "@types";
+import { createPlugin, getDanger, sendWarn, sendMarkdown } from "@types";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -152,8 +152,13 @@ export default createPlugin(
     }
 
     if (missingTests.length > 0) {
-      const fileList = missingTests.map((f) => `\`${f}\``).join(", ");
-      sendWarn(`**Detectado ${missingTests.length} arquivo(s) sem testes:** ${fileList}`);
+      sendWarn(`**Detectado ${missingTests.length} arquivo(s) sem testes**`);
+
+      let md = `⚠️ **Arquivos sem testes** (${missingTests.length})\n\n`;
+      for (const f of missingTests) {
+        md += `- \`${f}\`\n`;
+      }
+      sendMarkdown(md);
     }
   }
 );

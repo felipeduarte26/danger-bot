@@ -36,25 +36,7 @@ export default createPlugin(
 
     if (significantChanges.length > 0 && !changelogModified) {
       sendWarn(
-        `**CHANGELOG não atualizado**
-
-Este PR modifica **${significantChanges.length} arquivo(s) de código**.
-
-**Por favor, atualize o CHANGELOG.md com:**
-
-- Resumo das mudanças
-- Impacto para usuários/desenvolvedores
-- Breaking changes (se houver)
-
-**Arquivos modificados:**
-
-${significantChanges
-  .slice(0, 5)
-  .map((f: string) => `- ${f}`)
-  .join("\n")}` +
-          (significantChanges.length > 5
-            ? `\n- ... e mais ${significantChanges.length - 5} arquivo(s)`
-            : "")
+        `**CHANGELOG não atualizado** — Este PR modifica ${significantChanges.length} arquivo(s) de código. Atualize o CHANGELOG.md com o resumo das mudanças.`
       );
     }
   }

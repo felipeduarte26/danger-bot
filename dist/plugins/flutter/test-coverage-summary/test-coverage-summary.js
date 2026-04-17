@@ -210,6 +210,84 @@ function shortPath(filePath) {
   if (parts.length <= 3) return filePath;
   return ".../" + parts.slice(-3).join("/");
 }
+function reportCoverage(git) {
+  const testFiles = collectTestFiles(git);
+  if (testFiles.length === 0) return;
+  const lcovPath = "coverage/lcov.info";
+  if (!fs.existsSync(lcovPath)) {
+    const generated = generateCoverage(testFiles);
+    if (!generated) {
+      (0, _types_1.sendMarkdown)(
+        "📊 **Cobertura de Testes** — indisponível\n\n" +
+          "Não foi possível gerar `coverage/lcov.info`. " +
+          "Verifique se os testes compilam corretamente."
+      );
+      return;
+    }
+  }
+  const lcovContent = fs.readFileSync(lcovPath, "utf-8");
+  const allCoverage = parseLcov(lcovContent);
+  if (allCoverage.length === 0) {
+    (0, _types_1.sendMarkdown)(
+      "📊 **Cobertura de Testes** — indisponível\n\n" +
+        "Arquivo `coverage/lcov.info` sem dados de cobertura."
+    );
+    return;
+  }
+  const prFiles = new Set(
+    [...git.created_files, ...git.modified_files]
+      .filter((f) => f.endsWith(".dart") && !f.endsWith("_test.dart"))
+      .map(normalizePath)
+  );
+  if (prFiles.size === 0) return;
+  const prCoverage = allCoverage.filter((c) => prFiles.has(normalizePath(c.file)));
+  if (prCoverage.length === 0) {
+    const totalHit = allCoverage.reduce((s, c) => s + c.linesHit, 0);
+    const totalLines = allCoverage.reduce((s, c) => s + c.linesTotal, 0);
+    const totalPercent = totalLines > 0 ? Math.round((totalHit / totalLines) * 100) : 0;
+    (0, _types_1.sendMarkdown)(
+      `📊 **Cobertura de Testes** — ${coverageEmoji(totalPercent)} ${totalPercent}% geral ` +
+        `(${allCoverage.length} arquivo(s) no projeto)\n\n` +
+        "Nenhum arquivo da PR possui dados de cobertura individuais."
+    );
+    return;
+  }
+  prCoverage.sort((a, b) => a.percent - b.percent);
+  let totalHit = 0;
+  let totalLines = 0;
+  for (const c of prCoverage) {
+    totalHit += c.linesHit;
+    totalLines += c.linesTotal;
+  }
+  const totalPercent = totalLines > 0 ? Math.round((totalHit / totalLines) * 100) : 0;
+  let md =
+    `${coverageEmoji(totalPercent)} **Cobertura de Testes** — ` +
+    `${totalPercent}% (${prCoverage.length} arquivo(s) da PR)\n\n`;
+  md += "| Arquivo | Cobertura | Linhas |\n";
+  md += "| :-- | :--: | :--: |\n";
+  for (const c of prCoverage) {
+    const emoji = coverageEmoji(c.percent);
+    md += `| \`${shortPath(normalizePath(c.file))}\` | ${emoji} ${c.percent}% | ${c.linesHit}/${c.linesTotal} |\n`;
+  }
+  if (prCoverage.length > 1) {
+    md += `| **Total** | **${coverageEmoji(totalPercent)} ${totalPercent}%** | **${totalHit}/${totalLines}** |\n`;
+  }
+  (0, _types_1.sendMarkdown)(md);
+}
+function sendChecklist(git) {
+  const hasDart = [...git.created_files, ...git.modified_files].some(
+    (f) => f.endsWith(".dart") && !f.endsWith("_test.dart")
+  );
+  if (!hasDart) return;
+  let md = "**Checklist**\n\n";
+  md += "| | Item |\n";
+  md += "| :--: | :-- |\n";
+  md += "| ⬜ | Testado em dispositivo Android |\n";
+  md += "| ⬜ | Testado em dispositivo iOS |\n";
+  md += "| ⬜ | Testado em Plataforma WEB (Servidor) |\n";
+  md += "| ⬜ | UI responsiva em diferentes tamanhos de tela |\n";
+  (0, _types_1.sendMarkdown)(md);
+}
 exports.default = (0, _types_1.createPlugin)(
   {
     name: "test-coverage-summary",
@@ -218,68 +296,7 @@ exports.default = (0, _types_1.createPlugin)(
   },
   async () => {
     const { git } = (0, _types_1.getDanger)();
-    const testFiles = collectTestFiles(git);
-    if (testFiles.length === 0) return;
-    const lcovPath = "coverage/lcov.info";
-    const lcovExists = fs.existsSync(lcovPath);
-    if (!lcovExists) {
-      const generated = generateCoverage(testFiles);
-      if (!generated) {
-        (0, _types_1.sendMarkdown)(
-          "📊 **Cobertura de Testes** — indisponível\n\n" +
-            "Não foi possível gerar `coverage/lcov.info`. " +
-            "Verifique se os testes compilam corretamente."
-        );
-        return;
-      }
-    }
-    const lcovContent = fs.readFileSync(lcovPath, "utf-8");
-    const allCoverage = parseLcov(lcovContent);
-    if (allCoverage.length === 0) {
-      (0, _types_1.sendMarkdown)(
-        "📊 **Cobertura de Testes** — indisponível\n\n" +
-          "Arquivo `coverage/lcov.info` sem dados de cobertura."
-      );
-      return;
-    }
-    const prFiles = new Set(
-      [...git.created_files, ...git.modified_files]
-        .filter((f) => f.endsWith(".dart") && !f.endsWith("_test.dart"))
-        .map(normalizePath)
-    );
-    if (prFiles.size === 0) return;
-    const prCoverage = allCoverage.filter((c) => prFiles.has(normalizePath(c.file)));
-    if (prCoverage.length === 0) {
-      const totalHit = allCoverage.reduce((s, c) => s + c.linesHit, 0);
-      const totalLines = allCoverage.reduce((s, c) => s + c.linesTotal, 0);
-      const totalPercent = totalLines > 0 ? Math.round((totalHit / totalLines) * 100) : 0;
-      (0, _types_1.sendMarkdown)(
-        `📊 **Cobertura de Testes** — ${coverageEmoji(totalPercent)} ${totalPercent}% geral ` +
-          `(${allCoverage.length} arquivo(s) no projeto)\n\n` +
-          "Nenhum arquivo da PR possui dados de cobertura individuais."
-      );
-      return;
-    }
-    prCoverage.sort((a, b) => a.percent - b.percent);
-    let totalHit = 0;
-    let totalLines = 0;
-    for (const c of prCoverage) {
-      totalHit += c.linesHit;
-      totalLines += c.linesTotal;
-    }
-    const totalPercent = totalLines > 0 ? Math.round((totalHit / totalLines) * 100) : 0;
-    let md =
-      `${coverageEmoji(totalPercent)} **Cobertura de Testes** — ` +
-      `${totalPercent}% (${prCoverage.length} arquivo(s) da PR)\n\n`;
-    md += "| Arquivo | Cobertura | Linhas |\n";
-    md += "| :-- | :--: | :--: |\n";
-    for (const c of prCoverage) {
-      const emoji = coverageEmoji(c.percent);
-      md += `| \`${shortPath(normalizePath(c.file))}\` | ${emoji} ${c.percent}% | ${c.linesHit}/${c.linesTotal} |\n`;
-    }
-    if (prCoverage.length > 1) {
-      md += `| **Total** | **${coverageEmoji(totalPercent)} ${totalPercent}%** | **${totalHit}/${totalLines}** |\n`;
-    }
-    (0, _types_1.sendMarkdown)(md);
+    reportCoverage(git);
+    sendChecklist(git);
   }
 );
