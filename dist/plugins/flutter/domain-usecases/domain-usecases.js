@@ -373,7 +373,7 @@ exports.default = (0, _types_1.createPlugin)(
         }
         const callMethod = iface.methods.find((m) => m.name === "call");
         if (callMethod && callMethod.paramCount > MAX_CALL_PARAMS) {
-          const baseName = iface.name.replace(/^I/, "").replace(/UseCase$/, "");
+          const baseName = iface.name.replace(/^I/, "").replace(/[Uu]se[Cc]ase$/, "");
           const paramsClassName = `${baseName}Params`;
           (0, _types_1.sendFormattedFail)({
             title: "USECASE COM MUITOS PARÂMETROS",

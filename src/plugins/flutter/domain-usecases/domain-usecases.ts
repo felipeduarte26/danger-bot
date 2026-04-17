@@ -368,7 +368,7 @@ export default createPlugin(
 
         const callMethod = iface.methods.find((m) => m.name === "call");
         if (callMethod && callMethod.paramCount > MAX_CALL_PARAMS) {
-          const baseName = iface.name.replace(/^I/, "").replace(/UseCase$/, "");
+          const baseName = iface.name.replace(/^I/, "").replace(/[Uu]se[Cc]ase$/, "");
           const paramsClassName = `${baseName}Params`;
 
           sendFormattedFail({

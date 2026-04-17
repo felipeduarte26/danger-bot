@@ -268,7 +268,7 @@ exports.default = (0, _types_1.createPlugin)(
   {
     name: "ai-code-review",
     description: "Code review com IA (Gemini) — analisa Clean Code, SOLID, segurança e bugs",
-    enabled: true,
+    enabled: false,
   },
   async () => {
     const apiKeys = getApiKeys();
