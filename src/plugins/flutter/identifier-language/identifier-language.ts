@@ -51,6 +51,14 @@ async function translateToEnglish(text: string): Promise<string | null> {
 
 const NON_ENGLISH_LANGS = new Set(["pt", "es"]);
 
+function normalizeAccents(text: string): string {
+  return text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ç/g, "c")
+    .replace(/Ç/g, "C");
+}
+
 function isNonEnglish(text: string): boolean {
   if (!_eld || text.length < 8) return false;
   try {
@@ -89,7 +97,7 @@ function isNonEnglishComment(text: string): boolean {
     const lang = detectWordLang(w);
     if (lang && lang !== "en") nonEnCount++;
   }
-  return nonEnCount >= 2;
+  return nonEnCount >= 1;
 }
 
 const PT_WORDS = new Set([
@@ -623,8 +631,15 @@ function commentContainsPtWords(text: string): boolean {
     .split(/\s+/)
     .filter((w) => w.length > 2);
 
-  const ptFound = words.filter((w) => PT_WORDS.has(w) && !AMBIGUOUS.has(w));
-  return ptFound.length >= 2;
+  const ptFound = words.filter((w) => {
+    const normalized = normalizeAccents(w);
+    return (
+      (PT_WORDS.has(w) || PT_WORDS.has(normalized)) &&
+      !AMBIGUOUS.has(w) &&
+      !AMBIGUOUS.has(normalized)
+    );
+  });
+  return ptFound.length >= 1;
 }
 
 interface IdentifierMatch {
