@@ -279,15 +279,25 @@ function checkMissingInheritance(modelClass, entityClass, filePath) {
     description: `\`${modelClass.name}\` tem **${matchedFields.length} campo(s)** idêntico(s) a \`${entityName}\`. Use herança para evitar duplicação.`,
     problem: {
       wrong: `${classModifier} ${modelClass.name} {\n  ${fieldsSample}${extraFields}\n}`,
-      correct: `class ${modelClass.name} extends ${entityName} {\n  // ${matchedFields.length} campo(s) herdados de ${entityName}\n}`,
+      correct: `class ${modelClass.name} extends ${entityName} {\n  const ${modelClass.name}({${matchedFields
+        .slice(0, 3)
+        .map((f) => `super.${f.name}`)
+        .join(", ")}${matchedFields.length > 3 ? ", ..." : ""}});\n}`,
       wrongLabel: `${matchedFields.length} campo(s) duplicado(s)`,
       correctLabel: `Herda de ${entityName}`,
     },
     action: {
       text: `Faça \`${modelClass.name}\` extender \`${entityName}\`:`,
-      code: `class ${modelClass.name} extends ${entityName} {\n  const ${modelClass.name}({...}) : super(...);\n  // Mantenha apenas campos específicos do Model\n}`,
+      code: `class ${modelClass.name} extends ${entityName} {\n  const ${modelClass.name}({${matchedFields
+        .slice(0, 3)
+        .map((f) => `super.${f.name}`)
+        .join(", ")}${matchedFields.length > 3 ? ", ..." : ""}});\n}`,
     },
     objective: `Evitar **duplicação de campos** — \`${entityName}\` já define os mesmos ${matchedFields.length} campo(s).`,
+    reference: {
+      text: "Dart — Extend a class",
+      url: "https://dart.dev/language/extend",
+    },
     file: filePath,
     line: modelClass.line,
   });
@@ -336,6 +346,10 @@ function emitRedundantToEntity(modelClass, entityClass, filePath) {
       code: `// Antes:\nfinal entity = model.toEntity();\nrepository.save(entity);\n\n// Depois:\nrepository.save(model); // Model já é ${entityName}`,
     },
     objective: `**Liskov Substitution Principle** — \`${modelClass.name}\` já é um subtipo de \`${entityName}\`, pode ser usado diretamente onde \`${entityName}\` é esperado.`,
+    reference: {
+      text: "Dart — Extend a class",
+      url: "https://dart.dev/language/extend",
+    },
     file: filePath,
     line: modelClass.toEntityLine,
   });
