@@ -135,7 +135,7 @@ exports.default = (0, _types_1.createPlugin)(
         }
       }
       if (totalIssues > 0) {
-        (0, _types_1.sendFail)(`🔍 **FLUTTER ANALYZE** — ${totalIssues} ocorrência(s)`);
+        (0, _types_1.sendFail)(`**FLUTTER ANALYZE** — ${totalIssues} ocorrência(s)`);
       }
     } catch (error) {
       (0, _types_1.sendMessage)(

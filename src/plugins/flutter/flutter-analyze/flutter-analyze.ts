@@ -94,7 +94,7 @@ export default createPlugin(
       }
 
       if (totalIssues > 0) {
-        sendFail(`🔍 **FLUTTER ANALYZE** — ${totalIssues} ocorrência(s)`);
+        sendFail(`**FLUTTER ANALYZE** — ${totalIssues} ocorrência(s)`);
       }
     } catch (error) {
       sendMessage("⚠️ **Flutter Analyze**: Erro ao executar análise. Verifique os logs.");
