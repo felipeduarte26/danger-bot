@@ -37,6 +37,7 @@ export {
   printStatementDetectorPlugin,
   emptyCatchDetectorPlugin,
   futureWaitModernizerPlugin,
+  modelEntityInheritancePlugin,
   testFileCheckerPlugin,
   flutterTestRunnerPlugin,
   testCoverageSummaryPlugin,

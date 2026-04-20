@@ -13,6 +13,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.testCoverageSummaryPlugin =
   exports.flutterTestRunnerPlugin =
   exports.testFileCheckerPlugin =
+  exports.modelEntityInheritancePlugin =
   exports.googleChatNotificationPlugin =
   exports.aiCodeReviewPlugin =
   exports.futureWaitModernizerPlugin =
@@ -303,6 +304,13 @@ Object.defineProperty(exports, "googleChatNotificationPlugin", {
   enumerable: true,
   get: function () {
     return __importDefault(google_chat_notification_1).default;
+  },
+});
+var model_entity_inheritance_1 = require("./model-entity-inheritance");
+Object.defineProperty(exports, "modelEntityInheritancePlugin", {
+  enumerable: true,
+  get: function () {
+    return __importDefault(model_entity_inheritance_1).default;
   },
 });
 var test_file_checker_1 = require("./test-file-checker");

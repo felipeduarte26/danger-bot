@@ -41,6 +41,7 @@ export {
   printStatementDetectorPlugin,
   emptyCatchDetectorPlugin,
   futureWaitModernizerPlugin,
+  modelEntityInheritancePlugin,
   testFileCheckerPlugin,
   flutterTestRunnerPlugin,
   testCoverageSummaryPlugin,
@@ -86,6 +87,7 @@ export const allFlutterPlugins = [
   require("./plugins/flutter/empty-catch-detector").default,
   require("./plugins/flutter/future-wait-modernizer").default,
   require("./plugins/flutter/ai-code-review").default,
+  require("./plugins/flutter/model-entity-inheritance").default,
   require("./plugins/flutter/test-file-checker").default,
   require("./plugins/flutter/flutter-test-runner").default,
   require("./plugins/flutter/test-coverage-summary").default,
@@ -121,6 +123,7 @@ import {
   emptyCatchDetectorPlugin,
   futureWaitModernizerPlugin,
   aiCodeReviewPlugin,
+  modelEntityInheritancePlugin,
   testFileCheckerPlugin,
   flutterTestRunnerPlugin,
   testCoverageSummaryPlugin,
@@ -133,7 +136,11 @@ export const domainLayerPlugins = [
   domainUseCasesPlugin,
 ];
 
-export const dataLayerPlugins = [dataDatasourcesPlugin, dataModelsPlugin];
+export const dataLayerPlugins = [
+  dataDatasourcesPlugin,
+  dataModelsPlugin,
+  modelEntityInheritancePlugin,
+];
 
 export const presentationLayerPlugins = [
   presentationViewModelsPlugin,

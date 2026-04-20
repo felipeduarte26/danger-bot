@@ -45,6 +45,7 @@ export { default as emptyCatchDetectorPlugin } from "./empty-catch-detector";
 export { default as futureWaitModernizerPlugin } from "./future-wait-modernizer";
 export { default as aiCodeReviewPlugin } from "./ai-code-review";
 export { default as googleChatNotificationPlugin } from "./google-chat-notification";
+export { default as modelEntityInheritancePlugin } from "./model-entity-inheritance";
 export { default as testFileCheckerPlugin } from "./test-file-checker";
 export { default as flutterTestRunnerPlugin } from "./flutter-test-runner";
 export { default as testCoverageSummaryPlugin } from "./test-coverage-summary";

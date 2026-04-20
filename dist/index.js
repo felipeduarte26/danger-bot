@@ -43,6 +43,7 @@ exports.testPlugins =
   exports.testCoverageSummaryPlugin =
   exports.flutterTestRunnerPlugin =
   exports.testFileCheckerPlugin =
+  exports.modelEntityInheritancePlugin =
   exports.futureWaitModernizerPlugin =
   exports.emptyCatchDetectorPlugin =
   exports.printStatementDetectorPlugin =
@@ -260,6 +261,12 @@ Object.defineProperty(exports, "futureWaitModernizerPlugin", {
     return flutter_1.futureWaitModernizerPlugin;
   },
 });
+Object.defineProperty(exports, "modelEntityInheritancePlugin", {
+  enumerable: true,
+  get: function () {
+    return flutter_1.modelEntityInheritancePlugin;
+  },
+});
 Object.defineProperty(exports, "testFileCheckerPlugin", {
   enumerable: true,
   get: function () {
@@ -318,6 +325,7 @@ exports.allFlutterPlugins = [
   require("./plugins/flutter/empty-catch-detector").default,
   require("./plugins/flutter/future-wait-modernizer").default,
   require("./plugins/flutter/ai-code-review").default,
+  require("./plugins/flutter/model-entity-inheritance").default,
   require("./plugins/flutter/test-file-checker").default,
   require("./plugins/flutter/flutter-test-runner").default,
   require("./plugins/flutter/test-coverage-summary").default,
@@ -332,7 +340,11 @@ exports.domainLayerPlugins = [
   flutter_2.repositoriesPlugin,
   flutter_2.domainUseCasesPlugin,
 ];
-exports.dataLayerPlugins = [flutter_2.dataDatasourcesPlugin, flutter_2.dataModelsPlugin];
+exports.dataLayerPlugins = [
+  flutter_2.dataDatasourcesPlugin,
+  flutter_2.dataModelsPlugin,
+  flutter_2.modelEntityInheritancePlugin,
+];
 exports.presentationLayerPlugins = [
   flutter_2.presentationViewModelsPlugin,
   flutter_2.presentationTryCatchCheckerPlugin,

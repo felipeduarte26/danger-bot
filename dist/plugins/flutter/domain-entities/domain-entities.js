@@ -192,6 +192,102 @@ function parseClassFields(lines, classStartLine) {
   }
   return fields;
 }
+function toSnakeCase(name) {
+  return name
+    .replace(/([a-z])([A-Z])/g, "$1_$2")
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2")
+    .toLowerCase();
+}
+function findFileRecursive(dir, fileName) {
+  if (!fs.existsSync(dir)) return null;
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isFile() && entry.name === fileName) return fullPath;
+    if (entry.isDirectory()) {
+      const found = findFileRecursive(fullPath, fileName);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+function collectClassDeclaration(lines, startLine) {
+  let declaration = "";
+  for (let j = startLine; j < lines.length; j++) {
+    declaration += " " + lines[j].trim();
+    if (declaration.includes("{")) break;
+  }
+  return declaration;
+}
+/**
+ * Checks if the entity is (or should be) extended by a corresponding Model.
+ * Returns true if the entity should NOT be forced to be `final class`.
+ *
+ * Two conditions make this return true:
+ * 1. A model already `extends` this entity (multi-line aware)
+ * 2. A model has ALL the same fields (name + type) → will be told to extend
+ */
+function isEntityExtendedByModel(entityFilePath, entityClassName, entityFields) {
+  const baseName = entityClassName.replace(/Entity$/, "");
+  const snakeBase = toSnakeCase(baseName);
+  const modelFileName = `${snakeBase}_model.dart`;
+  // Compute model directory: /domain/entities/ → /data/models/
+  const parts = entityFilePath.split("/");
+  const domainIdx = parts.indexOf("domain");
+  if (domainIdx === -1) return false;
+  const featurePath = parts.slice(0, domainIdx).join("/");
+  const modelsDir = path.join(featurePath, "data", "models");
+  // Try direct path mapping first
+  const directPath = entityFilePath
+    .replace(/\/domain\/entities\//, "/data/models/")
+    .replace(/_entity\.dart$/, "_model.dart");
+  let modelPath = null;
+  if (fs.existsSync(directPath)) {
+    modelPath = directPath;
+  } else {
+    modelPath = findFileRecursive(modelsDir, modelFileName);
+  }
+  if (!modelPath) return false;
+  const modelContent = fs.readFileSync(modelPath, "utf-8");
+  const modelLines = modelContent.split("\n");
+  // Check if model already extends this entity (multi-line aware)
+  for (let i = 0; i < modelLines.length; i++) {
+    const trimmed = modelLines[i].trimStart();
+    const classMatch = trimmed.match(/^(?:final\s+)?class\s+([A-Za-z_]\w*Model)/);
+    if (classMatch) {
+      const fullDecl = collectClassDeclaration(modelLines, i);
+      if (fullDecl.includes(`extends ${entityClassName}`)) return true;
+      break;
+    }
+  }
+  // Check if model has identical fields → model-entity-inheritance will flag it to extend
+  if (entityFields.length === 0) return false;
+  const modelFields = parseModelFields(modelContent);
+  if (modelFields.length === 0) return false;
+  const modelFieldMap = new Map();
+  for (const f of modelFields) {
+    modelFieldMap.set(`${f.type}|${f.name}`, true);
+  }
+  for (const entityField of entityFields) {
+    if (!modelFieldMap.has(`${entityField.type}|${entityField.name}`)) {
+      return false;
+    }
+  }
+  return true;
+}
+function parseModelFields(content) {
+  const lines = content.split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i].trimStart();
+    if (trimmed.startsWith("//") || trimmed.startsWith("///")) continue;
+    const classMatch = trimmed.match(/^(?:abstract\s+)?(?:final\s+)?class\s+([A-Za-z_]\w*Model)/);
+    if (classMatch) {
+      if (trimmed.startsWith("abstract")) continue;
+      return parseClassFields(lines, i);
+    }
+  }
+  return [];
+}
 exports.default = (0, _types_1.createPlugin)(
   {
     name: "domain-entities",
@@ -337,25 +433,28 @@ exports.default = (0, _types_1.createPlugin)(
             line: cls.line,
           });
         }
-        if (!cls.isFinal) {
-          (0, _types_1.sendFormattedFail)({
-            title: "ENTITY DEVE SER FINAL CLASS",
-            description: `A classe \`${cls.name}\` deve usar \`final class\` para prevenir herança indevida.`,
-            problem: {
-              wrong: `class ${cls.name} {\n  final String name;\n}`,
-              correct: `final class ${cls.name} {\n  final String name;\n  const ${cls.name}({required this.name});\n}`,
-              wrongLabel: "Sem final",
-              correctLabel: "Com final",
-            },
-            action: {
-              code: `final class ${cls.name} {\n  // ...\n}`,
-            },
-            objective: "Garantir **imutabilidade** e design correto da Domain Layer.",
-            file,
-            line: cls.line,
-          });
-        }
         const fields = parseClassFields(lines, cls.line - 1);
+        if (!cls.isFinal) {
+          const extendedByModel = isEntityExtendedByModel(file, cls.name, fields);
+          if (!extendedByModel) {
+            (0, _types_1.sendFormattedFail)({
+              title: "ENTITY DEVE SER FINAL CLASS",
+              description: `A classe \`${cls.name}\` deve usar \`final class\` para prevenir herança indevida.`,
+              problem: {
+                wrong: `class ${cls.name} {\n  final String name;\n}`,
+                correct: `final class ${cls.name} {\n  final String name;\n  const ${cls.name}({required this.name});\n}`,
+                wrongLabel: "Sem final",
+                correctLabel: "Com final",
+              },
+              action: {
+                code: `final class ${cls.name} {\n  // ...\n}`,
+              },
+              objective: "Garantir **imutabilidade** e design correto da Domain Layer.",
+              file,
+              line: cls.line,
+            });
+          }
+        }
         if (fields.length === 0) {
           (0, _types_1.sendFormattedFail)({
             title: "ENTITY VAZIA",

@@ -1,6 +1,6 @@
 {
   "name": "@felipeduarte26/danger-bot",
-  "version": "2.6.6",
+  "version": "2.7.0",
   "description": "Conjunto modular de plugins Danger JS",
   "type": "module",
   "main": "dist/index.js",
