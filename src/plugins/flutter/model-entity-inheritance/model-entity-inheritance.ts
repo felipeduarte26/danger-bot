@@ -40,6 +40,7 @@ interface ModelClassInfo {
   fields: ClassField[];
   hasToEntity: boolean;
   toEntityLine: number;
+  toEntityReturnType: string | null;
 }
 
 function parseFields(lines: string[], classStartLine: number): ClassField[] {
@@ -142,10 +143,26 @@ function parseModelClass(content: string): ModelClassInfo | null {
 
       let hasToEntity = false;
       let toEntityLine = 0;
+      let toEntityReturnType: string | null = null;
       for (let k = 0; k < lines.length; k++) {
         if (/\btoEntity\s*\(/.test(lines[k])) {
           hasToEntity = true;
           toEntityLine = k + 1;
+
+          // Match: ReturnType toEntity() or ReturnType? toEntity()
+          const returnMatch = lines[k].match(/\b([A-Za-z_]\w*)\??\s+toEntity\s*\(/);
+          if (returnMatch) {
+            toEntityReturnType = returnMatch[1];
+          } else {
+            // Match: => ReturnType(...) on same line or next
+            const arrowMatch = lines[k].match(/=>\s*([A-Za-z_]\w*)\s*\(/);
+            if (arrowMatch) {
+              toEntityReturnType = arrowMatch[1];
+            } else if (k + 1 < lines.length) {
+              const nextArrow = lines[k + 1].match(/=>\s*([A-Za-z_]\w*)\s*\(/);
+              if (nextArrow) toEntityReturnType = nextArrow[1];
+            }
+          }
           break;
         }
       }
@@ -159,6 +176,7 @@ function parseModelClass(content: string): ModelClassInfo | null {
         fields,
         hasToEntity,
         toEntityLine,
+        toEntityReturnType,
       };
     }
   }
@@ -325,6 +343,11 @@ function checkRedundantToEntity(
   filePath: string
 ): void {
   if (!modelClass.hasToEntity) return;
+
+  // toEntity() returns a different Entity than extends → valid conversion, not redundant
+  if (modelClass.toEntityReturnType && modelClass.toEntityReturnType !== modelClass.extendsClass) {
+    return;
+  }
 
   const modelOwnFields = modelClass.fields;
 
