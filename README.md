@@ -52,11 +52,22 @@ import { allFlutterPlugins, executeDangerBot } from "@felipeduarte26/danger-bot"
 executeDangerBot(allFlutterPlugins);
 ```
 
-Execute:
+Execute no CI:
 
 ```bash
 npx danger ci
 ```
+
+### Testar localmente (sem CI, sem tokens)
+
+```bash
+danger-bot dry-run --base develop
+
+# Ou com alias curto:
+db run -b develop
+```
+
+O `dry-run` simula o Danger localmente, mostrando exatamente quais erros e avisos o CI reportaria — sem precisar de tokens ou PR aberto. Veja [Teste Local](docs/TESTE_LOCAL.md).
 
 > Para instalacao via Git, veja o [Guia de Instalacao](docs/INSTALACAO.md).
 
@@ -226,18 +237,27 @@ executeDangerBot(allFlutterPlugins, {
 
 ## CLI
 
-O pacote inclui uma CLI para gerenciamento de plugins:
+O pacote inclui uma CLI para gerenciamento e teste de plugins:
 
 ```bash
-danger-bot list              # Listar todos os plugins
-danger-bot create-plugin     # Criar novo plugin interativamente
-danger-bot gen               # Gerar dangerfile de exemplo
-danger-bot validate <file>   # Validar estrutura de um plugin
-danger-bot init              # Gerar danger-bot.yaml de configuracao
-danger-bot info              # Informacoes do projeto
+danger-bot dry-run            # Executar plugins localmente (sem CI/tokens)
+danger-bot run --base develop # Alias para dry-run
+danger-bot list               # Listar todos os plugins
+danger-bot create-plugin      # Criar novo plugin interativamente
+danger-bot gen                # Gerar dangerfile de exemplo
+danger-bot validate <file>    # Validar estrutura de um plugin
+danger-bot init               # Gerar danger-bot.yaml de configuracao
+danger-bot info               # Informacoes do projeto
 ```
 
-> Documentacao completa: [CLI](docs/CLI.md)
+Alias curto `db` disponivel para todos os comandos:
+
+```bash
+db run -b develop             # Equivalente a: danger-bot dry-run --base develop
+db ls                         # Equivalente a: danger-bot list
+```
+
+> Teste local: [Teste Local (dry-run)](docs/TESTE_LOCAL.md) | Documentacao completa: [CLI](docs/CLI.md)
 
 ---
 

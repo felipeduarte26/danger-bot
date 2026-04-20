@@ -14,6 +14,7 @@ import { generateDangerfile } from "./commands/generate-dangerfile.js";
 import { validatePlugin } from "./commands/validate-plugin.js";
 import { showInfo } from "./commands/info.js";
 import { initConfig } from "./commands/init-config.js";
+import { dryRun } from "./commands/dry-run.js";
 
 // Configurar CLI
 program
@@ -60,6 +61,18 @@ program
   .command("init")
   .description("Gerar arquivo danger-bot.yaml de configuração na raiz do projeto")
   .action(initConfig);
+
+// Comando: dry-run (executar plugins localmente)
+program
+  .command("dry-run")
+  .alias("run")
+  .description("Executar plugins localmente sem precisar do CI (simula o Danger)")
+  .option("-p, --project <path>", "Caminho do projeto a analisar (default: diretório atual)")
+  .option("-b, --base <branch>", "Branch base para comparação (default: main)", "main")
+  .option("--plugins <list>", "Lista de plugins para executar (separados por vírgula)")
+  .option("--all", "Executar todos os plugins (incluindo os que precisam de API/CLI externa)")
+  .option("-v, --verbose", "Exibir detalhes completos")
+  .action(dryRun);
 
 // Comando: info do projeto
 program.command("info").description("Mostrar informações do projeto").action(showInfo);

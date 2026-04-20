@@ -137,7 +137,10 @@ npm list danger @felipeduarte26/danger-bot
 # ├── danger@13.x.x
 # └── @felipeduarte26/danger-bot@1.8.0
 
-# Testar localmente
+# Testar localmente (sem tokens, sem CI)
+npx danger-bot dry-run --base develop
+
+# Alternativa com Danger JS (requer dangerfile + tokens)
 npx danger local
 ```
 

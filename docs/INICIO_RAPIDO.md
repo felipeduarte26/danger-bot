@@ -96,6 +96,14 @@ executeDangerBot([...cleanArchitecturePlugins, ...codeQualityPlugins]);
 
 ### 4. Testar localmente
 
+Use o dry-run para ver os resultados sem precisar de CI ou tokens:
+
+```bash
+npx danger-bot dry-run --base develop
+```
+
+Ou com o Danger JS diretamente (requer dangerfile configurado):
+
 ```bash
 npx danger local
 ```

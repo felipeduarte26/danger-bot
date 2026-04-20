@@ -10,6 +10,7 @@ A CLI e instalada automaticamente com o pacote e pode ser usada via `danger-bot`
 
 | Comando | Alias | Descricao |
 |---------|-------|-----------|
+| `danger-bot dry-run` | `run` | Executar plugins localmente (sem CI/tokens) |
 | `danger-bot list` | `ls` | Listar todos os plugins |
 | `danger-bot create-plugin` | `new` | Criar novo plugin interativamente |
 | `danger-bot remove-plugin` | `rm` | Remover um plugin existente |
@@ -17,6 +18,55 @@ A CLI e instalada automaticamente com o pacote e pode ser usada via `danger-bot`
 | `danger-bot validate <file>` | - | Validar estrutura de um plugin |
 | `danger-bot init` | - | Gerar arquivo danger-bot.yaml de configuracao |
 | `danger-bot info` | - | Informacoes do projeto |
+
+---
+
+## danger-bot dry-run
+
+Executa os plugins localmente simulando o ambiente do Danger, sem precisar de CI, tokens ou PR aberto.
+
+```bash
+danger-bot dry-run --base develop
+# ou
+danger-bot run --base develop
+```
+
+**Opcoes:**
+
+| Opcao | Descricao | Default |
+|-------|-----------|---------|
+| `-p, --project <path>` | Caminho do projeto a analisar | Diretorio atual |
+| `-b, --base <branch>` | Branch base para comparacao | `main` |
+| `--plugins <list>` | Plugins especificos (separados por virgula) | Todos |
+| `--all` | Incluir plugins que precisam de API/CLI externa | `false` |
+| `-v, --verbose` | Exibir detalhes completos | `false` |
+
+**Exemplos:**
+
+```bash
+# Rodar no diretorio atual
+danger-bot dry-run --base develop
+
+# Rodar em outro projeto
+danger-bot dry-run --project /caminho/projeto --base main
+
+# Apenas plugins especificos (busca parcial)
+danger-bot dry-run --plugins "model-entity,domain-entities,print-statement"
+
+# Com detalhes
+danger-bot dry-run --base develop -v
+```
+
+**Plugins ignorados por padrao** (precisam de servicos externos):
+- `flutter-analyze`, `flutter-test-runner`, `test-coverage-summary` (Flutter CLI)
+- `google-chat-notification` (webhook)
+- `ai-code-review` (Gemini API)
+- `spell-checker` (dicionario)
+- `pr-summary` (contexto de PR real)
+
+Use `--all` para incluir todos.
+
+> Documentacao completa: [Teste Local](TESTE_LOCAL.md)
 
 ---
 

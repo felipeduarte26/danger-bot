@@ -1,12 +1,13 @@
 {
   "name": "@felipeduarte26/danger-bot",
-  "version": "2.7.2",
+  "version": "2.8.0",
   "description": "Conjunto modular de plugins Danger JS",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "danger-bot": "./bin/cli.js"
+    "danger-bot": "./bin/cli.js",
+    "db": "./bin/cli.js"
   },
   "files": [
     "dist",
@@ -17,7 +18,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsc && tsc-alias",
+    "build": "tsc && tsc-alias && echo '{\"type\":\"commonjs\"}' > dist/package.json",
     "watch": "tsc --watch",
     "prepublishOnly": "npm run build",
     "postinstall": "node scripts/patch-danger.cjs",

@@ -151,6 +151,32 @@ Verifique:
 
 ### Como testar localmente?
 
+A forma mais rapida e usar o **dry-run** do Danger Bot CLI:
+
+```bash
+npx danger-bot dry-run --base develop
+```
+
+Isso simula a execucao completa dos plugins usando o git diff local, sem precisar de tokens, CI ou PR aberto. Voce vera exatamente quais erros e avisos seriam reportados.
+
+Opcoes uteis:
+
+```bash
+# Apontar para outro projeto
+npx danger-bot dry-run --project /caminho/do/projeto --base main
+
+# Rodar apenas plugins especificos
+npx danger-bot dry-run --plugins "model-entity,domain-entities,print-statement"
+
+# Ver detalhes completos
+npx danger-bot dry-run --base develop -v
+
+# Incluir plugins que precisam de API/CLI externa
+npx danger-bot dry-run --base develop --all
+```
+
+Alternativa (requer `danger` instalado e dangerfile configurado):
+
 ```bash
 npx danger local
 ```
