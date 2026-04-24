@@ -448,26 +448,49 @@ export default createPlugin(
 
         const fields = parseClassFields(lines, cls.line - 1);
 
-        if (!cls.isFinal) {
-          const extendedByModel = isEntityExtendedByModel(file, cls.name, fields);
-          if (!extendedByModel) {
-            sendFormattedFail({
-              title: "ENTITY DEVE SER FINAL CLASS",
-              description: `A classe \`${cls.name}\` deve usar \`final class\` para prevenir herança indevida.`,
-              problem: {
-                wrong: `class ${cls.name} {\n  final String name;\n}`,
-                correct: `final class ${cls.name} {\n  final String name;\n  const ${cls.name}({required this.name});\n}`,
-                wrongLabel: "Sem final",
-                correctLabel: "Com final",
-              },
-              action: {
-                code: `final class ${cls.name} {\n  // ...\n}`,
-              },
-              objective: "Garantir **imutabilidade** e design correto da Domain Layer.",
-              file,
-              line: cls.line,
-            });
-          }
+        const extendedByModel = isEntityExtendedByModel(file, cls.name, fields);
+
+        if (!cls.isFinal && !extendedByModel) {
+          sendFormattedFail({
+            title: "ENTITY DEVE SER FINAL CLASS",
+            description: `A classe \`${cls.name}\` deve usar \`final class\` para prevenir herança indevida.`,
+            problem: {
+              wrong: `class ${cls.name} {\n  final String name;\n}`,
+              correct: `final class ${cls.name} {\n  final String name;\n  const ${cls.name}({required this.name});\n}`,
+              wrongLabel: "Sem final",
+              correctLabel: "Com final",
+            },
+            action: {
+              code: `final class ${cls.name} {\n  // ...\n}`,
+            },
+            objective: "Garantir **imutabilidade** e design correto da Domain Layer.",
+            file,
+            line: cls.line,
+          });
+        }
+
+        if (cls.isFinal && extendedByModel) {
+          sendFormattedFail({
+            title: "ENTITY NAO PODE SER FINAL",
+            description: `\`${cls.name}\` é \`final class\`, mas existe um **Model** que precisa extender essa Entity. Remova o \`final\` para permitir herança.`,
+            problem: {
+              wrong: `final class ${cls.name} { ... }`,
+              correct: `class ${cls.name} { ... }`,
+              wrongLabel: "final impede herança",
+              correctLabel: "Sem final — permite extends",
+            },
+            action: {
+              text: `Remova \`final\` de \`${cls.name}\`:`,
+              code: `class ${cls.name} {\n  // Model poderá fazer: extends ${cls.name}\n}`,
+            },
+            objective: "Permitir que o **Model** herde da Entity, evitando duplicação de campos.",
+            reference: {
+              text: "Dart — Class modifiers",
+              url: "https://dart.dev/language/class-modifiers",
+            },
+            file,
+            line: cls.line,
+          });
         }
         if (fields.length === 0) {
           sendFormattedFail({

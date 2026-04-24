@@ -308,9 +308,17 @@ function checkMissingInheritance(
 
   const classModifier = modelClass.isFinal ? "final class" : "class";
 
+  const finalEntityWarning = entityClass.isFinal
+    ? `\n\n> **Atenção:** \`${entityName}\` é \`final class\` — remova o \`final\` da Entity para permitir herança.`
+    : "";
+
+  const entityFixNote = entityClass.isFinal
+    ? `\n// Na Entity: altere 'final class ${entityName}' para 'class ${entityName}'`
+    : "";
+
   sendFormattedFail({
     title: "MODEL DEVE EXTENDER ENTITY",
-    description: `\`${modelClass.name}\` tem **${matchedFields.length} campo(s)** idêntico(s) a \`${entityName}\`. Use herança para evitar duplicação.`,
+    description: `\`${modelClass.name}\` tem **${matchedFields.length} campo(s)** idêntico(s) a \`${entityName}\`. Use herança para evitar duplicação.${finalEntityWarning}`,
     problem: {
       wrong: `${classModifier} ${modelClass.name} {\n  ${fieldsSample}${extraFields}\n}`,
       correct: `class ${modelClass.name} extends ${entityName} {\n  const ${modelClass.name}({${matchedFields
@@ -325,7 +333,7 @@ function checkMissingInheritance(
       code: `class ${modelClass.name} extends ${entityName} {\n  const ${modelClass.name}({${matchedFields
         .slice(0, 3)
         .map((f) => `super.${f.name}`)
-        .join(", ")}${matchedFields.length > 3 ? ", ..." : ""}});\n}`,
+        .join(", ")}${matchedFields.length > 3 ? ", ..." : ""}});${entityFixNote}\n}`,
     },
     objective: `Evitar **duplicação de campos** — \`${entityName}\` já define os mesmos ${matchedFields.length} campo(s).`,
     reference: {
