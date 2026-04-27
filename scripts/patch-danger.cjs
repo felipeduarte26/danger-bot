@@ -14,7 +14,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const PATCH_VERSION = "3.3.0";
+const PATCH_VERSION = "3.4.0";
 const REPO_URL = "https://github.com/felipeduarte26/danger-bot";
 const BRAND_NAME = "Danger Bot";
 
@@ -70,6 +70,7 @@ function createPatchMarker(dangerPath) {
           "Bitbucket Cloud: inline comments corrigidos (estratégia Danger Ruby)",
           "Bitbucket Cloud: build status key/url corrigidos",
           "Mensagem 'All green' traduzida para parabéns em pt-BR",
+          "Condição: 'encontrou problemas' exibido somente com fails (warnings não contam)",
         ],
       },
       null,
@@ -166,19 +167,27 @@ function main() {
         'exports.messageForResultWithIssues = "".concat(warningEmoji, "  Danger Bot encontrou alguns problemas. Não se preocupe, tudo pode ser corrigido.");',
       ],
 
-      // Traduzir mensagem "All green" para parabéns em pt-BR (original)
+      // Traduzir mensagem "All green" em função que retorna signature (caso exista)
       [
         'return "".concat(successEmoji, " ").concat((0, exports.dangerSignature)(results));',
         'return "".concat(successEmoji, " **Parabéns!** Nenhum problema encontrado. Código limpo e pronto para review. 🎉\\n\\n").concat((0, exports.dangerSignature)(results));',
       ],
+
+      // Lógica de 3 cenários: fails → problemas | warnings → aprovado | clean → parabéns
+      // Substitui o bloco if/else ORIGINAL (com "All green")
       [
-        'summaryMessage = "".concat(successEmoji, "  All green. ").concat((0, DangerUtils_1.compliment)());',
-        'summaryMessage = "".concat(successEmoji, "  **Parabéns!** Nenhum problema encontrado. Código limpo e pronto para review. 🎉");',
+        '    if (!results.fails.length && !results.warnings.length) {\n        summaryMessage = "".concat(successEmoji, "  All green. ").concat((0, DangerUtils_1.compliment)());\n    }\n    else {\n        summaryMessage = exports.messageForResultWithIssues;\n    }',
+        '    if (results.fails.length) {\n        summaryMessage = exports.messageForResultWithIssues;\n    }\n    else if (results.warnings.length) {\n        summaryMessage = "".concat(successEmoji, "  **Aprovado!** Nenhum erro encontrado — apenas alguns avisos de melhoria para considerar.");\n    }\n    else {\n        summaryMessage = "".concat(successEmoji, "  **Parabéns!** Nenhum problema encontrado. Código limpo e pronto para review. 🎉");\n    }',
       ],
-      // Traduzir mensagem "All green" (patch antigo que removeu a mensagem)
+      // Substitui versão já patcheada (com "Parabéns" mas condição antiga)
       [
-        'summaryMessage = ""; // DANGER-BOT: Mensagem removida',
-        'summaryMessage = "".concat(successEmoji, "  **Parabéns!** Nenhum problema encontrado. Código limpo e pronto para review. 🎉");',
+        '    if (!results.fails.length && !results.warnings.length) {\n        summaryMessage = "".concat(successEmoji, "  **Parabéns!** Nenhum problema encontrado. Código limpo e pronto para review. 🎉");\n    }\n    else {\n        summaryMessage = exports.messageForResultWithIssues;\n    }',
+        '    if (results.fails.length) {\n        summaryMessage = exports.messageForResultWithIssues;\n    }\n    else if (results.warnings.length) {\n        summaryMessage = "".concat(successEmoji, "  **Aprovado!** Nenhum erro encontrado — apenas alguns avisos de melhoria para considerar.");\n    }\n    else {\n        summaryMessage = "".concat(successEmoji, "  **Parabéns!** Nenhum problema encontrado. Código limpo e pronto para review. 🎉");\n    }',
+      ],
+      // Substitui versão com condição-only patch (sem warnings check)
+      [
+        '    if (!results.fails.length) {\n        summaryMessage = "".concat(successEmoji, "  **Parabéns!** Nenhum problema encontrado. Código limpo e pronto para review. 🎉");\n    }\n    else {\n        summaryMessage = exports.messageForResultWithIssues;\n    }',
+        '    if (results.fails.length) {\n        summaryMessage = exports.messageForResultWithIssues;\n    }\n    else if (results.warnings.length) {\n        summaryMessage = "".concat(successEmoji, "  **Aprovado!** Nenhum erro encontrado — apenas alguns avisos de melhoria para considerar.");\n    }\n    else {\n        summaryMessage = "".concat(successEmoji, "  **Parabéns!** Nenhum problema encontrado. Código limpo e pronto para review. 🎉");\n    }',
       ],
 
       // Emoji de signature: :no_entry_sign: -> :rocket:
@@ -331,20 +340,26 @@ function main() {
   const executorPatched = patchFile(
     executorFile,
     [
-      // Traduzir "All green" para parabéns em pt-BR (original)
+      // Lógica de 3 cenários no messageForResults: fails → problemas | warnings → aprovado | clean → parabéns
+      // Substitui o bloco if/else ORIGINAL (com "All green")
       [
-        'return "".concat(tick, " All green. Good on \'ya.")',
-        'return "".concat(tick, " **Parabéns!** Nenhum problema encontrado. Código limpo e pronto para review. 🎉")',
+        '    if (!results.fails.length && !results.warnings.length) {\n        return "All green. ".concat((0, DangerUtils_1.compliment)());\n    }\n    else {',
+        '    if (results.fails.length) {',
       ],
-      ['return "All green. ".concat', 'return "**Parabéns!** Nenhum problema encontrado. Código limpo e pronto para review. 🎉"; //'],
-      // Traduzir "All green" (patch antigo que removeu a mensagem)
+      // Fecha o bloco else do messageForResults original e adiciona cenários warnings/clean
       [
-        'return "" // DANGER-BOT: Mensagem removida',
-        'return "".concat(tick, " **Parabéns!** Nenhum problema encontrado. Código limpo e pronto para review. 🎉")',
+        '            return githubIssueTemplate_1.messageForResultWithIssues;\n        }\n    }\n};',
+        '            return githubIssueTemplate_1.messageForResultWithIssues;\n        }\n    }\n    else if (results.warnings.length) {\n        return "**Aprovado!** Nenhum erro encontrado — apenas alguns avisos de melhoria para considerar.";\n    }\n    else {\n        return "**Parabéns!** Nenhum problema encontrado. Código limpo e pronto para review. 🎉";\n    }\n};',
       ],
+      // Fallback: versão já patcheada com condição-only (sem warnings check)
       [
-        'return ""; // DANGER-BOT: Mensagem removida //',
-        'return "**Parabéns!** Nenhum problema encontrado. Código limpo e pronto para review. 🎉"; //',
+        '    if (!results.fails.length) {\n        return "**Parabéns!** Nenhum problema encontrado. Código limpo e pronto para review. 🎉"; //((0, DangerUtils_1.compliment)());\n    }\n    else {',
+        '    if (results.fails.length) {',
+      ],
+      // Fallback: fecha bloco else da versão condition-only e adiciona cenários
+      [
+        '            return githubIssueTemplate_1.messageForResultWithIssues;\n        }\n    }\n};',
+        '            return githubIssueTemplate_1.messageForResultWithIssues;\n        }\n    }\n    else if (results.warnings.length) {\n        return "**Aprovado!** Nenhum erro encontrado — apenas alguns avisos de melhoria para considerar.";\n    }\n    else {\n        return "**Parabéns!** Nenhum problema encontrado. Código limpo e pronto para review. 🎉";\n    }\n};',
       ],
       // Corrigir inlineCommentTemplate: adicionar REPO_ACCESSTOKEN na verificacao
       // Sem isso, inline comments usam template GitHub em vez de Bitbucket Cloud
