@@ -369,10 +369,21 @@ exports.default = (0, _types_1.createPlugin)(
       }
       const lines = content.split("\n");
       const classes = [];
+      let inBlockComment = false;
       for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        if (line.includes("abstract")) continue;
-        const classMatch = line.match(/(final\s+)?class\s+([A-Za-z_]\w*)/);
+        const trimmed = lines[i].trimStart();
+        if (inBlockComment) {
+          if (trimmed.includes("*/")) inBlockComment = false;
+          continue;
+        }
+        if (trimmed.startsWith("/*")) {
+          inBlockComment = true;
+          if (trimmed.includes("*/")) inBlockComment = false;
+          continue;
+        }
+        if (trimmed.startsWith("//") || trimmed.startsWith("///")) continue;
+        if (lines[i].includes("abstract")) continue;
+        const classMatch = lines[i].match(/(final\s+)?class\s+([A-Za-z_]\w*)/);
         if (classMatch) {
           classes.push({
             name: classMatch[2],

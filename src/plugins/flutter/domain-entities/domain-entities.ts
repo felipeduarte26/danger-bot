@@ -377,11 +377,23 @@ export default createPlugin(
 
       const classes: { name: string; line: number; isFinal: boolean }[] = [];
 
+      let inBlockComment = false;
       for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        if (line.includes("abstract")) continue;
+        const trimmed = lines[i].trimStart();
 
-        const classMatch = line.match(/(final\s+)?class\s+([A-Za-z_]\w*)/);
+        if (inBlockComment) {
+          if (trimmed.includes("*/")) inBlockComment = false;
+          continue;
+        }
+        if (trimmed.startsWith("/*")) {
+          inBlockComment = true;
+          if (trimmed.includes("*/")) inBlockComment = false;
+          continue;
+        }
+        if (trimmed.startsWith("//") || trimmed.startsWith("///")) continue;
+        if (lines[i].includes("abstract")) continue;
+
+        const classMatch = lines[i].match(/(final\s+)?class\s+([A-Za-z_]\w*)/);
         if (classMatch) {
           classes.push({
             name: classMatch[2],

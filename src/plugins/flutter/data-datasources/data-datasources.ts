@@ -63,18 +63,30 @@ export default createPlugin(
       const interfaces: { name: string; line: number }[] = [];
       const implementations: { name: string; line: number }[] = [];
 
+      let inBlockComment = false;
       for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
+        const trimmed = lines[i].trimStart();
 
-        const interfaceMatch = line.match(/abstract\s+interface\s+class\s+([A-Za-z_]\w*)/);
+        if (inBlockComment) {
+          if (trimmed.includes("*/")) inBlockComment = false;
+          continue;
+        }
+        if (trimmed.startsWith("/*")) {
+          inBlockComment = true;
+          if (trimmed.includes("*/")) inBlockComment = false;
+          continue;
+        }
+        if (trimmed.startsWith("//") || trimmed.startsWith("///")) continue;
+
+        const interfaceMatch = lines[i].match(/abstract\s+interface\s+class\s+([A-Za-z_]\w*)/);
         if (interfaceMatch) {
           interfaces.push({ name: interfaceMatch[1], line: i + 1 });
         }
 
-        const implMatch = line.match(
+        const implMatch = lines[i].match(
           /(?:final\s+)?class\s+([A-Za-z_]\w*)\s+implements\s+([A-Za-z_]\w*)/
         );
-        if (implMatch && !line.includes("abstract")) {
+        if (implMatch && !lines[i].includes("abstract")) {
           implementations.push({ name: implMatch[1], line: i + 1 });
         }
       }

@@ -109,13 +109,26 @@ exports.default = (0, _types_1.createPlugin)(
       const lines = content.split("\n");
       let sealedClass = null;
       const finalClasses = [];
+      let inBlockComment = false;
       for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        const sealedMatch = line.match(/sealed\s+class\s+([A-Za-z_]\w*)/);
+        const trimmed = lines[i].trimStart();
+        if (inBlockComment) {
+          if (trimmed.includes("*/")) inBlockComment = false;
+          continue;
+        }
+        if (trimmed.startsWith("/*")) {
+          inBlockComment = true;
+          if (trimmed.includes("*/")) inBlockComment = false;
+          continue;
+        }
+        if (trimmed.startsWith("//") || trimmed.startsWith("///")) continue;
+        const sealedMatch = lines[i].match(/sealed\s+class\s+([A-Za-z_]\w*)/);
         if (sealedMatch) {
           sealedClass = { name: sealedMatch[1], line: i + 1 };
         }
-        const finalMatch = line.match(/final\s+class\s+([A-Za-z_]\w*)\s+extends\s+([A-Za-z_]\w*)/);
+        const finalMatch = lines[i].match(
+          /final\s+class\s+([A-Za-z_]\w*)\s+extends\s+([A-Za-z_]\w*)/
+        );
         if (finalMatch) {
           finalClasses.push({ name: finalMatch[1], line: i + 1, extendsName: finalMatch[2] });
         }

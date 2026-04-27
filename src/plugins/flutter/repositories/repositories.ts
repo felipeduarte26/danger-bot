@@ -81,7 +81,21 @@ function validateDomainRepository(file: string): void {
 
   const interfaces: { name: string; line: number }[] = [];
 
+  let inBlockComment = false;
   for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i].trimStart();
+
+    if (inBlockComment) {
+      if (trimmed.includes("*/")) inBlockComment = false;
+      continue;
+    }
+    if (trimmed.startsWith("/*")) {
+      inBlockComment = true;
+      if (trimmed.includes("*/")) inBlockComment = false;
+      continue;
+    }
+    if (trimmed.startsWith("//") || trimmed.startsWith("///")) continue;
+
     const match = lines[i].match(/abstract\s+interface\s+class\s+([A-Za-z_]\w*)/);
     if (match) {
       interfaces.push({ name: match[1], line: i + 1 });
@@ -193,7 +207,21 @@ function validateDataRepository(file: string): void {
 
   const classes: { name: string; line: number; declaration: string }[] = [];
 
+  let inBlockComment = false;
   for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i].trimStart();
+
+    if (inBlockComment) {
+      if (trimmed.includes("*/")) inBlockComment = false;
+      continue;
+    }
+    if (trimmed.startsWith("/*")) {
+      inBlockComment = true;
+      if (trimmed.includes("*/")) inBlockComment = false;
+      continue;
+    }
+    if (trimmed.startsWith("//") || trimmed.startsWith("///")) continue;
+
     const match = lines[i].match(/(?:final\s+)?class\s+([A-Za-z_]\w*)/);
     if (match && !lines[i].includes("abstract")) {
       let declaration = lines[i];
