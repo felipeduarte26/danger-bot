@@ -217,6 +217,8 @@ function translateFlutterAnalyzeMessage(message, ruleName) {
     unnecessary_type_check: "Verificação de tipo desnecessária — resultado já é conhecido",
     use_of_void_result: "Expressão do tipo void — valor não pode ser utilizado",
     not_a_type: "Identificador não é um tipo",
+    non_type_as_type_argument:
+      "Identificador não é um tipo — não pode ser usado como argumento de tipo genérico",
     wrong_number_of_type_arguments: "Número incorreto de argumentos de tipo genérico",
     type_argument_not_matching_bounds:
       "Argumento de tipo não respeita a restrição (bound) do tipo genérico",
@@ -580,6 +582,7 @@ function getDocumentationLink(ruleName) {
     "unnecessary_type_check",
     "use_of_void_result",
     "not_a_type",
+    "non_type_as_type_argument",
     "wrong_number_of_type_arguments",
     "type_argument_not_matching_bounds",
     "could_not_infer",
