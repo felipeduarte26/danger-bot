@@ -145,7 +145,7 @@ function parseModelClass(content: string): ModelClassInfo | null {
       let toEntityLine = 0;
       let toEntityReturnType: string | null = null;
       for (let k = 0; k < lines.length; k++) {
-        if (/\btoEntity\s*\(/.test(lines[k])) {
+        if (/\btoEntity\s*\(/.test(lines[k]) && !/\.toEntity\s*\(/.test(lines[k])) {
           hasToEntity = true;
           toEntityLine = k + 1;
 
