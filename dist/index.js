@@ -40,6 +40,8 @@ exports.testPlugins =
   exports.dataLayerPlugins =
   exports.domainLayerPlugins =
   exports.allFlutterPlugins =
+  exports.positionalBoolParamsPlugin =
+  exports.booleanNamingConventionPlugin =
   exports.testCoverageSummaryPlugin =
   exports.flutterTestRunnerPlugin =
   exports.testFileCheckerPlugin =
@@ -285,6 +287,18 @@ Object.defineProperty(exports, "testCoverageSummaryPlugin", {
     return flutter_1.testCoverageSummaryPlugin;
   },
 });
+Object.defineProperty(exports, "booleanNamingConventionPlugin", {
+  enumerable: true,
+  get: function () {
+    return flutter_1.booleanNamingConventionPlugin;
+  },
+});
+Object.defineProperty(exports, "positionalBoolParamsPlugin", {
+  enumerable: true,
+  get: function () {
+    return flutter_1.positionalBoolParamsPlugin;
+  },
+});
 /**
  * All available Flutter plugins in a single array
  * Use this for quick setup with all plugins enabled
@@ -325,6 +339,8 @@ exports.allFlutterPlugins = [
   require("./plugins/flutter/empty-catch-detector").default,
   require("./plugins/flutter/future-wait-modernizer").default,
   require("./plugins/flutter/ai-code-review").default,
+  require("./plugins/flutter/boolean-naming-convention").default,
+  require("./plugins/flutter/positional-bool-params").default,
   require("./plugins/flutter/model-entity-inheritance").default,
   require("./plugins/flutter/test-file-checker").default,
   require("./plugins/flutter/flutter-test-runner").default,
@@ -370,6 +386,8 @@ exports.codeQualityPlugins = [
   flutter_2.emptyCatchDetectorPlugin,
   flutter_2.futureWaitModernizerPlugin,
   flutter_2.aiCodeReviewPlugin,
+  flutter_2.booleanNamingConventionPlugin,
+  flutter_2.positionalBoolParamsPlugin,
 ];
 exports.performancePlugins = [
   flutter_2.flutterPerformancePlugin,

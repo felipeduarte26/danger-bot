@@ -41,6 +41,8 @@ export {
   testFileCheckerPlugin,
   flutterTestRunnerPlugin,
   testCoverageSummaryPlugin,
+  booleanNamingConventionPlugin,
+  positionalBoolParamsPlugin,
 } from "./plugins/flutter";
 /**
  * All available Flutter plugins in a single array

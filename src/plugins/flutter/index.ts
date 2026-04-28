@@ -49,3 +49,5 @@ export { default as modelEntityInheritancePlugin } from "./model-entity-inherita
 export { default as testFileCheckerPlugin } from "./test-file-checker";
 export { default as flutterTestRunnerPlugin } from "./flutter-test-runner";
 export { default as testCoverageSummaryPlugin } from "./test-coverage-summary";
+export { default as booleanNamingConventionPlugin } from "./boolean-naming-convention";
+export { default as positionalBoolParamsPlugin } from "./positional-bool-params";

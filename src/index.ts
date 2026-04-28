@@ -45,6 +45,8 @@ export {
   testFileCheckerPlugin,
   flutterTestRunnerPlugin,
   testCoverageSummaryPlugin,
+  booleanNamingConventionPlugin,
+  positionalBoolParamsPlugin,
 } from "./plugins/flutter";
 
 /**
@@ -87,6 +89,8 @@ export const allFlutterPlugins = [
   require("./plugins/flutter/empty-catch-detector").default,
   require("./plugins/flutter/future-wait-modernizer").default,
   require("./plugins/flutter/ai-code-review").default,
+  require("./plugins/flutter/boolean-naming-convention").default,
+  require("./plugins/flutter/positional-bool-params").default,
   require("./plugins/flutter/model-entity-inheritance").default,
   require("./plugins/flutter/test-file-checker").default,
   require("./plugins/flutter/flutter-test-runner").default,
@@ -127,6 +131,8 @@ import {
   testFileCheckerPlugin,
   flutterTestRunnerPlugin,
   testCoverageSummaryPlugin,
+  booleanNamingConventionPlugin,
+  positionalBoolParamsPlugin,
 } from "./plugins/flutter";
 
 export const domainLayerPlugins = [
@@ -169,6 +175,8 @@ export const codeQualityPlugins = [
   emptyCatchDetectorPlugin,
   futureWaitModernizerPlugin,
   aiCodeReviewPlugin,
+  booleanNamingConventionPlugin,
+  positionalBoolParamsPlugin,
 ];
 
 export const performancePlugins = [
