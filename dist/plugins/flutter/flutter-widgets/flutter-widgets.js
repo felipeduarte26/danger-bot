@@ -188,6 +188,38 @@ const WIDGET_METHOD_KEYWORDS = new Set([
   "covariant",
   "yield",
 ]);
+const DART_FUNCTION_TYPE_ALIASES = new Set([
+  "VoidCallback",
+  "AsyncCallback",
+  "ValueChanged",
+  "ValueSetter",
+  "ValueGetter",
+  "StateSetter",
+  "WidgetBuilder",
+  "TransitionBuilder",
+  "IndexedWidgetBuilder",
+  "NullableIndexedWidgetBuilder",
+  "FormFieldValidator",
+  "FormFieldSetter",
+  "FormFieldBuilder",
+  "ValueWidgetBuilder",
+  "GestureTapCallback",
+  "GestureTapDownCallback",
+  "GestureTapUpCallback",
+  "GestureTapCancelCallback",
+  "GestureLongPressCallback",
+  "GestureDragStartCallback",
+  "GestureDragUpdateCallback",
+  "GestureDragEndCallback",
+  "GestureScaleStartCallback",
+  "GestureScaleUpdateCallback",
+  "GestureScaleEndCallback",
+  "DismissDirectionCallback",
+  "ControllerCallback",
+  "ErrorCallback",
+  "NotifierCallback",
+  "Function",
+]);
 const WIDGET_METHOD_WITH_TYPE_RE =
   /^\s+(?:static\s+)?(?:Future<[^>]*(?:<[^>]*>)*>|Stream<[^>]*(?:<[^>]*>)*>|void|bool|int|double|String|Widget|List<[^>]*>|Map<[^>]*>|Set<[^>]*>|[A-Za-z_][\w<>,? ]*)\s+([a-zA-Z_]\w*)\s*[(<]/;
 const WIDGET_METHOD_NAME_ONLY_RE = /^\s+([a-zA-Z_]\w*)\s*[(<]/;
@@ -307,6 +339,7 @@ function extractMethods(lines, startLine, endLine, className) {
     }
     const name = methodMatch[1];
     if (WIDGET_METHOD_KEYWORDS.has(name)) continue;
+    if (DART_FUNCTION_TYPE_ALIASES.has(name)) continue;
     if (line.includes("static ")) continue;
     // Skip field declarations: " = " before first "("
     const firstParen = line.indexOf("(");
@@ -314,6 +347,8 @@ function extractMethods(lines, startLine, endLine, className) {
     if (eqSign !== -1 && (firstParen === -1 || eqSign < firstParen)) continue;
     // No `(` on the line → can't be a method/constructor declaration
     if (firstParen === -1) continue;
+    // Skip function-type fields: `Function(int) callback;` / `void Function(int)? onChanged;`
+    if (trimmed.endsWith(";") && /\)\??\s+\w+\s*;$/.test(trimmed)) continue;
     const isOverride = hasOverrideAbove(lines, i);
     const isPrivate = name.startsWith("_");
     let kind;
