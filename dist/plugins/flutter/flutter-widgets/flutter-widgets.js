@@ -54,21 +54,25 @@ var __importStar =
 Object.defineProperty(exports, "__esModule", { value: true });
 /**
  * Flutter Widgets Plugin
- * Verifica ordem dos métodos em classes de widgets/states:
+ * Verifica ordem dos membros em classes de widgets/states seguindo
+ * Vertical Ordering (Clean Code, Cap. 5):
  *
- * Ordem correta (Clean Code):
- * 1. @override methods (lifecycle: initState, didChangeDependencies, build, dispose, etc.)
- * 2. Public methods
- * 3. Private methods (_prefixo)
+ * 1. Construtores
+ * 2. Factory / named constructors
+ * 3. @override methods (lifecycle: initState, didChangeDependencies, build, dispose, etc.)
+ * 4. Métodos públicos
+ * 5. Métodos privados (_prefixo)
  *
  * Analisa o arquivo completo e trata cada classe separadamente.
  */
 const _types_1 = require("../../../types");
 const fs = __importStar(require("fs"));
 const KIND_ORDER = {
-  override: 0,
-  public: 1,
-  private: 2,
+  constructor: 0,
+  factory: 1,
+  override: 2,
+  public: 3,
+  private: 4,
 };
 exports.default = (0, _types_1.createPlugin)(
   {
@@ -91,10 +95,10 @@ exports.default = (0, _types_1.createPlugin)(
       if (!content.includes("extends State<") && !content.includes("extends StatelessWidget")) {
         continue;
       }
-      const lines = content.split("\n");
+      const lines = content.replace(/\r/g, "").split("\n");
       const classes = extractClasses(lines);
       for (const cls of classes) {
-        const methods = extractMethods(lines, cls.startLine, cls.endLine);
+        const methods = extractMethods(lines, cls.startLine, cls.endLine, cls.name);
         if (methods.length < 2) continue;
         const violation = findOrderViolation(methods);
         if (violation) {
@@ -102,19 +106,21 @@ exports.default = (0, _types_1.createPlugin)(
             title: "ORDEM DE MÉTODOS INCORRETA",
             description: `Classe \`${cls.name}\`: método \`${violation.offender.name}\` (${kindLabel(violation.offender.kind)}) aparece **antes** de \`${violation.shouldBeAfter.name}\` (${kindLabel(violation.shouldBeAfter.kind)}).`,
             problem: {
-              wrong: `class ${cls.name} {\n  void _privateMethod() { ... }  // privado\n  @override\n  Widget build(...) { ... }       // @override\n}`,
-              correct: `class ${cls.name} {\n  @override\n  Widget build(...) { ... }       // 1️⃣ @override\n  void handleTap() { ... }        // 2️⃣ público\n  void _privateMethod() { ... }   // 3️⃣ privado\n}`,
+              wrong: `class ${cls.name} {\n  void _helper() { ... }           // privado\n  @override\n  Widget build(...) { ... }        // @override\n  ${cls.name}({super.key});          // construtor\n}`,
+              correct: `class ${cls.name} {\n  ${cls.name}({super.key});                    // 1️⃣ construtor\n  factory ${cls.name}.create() => ...;       // 2️⃣ factory\n  @override\n  Widget build(...) { ... }        // 3️⃣ @override\n  void handleTap() { ... }         // 4️⃣ público\n  void _helper() { ... }           // 5️⃣ privado\n}`,
               wrongLabel: "Ordem incorreta",
-              correctLabel: "Ordem correta: @override → público → privado",
+              correctLabel:
+                "Vertical Ordering: construtor → factory → @override → público → privado",
             },
             action: {
-              text: "Reorganize os métodos seguindo a ordem:",
-              code: `// 1️⃣ @override methods (lifecycle)\n@override void initState() { ... }\n@override Widget build(...) { ... }\n@override void dispose() { ... }\n\n// 2️⃣ Public methods\nvoid handleTap() { ... }\n\n// 3️⃣ Private methods\nvoid _loadData() { ... }`,
+              text: "Reorganize os membros seguindo Vertical Ordering:",
+              code: `// 1️⃣ Construtores\n${cls.name}({super.key});\n\n// 2️⃣ Factory / named constructors\nfactory ${cls.name}.create() => ${cls.name}._();\n\n// 3️⃣ @override methods (lifecycle)\n@override void initState() { ... }\n@override Widget build(...) { ... }\n@override void dispose() { ... }\n\n// 4️⃣ Métodos públicos\nvoid handleTap() { ... }\n\n// 5️⃣ Métodos privados\nvoid _loadData() { ... }`,
             },
-            objective: "Manter **consistência** e facilitar **leitura** do código.",
+            objective:
+              "O conceito de **Vertical Ordering** (Clean Code, Cap. 5 — Robert C. Martin) diz que o código deve parecer um jornal: o leitor entende o contexto geral antes de se aprofundar nos detalhes técnicos. Essa ordem combina esse princípio com a convenção prática de organização de membros em projetos Dart/Flutter.",
             reference: {
-              text: "Effective Dart: Style",
-              url: "https://dart.dev/effective-dart/style",
+              text: "Clean Code (Robert C. Martin) — Capítulo 5: Formatação › Vertical Ordering",
+              url: "https://drive.google.com/file/d/0B9eZlIWAs3-sN3NRbktQNVFUN3l2cTBBcXN4Y3FaUQ/view?resourcekey=0-ZafqCRtyIP8Zw0CKviW5Gw",
             },
             file,
             line: violation.offender.line,
@@ -152,7 +158,6 @@ function extractClasses(lines) {
 const WIDGET_METHOD_KEYWORDS = new Set([
   "const",
   "super",
-  "factory",
   "operator",
   "static",
   "abstract",
@@ -203,11 +208,16 @@ function hasOverrideAbove(lines, idx) {
   }
   return false;
 }
-function extractMethods(lines, startLine, endLine) {
+function extractMethods(lines, startLine, endLine, className) {
   const methods = [];
   let depth = 0;
   let classBodyStarted = false;
   let inArrowBody = false;
+  let openParens = 0;
+  const esc = className.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const factoryRe = new RegExp(`^\\s+factory\\s+${esc}(?:\\.(\\w+))?\\s*\\(`);
+  const constCtorRe = new RegExp(`^\\s+const\\s+${esc}(?:\\.(\\w+))?\\s*\\(`);
+  const ctorRe = new RegExp(`^\\s+${esc}(?:\\.(\\w+))?\\s*\\(`);
   for (let i = startLine; i <= endLine; i++) {
     const line = lines[i];
     const trimmed = line.trim();
@@ -225,7 +235,49 @@ function extractMethods(lines, startLine, endLine) {
       }
       if (inArrowBody) continue;
     }
+    // Skip lines inside unbalanced parentheses (multi-line signatures)
+    if (openParens > 0) {
+      const lineOpen = (line.match(/\(/g) || []).length;
+      const lineClose = (line.match(/\)/g) || []).length;
+      openParens += lineOpen - lineClose;
+      if (openParens <= 0) openParens = 0;
+      continue;
+    }
     if (!classBodyStarted || depthBefore !== 1) continue;
+    // Skip comments, annotations, empty lines
+    if (
+      trimmed.startsWith("///") ||
+      trimmed.startsWith("//") ||
+      trimmed.startsWith("@") ||
+      trimmed.length === 0
+    )
+      continue;
+    // --- Constructor / Factory detection (before general skip logic) ---
+    const factoryMatch = line.match(factoryRe);
+    if (factoryMatch) {
+      const name = factoryMatch[1] ? `${className}.${factoryMatch[1]}` : className;
+      methods.push({ name, kind: "factory", line: i + 1 });
+      trackOpenParens(line);
+      if (line.includes("=>") && !trimmed.endsWith(";")) inArrowBody = true;
+      continue;
+    }
+    const constCtorMatch = line.match(constCtorRe);
+    if (constCtorMatch) {
+      const name = constCtorMatch[1] ? `${className}.${constCtorMatch[1]}` : className;
+      methods.push({ name, kind: "constructor", line: i + 1 });
+      trackOpenParens(line);
+      if (line.includes("=>") && !trimmed.endsWith(";")) inArrowBody = true;
+      continue;
+    }
+    const ctorMatch = line.match(ctorRe);
+    if (ctorMatch) {
+      const name = ctorMatch[1] ? `${className}.${ctorMatch[1]}` : className;
+      methods.push({ name, kind: "constructor", line: i + 1 });
+      trackOpenParens(line);
+      if (line.includes("=>") && !trimmed.endsWith(";")) inArrowBody = true;
+      continue;
+    }
+    // --- General skip logic for non-method lines ---
     if (
       trimmed.startsWith("with ") ||
       trimmed.startsWith("extends ") ||
@@ -234,17 +286,14 @@ function extractMethods(lines, startLine, endLine) {
       trimmed.startsWith("late ") ||
       trimmed.startsWith("var ") ||
       trimmed.startsWith("const ") ||
-      trimmed.startsWith("///") ||
-      trimmed.startsWith("//") ||
-      trimmed.startsWith("@") ||
-      trimmed.startsWith("set ") ||
-      trimmed.length === 0
+      trimmed.startsWith("set ")
     ) {
       if (depthBefore === 1 && line.includes("=>") && !trimmed.endsWith(";")) {
         inArrowBody = true;
       }
       continue;
     }
+    // --- Regular method detection ---
     let methodMatch = line.match(WIDGET_METHOD_WITH_TYPE_RE);
     if (!methodMatch) {
       const simpleMatch = line.match(WIDGET_METHOD_NAME_ONLY_RE);
@@ -259,7 +308,12 @@ function extractMethods(lines, startLine, endLine) {
     const name = methodMatch[1];
     if (WIDGET_METHOD_KEYWORDS.has(name)) continue;
     if (line.includes("static ")) continue;
-    if (line.includes(" = ") || line.trimEnd().endsWith(";")) continue;
+    // Skip field declarations: " = " before first "("
+    const firstParen = line.indexOf("(");
+    const eqSign = line.indexOf(" = ");
+    if (eqSign !== -1 && (firstParen === -1 || eqSign < firstParen)) continue;
+    // No `(` on the line → can't be a method/constructor declaration
+    if (firstParen === -1) continue;
     const isOverride = hasOverrideAbove(lines, i);
     const isPrivate = name.startsWith("_");
     let kind;
@@ -271,11 +325,18 @@ function extractMethods(lines, startLine, endLine) {
       kind = "public";
     }
     methods.push({ name, kind, line: i + 1 });
+    trackOpenParens(line);
     if (line.includes("=>") && !trimmed.endsWith(";")) {
       inArrowBody = true;
     }
   }
   return methods;
+  function trackOpenParens(line) {
+    const lineOpen = (line.match(/\(/g) || []).length;
+    const lineClose = (line.match(/\)/g) || []).length;
+    const delta = lineOpen - lineClose;
+    if (delta > 0) openParens = delta;
+  }
 }
 function findOrderViolation(methods) {
   for (let i = 1; i < methods.length; i++) {
@@ -289,6 +350,10 @@ function findOrderViolation(methods) {
 }
 function kindLabel(kind) {
   switch (kind) {
+    case "constructor":
+      return "construtor";
+    case "factory":
+      return "factory/named constructor";
     case "override":
       return "@override";
     case "public":
