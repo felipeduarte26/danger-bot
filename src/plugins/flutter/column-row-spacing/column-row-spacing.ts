@@ -34,7 +34,7 @@ function findChildrenBlocks(content: string, lines: string[]): ChildrenBlock[] {
   for (let i = 0; i < lines.length; i++) {
     const trimmed = lines[i].trim();
 
-    const widgetMatch = trimmed.match(/^(?:const\s+)?(Column|Row)\s*\(/);
+    const widgetMatch = trimmed.match(/\b(Column|Row)\s*\(/);
     if (!widgetMatch) continue;
 
     const widgetType = widgetMatch[1] as "Column" | "Row";

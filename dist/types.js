@@ -385,6 +385,26 @@ function executeDangerBot(plugins, callbacks) {
       }
       if (config.ignore_files?.length) {
         setIgnoredFiles(config.ignore_files);
+        const { getDanger } = await Promise.resolve().then(() =>
+          __importStar(require("./helpers"))
+        );
+        const danger = getDanger();
+        const normalizePath = (p) => p.replace(/^\.\//, "").replace(/\\/g, "/");
+        const ignoredSet = new Set(config.ignore_files.map(normalizePath));
+        const isIgnored = (f) => ignoredSet.has(normalizePath(f));
+        const git = danger.git;
+        const beforeModified = (git.modified_files || []).length;
+        const beforeCreated = (git.created_files || []).length;
+        git.modified_files = (git.modified_files || []).filter((f) => !isIgnored(f));
+        git.created_files = (git.created_files || []).filter((f) => !isIgnored(f));
+        const removedCount =
+          beforeModified + beforeCreated - git.modified_files.length - git.created_files.length;
+        if (removedCount > 0) {
+          console.log(`🚫 ${removedCount} arquivo(s) removido(s) por ignore_files`);
+        }
+        verboseLog(
+          `🚫 ignore_files: ${config.ignore_files.length} padrão(ões), ${removedCount} arquivo(s) efetivamente ignorado(s)`
+        );
       }
       let allPlugins = [...plugins];
       if (config.local_plugins?.length) {

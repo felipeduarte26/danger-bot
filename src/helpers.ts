@@ -95,7 +95,7 @@ export function verboseLog(...args: unknown[]): void {
  * Chamado internamente pelo executeDangerBot ao carregar o danger-bot.yaml.
  */
 export function setIgnoredFiles(files: string[]): void {
-  _ignoredFiles = new Set(files);
+  _ignoredFiles = new Set(files.map((f) => f.replace(/^\.\//, "").replace(/\\/g, "/")));
   if (_ignoredFiles.size > 0) {
     console.log(`🚫 ${_ignoredFiles.size} arquivo(s) na lista de ignore`);
     if (_verbose) {
@@ -667,7 +667,9 @@ export function getAllChangedFiles(): string[] {
     verboseLog(`📂 ${allFiles.length} arquivo(s) modificados/criados no PR`);
     return allFiles;
   }
-  const filtered = allFiles.filter((f) => !_ignoredFiles.has(f));
+  const filtered = allFiles.filter(
+    (f) => !_ignoredFiles.has(f.replace(/^\.\//, "").replace(/\\/g, "/"))
+  );
   const ignoredCount = allFiles.length - filtered.length;
   if (ignoredCount > 0) {
     verboseLog(
