@@ -254,7 +254,7 @@ exports.default = (0, _types_1.createPlugin)(
                 code: `Future<void> ${v.name}() async {\n  final result = await _useCase();\n  state = state.copyWith(/* ... */);\n}\n\n// Quem precisa do valor acessa via state:\n// viewModel.state.data`,
               },
               objective:
-                "Métodos públicos de ViewModel/Cubit devem apenas **disparar mudanças de estado**. Quem precisa do resultado acessa via `state`.",
+                "Métodos públicos de ViewModel devem apenas **disparar mudanças de estado**. Quem precisa do resultado acessa via `state`.",
               reference: {
                 text: "Bloc: prefer_void_public_cubit_methods",
                 url: "https://bloclibrary.dev/lint-rules/prefer_void_public_cubit_methods/",
