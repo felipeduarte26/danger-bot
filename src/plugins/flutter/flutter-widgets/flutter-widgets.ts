@@ -82,7 +82,7 @@ export default createPlugin(
               code: buildActionCode(sorted),
             },
             objective:
-              "O conceito de **Vertical Ordering** (Clean Code, Cap. 5 — Robert C. Martin) diz que o código deve parecer um jornal: o leitor entende o contexto geral antes de se aprofundar nos detalhes técnicos. Essa ordem combina esse princípio com a convenção prática de organização de membros em projetos Dart/Flutter.",
+              "O conceito de **Vertical Ordering** (Clean Code, Cap. 5 — Robert C. Martin) diz que o código deve parecer um jornal: o leitor entende o contexto geral antes de se aprofundar nos detalhes técnicos.",
             reference: {
               text: "Clean Code (Robert C. Martin) — Capítulo 5: Formatação › Vertical Ordering",
               url: "https://drive.google.com/file/d/0B9eZlIWAs3-sN3NRbktQNVFUN3l2cTBBcXN4Y3FaUQ/view?resourcekey=0-ZafqCRtyIP8Zw0CKviW5Gw",
