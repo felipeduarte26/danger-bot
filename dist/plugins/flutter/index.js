@@ -10,7 +10,8 @@ var __importDefault =
     return mod && mod.__esModule ? mod : { default: mod };
   };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.positionalBoolParamsPlugin =
+exports.buildDocCheckerPlugin =
+  exports.positionalBoolParamsPlugin =
   exports.booleanNamingConventionPlugin =
   exports.testCoverageSummaryPlugin =
   exports.flutterTestRunnerPlugin =
@@ -348,5 +349,12 @@ Object.defineProperty(exports, "positionalBoolParamsPlugin", {
   enumerable: true,
   get: function () {
     return __importDefault(positional_bool_params_1).default;
+  },
+});
+var build_doc_checker_1 = require("./build-doc-checker");
+Object.defineProperty(exports, "buildDocCheckerPlugin", {
+  enumerable: true,
+  get: function () {
+    return __importDefault(build_doc_checker_1).default;
   },
 });

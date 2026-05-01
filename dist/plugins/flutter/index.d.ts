@@ -45,3 +45,4 @@ export { default as flutterTestRunnerPlugin } from "./flutter-test-runner";
 export { default as testCoverageSummaryPlugin } from "./test-coverage-summary";
 export { default as booleanNamingConventionPlugin } from "./boolean-naming-convention";
 export { default as positionalBoolParamsPlugin } from "./positional-bool-params";
+export { default as buildDocCheckerPlugin } from "./build-doc-checker";
