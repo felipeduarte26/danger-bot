@@ -40,6 +40,7 @@ exports.testPlugins =
   exports.dataLayerPlugins =
   exports.domainLayerPlugins =
   exports.allFlutterPlugins =
+  exports.buildDocCheckerPlugin =
   exports.positionalBoolParamsPlugin =
   exports.booleanNamingConventionPlugin =
   exports.testCoverageSummaryPlugin =
@@ -299,6 +300,12 @@ Object.defineProperty(exports, "positionalBoolParamsPlugin", {
     return flutter_1.positionalBoolParamsPlugin;
   },
 });
+Object.defineProperty(exports, "buildDocCheckerPlugin", {
+  enumerable: true,
+  get: function () {
+    return flutter_1.buildDocCheckerPlugin;
+  },
+});
 /**
  * All available Flutter plugins in a single array
  * Use this for quick setup with all plugins enabled
@@ -345,6 +352,7 @@ exports.allFlutterPlugins = [
   require("./plugins/flutter/test-file-checker").default,
   require("./plugins/flutter/flutter-test-runner").default,
   require("./plugins/flutter/test-coverage-summary").default,
+  require("./plugins/flutter/build-doc-checker").default,
   // google-chat-notification deve ser sempre o último plugin
   require("./plugins/flutter/google-chat-notification").default,
 ];
@@ -388,6 +396,7 @@ exports.codeQualityPlugins = [
   flutter_2.aiCodeReviewPlugin,
   flutter_2.booleanNamingConventionPlugin,
   flutter_2.positionalBoolParamsPlugin,
+  flutter_2.buildDocCheckerPlugin,
 ];
 exports.performancePlugins = [
   flutter_2.flutterPerformancePlugin,

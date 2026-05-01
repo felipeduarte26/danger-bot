@@ -43,6 +43,7 @@ export {
   testCoverageSummaryPlugin,
   booleanNamingConventionPlugin,
   positionalBoolParamsPlugin,
+  buildDocCheckerPlugin,
 } from "./plugins/flutter";
 /**
  * All available Flutter plugins in a single array

@@ -47,6 +47,7 @@ export {
   testCoverageSummaryPlugin,
   booleanNamingConventionPlugin,
   positionalBoolParamsPlugin,
+  buildDocCheckerPlugin,
 } from "./plugins/flutter";
 
 /**
@@ -95,6 +96,7 @@ export const allFlutterPlugins = [
   require("./plugins/flutter/test-file-checker").default,
   require("./plugins/flutter/flutter-test-runner").default,
   require("./plugins/flutter/test-coverage-summary").default,
+  require("./plugins/flutter/build-doc-checker").default,
   // google-chat-notification deve ser sempre o último plugin
   require("./plugins/flutter/google-chat-notification").default,
 ];
@@ -133,6 +135,7 @@ import {
   testCoverageSummaryPlugin,
   booleanNamingConventionPlugin,
   positionalBoolParamsPlugin,
+  buildDocCheckerPlugin,
 } from "./plugins/flutter";
 
 export const domainLayerPlugins = [
@@ -177,6 +180,7 @@ export const codeQualityPlugins = [
   aiCodeReviewPlugin,
   booleanNamingConventionPlugin,
   positionalBoolParamsPlugin,
+  buildDocCheckerPlugin,
 ];
 
 export const performancePlugins = [
