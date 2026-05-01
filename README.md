@@ -108,10 +108,11 @@ O Danger Bot inclui plugins organizados em categorias:
 
 ### Clean Architecture - Data
 
-| Plugin               | Descricao           |
-| -------------------- | ------------------- |
-| **data-datasources** | Valida Data Sources |
-| **data-models**      | Valida Data Models  |
+| Plugin                       | Descricao                                                   |
+| ---------------------------- | ----------------------------------------------------------- |
+| **data-datasources**         | Valida Data Sources                                         |
+| **data-models**              | Valida Data Models                                          |
+| **model-entity-inheritance** | Valida heranca de Model → Entity (extends correto da camada)|
 
 ### Clean Architecture - Presentation
 
@@ -139,6 +140,9 @@ O Danger Bot inclui plugins organizados em categorias:
 | **print-statement-detector**   | Detecta `print()` e `debugPrint()` em codigo de producao                                  |
 | **empty-catch-detector**       | Detecta blocos `catch` vazios sem tratamento                                              |
 | **future-wait-modernizer**     | Sugere `Future.wait` ao inves de awaits sequenciais independentes                         |
+| **boolean-naming-convention**  | Verifica nomes de booleans seguindo Effective Dart (`is`/`has`/`can`/`should`)            |
+| **positional-bool-params**     | Detecta parametros `bool` posicionais (Effective Dart: use named params)                  |
+| **build-doc-checker**          | Detecta `///` desnecessarios dentro de `Widget build` (poluem o codigo)                   |
 | **ai-code-review**             | Code review com IA (Gemini) — Clean Code, SOLID, seguranca e bugs (aviso, nao falha o CI) |
 
 ### Performance e Flutter
@@ -148,7 +152,7 @@ O Danger Bot inclui plugins organizados em categorias:
 | **flutter-analyze**          | Executa `flutter analyze` e reporta problemas                                                         |
 | **flutter-performance**      | Detecta operacoes custosas no `build()`                                                               |
 | **column-row-spacing**       | Sugere `spacing` (Flutter 3.27+) em Column/Row em vez de SizedBox intercalados                        |
-| **flutter-widgets**          | Verifica ordem de funcoes em widgets                                                                  |
+| **flutter-widgets**          | Verifica Vertical Ordering (Clean Code Cap. 5) em widgets                                             |
 | **mediaquery-modern**        | Forca APIs modernas do MediaQuery (Flutter 3.10+)                                                     |
 | **memory-leak-detector**     | Detecta Controllers/Timers/Streams sem `dispose()`                                                    |
 | **google-chat-notification** | Envia notificacao ao Google Chat (webhook) ao terminar o code review — Cards V2, gratuito (Workspace) |
@@ -170,10 +174,10 @@ Alem de `allFlutterPlugins`, voce pode importar plugins por categoria:
 ```typescript
 import {
   domainLayerPlugins, // 4 plugins (entities, failures, repositories, usecases)
-  dataLayerPlugins, // 2 plugins (datasources, models)
+  dataLayerPlugins, // 3 plugins (datasources, models, model-entity-inheritance)
   presentationLayerPlugins, // 2 plugins (viewmodels, try-catch-checker)
-  cleanArchitecturePlugins, // 9 plugins (todas as camadas + validacao cross-layer)
-  codeQualityPlugins, // 14 plugins (late-final, memory-leak, comments, security, barrel, identifier-language, class-naming, avoid-god-class, avoid-setstate-after-async, date-type-checker, print-statement-detector, empty-catch-detector, future-wait-modernizer, ai-code-review)
+  cleanArchitecturePlugins, // 10 plugins (todas as camadas + validacao cross-layer)
+  codeQualityPlugins, // 17 plugins (late-final, memory-leak, comments, security, barrel, identifier-language, class-naming, avoid-god-class, avoid-setstate-after-async, date-type-checker, print-statement-detector, empty-catch-detector, future-wait-modernizer, ai-code-review, boolean-naming-convention, positional-bool-params, build-doc-checker)
   performancePlugins, // 3 plugins (flutter-performance, mediaquery-modern, column-row-spacing)
   testPlugins, // 3 plugins (test-file-checker, flutter-test-runner, test-coverage-summary)
   executeDangerBot,
