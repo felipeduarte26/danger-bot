@@ -100,32 +100,31 @@ exports.default = (0, _types_1.createPlugin)(
       for (const cls of classes) {
         const methods = extractMethods(lines, cls.startLine, cls.endLine, cls.name);
         if (methods.length < 2) continue;
-        const violation = findOrderViolation(methods);
-        if (violation) {
-          (0, _types_1.sendFormattedFail)({
-            title: "ORDEM DE MÉTODOS INCORRETA",
-            description: `Classe \`${cls.name}\`: método \`${violation.offender.name}\` (${kindLabel(violation.offender.kind)}) aparece **antes** de \`${violation.shouldBeAfter.name}\` (${kindLabel(violation.shouldBeAfter.kind)}).`,
-            problem: {
-              wrong: `class ${cls.name} {\n  void _helper() { ... }           // privado\n  @override\n  Widget build(...) { ... }        // @override\n  ${cls.name}({super.key});          // construtor\n}`,
-              correct: `class ${cls.name} {\n  ${cls.name}({super.key});                    // 1️⃣ construtor\n  factory ${cls.name}.create() => ...;       // 2️⃣ factory\n  @override\n  Widget build(...) { ... }        // 3️⃣ @override\n  void handleTap() { ... }         // 4️⃣ público\n  void _helper() { ... }           // 5️⃣ privado\n}`,
-              wrongLabel: "Ordem incorreta",
-              correctLabel:
-                "Vertical Ordering: construtor → factory → @override → público → privado",
-            },
-            action: {
-              text: "Reorganize os membros seguindo Vertical Ordering:",
-              code: `// 1️⃣ Construtores\n${cls.name}({super.key});\n\n// 2️⃣ Factory / named constructors\nfactory ${cls.name}.create() => ${cls.name}._();\n\n// 3️⃣ @override methods (lifecycle)\n@override void initState() { ... }\n@override Widget build(...) { ... }\n@override void dispose() { ... }\n\n// 4️⃣ Métodos públicos\nvoid handleTap() { ... }\n\n// 5️⃣ Métodos privados\nvoid _loadData() { ... }`,
-            },
-            objective:
-              "O conceito de **Vertical Ordering** (Clean Code, Cap. 5 — Robert C. Martin) diz que o código deve parecer um jornal: o leitor entende o contexto geral antes de se aprofundar nos detalhes técnicos. Essa ordem combina esse princípio com a convenção prática de organização de membros em projetos Dart/Flutter.",
-            reference: {
-              text: "Clean Code (Robert C. Martin) — Capítulo 5: Formatação › Vertical Ordering",
-              url: "https://drive.google.com/file/d/0B9eZlIWAs3-sN3NRbktQNVFUN3l2cTBBcXN4Y3FaUQ/view?resourcekey=0-ZafqCRtyIP8Zw0CKviW5Gw",
-            },
-            file,
-            line: violation.offender.line,
-          });
-        }
+        const violators = findViolators(methods);
+        if (violators.length === 0) continue;
+        const sorted = [...methods].sort((a, b) => KIND_ORDER[a.kind] - KIND_ORDER[b.kind]);
+        (0, _types_1.sendFormattedFail)({
+          title: "ORDEM DE MÉTODOS INCORRETA",
+          description: buildDescription(cls.name, methods, violators),
+          problem: {
+            wrong: formatMethodList(cls.name, methods),
+            correct: formatMethodList(cls.name, sorted),
+            wrongLabel: "Ordem atual",
+            correctLabel: "Ordem correta (Vertical Ordering)",
+          },
+          action: {
+            text: "Reorganize os membros seguindo Vertical Ordering:",
+            code: buildActionCode(sorted),
+          },
+          objective:
+            "O conceito de **Vertical Ordering** (Clean Code, Cap. 5 — Robert C. Martin) diz que o código deve parecer um jornal: o leitor entende o contexto geral antes de se aprofundar nos detalhes técnicos. Essa ordem combina esse princípio com a convenção prática de organização de membros em projetos Dart/Flutter.",
+          reference: {
+            text: "Clean Code (Robert C. Martin) — Capítulo 5: Formatação › Vertical Ordering",
+            url: "https://drive.google.com/file/d/0B9eZlIWAs3-sN3NRbktQNVFUN3l2cTBBcXN4Y3FaUQ/view?resourcekey=0-ZafqCRtyIP8Zw0CKviW5Gw",
+          },
+          file,
+          line: violators[0].line,
+        });
       }
     }
   }
@@ -338,9 +337,21 @@ function extractMethods(lines, startLine, endLine, className) {
       continue;
     }
     const name = methodMatch[1];
-    if (WIDGET_METHOD_KEYWORDS.has(name)) continue;
-    if (DART_FUNCTION_TYPE_ALIASES.has(name)) continue;
-    if (line.includes("static ")) continue;
+    if (WIDGET_METHOD_KEYWORDS.has(name)) {
+      trackOpenParens(line);
+      if (line.includes("=>") && !trimmed.endsWith(";")) inArrowBody = true;
+      continue;
+    }
+    if (DART_FUNCTION_TYPE_ALIASES.has(name)) {
+      trackOpenParens(line);
+      if (line.includes("=>") && !trimmed.endsWith(";")) inArrowBody = true;
+      continue;
+    }
+    if (line.includes("static ")) {
+      trackOpenParens(line);
+      if (line.includes("=>") && !trimmed.endsWith(";")) inArrowBody = true;
+      continue;
+    }
     // Skip field declarations: " = " before first "("
     const firstParen = line.indexOf("(");
     const eqSign = line.indexOf(" = ");
@@ -373,15 +384,65 @@ function extractMethods(lines, startLine, endLine, className) {
     if (delta > 0) openParens = delta;
   }
 }
-function findOrderViolation(methods) {
-  for (let i = 1; i < methods.length; i++) {
-    const current = methods[i];
-    const previous = methods[i - 1];
-    if (KIND_ORDER[current.kind] < KIND_ORDER[previous.kind]) {
-      return { offender: previous, shouldBeAfter: current };
+/**
+ * Retorna todos os métodos que estão fora de ordem.
+ * Um método é "violador" se existe algum método posterior com KIND_ORDER menor.
+ */
+function findViolators(methods) {
+  const violators = [];
+  for (let i = 0; i < methods.length; i++) {
+    for (let j = i + 1; j < methods.length; j++) {
+      if (KIND_ORDER[methods[j].kind] < KIND_ORDER[methods[i].kind]) {
+        violators.push(methods[i]);
+        break;
+      }
     }
   }
-  return null;
+  return violators;
+}
+/**
+ * Gera a descrição com os métodos reais agrupados por kind.
+ */
+function buildDescription(className, methods, violators) {
+  const grouped = new Map();
+  for (const v of violators) {
+    const list = grouped.get(v.kind) || [];
+    list.push(`\`${v.name}\``);
+    grouped.set(v.kind, list);
+  }
+  const parts = [];
+  for (const [kind, names] of grouped) {
+    parts.push(`${kindLabel(kind)} (${names.join(", ")})`);
+  }
+  return `Classe \`${className}\`: **${violators.length}** de **${methods.length}** métodos fora da ordem Vertical Ordering — ${parts.join("; ")}.`;
+}
+/**
+ * Formata a lista de métodos para o bloco de código wrong/correct.
+ */
+function formatMethodList(className, methods) {
+  const maxLen = Math.max(...methods.map((m) => m.name.length + 2));
+  const lines = methods.map((m) => {
+    const call = `${m.name}()`;
+    const pad = " ".repeat(Math.max(1, maxLen - call.length + 2));
+    return `  ${call}${pad}// ${kindLabel(m.kind)}`;
+  });
+  return `class ${className} {\n${lines.join("\n")}\n}`;
+}
+/**
+ * Gera o bloco de ação com os métodos reais agrupados por kind.
+ */
+function buildActionCode(sorted) {
+  const groups = [];
+  let currentKind = null;
+  for (const m of sorted) {
+    if (m.kind !== currentKind) {
+      if (groups.length > 0) groups.push("");
+      groups.push(`// ${kindLabel(m.kind)}`);
+      currentKind = m.kind;
+    }
+    groups.push(`${m.name}()`);
+  }
+  return groups.join("\n");
 }
 function kindLabel(kind) {
   switch (kind) {
