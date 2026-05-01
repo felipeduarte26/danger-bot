@@ -43,18 +43,20 @@ export default createPlugin(
           // Skip if inside a multi-line string (heuristic: odd number of ''' before this line)
           if (isInsideMultiLineString(lines, i)) continue;
 
+          const { wrongSnippet, correctSnippet } = buildRealSnippets(lines, i);
+
           sendFormattedFail({
             title: "DOCUMENTAÇÃO DESNECESSÁRIA DENTRO DE BUILD",
-            description: `Comentário \`///\` dentro do método \`build\` é desnecessário. Widgets dentro de build são auto-explicativos pelo código.`,
+            description: `Comentário \`///\` dentro do método \`build\` é desnecessário. Widgets dentro de build são auto-explicativos pelo código.\n\n\`${trimmed}\``,
             problem: {
-              wrong: `@override\nWidget build(BuildContext context) {\n  return Container(\n    /// External spacing below the card.  ← desnecessário\n    margin: const EdgeInsets.only(bottom: 24),\n  );\n}`,
-              correct: `@override\nWidget build(BuildContext context) {\n  return Container(\n    margin: const EdgeInsets.only(bottom: 24),\n  );\n}`,
+              wrong: wrongSnippet,
+              correct: correctSnippet,
               wrongLabel: "/// dentro de build",
-              correctLabel: "Código limpo sem /// desnecessário",
+              correctLabel: "Sem /// desnecessário",
             },
             action: {
-              text: "Remova comentários `///` de dentro do método `build`. Use `///` apenas para documentar:",
-              code: `// ✅ Usar /// em:\n/// Classe\nclass MyWidget extends StatelessWidget {\n  /// Construtor\n  const MyWidget({super.key});\n\n  /// Campo\n  final String title;\n\n  /// Método\n  void doSomething() { ... }\n}\n\n// ❌ NÃO usar /// em:\n@override\nWidget build(BuildContext context) {\n  return Column(  // sem /// aqui\n    children: [...],\n  );\n}`,
+              text: "Remova este comentário `///`. Use `///` apenas fora de `build` para documentar classes, construtores, campos e métodos.",
+              code: `// ✅ Usar /// em:\n/// Classe ou método (fora de build)\nclass MyWidget extends StatelessWidget {\n  /// Campo documentado\n  final String title;\n}\n\n// ❌ NÃO usar /// dentro de build:\n@override\nWidget build(BuildContext context) {\n  return Column(\n    // use // se precisar de comentário inline\n    children: [...],\n  );\n}`,
             },
             objective:
               "Comentários `///` dentro de `build` poluem o código e não geram documentação útil. Widgets são auto-descritivos por seus nomes e parâmetros.",
@@ -174,6 +176,43 @@ function findBuildBodies(lines: string[]): BuildBody[] {
   }
 
   return bodies;
+}
+
+/**
+ * Extrai um snippet real do código mostrando o /// e contexto ao redor,
+ * e gera a versão corrigida sem o ///.
+ */
+function buildRealSnippets(
+  lines: string[],
+  docLineIdx: number
+): { wrongSnippet: string; correctSnippet: string } {
+  const contextBefore = 1;
+  const contextAfter = 2;
+
+  const start = Math.max(0, docLineIdx - contextBefore);
+  let end = Math.min(lines.length - 1, docLineIdx + contextAfter);
+
+  // Collect consecutive /// lines starting from docLineIdx
+  let docEnd = docLineIdx;
+  while (docEnd + 1 < lines.length && lines[docEnd + 1].trim().startsWith("///")) {
+    docEnd++;
+  }
+  end = Math.min(lines.length - 1, docEnd + contextAfter);
+
+  const wrongLines: string[] = [];
+  const correctLines: string[] = [];
+
+  for (let k = start; k <= end; k++) {
+    wrongLines.push(lines[k]);
+    if (k < docLineIdx || k > docEnd) {
+      correctLines.push(lines[k]);
+    }
+  }
+
+  return {
+    wrongSnippet: wrongLines.map((l) => l.trimEnd()).join("\n"),
+    correctSnippet: correctLines.map((l) => l.trimEnd()).join("\n"),
+  };
 }
 
 function hasOverrideAbove(lines: string[], idx: number): boolean {
