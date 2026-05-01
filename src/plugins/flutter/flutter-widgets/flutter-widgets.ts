@@ -67,28 +67,30 @@ export default createPlugin(
 
         const sorted = [...methods].sort((a, b) => KIND_ORDER[a.kind] - KIND_ORDER[b.kind]);
 
-        sendFormattedFail({
-          title: "ORDEM DE MÉTODOS INCORRETA",
-          description: buildDescription(cls.name, methods, violators),
-          problem: {
-            wrong: formatMethodList(cls.name, methods),
-            correct: formatMethodList(cls.name, sorted),
-            wrongLabel: "Ordem atual",
-            correctLabel: "Ordem correta (Vertical Ordering)",
-          },
-          action: {
-            text: "Reorganize os membros seguindo Vertical Ordering:",
-            code: buildActionCode(sorted),
-          },
-          objective:
-            "O conceito de **Vertical Ordering** (Clean Code, Cap. 5 — Robert C. Martin) diz que o código deve parecer um jornal: o leitor entende o contexto geral antes de se aprofundar nos detalhes técnicos.",
-          reference: {
-            text: "Clean Code (Robert C. Martin) — Capítulo 5: Formatação › Vertical Ordering",
-            url: "https://drive.google.com/file/d/0B9eZlIWAs3-sN3NRbktQNVFUN3l2cTBBcXN4Y3FaUQ/view?resourcekey=0-ZafqCRtyIP8Zw0CKviW5Gw",
-          },
-          file,
-          line: violators[0].line,
-        });
+        for (const violator of violators) {
+          sendFormattedFail({
+            title: "ORDEM DE MÉTODOS INCORRETA",
+            description: `Classe \`${cls.name}\`: método \`${violator.name}\` (${kindLabel(violator.kind)}) está fora da ordem Vertical Ordering.`,
+            problem: {
+              wrong: formatMethodList(cls.name, methods),
+              correct: formatMethodList(cls.name, sorted),
+              wrongLabel: "Ordem atual",
+              correctLabel: "Ordem correta (Vertical Ordering)",
+            },
+            action: {
+              text: "Reorganize os membros seguindo Vertical Ordering:",
+              code: buildActionCode(sorted),
+            },
+            objective:
+              "O conceito de **Vertical Ordering** (Clean Code, Cap. 5 — Robert C. Martin) diz que o código deve parecer um jornal: o leitor entende o contexto geral antes de se aprofundar nos detalhes técnicos. Essa ordem combina esse princípio com a convenção prática de organização de membros em projetos Dart/Flutter.",
+            reference: {
+              text: "Clean Code (Robert C. Martin) — Capítulo 5: Formatação › Vertical Ordering",
+              url: "https://drive.google.com/file/d/0B9eZlIWAs3-sN3NRbktQNVFUN3l2cTBBcXN4Y3FaUQ/view?resourcekey=0-ZafqCRtyIP8Zw0CKviW5Gw",
+            },
+            file,
+            line: violator.line,
+          });
+        }
       }
     }
   }
@@ -413,29 +415,6 @@ function findViolators(methods: MethodInfo[]): MethodInfo[] {
     }
   }
   return violators;
-}
-
-/**
- * Gera a descrição com os métodos reais agrupados por kind.
- */
-function buildDescription(
-  className: string,
-  methods: MethodInfo[],
-  violators: MethodInfo[]
-): string {
-  const grouped = new Map<MethodKind, string[]>();
-  for (const v of violators) {
-    const list = grouped.get(v.kind) || [];
-    list.push(`\`${v.name}\``);
-    grouped.set(v.kind, list);
-  }
-
-  const parts: string[] = [];
-  for (const [kind, names] of grouped) {
-    parts.push(`${kindLabel(kind)} (${names.join(", ")})`);
-  }
-
-  return `Classe \`${className}\`: **${violators.length}** de **${methods.length}** métodos fora da ordem Vertical Ordering — ${parts.join("; ")}.`;
 }
 
 /**
