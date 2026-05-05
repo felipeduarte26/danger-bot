@@ -16,6 +16,38 @@ function isBarrelFile(filePath: string): boolean {
   return fileName === parentDir;
 }
 
+const DATASOURCE_VARIANTS = [
+  "datasource",
+  "data_source",
+  "datascource",
+  "datasouce",
+  "datasourc",
+  "datasurce",
+  "datsource",
+  "datasorce",
+  "dataource",
+  "datasrouce",
+  "datassource",
+];
+
+function suggestDatasourceFileName(fileName: string): string {
+  const baseName = fileName.replace(".dart", "");
+  const lowerBase = baseName.toLowerCase();
+
+  const sorted = [...DATASOURCE_VARIANTS].sort((a, b) => b.length - a.length);
+
+  for (const variant of sorted) {
+    const idx = lowerBase.indexOf(variant);
+    if (idx !== -1) {
+      const prefix = baseName.slice(0, idx).replace(/_+$/, "");
+      if (prefix.length === 0) return "datasource.dart";
+      return `${prefix}_datasource.dart`;
+    }
+  }
+
+  return `${baseName}_datasource.dart`;
+}
+
 export default createPlugin(
   {
     name: "data-datasources",
@@ -39,22 +71,22 @@ export default createPlugin(
       const fileName = file.split("/").pop() || "";
 
       if (!fileName.endsWith("_datasource.dart")) {
+        const suggested = suggestDatasourceFileName(fileName);
         sendFormattedFail({
           title: "NOMENCLATURA DE DATASOURCE INCORRETA",
           description: "Arquivo de Datasource deve terminar com `_datasource.dart`.",
           problem: {
             wrong: fileName,
-            correct: `${fileName.replace(".dart", "")}_datasource.dart`,
+            correct: suggested,
           },
           action: {
             text: "Renomeie o arquivo:",
-            code: `${fileName.replace(".dart", "")}_datasource.dart`,
+            code: suggested,
           },
           objective: "Manter **consistência** na nomenclatura da camada Data.",
           file,
           line: 1,
         });
-        continue;
       }
 
       const content = fs.readFileSync(file, "utf-8");
