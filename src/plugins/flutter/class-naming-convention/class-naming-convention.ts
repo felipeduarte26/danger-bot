@@ -1,16 +1,75 @@
 /**
  * Class Naming Convention Plugin
  *
- * Verifica se nomes de classes seguem a regra do Clean Code:
- * classes devem ser substantivos, não verbos.
+ * 1. Verifica se nomes de classes usam substantivos, não verbos (Clean Code).
+ * 2. Verifica se nomes de classes estão no singular (plural é para listas).
  *
- * Escopo: Repository (interface e implementação), Datasource, ViewModel.
+ * Escopo: Repository, Datasource, Entity, Model, ViewModel.
  * Exceção: UseCase (por padrão arquitetural, aceita verbos).
  *
- * Usa wordpos (WordNet) para detecção gramatical real.
+ * Usa wordpos (WordNet) para detecção gramatical e @boringnode/pluralize para singular/plural.
  */
 import { createPlugin, getDanger, sendFormattedFail } from "@types";
 import * as fs from "fs";
+
+let compromiseLib: any = null;
+try {
+  compromiseLib = require("compromise");
+} catch {
+  // compromise not available
+}
+
+type WordNumber = "singular" | "plural" | "unknown";
+
+function identifyWordNumber(word: string): WordNumber {
+  if (!compromiseLib) return "unknown";
+  const lower = word.toLowerCase();
+  const doc = compromiseLib("the " + lower);
+  const singular = doc.nouns().toSingular().text().replace("the ", "");
+  const plural = doc.nouns().toPlural().text().replace("the ", "");
+  if (singular && singular !== lower) return "plural";
+  if (plural && plural !== lower) return "singular";
+  return "unknown";
+}
+
+function getSingularForm(word: string): string {
+  if (!compromiseLib) return word;
+  const lower = word.toLowerCase();
+  return (
+    compromiseLib("the " + lower)
+      .nouns()
+      .toSingular()
+      .text()
+      .replace("the ", "") || lower
+  );
+}
+
+const PLURAL_ALLOWLIST = new Set([
+  "params",
+  "items",
+  "analytics",
+  "media",
+  "goods",
+  "contents",
+  "details",
+  "icms",
+  "cofins",
+  "fgts",
+  "https",
+  "cors",
+  "bios",
+]);
+
+const VOWELS = new Set(["a", "e", "i", "o", "u"]);
+
+function isLikelyAcronym(word: string, singularForm: string): boolean {
+  const hasNoVowels = (w: string) => ![...w].some((c) => VOWELS.has(c));
+  if (hasNoVowels(singularForm)) return true;
+  if (hasNoVowels(word)) return true;
+  const upperCount = [...word].filter((c) => c >= "A" && c <= "Z").length;
+  if (upperCount === word.length) return true;
+  return false;
+}
 
 const AGENT_NOUN_SUFFIXES = [
   "er",
@@ -185,6 +244,7 @@ const TARGET_FOLDERS: { folder: string; label: string }[] = [
   { folder: "/repositories/", label: "Repository" },
   { folder: "/datasources/", label: "Datasource" },
   { folder: "/viewmodels/", label: "ViewModel" },
+  { folder: "/models/", label: "Model" },
 ];
 
 function isTargetFile(file: string): string | null {
@@ -243,15 +303,11 @@ interface VerbViolation {
 export default createPlugin(
   {
     name: "class-naming-convention",
-    description: "Verifica se nomes de classes usam substantivos (Clean Code)",
+    description: "Verifica nomes de classes: substantivos (não verbos) e singular (não plural)",
     enabled: true,
   },
   async () => {
     const wp = await loadWordPOS();
-    if (!wp) {
-      console.warn("wordpos nao disponivel — plugin class-naming-convention desabilitado");
-      return;
-    }
 
     const { git } = getDanger();
 
@@ -266,85 +322,92 @@ export default createPlugin(
 
     if (targetFiles.length === 0) return;
 
-    const violations: VerbViolation[] = [];
+    if (wp) {
+      const violations: VerbViolation[] = [];
 
-    for (const file of targetFiles) {
-      const layer = isTargetFile(file)!;
-      const content = fs.readFileSync(file, "utf-8");
-      const lines = content.split("\n");
+      for (const file of targetFiles) {
+        const layer = isTargetFile(file)!;
+        const content = fs.readFileSync(file, "utf-8");
+        const lines = content.split("\n");
 
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        const classMatch = line.match(
-          /(?:abstract\s+)?(?:interface\s+)?(?:final\s+|sealed\s+|base\s+)?class\s+([A-Za-z_]\w*)/
-        );
-        if (!classMatch) continue;
+        let inBlock = false;
+        for (let i = 0; i < lines.length; i++) {
+          const comment = isInsideComment(lines[i], inBlock);
+          inBlock = comment.inBlock;
+          if (comment.skip) continue;
+          const classMatch = lines[i].match(
+            /(?:abstract\s+)?(?:interface\s+)?(?:final\s+|sealed\s+|base\s+)?class\s+([A-Za-z_]\w*)/
+          );
+          if (!classMatch) continue;
 
-        const className = classMatch[1];
-        const coreName = stripLayerSuffix(className);
-        const words = splitPascalCase(coreName);
+          const className = classMatch[1];
+          const coreName = stripLayerSuffix(className);
+          const words = splitPascalCase(coreName);
 
-        const verbWords: string[] = [];
+          const verbWords: string[] = [];
 
-        for (let wi = 0; wi < words.length; wi++) {
-          const word = words[wi];
-          const lower = word.toLowerCase();
-          if (lower.length < 2) continue;
-          if (isAgentNoun(lower)) continue;
+          for (let wi = 0; wi < words.length; wi++) {
+            const word = words[wi];
+            const lower = word.toLowerCase();
+            if (lower.length < 2) continue;
+            if (isAgentNoun(lower)) continue;
 
-          const isFirstWord = wi === 0;
+            const isFirstWord = wi === 0;
 
-          if (isFirstWord && ACTION_VERBS.has(lower)) {
-            verbWords.push(lower);
-            continue;
+            if (isFirstWord && ACTION_VERBS.has(lower)) {
+              verbWords.push(lower);
+              continue;
+            }
+
+            try {
+              const isVerb = await wp.isVerb(lower);
+              if (!isVerb) continue;
+
+              const isNoun = await wp.isNoun(lower);
+              if (isNoun) continue;
+
+              verbWords.push(lower);
+            } catch {
+              continue;
+            }
           }
 
-          try {
-            const isVerb = await wp.isVerb(lower);
-            if (!isVerb) continue;
-
-            const isNoun = await wp.isNoun(lower);
-            if (isNoun) continue;
-
-            verbWords.push(lower);
-          } catch {
-            continue;
+          if (verbWords.length > 0) {
+            violations.push({ file, className, layer, verbWords, line: i + 1 });
           }
         }
+      }
 
-        if (verbWords.length > 0) {
-          violations.push({ file, className, layer, verbWords, line: i + 1 });
-        }
+      for (const v of violations) {
+        const verbs = v.verbWords.map((w) => `\`${w}\``).join(", ");
+        const suggestion = buildSuggestion(v.verbWords);
+
+        sendFormattedFail({
+          title: "CLASSE COM VERBO NO NOME",
+          description: `**${v.layer}:** \`${v.className}\` — verbo(s) detectado(s): ${verbs}. Classes representam **coisas** (substantivos), não **ações** (verbos).`,
+          problem: {
+            wrong: `class ${v.className} { }`,
+            correct: `class ${suggestClassName(v.className, v.verbWords)} { }`,
+            wrongLabel: "Verbo no nome da classe",
+            correctLabel: "Substantivo no nome da classe",
+          },
+          action: {
+            text: suggestion,
+            code: `class ${suggestClassName(v.className, v.verbWords)} { }`,
+          },
+          objective: "Seguir **Clean Code** — classes como substantivos, métodos como verbos.",
+          reference: {
+            text: "Clean Code: Naming Classes & Methods",
+            url: "https://medium.com/@mikhailhusyev/writing-clean-code-naming-variables-functions-methods-and-classes-6074a6796c7b",
+          },
+          file: v.file,
+          line: v.line,
+        });
       }
     }
 
-    if (violations.length === 0) return;
-
-    for (const v of violations) {
-      const verbs = v.verbWords.map((w) => `\`${w}\``).join(", ");
-      const suggestion = buildSuggestion(v.verbWords);
-
-      sendFormattedFail({
-        title: "CLASSE COM VERBO NO NOME",
-        description: `**${v.layer}:** \`${v.className}\` — verbo(s) detectado(s): ${verbs}. Classes representam **coisas** (substantivos), não **ações** (verbos).`,
-        problem: {
-          wrong: `class ${v.className} { }`,
-          correct: `class ${suggestClassName(v.className, v.verbWords)} { }`,
-          wrongLabel: "Verbo no nome da classe",
-          correctLabel: "Substantivo no nome da classe",
-        },
-        action: {
-          text: suggestion,
-          code: `class ${suggestClassName(v.className, v.verbWords)} { }`,
-        },
-        objective: "Seguir **Clean Code** — classes como substantivos, métodos como verbos.",
-        reference: {
-          text: "Clean Code: Naming Classes & Methods",
-          url: "https://medium.com/@mikhailhusyev/writing-clean-code-naming-variables-functions-methods-and-classes-6074a6796c7b",
-        },
-        file: v.file,
-        line: v.line,
-      });
+    if (compromiseLib) {
+      checkPluralClassNames(targetFiles);
     }
   }
 );
@@ -401,4 +464,76 @@ function buildSuggestion(verbWords: string[]): string {
     .join("\n");
 
   return `Sufixos aceitos: -Handler, -Builder, -Processor, -Observer, -Validator, etc.\n\n**Sugestão:**\n${suggestions}`;
+}
+
+function isInsideComment(line: string, inBlock: boolean): { skip: boolean; inBlock: boolean } {
+  const trimmed = line.trimStart();
+  if (inBlock) {
+    if (trimmed.includes("*/")) return { skip: true, inBlock: false };
+    return { skip: true, inBlock: true };
+  }
+  if (trimmed.startsWith("//")) return { skip: true, inBlock: false };
+  if (trimmed.startsWith("/*")) {
+    const closed = trimmed.includes("*/");
+    return { skip: true, inBlock: !closed };
+  }
+  return { skip: false, inBlock: false };
+}
+
+function checkPluralClassNames(targetFiles: string[]): void {
+  for (const file of targetFiles) {
+    const layer = isTargetFile(file)!;
+    if (layer === "ViewModel") continue;
+    const content = fs.readFileSync(file, "utf-8");
+    const lines = content.split("\n");
+
+    let inBlock = false;
+    for (let i = 0; i < lines.length; i++) {
+      const comment = isInsideComment(lines[i], inBlock);
+      inBlock = comment.inBlock;
+      if (comment.skip) continue;
+      const classMatch = lines[i].match(
+        /(?:abstract\s+)?(?:interface\s+)?(?:final\s+|sealed\s+|base\s+)?class\s+([A-Za-z_]\w*)/
+      );
+      if (!classMatch) continue;
+
+      const className = classMatch[1];
+      const coreName = stripLayerSuffix(className);
+      const words = splitPascalCase(coreName);
+
+      if (words.length === 0) continue;
+
+      const firstWord = words[0];
+      const lower = firstWord.toLowerCase();
+
+      if (lower.length < 3) continue;
+      if (PLURAL_ALLOWLIST.has(lower)) continue;
+
+      if (identifyWordNumber(lower) === "plural") {
+        const singularForm = getSingularForm(lower);
+        if (isLikelyAcronym(firstWord, singularForm)) continue;
+        const singularPascal = singularForm.charAt(0).toUpperCase() + singularForm.slice(1);
+        const correctedName = className.replace(firstWord, singularPascal);
+
+        sendFormattedFail({
+          title: "CLASSE COM NOME NO PLURAL",
+          description: `**${layer}:** \`${className}\` — \`${firstWord}\` está no plural. Nomes de classes devem ser **singulares**.`,
+          problem: {
+            wrong: `class ${className} { }`,
+            correct: `class ${correctedName} { }`,
+            wrongLabel: "Nome no plural",
+            correctLabel: "Nome no singular",
+          },
+          action: {
+            text: "Renomeie a classe para o singular — plural é reservado para variáveis de lista:",
+            code: `// ${className} → ${correctedName}`,
+          },
+          objective:
+            "Nomes de classes devem ser **singulares** — o plural é reservado para variáveis do tipo `List`.",
+          file,
+          line: i + 1,
+        });
+      }
+    }
+  }
 }

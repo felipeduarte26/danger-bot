@@ -299,6 +299,16 @@ exports.default = (0, _types_1.createPlugin)(
             line: implementationLine,
           });
         }
+        if (hasInterface) {
+          const documentedMethods = extractInterfaceDocumentedMethods(lines, interfaceLine - 1);
+          validateRedundantOverrideDocs(
+            file,
+            lines,
+            implementationLine - 1,
+            implementationName,
+            documentedMethods
+          );
+        }
       }
     }
   }
@@ -399,6 +409,122 @@ function validateRedundantMethodNames(file, lines, interfaceName, interfaceStart
         file,
         line: method.line,
       });
+    }
+  }
+}
+function extractInterfaceDocumentedMethods(lines, classStartLine) {
+  const documented = new Set();
+  let braceDepth = 0;
+  let foundOpen = false;
+  for (let i = classStartLine; i < lines.length; i++) {
+    const line = lines[i];
+    for (const ch of line) {
+      if (ch === "{") {
+        braceDepth++;
+        foundOpen = true;
+      }
+      if (ch === "}") braceDepth--;
+    }
+    if (foundOpen && braceDepth <= 0) break;
+    if (!foundOpen || braceDepth !== 1) continue;
+    const trimmed = line.trim();
+    if (trimmed.startsWith("//") || trimmed.startsWith("*") || trimmed === "") continue;
+    const methodMatch = trimmed.match(/\b([a-z][a-zA-Z0-9_]*)\s*\(/);
+    const getterMatch = trimmed.match(/\bget\s+([a-z][a-zA-Z0-9_]*)/);
+    const name = methodMatch?.[1] || getterMatch?.[1];
+    if (name) {
+      let scanLine = i - 1;
+      while (scanLine >= 0) {
+        const t = lines[scanLine].trim();
+        if (t.startsWith("@") || t === "") {
+          scanLine--;
+        } else {
+          break;
+        }
+      }
+      if (scanLine >= 0 && lines[scanLine].trim().startsWith("///")) {
+        documented.add(name);
+      }
+    }
+  }
+  return documented;
+}
+function validateRedundantOverrideDocs(
+  file,
+  lines,
+  classStartLine,
+  className,
+  interfaceDocumentedMethods
+) {
+  let braceDepth = 0;
+  let foundOpen = false;
+  for (let i = classStartLine; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    for (const ch of line) {
+      if (ch === "{") {
+        braceDepth++;
+        foundOpen = true;
+      }
+      if (ch === "}") braceDepth--;
+    }
+    if (foundOpen && braceDepth <= 0) break;
+    if (!foundOpen || braceDepth !== 1) continue;
+    if (trimmed === "@override") {
+      let scanLine = i - 1;
+      while (scanLine >= 0) {
+        const t = lines[scanLine].trim();
+        if (t.startsWith("@") || t === "") {
+          scanLine--;
+        } else {
+          break;
+        }
+      }
+      const docEnd = scanLine;
+      while (scanLine >= 0 && lines[scanLine].trim().startsWith("///")) {
+        scanLine--;
+      }
+      const docStart = scanLine + 1;
+      if (docStart <= docEnd && lines[docStart].trim().startsWith("///")) {
+        let methodName = "";
+        for (let j = i + 1; j < lines.length && j <= i + 5; j++) {
+          const t = lines[j].trim();
+          const methodMatch = t.match(/\b([a-z][a-zA-Z0-9_]*)\s*\(/);
+          if (methodMatch) {
+            methodName = methodMatch[1];
+            break;
+          }
+          const getterMatch = t.match(/\bget\s+([a-z][a-zA-Z0-9_]*)/);
+          if (getterMatch) {
+            methodName = getterMatch[1];
+            break;
+          }
+        }
+        if (methodName && interfaceDocumentedMethods.has(methodName)) {
+          const docText = lines
+            .slice(docStart, docEnd + 1)
+            .map((l) => l.trim())
+            .join("\n");
+          (0, _types_1.sendFormattedFail)({
+            title: "DOCUMENTAÇÃO REDUNDANTE EM @override",
+            description: `O método \`${methodName}\` em \`${className}\` possui documentação que já está definida na interface.`,
+            problem: {
+              wrong: `${docText}\n@override\n... ${methodName}(...)`,
+              correct: `@override\n... ${methodName}(...)`,
+              wrongLabel: "Documentação duplicada",
+              correctLabel: "Herda doc da interface automaticamente",
+            },
+            action: {
+              text: "Remova a documentação — em Dart, `@override` herda a doc da interface:",
+              code: `@override\n... ${methodName}(...)`,
+            },
+            objective:
+              "Evitar **documentação duplicada** — Dart herda doc da interface automaticamente via `@override`.",
+            file,
+            line: docStart + 1,
+          });
+        }
+      }
     }
   }
 }
