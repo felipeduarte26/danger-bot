@@ -54,7 +54,7 @@ var __importStar =
 Object.defineProperty(exports, "__esModule", { value: true });
 const child_process_1 = require("child_process");
 const fs = __importStar(require("fs"));
-const _types_1 = require("@types");
+const _types_1 = require("../../../types");
 exports.default = (0, _types_1.createPlugin)(
   {
     name: "flutter-analyze",

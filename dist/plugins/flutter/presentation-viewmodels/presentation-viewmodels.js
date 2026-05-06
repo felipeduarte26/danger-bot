@@ -65,7 +65,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * - Arquivo: *_viewmodel.dart ou *_view_model.dart
  * - Classe: extends ViewModelBase
  */
-const _types_1 = require("@types");
+const _types_1 = require("../../../types");
 const fs = __importStar(require("fs"));
 const FORBIDDEN_FIELD_TYPES = [
   { pattern: /Repository/, label: "Repository" },

@@ -67,7 +67,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * Detecta: erros de acentuação, cedilha, ortografia geral.
  * Sempre inclui sugestões de correção quando disponíveis.
  */
-const _types_1 = require("@types");
+const _types_1 = require("../../../types");
 const fs = __importStar(require("fs"));
 let _spell = null;
 let _spellLoadAttempted = false;

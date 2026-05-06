@@ -64,7 +64,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * - Detecta entities com apenas 1 propriedade (wrapper desnecessário)
  * - Valida enums: devem estar em /enums/, sufixo _enum.dart e Enum na classe
  */
-const _types_1 = require("@types");
+const _types_1 = require("../../../types");
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 function isBarrelFile(filePath) {

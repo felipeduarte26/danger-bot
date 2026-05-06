@@ -72,7 +72,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  *
  * Mapeamento: lib/(...)/file.dart → test/(...)/file_test.dart
  */
-const _types_1 = require("@types");
+const _types_1 = require("../../../types");
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 const TARGET_LAYERS = [

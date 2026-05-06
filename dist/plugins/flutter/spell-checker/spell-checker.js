@@ -62,7 +62,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  *
  * Agrupa erros por arquivo para evitar ruído excessivo.
  */
-const _types_1 = require("@types");
+const _types_1 = require("../../../types");
 const child_process_1 = require("child_process");
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));

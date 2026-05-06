@@ -60,7 +60,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * Para cada disposable encontrado como campo da classe, verifica se existe
  * uma chamada .dispose() ou .cancel() com o mesmo nome no método dispose().
  */
-const _types_1 = require("@types");
+const _types_1 = require("../../../types");
 const fs = __importStar(require("fs"));
 const DISPOSE_TYPES = [
   "TextEditingController",

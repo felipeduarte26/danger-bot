@@ -59,7 +59,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * - Data não pode importar Presentation nem UseCases
  * - Presentation não pode importar Data diretamente
  */
-const _types_1 = require("@types");
+const _types_1 = require("../../../types");
 const fs = __importStar(require("fs"));
 const IMPORT_RE = /^\s*import\s+['"]([^'"]+)['"]/;
 const DOMAIN_ALLOWED_PACKAGES = new Set([

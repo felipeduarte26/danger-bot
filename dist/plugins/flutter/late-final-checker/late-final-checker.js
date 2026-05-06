@@ -59,7 +59,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * late final só faz sentido quando o valor é atribuído DEPOIS (ex: initState).
  * Se já tem valor na declaração, deve ser apenas final ou const.
  */
-const _types_1 = require("@types");
+const _types_1 = require("../../../types");
 const fs = __importStar(require("fs"));
 const LATE_FINAL_WITH_VALUE = /late\s+final\s+(?:[\w<>,?\s]+\s+)?(\w+)\s*=\s*.+;/;
 exports.default = (0, _types_1.createPlugin)(

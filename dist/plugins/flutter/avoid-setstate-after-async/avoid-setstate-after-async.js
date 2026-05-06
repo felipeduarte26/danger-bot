@@ -65,7 +65,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * Este plugin emite WARNING (não fail) pois pode haver casos onde o
  * mounted check está em um nível acima ou em um helper.
  */
-const _types_1 = require("@types");
+const _types_1 = require("../../../types");
 const fs = __importStar(require("fs"));
 function findSetStateAfterAwait(lines) {
   const issues = [];

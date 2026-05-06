@@ -5,7 +5,7 @@
  * Verifica se o CHANGELOG foi atualizado quando necessário
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-const _types_1 = require("@types");
+const _types_1 = require("../../../types");
 exports.default = (0, _types_1.createPlugin)(
   {
     name: "changelog-checker",

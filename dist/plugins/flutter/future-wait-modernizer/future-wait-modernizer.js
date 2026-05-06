@@ -70,7 +70,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * @see {@link https://dart.dev/language/records#multiple-returns} Dart Records
  * @see {@link https://api.dart.dev/stable/dart-async/FutureRecord2/wait.html} FutureRecord.wait
  */
-const _types_1 = require("@types");
+const _types_1 = require("../../../types");
 const fs = __importStar(require("fs"));
 const FUTURE_WAIT_RE = /Future\s*\.\s*wait\s*\(/;
 function buildSkipMask(lines) {

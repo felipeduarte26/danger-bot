@@ -66,7 +66,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * - Identificadores: dicionário PT→EN interno
  * - Comentários/documentação: Google Translate (lib translate, sem API key)
  */
-const _types_1 = require("@types");
+const _types_1 = require("../../../types");
 const fs = __importStar(require("fs"));
 let _eld = null;
 let _eldLoaded = false;

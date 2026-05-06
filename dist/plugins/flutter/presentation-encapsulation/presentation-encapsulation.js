@@ -69,7 +69,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * - Construtores
  * - Membros já privados (prefixados com _)
  */
-const _types_1 = require("@types");
+const _types_1 = require("../../../types");
 const fs = __importStar(require("fs"));
 // ---------------------------------------------------------------------------
 // Generated / test file filters

@@ -65,7 +65,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  *
  * Exclui arquivos de teste (*_test.dart) e ignora matches em comentários.
  */
-const _types_1 = require("@types");
+const _types_1 = require("../../../types");
 const fs = __importStar(require("fs"));
 const SECRET_PATTERNS = [
   {

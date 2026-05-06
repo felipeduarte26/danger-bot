@@ -60,7 +60,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * - Deve ter implementação final class com sufixo Datasource e implements
  * - Métodos não devem repetir o contexto da classe — "Don't Add Gratuitous Context" (Clean Code, Cap. 2, p. 29)
  */
-const _types_1 = require("@types");
+const _types_1 = require("../../../types");
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 function isBarrelFile(filePath) {

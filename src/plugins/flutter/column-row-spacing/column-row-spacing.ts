@@ -210,6 +210,7 @@ export default createPlugin(
       if (!content.includes("Column") && !content.includes("Row")) continue;
 
       const lines = content.split("\n");
+
       const blocks = findChildrenBlocks(content, lines);
 
       for (const block of blocks) {

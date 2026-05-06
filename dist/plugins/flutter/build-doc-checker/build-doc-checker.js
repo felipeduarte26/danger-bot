@@ -60,7 +60,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * Doc comments devem ser usados em: classes, construtores, métodos, campos.
  * Widgets instanciados dentro de build são auto-explicativos pelo código.
  */
-const _types_1 = require("@types");
+const _types_1 = require("../../../types");
 const fs = __importStar(require("fs"));
 exports.default = (0, _types_1.createPlugin)(
   {
