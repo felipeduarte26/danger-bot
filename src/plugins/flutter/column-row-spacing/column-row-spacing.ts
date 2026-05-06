@@ -140,7 +140,13 @@ function extractChildren(lines: string[], startLine: number): ChildEntry[] | nul
   return null;
 }
 
-function analyzeBlock(block: ChildrenBlock): { spacingValue: number; count: number } | null {
+interface AnalyzeResult {
+  spacingValue: number;
+  count: number;
+  sizedBoxLines: number[];
+}
+
+function analyzeBlock(block: ChildrenBlock): AnalyzeResult | null {
   const { children, widgetType } = block;
 
   if (children.length < 3) return null;
@@ -181,7 +187,9 @@ function analyzeBlock(block: ChildrenBlock): { spacingValue: number; count: numb
     if (isSizedBox !== shouldBeSizedBox) return null;
   }
 
-  return { spacingValue: sizedBoxValues[0], count: sizedBoxValues.length };
+  const sizedBoxLines = sizedBoxIndices.map((idx) => children[idx].line);
+
+  return { spacingValue: sizedBoxValues[0], count: sizedBoxValues.length, sizedBoxLines };
 }
 
 export default createPlugin(
@@ -225,8 +233,8 @@ export default createPlugin(
             ? `${block.widgetType.toUpperCase()} — SUBSTITUA SIZEDBOX POR SPACING`
             : `${block.widgetType.toUpperCase()} COM SIZEDBOX REPETITIVO`,
           description: isSingle
-            ? `**SizedBox(${prop}: ${result.spacingValue})** entre os filhos pode ser substituído por \`spacing: ${result.spacingValue}\`.`
-            : `**${result.count} SizedBox(${prop}: ${result.spacingValue})** intercalados podem ser substituídos por \`spacing: ${result.spacingValue}\`.`,
+            ? `**SizedBox(${prop}: ${result.spacingValue})** na linha **${result.sizedBoxLines[0]}** pode ser substituído por \`spacing: ${result.spacingValue}\`.`
+            : `**${result.count} SizedBox(${prop}: ${result.spacingValue})** nas linhas **${result.sizedBoxLines.join(", ")}** podem ser substituídos por \`spacing: ${result.spacingValue}\`.`,
           problem: {
             wrong: isSingle
               ? `${block.widgetType}(\n  children: [\n    WidgetA(),\n    SizedBox(${prop}: ${result.spacingValue}),\n    WidgetB(),\n  ],\n)`

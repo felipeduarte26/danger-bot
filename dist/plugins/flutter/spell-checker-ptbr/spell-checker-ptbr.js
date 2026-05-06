@@ -357,6 +357,14 @@ const NON_TEXT_PATTERNS = [
 function isNonTextString(str) {
   return NON_TEXT_PATTERNS.some((p) => p.test(str.trim()));
 }
+function isNonTextContext(line, str) {
+  const escaped = str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const q = `['"]${escaped}['"]`;
+  if (new RegExp(`${q}\\s*:`).test(line)) return true;
+  if (new RegExp(`\\[\\s*${q}\\s*]`).test(line)) return true;
+  if (/\b(?:Key|ValueKey|GlobalKey|ObjectKey|PageStorageKey)\s*\(/.test(line)) return true;
+  return false;
+}
 const SKIP_WORDS = new Set([
   "app",
   "ok",
@@ -706,6 +714,7 @@ exports.default = (0, _types_1.createPlugin)(
           const strings = extractStringLiterals(lineContent);
           for (const str of strings) {
             if (isNonTextString(str)) continue;
+            if (isNonTextContext(lineContent, str)) continue;
             const words = str
               .split(/[\s.,;:!?()[\]{}<>/\\|@#$%^&*+=~`"'0-9]+/)
               .filter((w) => w.length >= 2);
