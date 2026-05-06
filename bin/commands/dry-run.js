@@ -7,8 +7,49 @@
 
 import { execSync } from "child_process";
 import path from "path";
+import fs from "fs";
 import { createRequire } from "module";
 import { exists } from "../utils/fs-helpers.js";
+
+const supportsColor = process.stdout.isTTY && !process.env.NO_COLOR && process.env.TERM !== "dumb";
+
+const c = supportsColor
+  ? {
+      reset: "\x1b[0m",
+      bold: "\x1b[1m",
+      dim: "\x1b[2m",
+      italic: "\x1b[3m",
+      underline: "\x1b[4m",
+      red: "\x1b[31m",
+      green: "\x1b[32m",
+      yellow: "\x1b[33m",
+      blue: "\x1b[34m",
+      magenta: "\x1b[35m",
+      cyan: "\x1b[36m",
+      white: "\x1b[37m",
+      gray: "\x1b[90m",
+      bgRed: "\x1b[41m",
+      bgGreen: "\x1b[42m",
+      bgYellow: "\x1b[43m",
+    }
+  : {
+      reset: "",
+      bold: "",
+      dim: "",
+      italic: "",
+      underline: "",
+      red: "",
+      green: "",
+      yellow: "",
+      blue: "",
+      magenta: "",
+      cyan: "",
+      white: "",
+      gray: "",
+      bgRed: "",
+      bgGreen: "",
+      bgYellow: "",
+    };
 
 const SKIP_PLUGINS_DEFAULT = [
   "flutter-analyze",
@@ -19,6 +60,43 @@ const SKIP_PLUGINS_DEFAULT = [
   "spell-checker",
   "pr-summary",
 ];
+
+function createProgressBar(total) {
+  const BAR_WIDTH = 28;
+  const isTTY = process.stdout.isTTY;
+  let current = 0;
+
+  const render = (label, finished) => {
+    if (!isTTY) return;
+    const pct = total === 0 ? 100 : Math.round((current / total) * 100);
+    const filled = total === 0 ? BAR_WIDTH : Math.round((current / total) * BAR_WIDTH);
+    const empty = BAR_WIDTH - filled;
+    const bar = `${c.cyan}${"█".repeat(filled)}${c.dim}${"░".repeat(empty)}${c.reset}`;
+    const counter = `${c.dim}(${current}/${total})${c.reset}`;
+    const name = label ? ` ${c.dim}${label.slice(0, 24).padEnd(24)}${c.reset}` : "";
+
+    if (finished) {
+      process.stdout.write(
+        `\r${c.green}✅${c.reset} [${bar}] ${c.bold}${c.green}100%${c.reset} ${counter}\n`
+      );
+    } else {
+      process.stdout.write(
+        `\r⚡ [${bar}] ${c.yellow}${String(pct).padStart(3)}%${c.reset} ${counter}${name}`
+      );
+    }
+  };
+
+  return {
+    start(firstName) {
+      render(firstName, false);
+    },
+    tick(pluginName) {
+      current++;
+      const finished = current >= total;
+      render(finished ? "" : pluginName, finished);
+    },
+  };
+}
 
 /**
  * @param {object} options
@@ -31,11 +109,25 @@ const SKIP_PLUGINS_DEFAULT = [
 export async function dryRun(options) {
   const projectPath = path.resolve(options.project || process.cwd());
   const baseBranch = options.base || "main";
-  const verbose = options.verbose || false;
+
+  const require = createRequire(import.meta.url);
+  const { loadConfig, loadLocalPlugins } = require("../../dist/config.js");
+  const { setIgnoredFiles, setVerbose } = require("../../dist/helpers.js");
+
+  const originalCwd = process.cwd();
+  process.chdir(projectPath);
+
+  const config = loadConfig();
+  const verbose = options.verbose || config.settings?.verbose || false;
   const runAll = options.all || false;
   const pluginFilter = options.plugins
     ? options.plugins.split(",").map((s) => s.trim().toLowerCase())
     : null;
+
+  setVerbose(verbose);
+  if (config.ignore_files) {
+    setIgnoredFiles(config.ignore_files);
+  }
 
   console.log("\n" + "═".repeat(60));
   console.log("🤖 DANGER BOT — DRY RUN (execução local)");
@@ -47,9 +139,6 @@ export async function dryRun(options) {
     console.error(`\n❌ Diretório não encontrado: ${projectPath}`);
     process.exit(1);
   }
-
-  const originalCwd = process.cwd();
-  process.chdir(projectPath);
 
   if (!exists(path.join(projectPath, ".git"))) {
     console.error("\n❌ Diretório não é um repositório git");
@@ -79,8 +168,22 @@ export async function dryRun(options) {
 
   console.log("\n📊 Analisando diff...\n");
 
-  const { modifiedFiles, createdFiles, deletedFiles, insertions, deletions } =
-    getGitDiffInfo(mergeBase);
+  const {
+    modifiedFiles: rawModified,
+    createdFiles: rawCreated,
+    deletedFiles,
+    insertions,
+    deletions,
+  } = getGitDiffInfo(mergeBase);
+
+  const normalizePath = (p) => p.replace(/^\.\//, "").replace(/\\/g, "/");
+  const ignoredSet = new Set((config.ignore_files || []).map(normalizePath));
+  const isIgnored = (f) => ignoredSet.has(normalizePath(f));
+
+  const modifiedFiles = rawModified.filter((f) => !isIgnored(f));
+  const createdFiles = rawCreated.filter((f) => !isIgnored(f));
+  const ignoredCount =
+    rawModified.length + rawCreated.length - (modifiedFiles.length + createdFiles.length);
 
   const allChangedFiles = [...new Set([...modifiedFiles, ...createdFiles])];
   const dartFiles = allChangedFiles.filter((f) => f.endsWith(".dart"));
@@ -89,6 +192,9 @@ export async function dryRun(options) {
   console.log(`   Arquivos criados:     ${createdFiles.length}`);
   console.log(`   Arquivos deletados:   ${deletedFiles.length}`);
   console.log(`   Arquivos .dart:       ${dartFiles.length}`);
+  if (ignoredCount > 0) {
+    console.log(`   Arquivos ignorados: ${ignoredCount} (via danger-bot.yaml)`);
+  }
   console.log(`   Linhas: +${insertions} / -${deletions}`);
 
   if (allChangedFiles.length === 0) {
@@ -109,7 +215,6 @@ export async function dryRun(options) {
     currentBranch,
   });
 
-  const require = createRequire(import.meta.url);
   let dangerBot;
   try {
     dangerBot = require("../../dist/index.js");
@@ -120,7 +225,13 @@ export async function dryRun(options) {
     process.exit(1);
   }
 
-  const allPlugins = dangerBot.allFlutterPlugins || [];
+  const allPluginsFromBot = dangerBot.allFlutterPlugins || [];
+  let allPlugins = [...allPluginsFromBot];
+
+  if (config.local_plugins?.length) {
+    const localPlugins = await loadLocalPlugins(config.local_plugins);
+    allPlugins = [...allPlugins, ...localPlugins];
+  }
 
   let pluginsToRun = allPlugins.filter((p) => {
     if (!p.config.enabled) return false;
@@ -162,21 +273,42 @@ export async function dryRun(options) {
 
   console.log("\n" + "─".repeat(60));
   console.log("⚡ Executando plugins...");
-  console.log("─".repeat(60) + "\n");
+  console.log("─".repeat(60));
 
   const startTime = Date.now();
+  const errors = [];
 
-  for (const plugin of pluginsToRun) {
-    try {
-      const pluginStart = Date.now();
-      if (verbose) process.stdout.write(`   ⚡ ${plugin.config.name}...`);
-      await plugin.run();
-      const elapsed = Date.now() - pluginStart;
-      if (verbose) console.log(` ✅ (${elapsed}ms)`);
-    } catch (err) {
-      if (verbose) console.log(` ❌`);
-      console.error(`   ❌ Erro em '${plugin.config.name}': ${err.message}`);
-      if (verbose) console.error(err.stack);
+  if (!verbose) {
+    const bar = createProgressBar(pluginsToRun.length);
+    bar.start(pluginsToRun[0]?.config.name ?? "");
+
+    for (let i = 0; i < pluginsToRun.length; i++) {
+      const plugin = pluginsToRun[i];
+      try {
+        await plugin.run();
+      } catch (err) {
+        errors.push({ name: plugin.config.name, err });
+      }
+      const nextName = pluginsToRun[i + 1]?.config.name ?? "";
+      bar.tick(nextName);
+    }
+
+    for (const { name, err } of errors) {
+      console.error(`   ${c.red}❌ Erro em '${name}': ${err.message}${c.reset}`);
+    }
+  } else {
+    for (const plugin of pluginsToRun) {
+      try {
+        const pluginStart = Date.now();
+        process.stdout.write(`   ⚡ ${plugin.config.name}...`);
+        await plugin.run();
+        const elapsed = Date.now() - pluginStart;
+        console.log(` ${c.green}✅${c.reset} (${elapsed}ms)`);
+      } catch (err) {
+        console.log(` ${c.red}❌${c.reset}`);
+        console.error(`   ${c.red}❌ Erro em '${plugin.config.name}': ${err.message}${c.reset}`);
+        console.error(err.stack);
+      }
     }
   }
 
@@ -188,6 +320,9 @@ export async function dryRun(options) {
 
   displayResults(results, verbose, totalElapsed);
   process.chdir(originalCwd);
+
+  const exitCode = results.fails.length > 0 || inlineComments.length > 0 ? 1 : 0;
+  process.exit(exitCode);
 }
 
 function execSafe(cmd) {
@@ -264,6 +399,7 @@ function setupDangerMock(results, gitInfo) {
 
     const chunks = [];
     let currentChunk = null;
+    let currentNewLine = 0;
 
     for (const line of diff.split("\n")) {
       if (line.startsWith("@@")) {
@@ -282,15 +418,18 @@ function setupDangerMock(results, gitInfo) {
           currentChunk.oldLines = parseInt(match[2] || "1", 10);
           currentChunk.newStart = parseInt(match[3], 10);
           currentChunk.newLines = parseInt(match[4] || "1", 10);
+          currentNewLine = currentChunk.newStart;
         }
       } else if (currentChunk) {
         currentChunk.content += line + "\n";
         if (line.startsWith("+")) {
-          currentChunk.changes.push({ type: "add", content: line.slice(1) });
+          currentChunk.changes.push({ type: "add", content: line.slice(1), ln: currentNewLine });
+          currentNewLine++;
         } else if (line.startsWith("-")) {
           currentChunk.changes.push({ type: "del", content: line.slice(1) });
         } else {
-          currentChunk.changes.push({ type: "normal", content: line.slice(1) });
+          currentChunk.changes.push({ type: "normal", content: line.slice(1), ln: currentNewLine });
+          currentNewLine++;
         }
       }
     }
@@ -390,94 +529,200 @@ function displayResults(results, verbose, elapsedMs) {
   const totalIssues =
     results.fails.length + results.warns.length + inlineComments.length + results.messages.length;
 
-  console.log("\n" + "═".repeat(60));
-  console.log("📋 RESULTADOS DO DRY-RUN");
-  console.log("═".repeat(60));
-  console.log(`\n⏱️  Tempo: ${elapsedMs}ms`);
+  console.log("\n" + c.bold + c.cyan + "═".repeat(60) + c.reset);
+  console.log(`${c.bold}${c.cyan}📋 RESULTADOS DO DRY-RUN${c.reset}`);
+  console.log(c.bold + c.cyan + "═".repeat(60) + c.reset);
+  console.log(`\n⏱️  Tempo total: ${c.yellow}${elapsedMs}ms${c.reset}`);
 
   if (totalIssues === 0 && generalMarkdowns.length === 0) {
-    console.log("\n🎉 Nenhum problema encontrado! Tudo OK.\n");
+    console.log(
+      `\n${c.green}🎉 Nenhum problema encontrado! Seu código está excelente.${c.reset}\n`
+    );
     return;
   }
 
   const errTotal = results.fails.length + inlineComments.length;
   console.log(
-    `\n📊 Resumo: ${errTotal} erro(s)/inline, ${results.warns.length} aviso(s), ${results.messages.length} mensagem(ns)\n`
+    `\n📊 Resumo: ${c.red}${errTotal} erro(s)${c.reset}, ${c.yellow}${results.warns.length} aviso(s)${c.reset}, ${c.blue}${results.messages.length} mensagem(ns)${c.reset}\n`
   );
 
   if (results.fails.length > 0) {
-    console.log("─".repeat(60));
-    console.log(`❌ ERROS GERAIS (${results.fails.length}) — falhariam o build`);
-    console.log("─".repeat(60));
+    console.log(`${c.bold}${c.red}─`.repeat(60) + c.reset);
+    console.log(
+      `${c.bold}${c.red}❌ ERROS GERAIS (${results.fails.length})${c.reset} ${c.dim}— falhariam o build no CI${c.reset}`
+    );
+    console.log(`${c.bold}${c.red}─`.repeat(60) + c.reset);
     results.fails.forEach((item, i) => {
-      console.log(`\n  ${i + 1}. ${formatResultItem(item, verbose)}`);
+      console.log(`\n  ${c.bold}${i + 1}.${c.reset} ${formatResultItem(item, verbose)}`);
     });
+    console.log("");
   }
 
   if (inlineComments.length > 0) {
-    console.log("\n" + "─".repeat(60));
-    console.log(`📌 COMENTÁRIOS INLINE (${inlineComments.length}) — comentários em arquivos no PR`);
-    console.log("─".repeat(60));
+    console.log(`${c.bold}${c.magenta}─`.repeat(60) + c.reset);
+    console.log(
+      `${c.bold}${c.magenta}📌 COMENTÁRIOS INLINE (${inlineComments.length})${c.reset} ${c.dim}— fixados em linhas específicas${c.reset}`
+    );
+    console.log(`${c.bold}${c.magenta}─`.repeat(60) + c.reset);
     inlineComments.forEach((item, i) => {
-      console.log(`\n  ${i + 1}. ${formatResultItem(item, verbose)}`);
+      console.log(`\n  ${c.bold}${i + 1}.${c.reset} ${formatResultItem(item, verbose)}`);
     });
+    console.log("");
   }
 
   if (results.warns.length > 0) {
-    console.log("\n" + "─".repeat(60));
-    console.log(`⚠️  AVISOS (${results.warns.length})`);
-    console.log("─".repeat(60));
+    console.log(`${c.bold}${c.yellow}─`.repeat(60) + c.reset);
+    console.log(
+      `${c.bold}${c.yellow}⚠️  AVISOS (${results.warns.length})${c.reset} ${c.dim}— sugestões de melhoria${c.reset}`
+    );
+    console.log(`${c.bold}${c.yellow}─`.repeat(60) + c.reset);
     results.warns.forEach((item, i) => {
-      console.log(`\n  ${i + 1}. ${formatResultItem(item, verbose)}`);
+      console.log(`\n  ${c.bold}${i + 1}.${c.reset} ${formatResultItem(item, verbose)}`);
     });
+    console.log("");
   }
 
   if (results.messages.length > 0) {
-    console.log("\n" + "─".repeat(60));
-    console.log(`💬 MENSAGENS (${results.messages.length})`);
-    console.log("─".repeat(60));
+    console.log(`${c.bold}${c.blue}─`.repeat(60) + c.reset);
+    console.log(`${c.bold}${c.blue}💬 MENSAGENS (${results.messages.length})${c.reset}`);
+    console.log(`${c.bold}${c.blue}─`.repeat(60) + c.reset);
     results.messages.forEach((item, i) => {
-      console.log(`\n  ${i + 1}. ${formatResultItem(item, verbose)}`);
+      console.log(`\n  ${c.bold}${i + 1}.${c.reset} ${formatResultItem(item, verbose)}`);
     });
+    console.log("");
   }
 
   if (generalMarkdowns.length > 0 && verbose) {
-    console.log("\n" + "─".repeat(60));
-    console.log(`📝 MARKDOWN GERAL (${generalMarkdowns.length})`);
-    console.log("─".repeat(60));
+    console.log(`${c.bold}${c.white}─`.repeat(60) + c.reset);
+    console.log(`${c.bold}${c.white}📝 RELATÓRIO DETALHADO (${generalMarkdowns.length})${c.reset}`);
+    console.log(`${c.bold}${c.white}─`.repeat(60) + c.reset);
     generalMarkdowns.forEach((item, i) => {
-      console.log(`\n  ${i + 1}. ${formatResultItem(item, verbose)}`);
+      console.log(`\n  ${c.bold}${i + 1}.${c.reset} ${formatResultItem(item, verbose)}`);
     });
+    console.log("");
   }
 
-  console.log("\n" + "═".repeat(60));
+  console.log(c.bold + c.cyan + "═".repeat(60) + c.reset);
   if (errTotal > 0) {
-    console.log("⛔ O CI falharia com esses erros. Corrija antes de abrir/atualizar o PR.");
+    console.log(
+      `${c.bold}${c.red}⛔ O CI FALHARIA COM ESSES ERROS.${c.reset} Corrija-os antes de atualizar o PR.`
+    );
   } else if (results.warns.length > 0) {
-    console.log("✅ Nenhum erro crítico. Apenas avisos para revisar.");
+    console.log(
+      `${c.bold}${c.yellow}✅ NENHUM ERRO CRÍTICO.${c.reset} Apenas avisos para revisar se desejar.`
+    );
   } else {
-    console.log("✅ Nenhum problema encontrado.");
+    console.log(`${c.bold}${c.green}✅ TUDO LIMPO!${c.reset} O PR está pronto para ser enviado.`);
   }
-  console.log("═".repeat(60) + "\n");
+  console.log(c.bold + c.cyan + "═".repeat(60) + c.reset + "\n");
 }
 
 function formatResultItem(item, verbose) {
-  const location = item.file ? `📄 ${item.file}${item.line ? `:${item.line}` : ""}` : "";
-  const title = extractFirstLine(item.msg);
+  const location = item.file
+    ? `${c.dim}📄 ${item.file}${item.line ? `:${item.line}` : ""}${c.reset}`
+    : "";
+  const msg = item.msg;
+  const title = extractFirstLine(msg);
+
+  const allLines = msg.split("\n");
+  const nonCommentLines = allLines.filter(
+    (l) => l.trim() !== "" && !l.trim().startsWith("&#8203;")
+  );
 
   if (verbose) {
-    return `${title}\n     ${location}\n     ${item.msg.split("\n").slice(1, 5).join("\n     ")}`;
+    const fullBody = allLines
+      .map((line) => `     ${line}`)
+      .join("\n")
+      .replace(/### (.*)/g, `${c.bold}${c.underline}$1${c.reset}`)
+      .replace(/\*\*(.*)\*\*/g, `${c.bold}$1${c.reset}`)
+      .replace(/`(.*)`/g, `${c.cyan}$1${c.reset}`);
+
+    return `${c.bold}${c.white}${title}${c.reset}${location ? `\n     ${location}` : ""}\n\n${fullBody}`;
   }
 
-  return location ? `${title}\n     ${location}` : title;
+  let explanation = "";
+  if (nonCommentLines.length > 1) {
+    explanation = nonCommentLines[1].trim();
+    if (explanation.includes("Flutter Analyze") && nonCommentLines.length > 2) {
+      explanation = nonCommentLines[2].trim();
+    }
+  }
+
+  let suggestion = "";
+  const actionIdx = allLines.findIndex((l) => l.includes("### 🎯 AÇÃO NECESSÁRIA"));
+  if (actionIdx !== -1) {
+    const codeStart = allLines.findIndex((l, i) => i > actionIdx && l.trim().startsWith("```"));
+    if (codeStart !== -1) {
+      const codeEnd = allLines.findIndex((l, i) => i > codeStart && l.trim().startsWith("```"));
+      if (codeEnd !== -1) {
+        suggestion = allLines
+          .slice(codeStart + 1, codeEnd)
+          .join(" ")
+          .trim();
+      }
+    }
+  }
+
+  if (!suggestion) {
+    const correctIdx = allLines.findIndex((l) => l.includes("✅ **"));
+    if (correctIdx !== -1) {
+      const codeStart = allLines.findIndex((l, i) => i > correctIdx && l.trim().startsWith("```"));
+      if (codeStart !== -1) {
+        const codeEnd = allLines.findIndex((l, i) => i > codeStart && l.trim().startsWith("```"));
+        if (codeEnd !== -1) {
+          suggestion = allLines
+            .slice(codeStart + 1, codeEnd)
+            .join(" ")
+            .trim();
+        }
+      }
+    }
+  }
+
+  const cleanExplanation = explanation
+    .replace(/[*`_]/g, "")
+    .replace(/^[-•]\s*/, "")
+    .trim();
+
+  let output = `${c.bold}${c.white}${title}${c.reset}`;
+  if (location) {
+    output += `\n     ${location}`;
+
+    if (item.file && item.line) {
+      try {
+        const fullPath = path.resolve(item.file);
+        if (fs.existsSync(fullPath)) {
+          const content = fs.readFileSync(fullPath, "utf8");
+          const lines = content.split("\n");
+          const lineCode = lines[item.line - 1]?.trim();
+          if (lineCode) {
+            output += `\n     ${c.dim}↳ ${c.italic}${lineCode}${c.reset}`;
+          }
+        }
+      } catch (e) {}
+    }
+  }
+
+  if (cleanExplanation && cleanExplanation !== title) {
+    output += `\n     ${c.yellow}💡 ${cleanExplanation}${c.reset}`;
+  }
+
+  if (suggestion) {
+    const cleanSug = suggestion.replace(/^\/\/\s*/, "").trim();
+    output += `\n     ${c.green}✅ Sugestão: ${c.italic}${cleanSug}${c.reset}`;
+  }
+
+  return output;
 }
 
 function extractFirstLine(msg) {
+  if (!msg) return "Problema detectado";
   const firstLine = msg.split("\n")[0].trim();
   return (
     firstLine
       .replace(/^#+\s*/, "")
-      .replace(/[*`]/g, "")
+      .replace(/[*`_]/g, "")
+      .replace(/🔍\s*/, "")
       .trim()
       .slice(0, 120) || "Problema detectado"
   );

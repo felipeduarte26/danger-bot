@@ -28,7 +28,12 @@ export interface DangerBotConfig {
   };
 }
 
-const CONFIG_FILENAMES = ["danger-bot.yaml", "danger-bot.yml"];
+const CONFIG_FILENAMES = [
+  "danger-bot.yaml",
+  "danger-bot.yml",
+  "doc/danger-bot.yaml",
+  "doc/danger-bot.yml",
+];
 
 function findConfigFile(): string | null {
   for (const name of CONFIG_FILENAMES) {
