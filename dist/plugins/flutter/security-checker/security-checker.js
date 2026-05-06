@@ -1,56 +1,37 @@
 "use strict";
-var __createBinding =
-  (this && this.__createBinding) ||
-  (Object.create
-    ? function (o, m, k, k2) {
-        if (k2 === undefined) k2 = k;
-        var desc = Object.getOwnPropertyDescriptor(m, k);
-        if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-          desc = {
-            enumerable: true,
-            get: function () {
-              return m[k];
-            },
-          };
-        }
-        Object.defineProperty(o, k2, desc);
-      }
-    : function (o, m, k, k2) {
-        if (k2 === undefined) k2 = k;
-        o[k2] = m[k];
-      });
-var __setModuleDefault =
-  (this && this.__setModuleDefault) ||
-  (Object.create
-    ? function (o, v) {
-        Object.defineProperty(o, "default", { enumerable: true, value: v });
-      }
-    : function (o, v) {
-        o["default"] = v;
-      });
-var __importStar =
-  (this && this.__importStar) ||
-  (function () {
-    var ownKeys = function (o) {
-      ownKeys =
-        Object.getOwnPropertyNames ||
-        function (o) {
-          var ar = [];
-          for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-          return ar;
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
         };
-      return ownKeys(o);
+        return ownKeys(o);
     };
     return function (mod) {
-      if (mod && mod.__esModule) return mod;
-      var result = {};
-      if (mod != null)
-        for (var k = ownKeys(mod), i = 0; i < k.length; i++)
-          if (k[i] !== "default") __createBinding(result, mod, k[i]);
-      __setModuleDefault(result, mod);
-      return result;
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
     };
-  })();
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 /**
  * Security Checker Plugin
@@ -68,247 +49,243 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const _types_1 = require("../../../types");
 const fs = __importStar(require("fs"));
 const SECRET_PATTERNS = [
-  {
-    id: "google-api",
-    regex: /['"]AIza[0-9A-Za-z_-]{35}['"]/,
-    label: "Google API Key",
-    severity: "critical",
-  },
-  {
-    id: "aws-access",
-    regex: /['"]AKIA[0-9A-Z]{16}['"]/,
-    label: "AWS Access Key",
-    severity: "critical",
-  },
-  {
-    id: "openai",
-    regex: /['"]sk-[A-Za-z0-9]{20,}['"]/,
-    label: "OpenAI API Key",
-    severity: "critical",
-  },
-  {
-    id: "stripe-secret",
-    regex: /['"]sk_live_[A-Za-z0-9]{24,}['"]/,
-    label: "Stripe Secret Key",
-    severity: "critical",
-  },
-  {
-    id: "stripe-publish",
-    regex: /['"]pk_live_[A-Za-z0-9]{24,}['"]/,
-    label: "Stripe Publishable Key (live)",
-    severity: "high",
-  },
-  {
-    id: "firebase-key",
-    regex: /['"]firebase[_-]?api[_-]?key['"]\s*[:=]\s*['"][^'"]{10,}['"]/,
-    label: "Firebase API Key",
-    severity: "critical",
-  },
-  {
-    id: "github-token",
-    regex: /['"](ghp_[A-Za-z0-9]{36}|gho_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{22,})['"]/,
-    label: "GitHub Token",
-    severity: "critical",
-  },
-  {
-    id: "twilio-sid",
-    regex: /['"]AC[a-f0-9]{32}['"]/,
-    label: "Twilio Account SID",
-    severity: "critical",
-  },
-  {
-    id: "sendgrid",
-    regex: /['"]SG\.[A-Za-z0-9_-]{22,}\.[A-Za-z0-9_-]{22,}['"]/,
-    label: "SendGrid API Key",
-    severity: "critical",
-  },
-  {
-    id: "slack-token",
-    regex: /['"]xox[bpas]-[A-Za-z0-9-]{10,}['"]/,
-    label: "Slack Token",
-    severity: "critical",
-  },
-  {
-    id: "jwt-token",
-    regex: /['"]eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+['"]/,
-    label: "JWT Token",
-    severity: "critical",
-  },
-  {
-    id: "password-assign",
-    regex: /(?:password|passwd|pwd)\s*=\s*['"][^'"]{4,}['"]/,
-    label: "Password hardcoded",
-    severity: "critical",
-  },
-  {
-    id: "secret-assign",
-    regex: /(?:secret|secretKey|secret_key|api_secret)\s*=\s*['"][^'"]{4,}['"]/,
-    label: "Secret hardcoded",
-    severity: "critical",
-  },
-  {
-    id: "token-assign",
-    regex: /(?:token|accessToken|access_token|auth_token)\s*=\s*['"][^'"]{8,}['"]/,
-    label: "Token hardcoded",
-    severity: "high",
-  },
-  {
-    id: "private-key",
-    regex: /-----BEGIN (?:RSA |EC )?PRIVATE KEY-----/,
-    label: "Private Key",
-    severity: "critical",
-  },
-  {
-    id: "bearer-header",
-    regex: /['"](?:Authorization|authorization)['"]\s*:\s*['"]Bearer\s+[A-Za-z0-9_.=-]{20,}['"]/,
-    label: "Bearer Token em header",
-    severity: "critical",
-  },
-  {
-    id: "basic-header",
-    regex: /['"](?:Authorization|authorization)['"]\s*:\s*['"]Basic\s+[A-Za-z0-9+/=]{10,}['"]/,
-    label: "Basic Auth em header",
-    severity: "critical",
-  },
-  {
-    id: "api-key-header",
-    regex: /['"](?:X-API-Key|x-api-key|Api-Key|api-key)['"]\s*:\s*['"][^'"]{8,}['"]/,
-    label: "API Key em header",
-    severity: "high",
-  },
-  {
-    id: "url-with-key",
-    regex:
-      /['"]https?:\/\/[^'"]*[?&](?:key|apiKey|api_key|token|access_token)=[A-Za-z0-9_.=-]{10,}['"]/,
-    label: "URL com credencial no query string",
-    severity: "high",
-  },
-  {
-    id: "url-with-auth",
-    regex: /['"]https?:\/\/[^:'"]+:[^@'"]+@[^'"]+['"]/,
-    label: "URL com user:password",
-    severity: "critical",
-  },
+    {
+        id: "google-api",
+        regex: /['"]AIza[0-9A-Za-z_-]{35}['"]/,
+        label: "Google API Key",
+        severity: "critical",
+    },
+    {
+        id: "aws-access",
+        regex: /['"]AKIA[0-9A-Z]{16}['"]/,
+        label: "AWS Access Key",
+        severity: "critical",
+    },
+    {
+        id: "openai",
+        regex: /['"]sk-[A-Za-z0-9]{20,}['"]/,
+        label: "OpenAI API Key",
+        severity: "critical",
+    },
+    {
+        id: "stripe-secret",
+        regex: /['"]sk_live_[A-Za-z0-9]{24,}['"]/,
+        label: "Stripe Secret Key",
+        severity: "critical",
+    },
+    {
+        id: "stripe-publish",
+        regex: /['"]pk_live_[A-Za-z0-9]{24,}['"]/,
+        label: "Stripe Publishable Key (live)",
+        severity: "high",
+    },
+    {
+        id: "firebase-key",
+        regex: /['"]firebase[_-]?api[_-]?key['"]\s*[:=]\s*['"][^'"]{10,}['"]/,
+        label: "Firebase API Key",
+        severity: "critical",
+    },
+    {
+        id: "github-token",
+        regex: /['"](ghp_[A-Za-z0-9]{36}|gho_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{22,})['"]/,
+        label: "GitHub Token",
+        severity: "critical",
+    },
+    {
+        id: "twilio-sid",
+        regex: /['"]AC[a-f0-9]{32}['"]/,
+        label: "Twilio Account SID",
+        severity: "critical",
+    },
+    {
+        id: "sendgrid",
+        regex: /['"]SG\.[A-Za-z0-9_-]{22,}\.[A-Za-z0-9_-]{22,}['"]/,
+        label: "SendGrid API Key",
+        severity: "critical",
+    },
+    {
+        id: "slack-token",
+        regex: /['"]xox[bpas]-[A-Za-z0-9-]{10,}['"]/,
+        label: "Slack Token",
+        severity: "critical",
+    },
+    {
+        id: "jwt-token",
+        regex: /['"]eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+['"]/,
+        label: "JWT Token",
+        severity: "critical",
+    },
+    {
+        id: "password-assign",
+        regex: /(?:password|passwd|pwd)\s*=\s*['"][^'"]{4,}['"]/,
+        label: "Password hardcoded",
+        severity: "critical",
+    },
+    {
+        id: "secret-assign",
+        regex: /(?:secret|secretKey|secret_key|api_secret)\s*=\s*['"][^'"]{4,}['"]/,
+        label: "Secret hardcoded",
+        severity: "critical",
+    },
+    {
+        id: "token-assign",
+        regex: /(?:token|accessToken|access_token|auth_token)\s*=\s*['"][^'"]{8,}['"]/,
+        label: "Token hardcoded",
+        severity: "high",
+    },
+    {
+        id: "private-key",
+        regex: /-----BEGIN (?:RSA |EC )?PRIVATE KEY-----/,
+        label: "Private Key",
+        severity: "critical",
+    },
+    {
+        id: "bearer-header",
+        regex: /['"](?:Authorization|authorization)['"]\s*:\s*['"]Bearer\s+[A-Za-z0-9_.=-]{20,}['"]/,
+        label: "Bearer Token em header",
+        severity: "critical",
+    },
+    {
+        id: "basic-header",
+        regex: /['"](?:Authorization|authorization)['"]\s*:\s*['"]Basic\s+[A-Za-z0-9+/=]{10,}['"]/,
+        label: "Basic Auth em header",
+        severity: "critical",
+    },
+    {
+        id: "api-key-header",
+        regex: /['"](?:X-API-Key|x-api-key|Api-Key|api-key)['"]\s*:\s*['"][^'"]{8,}['"]/,
+        label: "API Key em header",
+        severity: "high",
+    },
+    {
+        id: "url-with-key",
+        regex: /['"]https?:\/\/[^'"]*[?&](?:key|apiKey|api_key|token|access_token)=[A-Za-z0-9_.=-]{10,}['"]/,
+        label: "URL com credencial no query string",
+        severity: "high",
+    },
+    {
+        id: "url-with-auth",
+        regex: /['"]https?:\/\/[^:'"]+:[^@'"]+@[^'"]+['"]/,
+        label: "URL com user:password",
+        severity: "critical",
+    },
 ];
 const SENSITIVE_FILES = [
-  ".env",
-  ".env.local",
-  ".env.production",
-  ".env.staging",
-  ".env.development",
-  "google-services.json",
-  "GoogleService-Info.plist",
-  "firebase_app_id_file.json",
-  "keystore.jks",
-  "upload-keystore.jks",
-  "key.properties",
-  "release.keystore",
-  "service-account.json",
-  "credentials.json",
-  "secrets.json",
-  "secrets.yaml",
-  "secrets.yml",
+    ".env",
+    ".env.local",
+    ".env.production",
+    ".env.staging",
+    ".env.development",
+    "google-services.json",
+    "GoogleService-Info.plist",
+    "firebase_app_id_file.json",
+    "keystore.jks",
+    "upload-keystore.jks",
+    "key.properties",
+    "release.keystore",
+    "service-account.json",
+    "credentials.json",
+    "secrets.json",
+    "secrets.yaml",
+    "secrets.yml",
 ];
 const GITIGNORE_EXPECTED = [
-  ".env",
-  "*.env",
-  "*.jks",
-  "*.keystore",
-  "key.properties",
-  "google-services.json",
-  "GoogleService-Info.plist",
-  "service-account.json",
+    ".env",
+    "*.env",
+    "*.jks",
+    "*.keystore",
+    "key.properties",
+    "google-services.json",
+    "GoogleService-Info.plist",
+    "service-account.json",
 ];
 function isCommentLine(line) {
-  const trimmed = line.trim();
-  return trimmed.startsWith("//") || trimmed.startsWith("*") || trimmed.startsWith("///");
+    const trimmed = line.trim();
+    return trimmed.startsWith("//") || trimmed.startsWith("*") || trimmed.startsWith("///");
 }
-exports.default = (0, _types_1.createPlugin)(
-  {
+exports.default = (0, _types_1.createPlugin)({
     name: "security-checker",
     description: "Detecta problemas de segurança (keys, secrets, arquivos sensíveis)",
     enabled: true,
-  },
-  async () => {
+}, async () => {
     const { git } = (0, _types_1.getDanger)();
     const allFiles = [...git.created_files, ...git.modified_files];
-    const dartFiles = allFiles.filter(
-      (f) =>
-        f.endsWith(".dart") &&
+    const dartFiles = allFiles.filter((f) => f.endsWith(".dart") &&
         !f.endsWith("_test.dart") &&
         !f.endsWith(".mock.dart") &&
         !f.endsWith(".mocks.dart") &&
         !f.includes("/test/") &&
         !f.includes("/test_driver/") &&
         !f.includes("/integration_test/") &&
-        fs.existsSync(f)
-    );
+        fs.existsSync(f));
     for (const file of dartFiles) {
-      const content = fs.readFileSync(file, "utf-8");
-      const lines = content.split("\n");
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        if (isCommentLine(line)) continue;
-        for (const { regex, label, severity } of SECRET_PATTERNS) {
-          if (!regex.test(line)) continue;
-          const icon = severity === "critical" ? "🚨" : "⚠️";
-          (0, _types_1.sendFormattedFail)({
-            title: `${icon} SEGURANÇA — ${label.toUpperCase()}`,
-            description: `Credencial detectada diretamente no código-fonte. Risco **${severity === "critical" ? "crítico" : "alto"}** de segurança.`,
-            problem: {
-              wrong: `const apiKey = 'AIzaSyD-9tNTn...';`,
-              correct: `const apiKey = String.fromEnvironment('API_KEY');`,
-              wrongLabel: "Credencial hardcoded",
-              correctLabel: "Variável de ambiente",
-            },
-            action: {
-              text: "1. Remova a credencial do código\n2. Revogue no provedor (considere comprometida)\n3. Use variáveis de ambiente:",
-              code: `// Variável de ambiente\nconst apiKey = String.fromEnvironment('API_KEY');\n\n// flutter_dotenv\nfinal apiKey = dotenv.env['API_KEY'] ?? '';`,
-            },
-            objective: "Proteger **credenciais** contra exposição em repositórios.",
-            file,
-            line: i + 1,
-          });
-          break;
+        const content = fs.readFileSync(file, "utf-8");
+        const lines = content.split("\n");
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            if (isCommentLine(line))
+                continue;
+            for (const { regex, label, severity } of SECRET_PATTERNS) {
+                if (!regex.test(line))
+                    continue;
+                const icon = severity === "critical" ? "🚨" : "⚠️";
+                (0, _types_1.sendFormattedFail)({
+                    title: `${icon} SEGURANÇA — ${label.toUpperCase()}`,
+                    description: `Credencial detectada diretamente no código-fonte. Risco **${severity === "critical" ? "crítico" : "alto"}** de segurança.`,
+                    problem: {
+                        wrong: `const apiKey = 'AIzaSyD-9tNTn...';`,
+                        correct: `const apiKey = String.fromEnvironment('API_KEY');`,
+                        wrongLabel: "Credencial hardcoded",
+                        correctLabel: "Variável de ambiente",
+                    },
+                    action: {
+                        text: "1. Remova a credencial do código\n2. Revogue no provedor (considere comprometida)\n3. Use variáveis de ambiente:",
+                        code: `// Variável de ambiente\nconst apiKey = String.fromEnvironment('API_KEY');\n\n// flutter_dotenv\nfinal apiKey = dotenv.env['API_KEY'] ?? '';`,
+                    },
+                    objective: "Proteger **credenciais** contra exposição em repositórios.",
+                    file,
+                    line: i + 1,
+                });
+                break;
+            }
         }
-      }
     }
     for (const file of allFiles) {
-      const fileName = file.split("/").pop() ?? "";
-      const matched = SENSITIVE_FILES.find((s) => fileName === s || file.endsWith(`/${s}`));
-      if (matched) {
-        (0, _types_1.sendFormattedFail)({
-          title: "ARQUIVO SENSÍVEL COMMITADO",
-          description: `O arquivo \`${fileName}\` **não deve ser commitado** no repositório.`,
-          problem: {
-            wrong: `git add ${file}`,
-            correct: `echo "${fileName}" >> .gitignore`,
-            wrongLabel: "Arquivo sensível no repositório",
-            correctLabel: "Arquivo no .gitignore",
-          },
-          action: {
-            text: "Remova o arquivo e adicione ao `.gitignore`:",
-            code: `git rm --cached ${file}\necho "${fileName}" >> .gitignore`,
-          },
-          objective: "Proteger **dados sensíveis** contra exposição.",
-          file,
-          line: 1,
-        });
-      }
+        const fileName = file.split("/").pop() ?? "";
+        const matched = SENSITIVE_FILES.find((s) => fileName === s || file.endsWith(`/${s}`));
+        if (matched) {
+            (0, _types_1.sendFormattedFail)({
+                title: "ARQUIVO SENSÍVEL COMMITADO",
+                description: `O arquivo \`${fileName}\` **não deve ser commitado** no repositório.`,
+                problem: {
+                    wrong: `git add ${file}`,
+                    correct: `echo "${fileName}" >> .gitignore`,
+                    wrongLabel: "Arquivo sensível no repositório",
+                    correctLabel: "Arquivo no .gitignore",
+                },
+                action: {
+                    text: "Remova o arquivo e adicione ao `.gitignore`:",
+                    code: `git rm --cached ${file}\necho "${fileName}" >> .gitignore`,
+                },
+                objective: "Proteger **dados sensíveis** contra exposição.",
+                file,
+                line: 1,
+            });
+        }
     }
     if (fs.existsSync(".gitignore")) {
-      const gitignoreContent = fs.readFileSync(".gitignore", "utf-8");
-      const missing = [];
-      for (const entry of GITIGNORE_EXPECTED) {
-        const escaped = entry.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\\\*/g, ".*");
-        const entryRegex = new RegExp(`^${escaped}\\s*$`, "m");
-        if (!entryRegex.test(gitignoreContent)) {
-          missing.push(entry);
+        const gitignoreContent = fs.readFileSync(".gitignore", "utf-8");
+        const missing = [];
+        for (const entry of GITIGNORE_EXPECTED) {
+            const escaped = entry.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\\\*/g, ".*");
+            const entryRegex = new RegExp(`^${escaped}\\s*$`, "m");
+            if (!entryRegex.test(gitignoreContent)) {
+                missing.push(entry);
+            }
         }
-      }
-      if (missing.length > 0) {
-        const missingList = missing.map((m) => `- \`${m}\``).join("\n");
-        (0, _types_1.sendWarn)(`GITIGNORE — Entradas de segurança ausentes
+        if (missing.length > 0) {
+            const missingList = missing.map((m) => `- \`${m}\``).join("\n");
+            (0, _types_1.sendWarn)(`GITIGNORE — Entradas de segurança ausentes
 
 O \`.gitignore\` não contém algumas entradas recomendadas para proteger arquivos sensíveis:
 
@@ -317,7 +294,6 @@ ${missingList}
 **Adicione ao .gitignore:**
 
 ${missingList}`);
-      }
+        }
     }
-  }
-);
+});

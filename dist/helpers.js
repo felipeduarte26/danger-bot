@@ -57,58 +57,39 @@
  * }
  * ```
  */
-var __createBinding =
-  (this && this.__createBinding) ||
-  (Object.create
-    ? function (o, m, k, k2) {
-        if (k2 === undefined) k2 = k;
-        var desc = Object.getOwnPropertyDescriptor(m, k);
-        if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-          desc = {
-            enumerable: true,
-            get: function () {
-              return m[k];
-            },
-          };
-        }
-        Object.defineProperty(o, k2, desc);
-      }
-    : function (o, m, k, k2) {
-        if (k2 === undefined) k2 = k;
-        o[k2] = m[k];
-      });
-var __setModuleDefault =
-  (this && this.__setModuleDefault) ||
-  (Object.create
-    ? function (o, v) {
-        Object.defineProperty(o, "default", { enumerable: true, value: v });
-      }
-    : function (o, v) {
-        o["default"] = v;
-      });
-var __importStar =
-  (this && this.__importStar) ||
-  (function () {
-    var ownKeys = function (o) {
-      ownKeys =
-        Object.getOwnPropertyNames ||
-        function (o) {
-          var ar = [];
-          for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-          return ar;
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
         };
-      return ownKeys(o);
+        return ownKeys(o);
     };
     return function (mod) {
-      if (mod && mod.__esModule) return mod;
-      var result = {};
-      if (mod != null)
-        for (var k = ownKeys(mod), i = 0; i < k.length; i++)
-          if (k[i] !== "default") __createBinding(result, mod, k[i]);
-      __setModuleDefault(result, mod);
-      return result;
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
     };
-  })();
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.setVerbose = setVerbose;
 exports.isVerbose = isVerbose;
@@ -151,65 +132,66 @@ let _summaryFlushed = false;
  * Chamado internamente pelo executeDangerBot ao carregar o danger-bot.yaml.
  */
 function setVerbose(enabled) {
-  _verbose = enabled;
+    _verbose = enabled;
 }
 /**
  * Retorna se o modo verbose está ativo.
  */
 function isVerbose() {
-  return _verbose;
+    return _verbose;
 }
 /**
  * Log condicional — só imprime quando verbose está ativo.
  */
 function verboseLog(...args) {
-  if (_verbose) console.log("[verbose]", ...args);
+    if (_verbose)
+        console.log("[verbose]", ...args);
 }
 /**
  * Define os arquivos que devem ser ignorados por todos os plugins.
  * Chamado internamente pelo executeDangerBot ao carregar o danger-bot.yaml.
  */
 function setIgnoredFiles(files) {
-  _ignoredFiles = new Set(files.map((f) => f.replace(/^\.\//, "").replace(/\\/g, "/")));
-  if (_ignoredFiles.size > 0) {
-    console.log(`🚫 ${_ignoredFiles.size} arquivo(s) na lista de ignore`);
-    if (_verbose) {
-      for (const f of _ignoredFiles) {
-        console.log(`   ├─ ${f}`);
-      }
+    _ignoredFiles = new Set(files.map((f) => f.replace(/^\.\//, "").replace(/\\/g, "/")));
+    if (_ignoredFiles.size > 0) {
+        console.log(`🚫 ${_ignoredFiles.size} arquivo(s) na lista de ignore`);
+        if (_verbose) {
+            for (const f of _ignoredFiles) {
+                console.log(`   ├─ ${f}`);
+            }
+        }
     }
-  }
 }
 /**
  * Retorna os arquivos ignorados configurados.
  */
 function getIgnoredFiles() {
-  return _ignoredFiles;
+    return _ignoredFiles;
 }
 function dedupKey(type, msg, file, line) {
-  return `${type}::${file ?? ""}::${line ?? ""}::${msg}`;
+    return `${type}::${file ?? ""}::${line ?? ""}::${msg}`;
 }
 function isDuplicate(type, msg, file, line) {
-  const key = dedupKey(type, msg, file, line);
-  if (_sentMessages.has(key)) return true;
-  _sentMessages.add(key);
-  return false;
+    const key = dedupKey(type, msg, file, line);
+    if (_sentMessages.has(key))
+        return true;
+    _sentMessages.add(key);
+    return false;
 }
 function isEmptyMessage(msg) {
-  return !msg || msg.trim().length === 0;
+    return !msg || msg.trim().length === 0;
 }
 function extractTitle(msg) {
-  const firstLine = msg.trim().split("\n")[0].trim();
-  return (
-    firstLine
-      .replace(/^#+\s*/, "")
-      .replace(/[*`#]/g, "")
-      .trim() || "Erro detectado"
-  );
+    const firstLine = msg.trim().split("\n")[0].trim();
+    return (firstLine
+        .replace(/^#+\s*/, "")
+        .replace(/[*`#]/g, "")
+        .trim() || "Erro detectado");
 }
 function ensureTrailingBreak(msg, file, line) {
-  if (!file || line === undefined) return msg;
-  return msg.trimEnd() + "\n\n&#8203;";
+    if (!file || line === undefined)
+        return msg;
+    return msg.trimEnd() + "\n\n&#8203;";
 }
 // ============================================================================
 // DANGER CORE
@@ -253,7 +235,7 @@ function ensureTrailingBreak(msg, file, line) {
  * ```
  */
 function getDanger() {
-  return global.danger || globalThis.danger;
+    return global.danger || globalThis.danger;
 }
 // ============================================================================
 // MENSAGENS NO PR
@@ -283,17 +265,20 @@ function getDanger() {
  * ```
  */
 function sendMessage(msg, file, line) {
-  if (isEmptyMessage(msg)) return;
-  if (isDuplicate("message", msg, file, line)) return;
-  const formatted = ensureTrailingBreak(msg, file, line);
-  const messageFn = global.message || globalThis.message;
-  if (messageFn) {
-    if (file && line !== undefined) {
-      messageFn(formatted, file, line);
-    } else {
-      messageFn(formatted);
+    if (isEmptyMessage(msg))
+        return;
+    if (isDuplicate("message", msg, file, line))
+        return;
+    const formatted = ensureTrailingBreak(msg, file, line);
+    const messageFn = global.message || globalThis.message;
+    if (messageFn) {
+        if (file && line !== undefined) {
+            messageFn(formatted, file, line);
+        }
+        else {
+            messageFn(formatted);
+        }
     }
-  }
 }
 /**
  * Envia um aviso (warning) no Pull Request
@@ -320,22 +305,25 @@ function sendMessage(msg, file, line) {
  * ```
  */
 function sendWarn(msg, file, line) {
-  if (isEmptyMessage(msg)) return;
-  if (isDuplicate("warn", msg, file, line)) return;
-  const formatted = ensureTrailingBreak(msg, file, line);
-  const warnFn = global.warn || globalThis.warn;
-  if (warnFn) {
-    if (file && line !== undefined) {
-      const markdownFn = global.markdown || globalThis.markdown;
-      if (markdownFn) {
-        markdownFn(formatted, file, line);
-      }
-      const title = extractTitle(msg);
-      trackWarnSummary(title, file);
-    } else {
-      warnFn(formatted);
+    if (isEmptyMessage(msg))
+        return;
+    if (isDuplicate("warn", msg, file, line))
+        return;
+    const formatted = ensureTrailingBreak(msg, file, line);
+    const warnFn = global.warn || globalThis.warn;
+    if (warnFn) {
+        if (file && line !== undefined) {
+            const markdownFn = global.markdown || globalThis.markdown;
+            if (markdownFn) {
+                markdownFn(formatted, file, line);
+            }
+            const title = extractTitle(msg);
+            trackWarnSummary(title, file);
+        }
+        else {
+            warnFn(formatted);
+        }
     }
-  }
 }
 /**
  * Envia uma mensagem de erro no Pull Request (falha o build)
@@ -362,69 +350,76 @@ function sendWarn(msg, file, line) {
  * ```
  */
 function sendFail(msg, file, line) {
-  if (isEmptyMessage(msg)) return;
-  if (isDuplicate("fail", msg, file, line)) return;
-  const formatted = ensureTrailingBreak(msg, file, line);
-  const failFn = global.fail || globalThis.fail;
-  if (failFn) {
-    if (file && line !== undefined) {
-      const markdownFn = global.markdown || globalThis.markdown;
-      if (markdownFn) {
-        markdownFn(formatted, file, line);
-      }
-      const title = extractTitle(msg);
-      trackSummary(title, file);
-    } else {
-      failFn(formatted);
+    if (isEmptyMessage(msg))
+        return;
+    if (isDuplicate("fail", msg, file, line))
+        return;
+    const formatted = ensureTrailingBreak(msg, file, line);
+    const failFn = global.fail || globalThis.fail;
+    if (failFn) {
+        if (file && line !== undefined) {
+            const markdownFn = global.markdown || globalThis.markdown;
+            if (markdownFn) {
+                markdownFn(formatted, file, line);
+            }
+            const title = extractTitle(msg);
+            trackSummary(title, file);
+        }
+        else {
+            failFn(formatted);
+        }
     }
-  }
 }
 function trackToMap(map, title, file) {
-  const key = title.toUpperCase();
-  const entry = map.get(key) ?? { count: 0, files: [] };
-  entry.count++;
-  if (entry.files.length < MAX_SUMMARY_PER_TYPE) {
-    entry.files.push(file);
-  }
-  map.set(key, entry);
+    const key = title.toUpperCase();
+    const entry = map.get(key) ?? { count: 0, files: [] };
+    entry.count++;
+    if (entry.files.length < MAX_SUMMARY_PER_TYPE) {
+        entry.files.push(file);
+    }
+    map.set(key, entry);
 }
 function trackSummary(title, file) {
-  trackToMap(_failSummary, title, file);
+    trackToMap(_failSummary, title, file);
 }
 function trackWarnSummary(title, file) {
-  trackToMap(_warnSummary, title, file);
+    trackToMap(_warnSummary, title, file);
 }
 function flushMap(map, emitFn) {
-  for (const [title, { count, files }] of map) {
-    if (count <= MAX_SUMMARY_PER_TYPE) {
-      for (const f of files) {
-        emitFn(`**${title}** — \`${f}\``);
-      }
-    } else {
-      emitFn(`**${title}** — ${count} ocorrência(s)`);
+    for (const [title, { count, files }] of map) {
+        if (count <= MAX_SUMMARY_PER_TYPE) {
+            for (const f of files) {
+                emitFn(`**${title}** — \`${f}\``);
+            }
+        }
+        else {
+            emitFn(`**${title}** — ${count} ocorrência(s)`);
+        }
     }
-  }
 }
 /**
  * Envia os resumos agrupados de fails/warns na tabela principal.
  * Chamado automaticamente pelo executeDangerBot após todos os plugins.
  */
 function flushSummaries() {
-  if (_summaryFlushed) return;
-  _summaryFlushed = true;
-  const failFn = global.fail || globalThis.fail;
-  const warnFn = global.warn || globalThis.warn;
-  if (failFn && _failSummary.size > 0) flushMap(_failSummary, failFn);
-  if (warnFn && _warnSummary.size > 0) flushMap(_warnSummary, warnFn);
+    if (_summaryFlushed)
+        return;
+    _summaryFlushed = true;
+    const failFn = global.fail || globalThis.fail;
+    const warnFn = global.warn || globalThis.warn;
+    if (failFn && _failSummary.size > 0)
+        flushMap(_failSummary, failFn);
+    if (warnFn && _warnSummary.size > 0)
+        flushMap(_warnSummary, warnFn);
 }
 function buildFormattedMessage(opts) {
-  const lang = opts.problem.language ?? "dart";
-  const actionLang = opts.action.language ?? "dart";
-  const wrongLabel = opts.problem.wrongLabel ?? "Errado";
-  const correctLabel = opts.problem.correctLabel ?? "Correto";
-  const actionText = opts.action.text ? `${opts.action.text}\n\n` : "";
-  const refLine = opts.reference ? `\n📖 [${opts.reference.text}](${opts.reference.url})` : "";
-  return `${opts.title}
+    const lang = opts.problem.language ?? "dart";
+    const actionLang = opts.action.language ?? "dart";
+    const wrongLabel = opts.problem.wrongLabel ?? "Errado";
+    const correctLabel = opts.problem.correctLabel ?? "Correto";
+    const actionText = opts.action.text ? `${opts.action.text}\n\n` : "";
+    const refLine = opts.reference ? `\n📖 [${opts.reference.text}](${opts.reference.url})` : "";
+    return `${opts.title}
 
 ${opts.description}
 
@@ -487,8 +482,8 @@ ${opts.objective}${refLine}`;
  * ```
  */
 function sendFormattedFail(opts) {
-  const msg = buildFormattedMessage(opts);
-  sendFail(msg, opts.file, opts.line);
+    const msg = buildFormattedMessage(opts);
+    sendFail(msg, opts.file, opts.line);
 }
 /**
  * Envia um aviso formatado no padrão Danger Bot.
@@ -518,8 +513,8 @@ function sendFormattedFail(opts) {
  * ```
  */
 function sendFormattedWarn(opts) {
-  const msg = buildFormattedMessage(opts);
-  sendWarn(msg, opts.file, opts.line);
+    const msg = buildFormattedMessage(opts);
+    sendWarn(msg, opts.file, opts.line);
 }
 /**
  * Envia conteúdo markdown formatado no Pull Request
@@ -558,15 +553,17 @@ function sendFormattedWarn(opts) {
  * ```
  */
 function sendMarkdown(msg, file, line) {
-  if (isEmptyMessage(msg)) return;
-  const markdownFn = global.markdown || globalThis.markdown;
-  if (markdownFn) {
-    if (file && line !== undefined) {
-      markdownFn(msg, file, line);
-    } else {
-      markdownFn(msg);
+    if (isEmptyMessage(msg))
+        return;
+    const markdownFn = global.markdown || globalThis.markdown;
+    if (markdownFn) {
+        if (file && line !== undefined) {
+            markdownFn(msg, file, line);
+        }
+        else {
+            markdownFn(msg);
+        }
     }
-  }
 }
 /**
  * Agenda uma tarefa assíncrona para ser executada pelo Danger
@@ -600,8 +597,9 @@ function sendMarkdown(msg, file, line) {
  * ```
  */
 function scheduleTask(fn) {
-  const scheduleFn = global.schedule || globalThis.schedule;
-  if (scheduleFn) scheduleFn(fn);
+    const scheduleFn = global.schedule || globalThis.schedule;
+    if (scheduleFn)
+        scheduleFn(fn);
 }
 // ============================================================================
 // FILTROS DE ARQUIVOS
@@ -631,22 +629,18 @@ function scheduleTask(fn) {
  * ```
  */
 function getAllChangedFiles() {
-  const danger = getDanger();
-  const allFiles = [...danger.git.modified_files, ...danger.git.created_files];
-  if (_ignoredFiles.size === 0) {
-    verboseLog(`📂 ${allFiles.length} arquivo(s) modificados/criados no PR`);
-    return allFiles;
-  }
-  const filtered = allFiles.filter(
-    (f) => !_ignoredFiles.has(f.replace(/^\.\//, "").replace(/\\/g, "/"))
-  );
-  const ignoredCount = allFiles.length - filtered.length;
-  if (ignoredCount > 0) {
-    verboseLog(
-      `📂 ${allFiles.length} arquivo(s) no PR, ${ignoredCount} ignorado(s), ${filtered.length} para análise`
-    );
-  }
-  return filtered;
+    const danger = getDanger();
+    const allFiles = [...danger.git.modified_files, ...danger.git.created_files];
+    if (_ignoredFiles.size === 0) {
+        verboseLog(`📂 ${allFiles.length} arquivo(s) modificados/criados no PR`);
+        return allFiles;
+    }
+    const filtered = allFiles.filter((f) => !_ignoredFiles.has(f.replace(/^\.\//, "").replace(/\\/g, "/")));
+    const ignoredCount = allFiles.length - filtered.length;
+    if (ignoredCount > 0) {
+        verboseLog(`📂 ${allFiles.length} arquivo(s) no PR, ${ignoredCount} ignorado(s), ${filtered.length} para análise`);
+    }
+    return filtered;
 }
 /**
  * Retorna todos os arquivos `.dart` modificados ou criados que existem no disco
@@ -678,12 +672,10 @@ function getAllChangedFiles() {
  * ```
  */
 async function getDartFiles() {
-  const danger = getDanger();
-  const { existsSync } = await Promise.resolve().then(() => __importStar(require("fs")));
-  const dartFiles = [...danger.git.modified_files, ...danger.git.created_files].filter(
-    (f) => f.endsWith(".dart") && !f.endsWith("_test.dart") && existsSync(f)
-  );
-  return dartFiles;
+    const danger = getDanger();
+    const { existsSync } = await Promise.resolve().then(() => __importStar(require("fs")));
+    const dartFiles = [...danger.git.modified_files, ...danger.git.created_files].filter((f) => f.endsWith(".dart") && !f.endsWith("_test.dart") && existsSync(f));
+    return dartFiles;
 }
 /**
  * Retorna arquivos `.dart` de um diretório específico
@@ -711,8 +703,8 @@ async function getDartFiles() {
  * ```
  */
 async function getDartFilesInDirectory(directory) {
-  const data = await getDartFiles();
-  return data.filter((f) => f.includes(directory));
+    const data = await getDartFiles();
+    return data.filter((f) => f.includes(directory));
 }
 /**
  * Retorna arquivos que correspondem a um padrão RegExp
@@ -746,7 +738,7 @@ async function getDartFilesInDirectory(directory) {
  * ```
  */
 function getFilesMatching(pattern) {
-  return getAllChangedFiles().filter((f) => pattern.test(f));
+    return getAllChangedFiles().filter((f) => pattern.test(f));
 }
 // ============================================================================
 // CLEAN ARCHITECTURE HELPERS
@@ -777,8 +769,8 @@ function getFilesMatching(pattern) {
  * ```
  */
 async function getDomainDartFiles() {
-  const data = await getDartFilesInDirectory("/domain/");
-  return data;
+    const data = await getDartFilesInDirectory("/domain/");
+    return data;
 }
 /**
  * Retorna arquivos `.dart` da camada Data (Clean Architecture)
@@ -806,7 +798,7 @@ async function getDomainDartFiles() {
  * ```
  */
 async function getDataDartFiles() {
-  return await getDartFilesInDirectory("/data/");
+    return await getDartFilesInDirectory("/data/");
 }
 /**
  * Retorna arquivos `.dart` da camada Presentation (Clean Architecture)
@@ -835,7 +827,7 @@ async function getDataDartFiles() {
  * ```
  */
 async function getPresentationDartFiles() {
-  return await getDartFilesInDirectory("/presentation/");
+    return await getDartFilesInDirectory("/presentation/");
 }
 /**
  * Verifica se um arquivo pertence a uma camada específica da Clean Architecture
@@ -875,7 +867,7 @@ async function getPresentationDartFiles() {
  * ```
  */
 function isInLayer(file, layer) {
-  return file.includes(`/${layer}/`);
+    return file.includes(`/${layer}/`);
 }
 /**
  * Read file content from git diff
@@ -885,14 +877,16 @@ function isInLayer(file, layer) {
  * @returns File content as string, or null if not available
  */
 async function getFileContent(file) {
-  try {
-    const danger = getDanger();
-    const content = await danger.git.structuredDiffForFile(file);
-    if (!content) return null;
-    return content.chunks.map((c) => c.content).join("\n");
-  } catch (e) {
-    return null;
-  }
+    try {
+        const danger = getDanger();
+        const content = await danger.git.structuredDiffForFile(file);
+        if (!content)
+            return null;
+        return content.chunks.map((c) => c.content).join("\n");
+    }
+    catch (e) {
+        return null;
+    }
 }
 /**
  * Check if file content matches a pattern
@@ -903,8 +897,8 @@ async function getFileContent(file) {
  * @returns True if pattern matches, false otherwise
  */
 async function fileContainsPattern(file, pattern) {
-  const content = await getFileContent(file);
-  return content ? pattern.test(content) : false;
+    const content = await getFileContent(file);
+    return content ? pattern.test(content) : false;
 }
 /**
  * Get files by extension
@@ -914,7 +908,7 @@ async function fileContainsPattern(file, pattern) {
  * @returns Array of file paths with the extension
  */
 function getFilesByExtension(extension) {
-  return getAllChangedFiles().filter((f) => f.endsWith(extension));
+    return getAllChangedFiles().filter((f) => f.endsWith(extension));
 }
 /**
  * Check if any files match a pattern
@@ -924,7 +918,7 @@ function getFilesByExtension(extension) {
  * @returns True if at least one file matches
  */
 function hasFilesMatching(pattern) {
-  return getAllChangedFiles().some((f) => pattern.test(f));
+    return getAllChangedFiles().some((f) => pattern.test(f));
 }
 /**
  * Get PR description
@@ -933,8 +927,8 @@ function hasFilesMatching(pattern) {
  * @returns PR description or empty string
  */
 function getPRDescription() {
-  const danger = getDanger();
-  return danger.github?.pr?.body || danger.bitbucket_cloud?.pr?.description || "";
+    const danger = getDanger();
+    return danger.github?.pr?.body || danger.bitbucket_cloud?.pr?.description || "";
 }
 /**
  * Get PR title
@@ -943,8 +937,8 @@ function getPRDescription() {
  * @returns PR title or empty string
  */
 function getPRTitle() {
-  const danger = getDanger();
-  return danger.github?.pr?.title || danger.bitbucket_cloud?.pr?.title || "";
+    const danger = getDanger();
+    return danger.github?.pr?.title || danger.bitbucket_cloud?.pr?.title || "";
 }
 /**
  * Get lines changed (insertions + deletions)
@@ -953,6 +947,6 @@ function getPRTitle() {
  * @returns Number of lines changed
  */
 function getLinesChanged() {
-  const danger = getDanger();
-  return (danger.git.insertions || 0) + (danger.git.deletions || 0);
+    const danger = getDanger();
+    return (danger.git.insertions || 0) + (danger.git.deletions || 0);
 }

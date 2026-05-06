@@ -1,56 +1,37 @@
 "use strict";
-var __createBinding =
-  (this && this.__createBinding) ||
-  (Object.create
-    ? function (o, m, k, k2) {
-        if (k2 === undefined) k2 = k;
-        var desc = Object.getOwnPropertyDescriptor(m, k);
-        if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-          desc = {
-            enumerable: true,
-            get: function () {
-              return m[k];
-            },
-          };
-        }
-        Object.defineProperty(o, k2, desc);
-      }
-    : function (o, m, k, k2) {
-        if (k2 === undefined) k2 = k;
-        o[k2] = m[k];
-      });
-var __setModuleDefault =
-  (this && this.__setModuleDefault) ||
-  (Object.create
-    ? function (o, v) {
-        Object.defineProperty(o, "default", { enumerable: true, value: v });
-      }
-    : function (o, v) {
-        o["default"] = v;
-      });
-var __importStar =
-  (this && this.__importStar) ||
-  (function () {
-    var ownKeys = function (o) {
-      ownKeys =
-        Object.getOwnPropertyNames ||
-        function (o) {
-          var ar = [];
-          for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-          return ar;
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
         };
-      return ownKeys(o);
+        return ownKeys(o);
     };
     return function (mod) {
-      if (mod && mod.__esModule) return mod;
-      var result = {};
-      if (mod != null)
-        for (var k = ownKeys(mod), i = 0; i < k.length; i++)
-          if (k[i] !== "default") __createBinding(result, mod, k[i]);
-      __setModuleDefault(result, mod);
-      return result;
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
     };
-  })();
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 /**
  * Domain Entities Plugin
@@ -68,156 +49,162 @@ const _types_1 = require("../../../types");
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 function isBarrelFile(filePath) {
-  const fileName = path.basename(filePath, ".dart");
-  const parentDir = path.basename(path.dirname(filePath));
-  return fileName === parentDir;
+    const fileName = path.basename(filePath, ".dart");
+    const parentDir = path.basename(path.dirname(filePath));
+    return fileName === parentDir;
 }
 const NON_ENTITY_SUBFOLDERS = new Set(["extensions", "errors", "mixins", "typedefs"]);
 const VALID_ENUM_PARENTS = new Set(["enums"]);
 function getSubfolderAfterEntities(filePath) {
-  const parts = filePath.split("/");
-  const entitiesIdx = parts.lastIndexOf("entities");
-  if (entitiesIdx === -1 || entitiesIdx >= parts.length - 2) return null;
-  return parts[entitiesIdx + 1];
+    const parts = filePath.split("/");
+    const entitiesIdx = parts.lastIndexOf("entities");
+    if (entitiesIdx === -1 || entitiesIdx >= parts.length - 2)
+        return null;
+    return parts[entitiesIdx + 1];
 }
 function isEnumFile(content) {
-  return /^\s*enum\s+[A-Za-z_]\w*/m.test(content);
+    return /^\s*enum\s+[A-Za-z_]\w*/m.test(content);
 }
 function parseEnums(content) {
-  const lines = content.split("\n");
-  const enums = [];
-  for (let i = 0; i < lines.length; i++) {
-    const match = lines[i].match(/^\s*enum\s+([A-Za-z_]\w*)/);
-    if (match) {
-      enums.push({ name: match[1], line: i + 1 });
+    const lines = content.split("\n");
+    const enums = [];
+    for (let i = 0; i < lines.length; i++) {
+        const match = lines[i].match(/^\s*enum\s+([A-Za-z_]\w*)/);
+        if (match) {
+            enums.push({ name: match[1], line: i + 1 });
+        }
     }
-  }
-  return enums;
+    return enums;
 }
 function validateEnum(file, content) {
-  const fileName = file.split("/").pop() || "";
-  const enums = parseEnums(content);
-  if (enums.length === 0) return false;
-  const subfolder = getSubfolderAfterEntities(file);
-  const isInEnumsFolder = subfolder === "enums";
-  if (!isInEnumsFolder) {
-    (0, _types_1.sendFormattedFail)({
-      title: "ENUM FORA DA PASTA ENUMS",
-      description: `Arquivo enum \`${fileName}\` está solto em \`entities/\`. Deve ficar em \`entities/enums/\`.`,
-      problem: {
-        wrong: file.split("/").slice(-3).join("/"),
-        correct: file.split("/").slice(-3, -1).join("/") + "/enums/" + fileName,
-        wrongLabel: "Solto em entities/",
-        correctLabel: "Dentro de entities/enums/",
-      },
-      action: {
-        text: "Mova o arquivo para a subpasta `enums/`:",
-        code: `entities/\n  ├── enums/\n  │   └── ${fileName}   ← aqui\n  └── ...`,
-        language: "text",
-      },
-      objective: "Manter enums **organizados** em sua subpasta dedicada.",
-      file,
-      line: 1,
-    });
-  }
-  if (!fileName.endsWith("_enum.dart") && !fileName.endsWith("enums.dart")) {
-    (0, _types_1.sendFormattedFail)({
-      title: "NOMENCLATURA DE ENUM INCORRETA",
-      description: `Arquivo deve terminar com \`_enum.dart\`.`,
-      problem: {
-        wrong: fileName,
-        correct: `${fileName.replace(".dart", "")}_enum.dart`,
-        wrongLabel: "Nome atual",
-        correctLabel: "Nome correto",
-      },
-      action: {
-        code: `// Renomeie o arquivo:\n// ${fileName} → ${fileName.replace(".dart", "")}_enum.dart`,
-      },
-      objective: "Manter **consistência** na nomenclatura de enums.",
-      file,
-      line: 1,
-    });
-  }
-  for (const e of enums) {
-    if (!e.name.endsWith("Enum")) {
-      (0, _types_1.sendFormattedFail)({
-        title: "ENUM SEM SUFIXO",
-        description: `O enum \`${e.name}\` deve terminar com \`Enum\`.`,
-        problem: {
-          wrong: `enum ${e.name} { }`,
-          correct: `enum ${e.name}Enum { }`,
-        },
-        action: {
-          code: `enum ${e.name}Enum { }`,
-        },
-        objective: "Manter **consistência** na nomenclatura de enums.",
-        file,
-        line: e.line,
-      });
+    const fileName = file.split("/").pop() || "";
+    const enums = parseEnums(content);
+    if (enums.length === 0)
+        return false;
+    const subfolder = getSubfolderAfterEntities(file);
+    const isInEnumsFolder = subfolder === "enums";
+    if (!isInEnumsFolder) {
+        (0, _types_1.sendFormattedFail)({
+            title: "ENUM FORA DA PASTA ENUMS",
+            description: `Arquivo enum \`${fileName}\` está solto em \`entities/\`. Deve ficar em \`entities/enums/\`.`,
+            problem: {
+                wrong: file.split("/").slice(-3).join("/"),
+                correct: file.split("/").slice(-3, -1).join("/") + "/enums/" + fileName,
+                wrongLabel: "Solto em entities/",
+                correctLabel: "Dentro de entities/enums/",
+            },
+            action: {
+                text: "Mova o arquivo para a subpasta `enums/`:",
+                code: `entities/\n  ├── enums/\n  │   └── ${fileName}   ← aqui\n  └── ...`,
+                language: "text",
+            },
+            objective: "Manter enums **organizados** em sua subpasta dedicada.",
+            file,
+            line: 1,
+        });
     }
-  }
-  return true;
+    if (!fileName.endsWith("_enum.dart") && !fileName.endsWith("enums.dart")) {
+        (0, _types_1.sendFormattedFail)({
+            title: "NOMENCLATURA DE ENUM INCORRETA",
+            description: `Arquivo deve terminar com \`_enum.dart\`.`,
+            problem: {
+                wrong: fileName,
+                correct: `${fileName.replace(".dart", "")}_enum.dart`,
+                wrongLabel: "Nome atual",
+                correctLabel: "Nome correto",
+            },
+            action: {
+                code: `// Renomeie o arquivo:\n// ${fileName} → ${fileName.replace(".dart", "")}_enum.dart`,
+            },
+            objective: "Manter **consistência** na nomenclatura de enums.",
+            file,
+            line: 1,
+        });
+    }
+    for (const e of enums) {
+        if (!e.name.endsWith("Enum")) {
+            (0, _types_1.sendFormattedFail)({
+                title: "ENUM SEM SUFIXO",
+                description: `O enum \`${e.name}\` deve terminar com \`Enum\`.`,
+                problem: {
+                    wrong: `enum ${e.name} { }`,
+                    correct: `enum ${e.name}Enum { }`,
+                },
+                action: {
+                    code: `enum ${e.name}Enum { }`,
+                },
+                objective: "Manter **consistência** na nomenclatura de enums.",
+                file,
+                line: e.line,
+            });
+        }
+    }
+    return true;
 }
 function parseClassFields(lines, classStartLine) {
-  const fields = [];
-  let braceDepth = 0;
-  let foundOpen = false;
-  for (let j = classStartLine; j < lines.length; j++) {
-    const cl = lines[j];
-    for (const ch of cl) {
-      if (ch === "{") {
-        braceDepth++;
-        foundOpen = true;
-      }
-      if (ch === "}") braceDepth--;
+    const fields = [];
+    let braceDepth = 0;
+    let foundOpen = false;
+    for (let j = classStartLine; j < lines.length; j++) {
+        const cl = lines[j];
+        for (const ch of cl) {
+            if (ch === "{") {
+                braceDepth++;
+                foundOpen = true;
+            }
+            if (ch === "}")
+                braceDepth--;
+        }
+        if (foundOpen && braceDepth === 1) {
+            const trimmed = cl.trim();
+            if (trimmed.startsWith("//") ||
+                trimmed.startsWith("///") ||
+                trimmed.startsWith("*") ||
+                trimmed.startsWith("const ") ||
+                trimmed.startsWith("factory ") ||
+                trimmed.includes("static ")) {
+                continue;
+            }
+            const fieldMatch = trimmed.match(/^(?:late\s+)?final\s+(.+?)\s+([a-z_]\w*)\s*(?:=.*)?;$/);
+            if (fieldMatch) {
+                fields.push({ type: fieldMatch[1], name: fieldMatch[2], line: j + 1 });
+            }
+        }
+        if (foundOpen && braceDepth <= 0)
+            break;
     }
-    if (foundOpen && braceDepth === 1) {
-      const trimmed = cl.trim();
-      if (
-        trimmed.startsWith("//") ||
-        trimmed.startsWith("///") ||
-        trimmed.startsWith("*") ||
-        trimmed.startsWith("const ") ||
-        trimmed.startsWith("factory ") ||
-        trimmed.includes("static ")
-      ) {
-        continue;
-      }
-      const fieldMatch = trimmed.match(/^(?:late\s+)?final\s+(.+?)\s+([a-z_]\w*)\s*(?:=.*)?;$/);
-      if (fieldMatch) {
-        fields.push({ type: fieldMatch[1], name: fieldMatch[2], line: j + 1 });
-      }
-    }
-    if (foundOpen && braceDepth <= 0) break;
-  }
-  return fields;
+    return fields;
 }
 function toSnakeCase(name) {
-  return name
-    .replace(/([a-z])([A-Z])/g, "$1_$2")
-    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2")
-    .toLowerCase();
+    return name
+        .replace(/([a-z])([A-Z])/g, "$1_$2")
+        .replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2")
+        .toLowerCase();
 }
 function findFileRecursive(dir, fileName) {
-  if (!fs.existsSync(dir)) return null;
-  const entries = fs.readdirSync(dir, { withFileTypes: true });
-  for (const entry of entries) {
-    const fullPath = path.join(dir, entry.name);
-    if (entry.isFile() && entry.name === fileName) return fullPath;
-    if (entry.isDirectory()) {
-      const found = findFileRecursive(fullPath, fileName);
-      if (found) return found;
+    if (!fs.existsSync(dir))
+        return null;
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    for (const entry of entries) {
+        const fullPath = path.join(dir, entry.name);
+        if (entry.isFile() && entry.name === fileName)
+            return fullPath;
+        if (entry.isDirectory()) {
+            const found = findFileRecursive(fullPath, fileName);
+            if (found)
+                return found;
+        }
     }
-  }
-  return null;
+    return null;
 }
 function collectClassDeclaration(lines, startLine) {
-  let declaration = "";
-  for (let j = startLine; j < lines.length; j++) {
-    declaration += " " + lines[j].trim();
-    if (declaration.includes("{")) break;
-  }
-  return declaration;
+    let declaration = "";
+    for (let j = startLine; j < lines.length; j++) {
+        declaration += " " + lines[j].trim();
+        if (declaration.includes("{"))
+            break;
+    }
+    return declaration;
 }
 /**
  * Checks if the entity is (or should be) extended by a corresponding Model.
@@ -228,307 +215,305 @@ function collectClassDeclaration(lines, startLine) {
  * 2. A model has ALL the same fields (name + type) → will be told to extend
  */
 function isEntityExtendedByModel(entityFilePath, entityClassName, entityFields) {
-  const baseName = entityClassName.replace(/Entity$/, "");
-  const snakeBase = toSnakeCase(baseName);
-  const modelFileName = `${snakeBase}_model.dart`;
-  // Compute model directory: /domain/entities/ → /data/models/
-  const parts = entityFilePath.split("/");
-  const domainIdx = parts.indexOf("domain");
-  if (domainIdx === -1) return false;
-  const featurePath = parts.slice(0, domainIdx).join("/");
-  const modelsDir = path.join(featurePath, "data", "models");
-  // Try direct path mapping first
-  const directPath = entityFilePath
-    .replace(/\/domain\/entities\//, "/data/models/")
-    .replace(/_entity\.dart$/, "_model.dart");
-  let modelPath = null;
-  if (fs.existsSync(directPath)) {
-    modelPath = directPath;
-  } else {
-    modelPath = findFileRecursive(modelsDir, modelFileName);
-  }
-  if (!modelPath) return false;
-  const modelContent = fs.readFileSync(modelPath, "utf-8");
-  const modelLines = modelContent.split("\n");
-  // Check if model already extends this entity (multi-line aware)
-  for (let i = 0; i < modelLines.length; i++) {
-    const trimmed = modelLines[i].trimStart();
-    const classMatch = trimmed.match(/^(?:final\s+)?class\s+([A-Za-z_]\w*Model)/);
-    if (classMatch) {
-      const fullDecl = collectClassDeclaration(modelLines, i);
-      if (fullDecl.includes(`extends ${entityClassName}`)) return true;
-      break;
+    const baseName = entityClassName.replace(/Entity$/, "");
+    const snakeBase = toSnakeCase(baseName);
+    const modelFileName = `${snakeBase}_model.dart`;
+    // Compute model directory: /domain/entities/ → /data/models/
+    const parts = entityFilePath.split("/");
+    const domainIdx = parts.indexOf("domain");
+    if (domainIdx === -1)
+        return false;
+    const featurePath = parts.slice(0, domainIdx).join("/");
+    const modelsDir = path.join(featurePath, "data", "models");
+    // Try direct path mapping first
+    const directPath = entityFilePath
+        .replace(/\/domain\/entities\//, "/data/models/")
+        .replace(/_entity\.dart$/, "_model.dart");
+    let modelPath = null;
+    if (fs.existsSync(directPath)) {
+        modelPath = directPath;
     }
-  }
-  // Check if model has identical fields → model-entity-inheritance will flag it to extend
-  if (entityFields.length === 0) return false;
-  const modelFields = parseModelFields(modelContent);
-  if (modelFields.length === 0) return false;
-  const modelFieldMap = new Map();
-  for (const f of modelFields) {
-    modelFieldMap.set(`${f.type}|${f.name}`, true);
-  }
-  for (const entityField of entityFields) {
-    if (!modelFieldMap.has(`${entityField.type}|${entityField.name}`)) {
-      return false;
+    else {
+        modelPath = findFileRecursive(modelsDir, modelFileName);
     }
-  }
-  return true;
+    if (!modelPath)
+        return false;
+    const modelContent = fs.readFileSync(modelPath, "utf-8");
+    const modelLines = modelContent.split("\n");
+    // Check if model already extends this entity (multi-line aware)
+    for (let i = 0; i < modelLines.length; i++) {
+        const trimmed = modelLines[i].trimStart();
+        const classMatch = trimmed.match(/^(?:final\s+)?class\s+([A-Za-z_]\w*Model)/);
+        if (classMatch) {
+            const fullDecl = collectClassDeclaration(modelLines, i);
+            if (fullDecl.includes(`extends ${entityClassName}`))
+                return true;
+            break;
+        }
+    }
+    // Check if model has identical fields → model-entity-inheritance will flag it to extend
+    if (entityFields.length === 0)
+        return false;
+    const modelFields = parseModelFields(modelContent);
+    if (modelFields.length === 0)
+        return false;
+    const modelFieldMap = new Map();
+    for (const f of modelFields) {
+        modelFieldMap.set(`${f.type}|${f.name}`, true);
+    }
+    for (const entityField of entityFields) {
+        if (!modelFieldMap.has(`${entityField.type}|${entityField.name}`)) {
+            return false;
+        }
+    }
+    return true;
 }
 function parseModelFields(content) {
-  const lines = content.split("\n");
-  for (let i = 0; i < lines.length; i++) {
-    const trimmed = lines[i].trimStart();
-    if (trimmed.startsWith("//") || trimmed.startsWith("///")) continue;
-    const classMatch = trimmed.match(/^(?:abstract\s+)?(?:final\s+)?class\s+([A-Za-z_]\w*Model)/);
-    if (classMatch) {
-      if (trimmed.startsWith("abstract")) continue;
-      return parseClassFields(lines, i);
+    const lines = content.split("\n");
+    for (let i = 0; i < lines.length; i++) {
+        const trimmed = lines[i].trimStart();
+        if (trimmed.startsWith("//") || trimmed.startsWith("///"))
+            continue;
+        const classMatch = trimmed.match(/^(?:abstract\s+)?(?:final\s+)?class\s+([A-Za-z_]\w*Model)/);
+        if (classMatch) {
+            if (trimmed.startsWith("abstract"))
+                continue;
+            return parseClassFields(lines, i);
+        }
     }
-  }
-  return [];
+    return [];
 }
-exports.default = (0, _types_1.createPlugin)(
-  {
+exports.default = (0, _types_1.createPlugin)({
     name: "domain-entities",
     description: "Valida Domain Entities e Enums",
     enabled: true,
-  },
-  async () => {
+}, async () => {
     const { git } = (0, _types_1.getDanger)();
-    const files = [...git.created_files, ...git.modified_files].filter(
-      (f) =>
-        f.includes("/entities/") &&
+    const files = [...git.created_files, ...git.modified_files].filter((f) => f.includes("/entities/") &&
         f.endsWith(".dart") &&
         !f.endsWith("_test.dart") &&
         !f.endsWith("entities.dart") &&
         !isBarrelFile(f) &&
-        fs.existsSync(f)
-    );
+        fs.existsSync(f));
     for (const file of files) {
-      const fileName = file.split("/").pop() || "";
-      const subfolder = getSubfolderAfterEntities(file);
-      if (subfolder && NON_ENTITY_SUBFOLDERS.has(subfolder)) {
-        const parts = file.split("/");
-        const entitiesIdx = parts.lastIndexOf("entities");
-        const domainPath = parts.slice(0, entitiesIdx).join("/");
-        const correctPath = `${domainPath}/${subfolder}/${parts.slice(entitiesIdx + 2).join("/")}`;
-        (0, _types_1.sendFormattedFail)({
-          title: `${subfolder.toUpperCase()} DENTRO DE ENTITIES`,
-          description: `\`${subfolder}/\` não deve ficar dentro de \`entities/\`. Deve ficar diretamente em \`domain/\`.`,
-          problem: {
-            wrong: file.split("/").slice(-4).join("/"),
-            correct: correctPath.split("/").slice(-3).join("/"),
-            wrongLabel: `Dentro de entities/${subfolder}/`,
-            correctLabel: `Diretamente em domain/${subfolder}/`,
-          },
-          action: {
-            text: `Mova a pasta \`${subfolder}/\` para \`domain/\`:`,
-            code: `domain/\n  ├── entities/\n  ├── ${subfolder}/   ← aqui\n  ├── failures/\n  └── usecases/`,
-            language: "text",
-          },
-          objective:
-            "Manter a **estrutura Clean Architecture** organizada — cada conceito em sua pasta.",
-          reference: {
-            text: "Clean Architecture — Uncle Bob",
-            url: "https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html",
-          },
-          file,
-          line: 1,
-        });
-        continue;
-      }
-      if (subfolder && VALID_ENUM_PARENTS.has(subfolder)) {
+        const fileName = file.split("/").pop() || "";
+        const subfolder = getSubfolderAfterEntities(file);
+        if (subfolder && NON_ENTITY_SUBFOLDERS.has(subfolder)) {
+            const parts = file.split("/");
+            const entitiesIdx = parts.lastIndexOf("entities");
+            const domainPath = parts.slice(0, entitiesIdx).join("/");
+            const correctPath = `${domainPath}/${subfolder}/${parts.slice(entitiesIdx + 2).join("/")}`;
+            (0, _types_1.sendFormattedFail)({
+                title: `${subfolder.toUpperCase()} DENTRO DE ENTITIES`,
+                description: `\`${subfolder}/\` não deve ficar dentro de \`entities/\`. Deve ficar diretamente em \`domain/\`.`,
+                problem: {
+                    wrong: file.split("/").slice(-4).join("/"),
+                    correct: correctPath.split("/").slice(-3).join("/"),
+                    wrongLabel: `Dentro de entities/${subfolder}/`,
+                    correctLabel: `Diretamente em domain/${subfolder}/`,
+                },
+                action: {
+                    text: `Mova a pasta \`${subfolder}/\` para \`domain/\`:`,
+                    code: `domain/\n  ├── entities/\n  ├── ${subfolder}/   ← aqui\n  ├── failures/\n  └── usecases/`,
+                    language: "text",
+                },
+                objective: "Manter a **estrutura Clean Architecture** organizada — cada conceito em sua pasta.",
+                reference: {
+                    text: "Clean Architecture — Uncle Bob",
+                    url: "https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html",
+                },
+                file,
+                line: 1,
+            });
+            continue;
+        }
+        if (subfolder && VALID_ENUM_PARENTS.has(subfolder)) {
+            const content = fs.readFileSync(file, "utf-8");
+            validateEnum(file, content);
+            continue;
+        }
         const content = fs.readFileSync(file, "utf-8");
-        validateEnum(file, content);
-        continue;
-      }
-      const content = fs.readFileSync(file, "utf-8");
-      if (isEnumFile(content)) {
-        validateEnum(file, content);
-        continue;
-      }
-      if (!fileName.endsWith("_entity.dart")) {
-        (0, _types_1.sendFormattedFail)({
-          title: "NOMENCLATURA DE ENTITY INCORRETA",
-          description: "Arquivo deve terminar com `_entity.dart`.",
-          problem: {
-            wrong: fileName,
-            correct: `${fileName.replace(".dart", "")}_entity.dart`,
-            wrongLabel: "Nome atual",
-            correctLabel: "Nome correto",
-          },
-          action: {
-            code: `// Renomeie o arquivo:\n// ${fileName} → ${fileName.replace(".dart", "")}_entity.dart`,
-          },
-          objective: "Manter **consistência** na nomenclatura da Domain Layer.",
-          file,
-          line: 1,
-        });
-        continue;
-      }
-      const lines = content.split("\n");
-      const classes = [];
-      let inBlockComment = false;
-      for (let i = 0; i < lines.length; i++) {
-        const trimmed = lines[i].trimStart();
-        if (inBlockComment) {
-          if (trimmed.includes("*/")) inBlockComment = false;
-          continue;
+        if (isEnumFile(content)) {
+            validateEnum(file, content);
+            continue;
         }
-        if (trimmed.startsWith("/*")) {
-          inBlockComment = true;
-          if (trimmed.includes("*/")) inBlockComment = false;
-          continue;
+        if (!fileName.endsWith("_entity.dart")) {
+            (0, _types_1.sendFormattedFail)({
+                title: "NOMENCLATURA DE ENTITY INCORRETA",
+                description: "Arquivo deve terminar com `_entity.dart`.",
+                problem: {
+                    wrong: fileName,
+                    correct: `${fileName.replace(".dart", "")}_entity.dart`,
+                    wrongLabel: "Nome atual",
+                    correctLabel: "Nome correto",
+                },
+                action: {
+                    code: `// Renomeie o arquivo:\n// ${fileName} → ${fileName.replace(".dart", "")}_entity.dart`,
+                },
+                objective: "Manter **consistência** na nomenclatura da Domain Layer.",
+                file,
+                line: 1,
+            });
+            continue;
         }
-        if (trimmed.startsWith("//") || trimmed.startsWith("///")) continue;
-        if (lines[i].includes("abstract")) continue;
-        const classMatch = lines[i].match(/(final\s+)?class\s+([A-Za-z_]\w*)/);
-        if (classMatch) {
-          classes.push({
-            name: classMatch[2],
-            line: i + 1,
-            isFinal: !!classMatch[1],
-          });
+        const lines = content.split("\n");
+        const classes = [];
+        let inBlockComment = false;
+        for (let i = 0; i < lines.length; i++) {
+            const trimmed = lines[i].trimStart();
+            if (inBlockComment) {
+                if (trimmed.includes("*/"))
+                    inBlockComment = false;
+                continue;
+            }
+            if (trimmed.startsWith("/*")) {
+                inBlockComment = true;
+                if (trimmed.includes("*/"))
+                    inBlockComment = false;
+                continue;
+            }
+            if (trimmed.startsWith("//") || trimmed.startsWith("///"))
+                continue;
+            if (lines[i].includes("abstract"))
+                continue;
+            const classMatch = lines[i].match(/(final\s+)?class\s+([A-Za-z_]\w*)/);
+            if (classMatch) {
+                classes.push({
+                    name: classMatch[2],
+                    line: i + 1,
+                    isFinal: !!classMatch[1],
+                });
+            }
         }
-      }
-      if (classes.length === 0) continue;
-      if (classes.length > 1) {
-        (0, _types_1.sendFormattedFail)({
-          title: "MÚLTIPLAS ENTITIES EM UM ARQUIVO",
-          description: `Encontradas **${classes.length} classes**: ${classes.map((c) => `\`${c.name}\``).join(", ")}.`,
-          problem: {
-            wrong: classes.map((c) => `class ${c.name} { ... }`).join("\n"),
-            correct: classes
-              .map(
-                (c) =>
-                  `// ${c.name
-                    .replace(/([A-Z])/g, "_$1")
-                    .toLowerCase()
-                    .slice(1)}_entity.dart\nfinal class ${c.name} { ... }`
-              )
-              .join("\n\n"),
-            wrongLabel: `${classes.length} classes no mesmo arquivo`,
-            correctLabel: "Uma classe por arquivo",
-          },
-          action: {
-            code: classes
-              .map(
-                (c) =>
-                  `// → ${c.name
-                    .replace(/([A-Z])/g, "_$1")
-                    .toLowerCase()
-                    .slice(1)}.dart\nfinal class ${c.name} { }`
-              )
-              .join("\n"),
-          },
-          objective: "**Uma Entity por arquivo** — facilita navegação e manutenção.",
-          file,
-          line: classes[1].line,
-        });
-      }
-      for (const cls of classes) {
-        if (!cls.name.endsWith("Entity")) {
-          (0, _types_1.sendFormattedFail)({
-            title: "ENTITY SEM SUFIXO",
-            description: `A classe \`${cls.name}\` deve terminar com \`Entity\`.`,
-            problem: {
-              wrong: `class ${cls.name} { }`,
-              correct: `final class ${cls.name}Entity { }`,
-            },
-            action: {
-              code: `final class ${cls.name}Entity { }`,
-            },
-            objective: "Manter **consistência** na nomenclatura de Entities.",
-            file,
-            line: cls.line,
-          });
+        if (classes.length === 0)
+            continue;
+        if (classes.length > 1) {
+            (0, _types_1.sendFormattedFail)({
+                title: "MÚLTIPLAS ENTITIES EM UM ARQUIVO",
+                description: `Encontradas **${classes.length} classes**: ${classes.map((c) => `\`${c.name}\``).join(", ")}.`,
+                problem: {
+                    wrong: classes.map((c) => `class ${c.name} { ... }`).join("\n"),
+                    correct: classes
+                        .map((c) => `// ${c.name
+                        .replace(/([A-Z])/g, "_$1")
+                        .toLowerCase()
+                        .slice(1)}_entity.dart\nfinal class ${c.name} { ... }`)
+                        .join("\n\n"),
+                    wrongLabel: `${classes.length} classes no mesmo arquivo`,
+                    correctLabel: "Uma classe por arquivo",
+                },
+                action: {
+                    code: classes
+                        .map((c) => `// → ${c.name
+                        .replace(/([A-Z])/g, "_$1")
+                        .toLowerCase()
+                        .slice(1)}.dart\nfinal class ${c.name} { }`)
+                        .join("\n"),
+                },
+                objective: "**Uma Entity por arquivo** — facilita navegação e manutenção.",
+                file,
+                line: classes[1].line,
+            });
         }
-        const fields = parseClassFields(lines, cls.line - 1);
-        const extendedByModel = isEntityExtendedByModel(file, cls.name, fields);
-        if (!cls.isFinal && !extendedByModel) {
-          (0, _types_1.sendFormattedFail)({
-            title: "ENTITY DEVE SER FINAL CLASS",
-            description: `A classe \`${cls.name}\` deve usar \`final class\` para prevenir herança indevida.`,
-            problem: {
-              wrong: `class ${cls.name} {\n  final String name;\n}`,
-              correct: `final class ${cls.name} {\n  final String name;\n  const ${cls.name}({required this.name});\n}`,
-              wrongLabel: "Sem final",
-              correctLabel: "Com final",
-            },
-            action: {
-              code: `final class ${cls.name} {\n  // ...\n}`,
-            },
-            objective: "Garantir **imutabilidade** e design correto da Domain Layer.",
-            file,
-            line: cls.line,
-          });
+        for (const cls of classes) {
+            if (!cls.name.endsWith("Entity")) {
+                (0, _types_1.sendFormattedFail)({
+                    title: "ENTITY SEM SUFIXO",
+                    description: `A classe \`${cls.name}\` deve terminar com \`Entity\`.`,
+                    problem: {
+                        wrong: `class ${cls.name} { }`,
+                        correct: `final class ${cls.name}Entity { }`,
+                    },
+                    action: {
+                        code: `final class ${cls.name}Entity { }`,
+                    },
+                    objective: "Manter **consistência** na nomenclatura de Entities.",
+                    file,
+                    line: cls.line,
+                });
+            }
+            const fields = parseClassFields(lines, cls.line - 1);
+            const extendedByModel = isEntityExtendedByModel(file, cls.name, fields);
+            if (!cls.isFinal && !extendedByModel) {
+                (0, _types_1.sendFormattedFail)({
+                    title: "ENTITY DEVE SER FINAL CLASS",
+                    description: `A classe \`${cls.name}\` deve usar \`final class\` para prevenir herança indevida.`,
+                    problem: {
+                        wrong: `class ${cls.name} {\n  final String name;\n}`,
+                        correct: `final class ${cls.name} {\n  final String name;\n  const ${cls.name}({required this.name});\n}`,
+                        wrongLabel: "Sem final",
+                        correctLabel: "Com final",
+                    },
+                    action: {
+                        code: `final class ${cls.name} {\n  // ...\n}`,
+                    },
+                    objective: "Garantir **imutabilidade** e design correto da Domain Layer.",
+                    file,
+                    line: cls.line,
+                });
+            }
+            if (cls.isFinal && extendedByModel) {
+                (0, _types_1.sendFormattedFail)({
+                    title: "ENTITY NAO PODE SER FINAL",
+                    description: `\`${cls.name}\` é \`final class\`, mas existe um **Model** que precisa extender essa Entity. Remova o \`final\` para permitir herança.`,
+                    problem: {
+                        wrong: `final class ${cls.name} { ... }`,
+                        correct: `class ${cls.name} { ... }`,
+                        wrongLabel: "final impede herança",
+                        correctLabel: "Sem final — permite extends",
+                    },
+                    action: {
+                        text: `Remova \`final\` de \`${cls.name}\`:`,
+                        code: `class ${cls.name} {\n  // Model poderá fazer: extends ${cls.name}\n}`,
+                    },
+                    objective: "Permitir que o **Model** herde da Entity, evitando duplicação de campos.",
+                    reference: {
+                        text: "Dart — Class modifiers",
+                        url: "https://dart.dev/language/class-modifiers",
+                    },
+                    file,
+                    line: cls.line,
+                });
+            }
+            if (fields.length === 0) {
+                (0, _types_1.sendFormattedFail)({
+                    title: "ENTITY VAZIA",
+                    description: `A classe \`${cls.name}\` não tem nenhuma propriedade. Não faz sentido ter uma Entity sem campos.`,
+                    problem: {
+                        wrong: `final class ${cls.name} {\n  const ${cls.name}();\n}`,
+                        correct: `// Remova a Entity e use NoParams ou o tipo diretamente`,
+                        wrongLabel: "Entity sem nenhum campo",
+                        correctLabel: "Remover Entity desnecessária",
+                    },
+                    action: {
+                        text: "Remova a Entity vazia. Se for usada como parâmetro sem dados, use `NoParams`:",
+                        code: `// Antes:\n// Future<...> call(${cls.name} params);\n\n// Depois:\n// Future<...> call(); // sem parâmetro\n// ou: Future<...> call(NoParams params);`,
+                    },
+                    objective: "Evitar **abstrações vazias** — uma Entity deve representar um conceito de domínio com dados.",
+                    file,
+                    line: cls.line,
+                });
+            }
+            if (fields.length === 1) {
+                const field = fields[0];
+                (0, _types_1.sendFormattedFail)({
+                    title: "ENTITY COM APENAS UMA PROPRIEDADE",
+                    description: `A classe \`${cls.name}\` tem apenas a propriedade \`${field.name}\` (\`${field.type}\`). Uma Entity com um único campo é um wrapper desnecessário — use o tipo \`${field.type}\` diretamente.`,
+                    problem: {
+                        wrong: `final class ${cls.name} {\n  final ${field.type} ${field.name};\n}`,
+                        correct: `// Use ${field.type} diretamente como parâmetro\nFuture<Result<Failure, Entity>> call(${field.type} ${field.name});`,
+                        wrongLabel: "Entity com 1 campo (wrapper desnecessário)",
+                        correctLabel: "Tipo usado diretamente",
+                    },
+                    action: {
+                        text: `Remova a Entity e use \`${field.type}\` diretamente onde ela é referenciada:`,
+                        code: `// Antes:\n// Future<...> call(${cls.name} params) => ...params.${field.name}...\n\n// Depois:\n// Future<...> call(${field.type} ${field.name}) => ...${field.name}...`,
+                    },
+                    objective: "Evitar **abstrações desnecessárias** — uma Entity deve encapsular **múltiplas propriedades** relacionadas.",
+                    file,
+                    line: cls.line,
+                });
+            }
         }
-        if (cls.isFinal && extendedByModel) {
-          (0, _types_1.sendFormattedFail)({
-            title: "ENTITY NAO PODE SER FINAL",
-            description: `\`${cls.name}\` é \`final class\`, mas existe um **Model** que precisa extender essa Entity. Remova o \`final\` para permitir herança.`,
-            problem: {
-              wrong: `final class ${cls.name} { ... }`,
-              correct: `class ${cls.name} { ... }`,
-              wrongLabel: "final impede herança",
-              correctLabel: "Sem final — permite extends",
-            },
-            action: {
-              text: `Remova \`final\` de \`${cls.name}\`:`,
-              code: `class ${cls.name} {\n  // Model poderá fazer: extends ${cls.name}\n}`,
-            },
-            objective: "Permitir que o **Model** herde da Entity, evitando duplicação de campos.",
-            reference: {
-              text: "Dart — Class modifiers",
-              url: "https://dart.dev/language/class-modifiers",
-            },
-            file,
-            line: cls.line,
-          });
-        }
-        if (fields.length === 0) {
-          (0, _types_1.sendFormattedFail)({
-            title: "ENTITY VAZIA",
-            description: `A classe \`${cls.name}\` não tem nenhuma propriedade. Não faz sentido ter uma Entity sem campos.`,
-            problem: {
-              wrong: `final class ${cls.name} {\n  const ${cls.name}();\n}`,
-              correct: `// Remova a Entity e use NoParams ou o tipo diretamente`,
-              wrongLabel: "Entity sem nenhum campo",
-              correctLabel: "Remover Entity desnecessária",
-            },
-            action: {
-              text: "Remova a Entity vazia. Se for usada como parâmetro sem dados, use `NoParams`:",
-              code: `// Antes:\n// Future<...> call(${cls.name} params);\n\n// Depois:\n// Future<...> call(); // sem parâmetro\n// ou: Future<...> call(NoParams params);`,
-            },
-            objective:
-              "Evitar **abstrações vazias** — uma Entity deve representar um conceito de domínio com dados.",
-            file,
-            line: cls.line,
-          });
-        }
-        if (fields.length === 1) {
-          const field = fields[0];
-          (0, _types_1.sendFormattedFail)({
-            title: "ENTITY COM APENAS UMA PROPRIEDADE",
-            description: `A classe \`${cls.name}\` tem apenas a propriedade \`${field.name}\` (\`${field.type}\`). Uma Entity com um único campo é um wrapper desnecessário — use o tipo \`${field.type}\` diretamente.`,
-            problem: {
-              wrong: `final class ${cls.name} {\n  final ${field.type} ${field.name};\n}`,
-              correct: `// Use ${field.type} diretamente como parâmetro\nFuture<Result<Failure, Entity>> call(${field.type} ${field.name});`,
-              wrongLabel: "Entity com 1 campo (wrapper desnecessário)",
-              correctLabel: "Tipo usado diretamente",
-            },
-            action: {
-              text: `Remova a Entity e use \`${field.type}\` diretamente onde ela é referenciada:`,
-              code: `// Antes:\n// Future<...> call(${cls.name} params) => ...params.${field.name}...\n\n// Depois:\n// Future<...> call(${field.type} ${field.name}) => ...${field.name}...`,
-            },
-            objective:
-              "Evitar **abstrações desnecessárias** — uma Entity deve encapsular **múltiplas propriedades** relacionadas.",
-            file,
-            line: cls.line,
-          });
-        }
-      }
     }
-  }
-);
+});

@@ -6,47 +6,7 @@
 export * from "./types";
 export * from "./helpers";
 export * from "./config";
-export {
-  prSummaryPlugin,
-  prSizeCheckerPlugin,
-  changelogCheckerPlugin,
-  flutterAnalyzePlugin,
-  spellCheckerPlugin,
-  prValidationPlugin,
-  fileNamingPlugin,
-  domainEntitiesPlugin,
-  domainFailuresPlugin,
-  repositoriesPlugin,
-  domainUseCasesPlugin,
-  dataDatasourcesPlugin,
-  dataModelsPlugin,
-  presentationViewModelsPlugin,
-  flutterPerformancePlugin,
-  flutterWidgetsPlugin,
-  cleanArchitecturePlugin,
-  lateFinalCheckerPlugin,
-  memoryLeakDetectorPlugin,
-  mediaqueryModernPlugin,
-  commentsCheckerPlugin,
-  securityCheckerPlugin,
-  barrelFilesEnforcerPlugin,
-  identifierLanguagePlugin,
-  classNamingConventionPlugin,
-  presentationTryCatchCheckerPlugin,
-  mergeConflictCheckerPlugin,
-  printStatementDetectorPlugin,
-  emptyCatchDetectorPlugin,
-  futureWaitModernizerPlugin,
-  modelEntityInheritancePlugin,
-  testFileCheckerPlugin,
-  flutterTestRunnerPlugin,
-  testCoverageSummaryPlugin,
-  booleanNamingConventionPlugin,
-  positionalBoolParamsPlugin,
-  buildDocCheckerPlugin,
-  spellCheckerPtbrPlugin,
-  presentationEncapsulationPlugin,
-} from "./plugins/flutter";
+export { prSummaryPlugin, prSizeCheckerPlugin, changelogCheckerPlugin, flutterAnalyzePlugin, spellCheckerPlugin, prValidationPlugin, fileNamingPlugin, domainEntitiesPlugin, domainFailuresPlugin, repositoriesPlugin, domainUseCasesPlugin, dataDatasourcesPlugin, dataModelsPlugin, presentationViewModelsPlugin, flutterPerformancePlugin, flutterWidgetsPlugin, cleanArchitecturePlugin, lateFinalCheckerPlugin, memoryLeakDetectorPlugin, mediaqueryModernPlugin, commentsCheckerPlugin, securityCheckerPlugin, barrelFilesEnforcerPlugin, identifierLanguagePlugin, classNamingConventionPlugin, presentationTryCatchCheckerPlugin, mergeConflictCheckerPlugin, printStatementDetectorPlugin, emptyCatchDetectorPlugin, futureWaitModernizerPlugin, modelEntityInheritancePlugin, testFileCheckerPlugin, flutterTestRunnerPlugin, testCoverageSummaryPlugin, booleanNamingConventionPlugin, positionalBoolParamsPlugin, buildDocCheckerPlugin, spellCheckerPtbrPlugin, presentationEncapsulationPlugin, } from "./plugins/flutter";
 /**
  * All available Flutter plugins in a single array
  * Use this for quick setup with all plugins enabled
