@@ -219,17 +219,26 @@ exports.default = (0, _types_1.createPlugin)(
         const result = analyzeBlock(block);
         if (!result) continue;
         const prop = block.widgetType === "Column" ? "height" : "width";
+        const isSingle = result.count === 1;
         (0, _types_1.sendFormattedFail)({
-          title: `${block.widgetType.toUpperCase()} COM SIZEDBOX REPETITIVO`,
-          description: `**${result.count} SizedBox(${prop}: ${result.spacingValue})** intercalados podem ser substituídos por \`spacing: ${result.spacingValue}\`.`,
+          title: isSingle
+            ? `${block.widgetType.toUpperCase()} — SUBSTITUA SIZEDBOX POR SPACING`
+            : `${block.widgetType.toUpperCase()} COM SIZEDBOX REPETITIVO`,
+          description: isSingle
+            ? `**SizedBox(${prop}: ${result.spacingValue})** entre os filhos pode ser substituído por \`spacing: ${result.spacingValue}\`.`
+            : `**${result.count} SizedBox(${prop}: ${result.spacingValue})** intercalados podem ser substituídos por \`spacing: ${result.spacingValue}\`.`,
           problem: {
-            wrong: `${block.widgetType}(\n  children: [\n    WidgetA(),\n    SizedBox(${prop}: ${result.spacingValue}),\n    WidgetB(),\n    SizedBox(${prop}: ${result.spacingValue}),\n    WidgetC(),\n  ],\n)`,
-            correct: `${block.widgetType}(\n  spacing: ${result.spacingValue},\n  children: [\n    WidgetA(),\n    WidgetB(),\n    WidgetC(),\n  ],\n)`,
-            wrongLabel: `${result.count} SizedBox intercalados`,
+            wrong: isSingle
+              ? `${block.widgetType}(\n  children: [\n    WidgetA(),\n    SizedBox(${prop}: ${result.spacingValue}),\n    WidgetB(),\n  ],\n)`
+              : `${block.widgetType}(\n  children: [\n    WidgetA(),\n    SizedBox(${prop}: ${result.spacingValue}),\n    WidgetB(),\n    SizedBox(${prop}: ${result.spacingValue}),\n    WidgetC(),\n  ],\n)`,
+            correct: `${block.widgetType}(\n  spacing: ${result.spacingValue},\n  children: [\n    WidgetA(),\n    WidgetB(),${isSingle ? "" : "\n    WidgetC(),"}\n  ],\n)`,
+            wrongLabel: isSingle
+              ? "SizedBox para espaçamento"
+              : `${result.count} SizedBox intercalados`,
             correctLabel: "Com spacing (Flutter 3.27+)",
           },
           action: {
-            code: `${block.widgetType}(\n  spacing: ${result.spacingValue},\n  children: [\n    // remova os SizedBox\n  ],\n)`,
+            code: `${block.widgetType}(\n  spacing: ${result.spacingValue},\n  children: [\n    // remova ${isSingle ? "o SizedBox" : "os SizedBox"}\n  ],\n)`,
           },
           objective:
             "Usar a propriedade **spacing** do Flutter 3.27+ para código mais limpo e menos widgets na árvore.",
