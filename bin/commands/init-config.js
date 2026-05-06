@@ -81,14 +81,13 @@ settings:
 `;
 
 export async function initConfig() {
-  const docDir = path.resolve(process.cwd(), "doc");
-  const configPath = path.resolve(docDir, "danger-bot.yaml");
+  const configPath = path.resolve(process.cwd(), "danger-bot.yaml");
 
   if (fs.existsSync(configPath)) {
     const rl = createInterface({ input: process.stdin, output: process.stdout });
 
     const answer = await new Promise((resolve) => {
-      rl.question("⚠️  doc/danger-bot.yaml já existe. Deseja sobrescrever? (s/N): ", resolve);
+      rl.question("⚠️  danger-bot.yaml já existe. Deseja sobrescrever? (s/N): ", resolve);
     });
     rl.close();
 
@@ -96,10 +95,6 @@ export async function initConfig() {
       console.log("❌ Operação cancelada.");
       return;
     }
-  }
-
-  if (!fs.existsSync(docDir)) {
-    fs.mkdirSync(docDir, { recursive: true });
   }
 
   fs.writeFileSync(configPath, CONFIG_TEMPLATE, "utf-8");
