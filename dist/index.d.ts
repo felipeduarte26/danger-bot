@@ -44,6 +44,8 @@ export {
   booleanNamingConventionPlugin,
   positionalBoolParamsPlugin,
   buildDocCheckerPlugin,
+  spellCheckerPtbrPlugin,
+  presentationEncapsulationPlugin,
 } from "./plugins/flutter";
 /**
  * All available Flutter plugins in a single array

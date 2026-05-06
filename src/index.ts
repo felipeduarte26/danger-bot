@@ -48,6 +48,8 @@ export {
   booleanNamingConventionPlugin,
   positionalBoolParamsPlugin,
   buildDocCheckerPlugin,
+  spellCheckerPtbrPlugin,
+  presentationEncapsulationPlugin,
 } from "./plugins/flutter";
 
 /**
@@ -97,6 +99,8 @@ export const allFlutterPlugins = [
   require("./plugins/flutter/flutter-test-runner").default,
   require("./plugins/flutter/test-coverage-summary").default,
   require("./plugins/flutter/build-doc-checker").default,
+  require("./plugins/flutter/spell-checker-ptbr").default,
+  require("./plugins/flutter/presentation-encapsulation").default,
   // google-chat-notification deve ser sempre o último plugin
   require("./plugins/flutter/google-chat-notification").default,
 ];
@@ -136,6 +140,8 @@ import {
   booleanNamingConventionPlugin,
   positionalBoolParamsPlugin,
   buildDocCheckerPlugin,
+  spellCheckerPtbrPlugin,
+  presentationEncapsulationPlugin,
 } from "./plugins/flutter";
 
 export const domainLayerPlugins = [
@@ -154,6 +160,7 @@ export const dataLayerPlugins = [
 export const presentationLayerPlugins = [
   presentationViewModelsPlugin,
   presentationTryCatchCheckerPlugin,
+  presentationEncapsulationPlugin,
 ];
 
 export const cleanArchitecturePlugins = [
@@ -181,6 +188,7 @@ export const codeQualityPlugins = [
   booleanNamingConventionPlugin,
   positionalBoolParamsPlugin,
   buildDocCheckerPlugin,
+  spellCheckerPtbrPlugin,
 ];
 
 export const performancePlugins = [

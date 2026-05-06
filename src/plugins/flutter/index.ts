@@ -52,3 +52,5 @@ export { default as testCoverageSummaryPlugin } from "./test-coverage-summary";
 export { default as booleanNamingConventionPlugin } from "./boolean-naming-convention";
 export { default as positionalBoolParamsPlugin } from "./positional-bool-params";
 export { default as buildDocCheckerPlugin } from "./build-doc-checker";
+export { default as spellCheckerPtbrPlugin } from "./spell-checker-ptbr";
+export { default as presentationEncapsulationPlugin } from "./presentation-encapsulation";

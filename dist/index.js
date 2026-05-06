@@ -40,6 +40,8 @@ exports.testPlugins =
   exports.dataLayerPlugins =
   exports.domainLayerPlugins =
   exports.allFlutterPlugins =
+  exports.presentationEncapsulationPlugin =
+  exports.spellCheckerPtbrPlugin =
   exports.buildDocCheckerPlugin =
   exports.positionalBoolParamsPlugin =
   exports.booleanNamingConventionPlugin =
@@ -306,6 +308,18 @@ Object.defineProperty(exports, "buildDocCheckerPlugin", {
     return flutter_1.buildDocCheckerPlugin;
   },
 });
+Object.defineProperty(exports, "spellCheckerPtbrPlugin", {
+  enumerable: true,
+  get: function () {
+    return flutter_1.spellCheckerPtbrPlugin;
+  },
+});
+Object.defineProperty(exports, "presentationEncapsulationPlugin", {
+  enumerable: true,
+  get: function () {
+    return flutter_1.presentationEncapsulationPlugin;
+  },
+});
 /**
  * All available Flutter plugins in a single array
  * Use this for quick setup with all plugins enabled
@@ -353,6 +367,8 @@ exports.allFlutterPlugins = [
   require("./plugins/flutter/flutter-test-runner").default,
   require("./plugins/flutter/test-coverage-summary").default,
   require("./plugins/flutter/build-doc-checker").default,
+  require("./plugins/flutter/spell-checker-ptbr").default,
+  require("./plugins/flutter/presentation-encapsulation").default,
   // google-chat-notification deve ser sempre o último plugin
   require("./plugins/flutter/google-chat-notification").default,
 ];
@@ -372,6 +388,7 @@ exports.dataLayerPlugins = [
 exports.presentationLayerPlugins = [
   flutter_2.presentationViewModelsPlugin,
   flutter_2.presentationTryCatchCheckerPlugin,
+  flutter_2.presentationEncapsulationPlugin,
 ];
 exports.cleanArchitecturePlugins = [
   ...exports.domainLayerPlugins,
@@ -397,6 +414,7 @@ exports.codeQualityPlugins = [
   flutter_2.booleanNamingConventionPlugin,
   flutter_2.positionalBoolParamsPlugin,
   flutter_2.buildDocCheckerPlugin,
+  flutter_2.spellCheckerPtbrPlugin,
 ];
 exports.performancePlugins = [
   flutter_2.flutterPerformancePlugin,

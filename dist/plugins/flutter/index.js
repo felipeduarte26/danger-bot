@@ -10,7 +10,9 @@ var __importDefault =
     return mod && mod.__esModule ? mod : { default: mod };
   };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.buildDocCheckerPlugin =
+exports.presentationEncapsulationPlugin =
+  exports.spellCheckerPtbrPlugin =
+  exports.buildDocCheckerPlugin =
   exports.positionalBoolParamsPlugin =
   exports.booleanNamingConventionPlugin =
   exports.testCoverageSummaryPlugin =
@@ -356,5 +358,19 @@ Object.defineProperty(exports, "buildDocCheckerPlugin", {
   enumerable: true,
   get: function () {
     return __importDefault(build_doc_checker_1).default;
+  },
+});
+var spell_checker_ptbr_1 = require("./spell-checker-ptbr");
+Object.defineProperty(exports, "spellCheckerPtbrPlugin", {
+  enumerable: true,
+  get: function () {
+    return __importDefault(spell_checker_ptbr_1).default;
+  },
+});
+var presentation_encapsulation_1 = require("./presentation-encapsulation");
+Object.defineProperty(exports, "presentationEncapsulationPlugin", {
+  enumerable: true,
+  get: function () {
+    return __importDefault(presentation_encapsulation_1).default;
   },
 });
