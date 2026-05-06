@@ -63,7 +63,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  *
  * @see {@link https://dart.dev/tools/linter-rules/avoid_print} Dart Linter: avoid_print
  */
-const _types_1 = require("../../../types");
+const _types_1 = require("@types");
 const fs = __importStar(require("fs"));
 const PRINT_RE = /\b(print|debugPrint|debugPrintStack|printError)\s*\(/;
 /**

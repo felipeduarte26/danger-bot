@@ -65,7 +65,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  *
  * Abordagem conservadora: na dúvida, não reporta.
  */
-const _types_1 = require("../../../types");
+const _types_1 = require("@types");
 const fs = __importStar(require("fs"));
 const SIZED_BOX_HEIGHT_RE = /^\s*(?:const\s+)?SizedBox\(\s*height:\s*(\d+(?:\.\d+)?)\s*,?\s*\)/s;
 const SIZED_BOX_WIDTH_RE = /^\s*(?:const\s+)?SizedBox\(\s*width:\s*(\d+(?:\.\d+)?)\s*,?\s*\)/s;
@@ -173,7 +173,7 @@ function analyzeBlock(block) {
       sizedBoxIndices.push(i);
     }
   }
-  if (sizedBoxValues.length < 2) return null;
+  if (sizedBoxValues.length === 0) return null;
   const allSameValue = sizedBoxValues.every((v) => v === sizedBoxValues[0]);
   if (!allSameValue) return null;
   for (const idx of sizedBoxIndices) {

@@ -65,7 +65,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * @see {@link https://dart.dev/tools/linter-rules/empty_catches} Dart Linter: empty_catches
  * @see Clean Code — Robert C. Martin, Cap. 7: Error Handling
  */
-const _types_1 = require("../../../types");
+const _types_1 = require("@types");
 const fs = __importStar(require("fs"));
 const CATCH_RE = /(?:catch\s*\(|on\s+\w[\w.]*\s+catch\s*\(|on\s+\w[\w.]*\s*\{)/;
 /**

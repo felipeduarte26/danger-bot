@@ -63,7 +63,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  *
  * Usa wordpos (WordNet) para detecção gramatical e @boringnode/pluralize para singular/plural.
  */
-const _types_1 = require("../../../types");
+const _types_1 = require("@types");
 const fs = __importStar(require("fs"));
 let compromiseLib = null;
 try {

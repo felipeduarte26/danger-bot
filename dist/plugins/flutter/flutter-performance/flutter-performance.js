@@ -70,7 +70,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  *  - String/comment-aware brace counting
  *  - Mais patterns de operações custosas
  */
-const _types_1 = require("../../../types");
+const _types_1 = require("@types");
 const fs = __importStar(require("fs"));
 const HEAVY_PATTERNS = [
   // ── Loops ──

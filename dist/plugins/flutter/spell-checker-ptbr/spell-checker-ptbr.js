@@ -67,7 +67,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * Detecta: erros de acentuação, cedilha, ortografia geral.
  * Sempre inclui sugestões de correção quando disponíveis.
  */
-const _types_1 = require("../../../types");
+const _types_1 = require("@types");
 const fs = __importStar(require("fs"));
 let _spell = null;
 let _spellLoadAttempted = false;
@@ -632,10 +632,13 @@ async function checkWordWithNodehun(word, spell) {
   if (closeSuggestions.length === 0) return null;
   return { suggestions: closeSuggestions.slice(0, 5), isAccentError: false };
 }
-function checkWordWithFallback(word) {
-  const lower = word.toLowerCase();
-  const blind = HUNSPELL_BLIND_SPOTS[lower];
+function checkBlindSpots(word) {
+  const blind = HUNSPELL_BLIND_SPOTS[word.toLowerCase()];
   if (blind) return { suggestions: [blind], isAccentError: true };
+  return null;
+}
+function checkSuffixRules(word) {
+  const lower = word.toLowerCase();
   for (const rule of SUFFIX_RULES) {
     if (lower.length >= rule.minLen && lower.endsWith(rule.suffix)) {
       const correction = lower.slice(0, -rule.suffix.length) + rule.correction;
@@ -709,11 +712,12 @@ exports.default = (0, _types_1.createPlugin)(
             for (const word of words) {
               if (isSkippableWord(word)) continue;
               let result = null;
-              if (spell) {
+              result = checkBlindSpots(word);
+              if (!result && spell) {
                 result = await checkWordWithNodehun(word, spell);
               }
-              if (!result) {
-                result = checkWordWithFallback(word);
+              if (!result && !spell) {
+                result = checkSuffixRules(word);
               }
               if (!result) continue;
               const existing = errorsByFile.get(file) ?? [];

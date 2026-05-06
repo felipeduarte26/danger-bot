@@ -11,5 +11,5 @@
  *
  * IMPORTANTE: este plugin deve ser o ÚLTIMO a rodar para capturar todos os resultados.
  */
-declare const _default: import("../../../types").DangerPlugin;
+declare const _default: import("@types").DangerPlugin;
 export default _default;

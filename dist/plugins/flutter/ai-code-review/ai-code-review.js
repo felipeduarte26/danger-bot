@@ -61,7 +61,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * Suporta rotation de API keys para contornar rate limits do free tier.
  * Keys são lidas de: danger-bot.yaml (settings.gemini_api_keys) ou env vars.
  */
-const _types_1 = require("../../../types");
+const _types_1 = require("@types");
 const config_1 = require("../../../config");
 const fs = __importStar(require("fs"));
 const GEMINI_MODEL = "gemini-2.5-flash-lite";

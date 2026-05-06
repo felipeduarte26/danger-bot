@@ -69,7 +69,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * - Construtores
  * - Membros já privados (prefixados com _)
  */
-const _types_1 = require("../../../types");
+const _types_1 = require("@types");
 const fs = __importStar(require("fs"));
 // ---------------------------------------------------------------------------
 // Generated / test file filters
@@ -227,18 +227,38 @@ function hasSkipAnnotation(lines, idx) {
 // ---------------------------------------------------------------------------
 // Builder pattern & ignore comment detection
 // ---------------------------------------------------------------------------
-const BUILDER_THIS_PATTERN = /[,(]\s*this\s*[,)]/;
 /**
  * Detects if the State class exposes itself via builder pattern.
- * Looks for `this` being passed as a standalone argument anywhere in the class body
- * (e.g., `widget.builder(this)`, `SomeWidget(state: this, child: ...)`).
- * This indicates the public API of the State is intentional.
+ *
+ * Matches `widget.xxx(this)`, `widget.xxx(context, this)`, `widget.xxx(state: this)`
+ * across single and multi-line call expressions.
+ *
+ * Does NOT match unrelated patterns like `addObserver(this)` or `addListener(this)`.
  */
 function isBuilderPattern(lines, stateClass) {
+  const WIDGET_CALL_SINGLE_LINE = /widget\.\w+\(.*\bthis\b/;
+  const WIDGET_CALL_OPEN = /widget\.\w+\(\s*$/;
+  let insideWidgetCall = false;
+  let parenDepth = 0;
   for (let i = stateClass.startLine; i <= stateClass.endLine; i++) {
     const trimmed = lines[i].trim();
     if (trimmed.startsWith("//") || trimmed.startsWith("///")) continue;
-    if (BUILDER_THIS_PATTERN.test(lines[i])) return true;
+    if (WIDGET_CALL_SINGLE_LINE.test(lines[i])) return true;
+    if (!insideWidgetCall && WIDGET_CALL_OPEN.test(trimmed)) {
+      insideWidgetCall = true;
+      parenDepth = 1;
+      continue;
+    }
+    if (insideWidgetCall) {
+      for (const ch of lines[i]) {
+        if (ch === "(") parenDepth++;
+        if (ch === ")") parenDepth--;
+      }
+      if (/\bthis\b/.test(trimmed) && !/\bthis\./.test(trimmed)) {
+        return true;
+      }
+      if (parenDepth <= 0) insideWidgetCall = false;
+    }
   }
   return false;
 }
@@ -382,66 +402,95 @@ exports.default = (0, _types_1.createPlugin)(
   },
   async () => {
     const { git } = (0, _types_1.getDanger)();
-    const dartFiles = [...git.created_files, ...git.modified_files].filter(
+    const allFiles = [...git.created_files, ...git.modified_files];
+    const dartPresentationFiles = allFiles.filter(
       (f) =>
         f.endsWith(".dart") &&
         f.replace(/\\/g, "/").includes("/presentation/") &&
         !GENERATED_SUFFIXES.some((s) => f.endsWith(s)) &&
-        !EXCLUDED_DIRS.some((d) => f.includes(d)) &&
-        fs.existsSync(f)
+        !EXCLUDED_DIRS.some((d) => f.includes(d))
+    );
+    const dartFiles = dartPresentationFiles.filter((f) => fs.existsSync(f));
+    console.log(
+      `[presentation-encapsulation] Arquivos: total=${allFiles.length} presentation=${dartPresentationFiles.length} existentes=${dartFiles.length}`
     );
     if (dartFiles.length === 0) return;
     let totalViolations = 0;
+    let totalStateClasses = 0;
+    let skippedBuilder = 0;
+    let skippedIgnore = 0;
+    let fileErrors = 0;
     for (const file of dartFiles) {
-      const content = fs.readFileSync(file, "utf-8");
-      const lines = content.split("\n");
-      const stateClasses = findStateClasses(lines);
-      if (stateClasses.length === 0) continue;
-      for (const stateClass of stateClasses) {
-        if (hasIgnoreComment(lines, stateClass.startLine)) continue;
-        if (isBuilderPattern(lines, stateClass)) continue;
-        const publicMembers = findPublicMembers(lines, stateClass);
-        if (publicMembers.length === 0) continue;
-        for (const member of publicMembers) {
-          if (hasIgnoreComment(lines, member.line - 1)) continue;
-          totalViolations++;
-          const kindLabel = KIND_LABELS[member.kind];
-          const privateName = `_${member.name}`;
-          (0, _types_1.sendFormattedFail)({
-            title: `${kindLabel.toUpperCase()} PÚBLICO EM STATE — DEVERIA SER PRIVADO`,
-            description: `${kindLabel} **\`${member.name}\`** em \`${stateClass.className}\` é público mas deveria ser privado (\`${privateName}\`).`,
-            problem: {
-              wrong:
-                member.kind === "getter"
-                  ? `Type get ${member.name} => ...;`
-                  : member.kind === "setter"
-                    ? `set ${member.name}(Type value) { ... }`
-                    : member.kind === "method"
-                      ? `void ${member.name}() { ... }`
-                      : `late Type ${member.name};`,
-              correct:
-                member.kind === "getter"
-                  ? `Type get ${privateName} => ...;`
-                  : member.kind === "setter"
-                    ? `set ${privateName}(Type value) { ... }`
-                    : member.kind === "method"
-                      ? `void ${privateName}() { ... }`
-                      : `late Type ${privateName};`,
-              wrongLabel: `${kindLabel} público`,
-              correctLabel: `${kindLabel} privado`,
-            },
-            action: {
-              text: `Renomeie \`${member.name}\` para \`${privateName}\`:`,
-              code: `// ${member.name} → ${privateName}`,
-            },
-            objective:
-              "Membros de **State** devem ser **privados** (`_`). O State é um detalhe de implementação — sua API não deve vazar para fora do widget.",
-            file,
-            line: member.line,
-          });
+      try {
+        const content = fs.readFileSync(file, "utf-8");
+        const lines = content.split("\n");
+        const stateClasses = findStateClasses(lines);
+        if (stateClasses.length === 0) continue;
+        totalStateClasses += stateClasses.length;
+        for (const stateClass of stateClasses) {
+          if (hasIgnoreComment(lines, stateClass.startLine)) {
+            skippedIgnore++;
+            continue;
+          }
+          if (isBuilderPattern(lines, stateClass)) {
+            skippedBuilder++;
+            console.log(
+              `[presentation-encapsulation] Builder pattern detectado em ${stateClass.className} (${file})`
+            );
+            continue;
+          }
+          const publicMembers = findPublicMembers(lines, stateClass);
+          if (publicMembers.length === 0) continue;
+          console.log(
+            `[presentation-encapsulation] ${stateClass.className}: ${publicMembers.length} membro(s) público(s) em ${file}`
+          );
+          for (const member of publicMembers) {
+            if (hasIgnoreComment(lines, member.line - 1)) continue;
+            totalViolations++;
+            const kindLabel = KIND_LABELS[member.kind];
+            const privateName = `_${member.name}`;
+            (0, _types_1.sendFormattedFail)({
+              title: `${kindLabel.toUpperCase()} PÚBLICO EM STATE — DEVERIA SER PRIVADO`,
+              description: `${kindLabel} **\`${member.name}\`** em \`${stateClass.className}\` é público mas deveria ser privado (\`${privateName}\`).`,
+              problem: {
+                wrong:
+                  member.kind === "getter"
+                    ? `Type get ${member.name} => ...;`
+                    : member.kind === "setter"
+                      ? `set ${member.name}(Type value) { ... }`
+                      : member.kind === "method"
+                        ? `void ${member.name}() { ... }`
+                        : `late Type ${member.name};`,
+                correct:
+                  member.kind === "getter"
+                    ? `Type get ${privateName} => ...;`
+                    : member.kind === "setter"
+                      ? `set ${privateName}(Type value) { ... }`
+                      : member.kind === "method"
+                        ? `void ${privateName}() { ... }`
+                        : `late Type ${privateName};`,
+                wrongLabel: `${kindLabel} público`,
+                correctLabel: `${kindLabel} privado`,
+              },
+              action: {
+                text: `Renomeie \`${member.name}\` para \`${privateName}\`:`,
+                code: `// ${member.name} → ${privateName}`,
+              },
+              objective:
+                "Membros de **State** devem ser **privados** (`_`). O State é um detalhe de implementação — sua API não deve vazar para fora do widget.",
+              file,
+              line: member.line,
+            });
+          }
         }
+      } catch (err) {
+        fileErrors++;
+        console.error(`[presentation-encapsulation] Erro ao processar ${file}:`, err);
       }
     }
+    console.log(
+      `[presentation-encapsulation] Resultado: stateClasses=${totalStateClasses} builder=${skippedBuilder} ignore=${skippedIgnore} violações=${totalViolations} erros=${fileErrors}`
+    );
     if (totalViolations > 0) {
       (0, _types_1.sendMessage)(
         `**Presentation Encapsulation**: ${totalViolations} membro(s) público(s) em State classes que deveria(m) ser privado(s)`

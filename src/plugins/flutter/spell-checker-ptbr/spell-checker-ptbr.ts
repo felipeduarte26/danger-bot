@@ -641,19 +641,20 @@ async function checkWordWithNodehun(
   return { suggestions: closeSuggestions.slice(0, 5), isAccentError: false };
 }
 
-function checkWordWithFallback(word: string): CheckResult | null {
-  const lower = word.toLowerCase();
-
-  const blind = HUNSPELL_BLIND_SPOTS[lower];
+function checkBlindSpots(word: string): CheckResult | null {
+  const blind = HUNSPELL_BLIND_SPOTS[word.toLowerCase()];
   if (blind) return { suggestions: [blind], isAccentError: true };
+  return null;
+}
 
+function checkSuffixRules(word: string): CheckResult | null {
+  const lower = word.toLowerCase();
   for (const rule of SUFFIX_RULES) {
     if (lower.length >= rule.minLen && lower.endsWith(rule.suffix)) {
       const correction = lower.slice(0, -rule.suffix.length) + rule.correction;
       return { suggestions: [correction], isAccentError: true };
     }
   }
-
   return null;
 }
 
@@ -750,12 +751,14 @@ export default createPlugin(
 
               let result: CheckResult | null = null;
 
-              if (spell) {
+              result = checkBlindSpots(word);
+
+              if (!result && spell) {
                 result = await checkWordWithNodehun(word, spell);
               }
 
-              if (!result) {
-                result = checkWordWithFallback(word);
+              if (!result && !spell) {
+                result = checkSuffixRules(word);
               }
 
               if (!result) continue;

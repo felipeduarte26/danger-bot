@@ -61,7 +61,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * Mostra: linhas cobertas, linhas totais, percentual por arquivo e total.
  */
 const child_process_1 = require("child_process");
-const _types_1 = require("../../../types");
+const _types_1 = require("@types");
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 const TESTABLE_FOLDERS = [

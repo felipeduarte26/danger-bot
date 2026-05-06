@@ -57,7 +57,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * 1. Sugere barrel files quando múltiplos imports vêm da mesma pasta.
  * 2. Verifica se barrel files existentes exportam TODOS os arquivos da pasta.
  */
-const _types_1 = require("../../../types");
+const _types_1 = require("@types");
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 const IMPORT_RE = /^import\s+['"]package:([^'"]+)['"];/;

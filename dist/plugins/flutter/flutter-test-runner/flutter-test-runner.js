@@ -66,7 +66,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * para ser consumido pelo plugin test-coverage-summary.
  */
 const child_process_1 = require("child_process");
-const _types_1 = require("../../../types");
+const _types_1 = require("@types");
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 function isBarrelFile(filePath) {

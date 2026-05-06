@@ -64,7 +64,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  *   final mq = MediaQuery.of(context);
  *   mq.size / mq.padding / etc.
  */
-const _types_1 = require("../../../types");
+const _types_1 = require("@types");
 const fs = __importStar(require("fs"));
 const PROPERTY_ALTERNATIVES = {
   size: "MediaQuery.sizeOf(context)",

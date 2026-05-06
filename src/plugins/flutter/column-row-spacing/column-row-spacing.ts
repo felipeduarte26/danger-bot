@@ -157,7 +157,7 @@ function analyzeBlock(block: ChildrenBlock): { spacingValue: number; count: numb
     }
   }
 
-  if (sizedBoxValues.length < 2) return null;
+  if (sizedBoxValues.length === 0) return null;
 
   const allSameValue = sizedBoxValues.every((v) => v === sizedBoxValues[0]);
   if (!allSameValue) return null;

@@ -60,7 +60,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  *
  * Ignora ocorrências dentro de block comments e multi-line strings.
  */
-const _types_1 = require("../../../types");
+const _types_1 = require("@types");
 const fs = __importStar(require("fs"));
 const TRY_RE = /^\s*try\s*\{/;
 const CATCH_RE = /^\}\s*(?:catch\s*[\s(]|on\s+)/;

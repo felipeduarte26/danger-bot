@@ -68,7 +68,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  *   "datetime", "timestamp" ou "data de", o campo é reportado
  *   mesmo que o nome não siga os padrões acima.
  */
-const _types_1 = require("../../../types");
+const _types_1 = require("@types");
 const fs = __importStar(require("fs"));
 const DATE_SUFFIXES = ["At", "Date", "Timestamp", "Time", "Dt"];
 const DATE_PREFIXES = ["date", "timestamp", "dt"];

@@ -65,7 +65,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * 5. Model que já extends Entity, sem campos extras e com toEntity() →
  *    toEntity() é desnecessário (Liskov Substitution Principle)
  */
-const _types_1 = require("../../../types");
+const _types_1 = require("@types");
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 function isBarrelFile(filePath) {

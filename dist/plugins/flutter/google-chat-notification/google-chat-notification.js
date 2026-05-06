@@ -13,7 +13,7 @@
  * IMPORTANTE: este plugin deve ser o ÚLTIMO a rodar para capturar todos os resultados.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-const _types_1 = require("../../../types");
+const _types_1 = require("@types");
 const config_1 = require("../../../config");
 const helpers_1 = require("../../../helpers");
 const REQUEST_TIMEOUT_MS = 10000;

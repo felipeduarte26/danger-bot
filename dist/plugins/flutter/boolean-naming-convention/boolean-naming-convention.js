@@ -65,7 +65,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  *
  * @see https://dart.dev/effective-dart/design#prefer-a-non-imperative-verb-phrase-for-a-boolean-property-or-variable
  */
-const _types_1 = require("../../../types");
+const _types_1 = require("@types");
 const fs = __importStar(require("fs"));
 const GOOD_PREFIXES = new Set([
   "is",

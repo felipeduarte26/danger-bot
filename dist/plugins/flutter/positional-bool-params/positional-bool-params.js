@@ -69,7 +69,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  *
  * @see https://dart.dev/effective-dart/design#avoid-positional-boolean-parameters
  */
-const _types_1 = require("../../../types");
+const _types_1 = require("@types");
 const fs = __importStar(require("fs"));
 /**
  * Checks if a bool param is inside named parameters (after `{`).

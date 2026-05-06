@@ -10,7 +10,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  *   - // coverage:ignore-...  (ignore de coverage)
  *   - // danger:ignore        (tag do Danger Bot — na mesma linha ou na linha anterior)
  */
-const _types_1 = require("../../../types");
+const _types_1 = require("@types");
 const ALLOWED_PREFIXES = /^\/\/\s*(TODO|FIXME|ignore:|coverage:ignore|danger:ignore)/i;
 exports.default = (0, _types_1.createPlugin)(
   {

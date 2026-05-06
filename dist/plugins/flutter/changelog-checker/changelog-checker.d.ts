@@ -3,5 +3,5 @@
  * ==========================
  * Verifica se o CHANGELOG foi atualizado quando necessário
  */
-declare const _default: import("../../../types").DangerPlugin;
+declare const _default: import("@types").DangerPlugin;
 export default _default;

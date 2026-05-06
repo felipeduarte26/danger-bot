@@ -5,7 +5,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * Verifica o tamanho do PR baseado em arquivos .dart (exclui gerados).
  * Se mais de 100 arquivos .dart alterados, bloqueia a PR.
  */
-const _types_1 = require("../../../types");
+const _types_1 = require("@types");
 const GENERATED_PATTERNS = [
   /\.g\.dart$/,
   /\.freezed\.dart$/,

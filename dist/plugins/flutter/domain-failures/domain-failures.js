@@ -60,7 +60,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * - Deve ter pelo menos uma final class que extends a sealed class
  * - Todas as classes devem ter sufixo Failure
  */
-const _types_1 = require("../../../types");
+const _types_1 = require("@types");
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 function isBarrelFile(filePath) {

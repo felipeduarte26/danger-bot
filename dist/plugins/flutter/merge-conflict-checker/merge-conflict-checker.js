@@ -5,7 +5,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * Detecta conflitos de merge entre o branch atual e o branch de destino
  * usando `git merge-tree` para simular o merge sem alterar o working directory.
  */
-const _types_1 = require("../../../types");
+const _types_1 = require("@types");
 const child_process_1 = require("child_process");
 function getTargetBranch() {
   const d = global.danger || globalThis.danger;

@@ -64,7 +64,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * - O método da interface deve se chamar "call" (callable class)
  * - O método call não pode ter mais de 3 parâmetros (usar classe de params)
  */
-const _types_1 = require("../../../types");
+const _types_1 = require("@types");
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 function isBarrelFile(filePath) {

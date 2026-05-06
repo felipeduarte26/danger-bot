@@ -5,7 +5,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * Gera um sumário rico da PR com métricas, camadas, risco e checklist.
  * Usa apenas Markdown puro (sem HTML) para compatibilidade com Bitbucket Cloud.
  */
-const _types_1 = require("../../../types");
+const _types_1 = require("@types");
 exports.default = (0, _types_1.createPlugin)(
   {
     name: "pr-summary",

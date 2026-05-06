@@ -65,7 +65,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  *
  * Analisa o arquivo completo e trata cada classe separadamente.
  */
-const _types_1 = require("../../../types");
+const _types_1 = require("@types");
 const fs = __importStar(require("fs"));
 const KIND_ORDER = {
   constructor: 0,
