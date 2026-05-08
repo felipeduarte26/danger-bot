@@ -115,7 +115,8 @@ function findDisposables(lines: string[]): Disposable[] {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
 
-    if (line.match(/class\s+\w+\s+extends\s+(?:State|ViewState)</)) {
+    const combinedLine = line + " " + (lines[i + 1]?.trimStart() || "");
+    if (combinedLine.match(/class\s+\w+\s+extends\s+(?:State|ViewState)</)) {
       insideStateClass = true;
       braceDepth = 0;
     }

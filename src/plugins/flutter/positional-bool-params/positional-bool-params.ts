@@ -186,19 +186,19 @@ export default createPlugin(
 
       sendFormattedFail({
         title: "PARÂMETRO BOOL POSICIONAL",
-        description: `O parâmetro \`bool ${v.paramName}\` em \`${v.functionName}\` é posicional. Chamadas como \`${v.functionName}(true)\` são ilegíveis. Use **named parameters** para clareza.`,
+        description: `O parâmetro \`bool ${v.paramName}\` em \`${v.functionName}()\` é **posicional**. No call site, \`true\`/\`false\` aparecem sem contexto, dificultando a leitura — ex: \`${v.functionName}(..., true, ...)\`. Com **named parameter**, fica auto-documentado: \`${v.paramName}: true\`.`,
         problem: {
-          wrong: `${v.functionName}(bool ${v.paramName})`,
-          correct: `${v.functionName}(${suggestedNamed})`,
-          wrongLabel: "Bool posicional (ilegível no call site)",
-          correctLabel: "Named parameter (auto-documentado)",
+          wrong: `${v.functionName}(${v.signatureTrimmed.includes(",") ? "..., " : ""}bool ${v.paramName})`,
+          correct: `${v.functionName}(${v.signatureTrimmed.includes(",") ? "..., " : ""}${suggestedNamed})`,
+          wrongLabel: `Posicional — quem lê ${v.functionName}(..., true) não sabe o que "true" significa`,
+          correctLabel: `Named — ${v.functionName}(..., ${v.paramName}: true) é auto-explicativo`,
         },
         action: {
-          text: "Converta para named parameter com `{}` ou use named constructor/enum:",
+          text: "Envolva o parâmetro bool com `{}` para torná-lo named:",
           code: `${v.functionName}(${suggestedNamed})`,
         },
         objective:
-          "Seguir **Effective Dart** — `Task(true)` é confuso, `Task(repeating: true)` é claro.",
+          "Seguir **Effective Dart** — parâmetros bool devem ser **named** para que o valor (`true`/`false`) tenha significado claro no call site.",
         reference: {
           text: "Effective Dart: AVOID positional boolean parameters",
           url: "https://dart.dev/effective-dart/design#avoid-positional-boolean-parameters",

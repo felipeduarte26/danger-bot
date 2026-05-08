@@ -106,7 +106,8 @@ function extractClasses(lines: string[]): ClassBlock[] {
   const classes: ClassBlock[] = [];
 
   for (let i = 0; i < lines.length; i++) {
-    const match = lines[i].match(/class\s+(\w+)\s+extends\s+(?:State<\w+>|StatelessWidget)/);
+    const combined = lines[i] + " " + (lines[i + 1]?.trimStart() || "");
+    const match = combined.match(/class\s+(\w+)\s+extends\s+(?:State<\w+>|StatelessWidget)/);
     if (!match) continue;
 
     let braceCount = 0;

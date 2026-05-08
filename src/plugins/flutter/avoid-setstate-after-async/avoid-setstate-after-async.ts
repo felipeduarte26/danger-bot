@@ -35,7 +35,8 @@ function findSetStateAfterAwait(lines: string[]): SetStateIssue[] {
 
     if (trimmed.startsWith("//") || trimmed.startsWith("///")) continue;
 
-    if (line.match(/class\s+\w+\s+extends\s+(?:State|ViewState)</)) {
+    const combinedLine = line + " " + (lines[i + 1]?.trimStart() || "");
+    if (combinedLine.match(/class\s+\w+\s+extends\s+(?:State|ViewState)</)) {
       inStateClass = true;
       braceDepthClass = 0;
     }

@@ -215,7 +215,8 @@ export default createPlugin(
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
 
-        if (/class\s+\w+[\s<].*extends\s+ViewModelBase/.test(line)) {
+        const combinedLine = line + " " + (lines[i + 1]?.trimStart() || "");
+        if (/class\s+\w+[\s<].*extends\s+ViewModelBase/.test(combinedLine)) {
           insideClass = true;
           braceDepth = 0;
           classStartLine = i;

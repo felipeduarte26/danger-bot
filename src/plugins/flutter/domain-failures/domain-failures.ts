@@ -64,6 +64,8 @@ export default createPlugin(
       const finalClasses: { name: string; line: number; extendsName: string }[] = [];
 
       let inBlockComment = false;
+      let pendingFinalClass: { name: string; line: number } | null = null;
+
       for (let i = 0; i < lines.length; i++) {
         const trimmed = lines[i].trimStart();
 
@@ -88,6 +90,26 @@ export default createPlugin(
         );
         if (finalMatch) {
           finalClasses.push({ name: finalMatch[1], line: i + 1, extendsName: finalMatch[2] });
+          pendingFinalClass = null;
+          continue;
+        }
+
+        const finalOnly = lines[i].match(/final\s+class\s+([A-Za-z_]\w*)\s*$/);
+        if (finalOnly) {
+          pendingFinalClass = { name: finalOnly[1], line: i + 1 };
+          continue;
+        }
+
+        if (pendingFinalClass) {
+          const extendsMatch = trimmed.match(/extends\s+([A-Za-z_]\w*)/);
+          if (extendsMatch) {
+            finalClasses.push({
+              name: pendingFinalClass.name,
+              line: pendingFinalClass.line,
+              extendsName: extendsMatch[1],
+            });
+          }
+          pendingFinalClass = null;
         }
       }
 

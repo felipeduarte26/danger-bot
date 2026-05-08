@@ -120,6 +120,15 @@ export default createPlugin(
         );
         if (implMatch && !lines[i].includes("abstract")) {
           implementations.push({ name: implMatch[1], line: i + 1 });
+        } else if (!lines[i].includes("abstract")) {
+          const classOnly = lines[i].match(/(?:final\s+)?class\s+([A-Za-z_]\w*)\s*$/);
+          if (classOnly) {
+            const nextLine = (lines[i + 1] || "").trimStart();
+            const implNext = nextLine.match(/implements\s+([A-Za-z_]\w*)/);
+            if (implNext) {
+              implementations.push({ name: classOnly[1], line: i + 1 });
+            }
+          }
         }
       }
 
