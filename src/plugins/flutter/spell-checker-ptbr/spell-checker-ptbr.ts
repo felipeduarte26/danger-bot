@@ -79,6 +79,42 @@ const SUFFIX_RULES: SuffixRule[] = [
 ];
 
 /**
+ * Palavras que terminam com sufixos das SUFFIX_RULES mas que estão
+ * corretamente escritas SEM acento. Evita falsos positivos como
+ * "categoria" → "categória".
+ */
+const SUFFIX_EXCEPTIONS = new Set([
+  "categoria",
+  "categorias",
+  "diretoria",
+  "diretorias",
+  "consultoria",
+  "consultorias",
+  "auditoria",
+  "auditorias",
+  "monitoria",
+  "monitorias",
+  "tutoria",
+  "tutorias",
+  "assessoria",
+  "assessorias",
+  "curadoria",
+  "curadorias",
+  "ouvidoria",
+  "ouvidorias",
+  "procuradoria",
+  "procuradorias",
+  "defensoria",
+  "defensorias",
+  "reitoria",
+  "reitorias",
+  "corregedoria",
+  "corregedorias",
+  "controladoria",
+  "controladorias",
+]);
+
+/**
  * Palavras que o Hunspell VERO aceita sem acento (spell() → true)
  * mas que na escrita correta PRECISAM de acento.
  * Servem como fallback quando nodehun não flagga.
@@ -662,6 +698,7 @@ function checkBlindSpots(word: string): CheckResult | null {
 
 function checkSuffixRules(word: string): CheckResult | null {
   const lower = word.toLowerCase();
+  if (SUFFIX_EXCEPTIONS.has(lower)) return null;
   for (const rule of SUFFIX_RULES) {
     if (lower.length >= rule.minLen && lower.endsWith(rule.suffix)) {
       const correction = lower.slice(0, -rule.suffix.length) + rule.correction;
