@@ -171,10 +171,11 @@ export default createPlugin(
 
     const files = [...git.created_files, ...git.modified_files].filter(
       (f: string) =>
-        f.includes("/usecases/") &&
+        (f.includes("/usecases/") || f.includes("/usecase/")) &&
         f.endsWith(".dart") &&
         !f.endsWith("_test.dart") &&
         !f.endsWith("usecases.dart") &&
+        !f.endsWith("usecase.dart") &&
         !isBarrelFile(f) &&
         fs.existsSync(f)
     );
