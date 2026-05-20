@@ -40,6 +40,7 @@ exports.testPlugins =
   exports.dataLayerPlugins =
   exports.domainLayerPlugins =
   exports.allFlutterPlugins =
+  exports.privateNamedParamsPlugin =
   exports.folderNamingConventionPlugin =
   exports.presentationEncapsulationPlugin =
   exports.spellCheckerPtbrPlugin =
@@ -327,6 +328,12 @@ Object.defineProperty(exports, "folderNamingConventionPlugin", {
     return flutter_1.folderNamingConventionPlugin;
   },
 });
+Object.defineProperty(exports, "privateNamedParamsPlugin", {
+  enumerable: true,
+  get: function () {
+    return flutter_1.privateNamedParamsPlugin;
+  },
+});
 /**
  * All available Flutter plugins in a single array
  * Use this for quick setup with all plugins enabled
@@ -377,6 +384,7 @@ exports.allFlutterPlugins = [
   require("./plugins/flutter/spell-checker-ptbr").default,
   require("./plugins/flutter/presentation-encapsulation").default,
   require("./plugins/flutter/folder-naming-convention").default,
+  require("./plugins/flutter/private-named-params").default,
   // google-chat-notification deve ser sempre o último plugin
   require("./plugins/flutter/google-chat-notification").default,
 ];
@@ -424,6 +432,7 @@ exports.codeQualityPlugins = [
   flutter_2.positionalBoolParamsPlugin,
   flutter_2.buildDocCheckerPlugin,
   flutter_2.spellCheckerPtbrPlugin,
+  flutter_2.privateNamedParamsPlugin,
 ];
 exports.performancePlugins = [
   flutter_2.flutterPerformancePlugin,

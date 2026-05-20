@@ -51,6 +51,7 @@ export {
   spellCheckerPtbrPlugin,
   presentationEncapsulationPlugin,
   folderNamingConventionPlugin,
+  privateNamedParamsPlugin,
 } from "./plugins/flutter";
 
 /**
@@ -103,6 +104,7 @@ export const allFlutterPlugins = [
   require("./plugins/flutter/spell-checker-ptbr").default,
   require("./plugins/flutter/presentation-encapsulation").default,
   require("./plugins/flutter/folder-naming-convention").default,
+  require("./plugins/flutter/private-named-params").default,
   // google-chat-notification deve ser sempre o último plugin
   require("./plugins/flutter/google-chat-notification").default,
 ];
@@ -145,6 +147,7 @@ import {
   spellCheckerPtbrPlugin,
   presentationEncapsulationPlugin,
   folderNamingConventionPlugin,
+  privateNamedParamsPlugin,
 } from "./plugins/flutter";
 
 export const domainLayerPlugins = [
@@ -193,6 +196,7 @@ export const codeQualityPlugins = [
   positionalBoolParamsPlugin,
   buildDocCheckerPlugin,
   spellCheckerPtbrPlugin,
+  privateNamedParamsPlugin,
 ];
 
 export const performancePlugins = [

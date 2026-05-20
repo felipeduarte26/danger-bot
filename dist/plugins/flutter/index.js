@@ -10,7 +10,8 @@ var __importDefault =
     return mod && mod.__esModule ? mod : { default: mod };
   };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.folderNamingConventionPlugin =
+exports.privateNamedParamsPlugin =
+  exports.folderNamingConventionPlugin =
   exports.presentationEncapsulationPlugin =
   exports.spellCheckerPtbrPlugin =
   exports.buildDocCheckerPlugin =
@@ -380,5 +381,12 @@ Object.defineProperty(exports, "folderNamingConventionPlugin", {
   enumerable: true,
   get: function () {
     return __importDefault(folder_naming_convention_1).default;
+  },
+});
+var private_named_params_1 = require("./private-named-params");
+Object.defineProperty(exports, "privateNamedParamsPlugin", {
+  enumerable: true,
+  get: function () {
+    return __importDefault(private_named_params_1).default;
   },
 });

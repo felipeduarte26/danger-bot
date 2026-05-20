@@ -49,3 +49,4 @@ export { default as buildDocCheckerPlugin } from "./build-doc-checker";
 export { default as spellCheckerPtbrPlugin } from "./spell-checker-ptbr";
 export { default as presentationEncapsulationPlugin } from "./presentation-encapsulation";
 export { default as folderNamingConventionPlugin } from "./folder-naming-convention";
+export { default as privateNamedParamsPlugin } from "./private-named-params";

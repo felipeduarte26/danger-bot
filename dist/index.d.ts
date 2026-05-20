@@ -47,6 +47,7 @@ export {
   spellCheckerPtbrPlugin,
   presentationEncapsulationPlugin,
   folderNamingConventionPlugin,
+  privateNamedParamsPlugin,
 } from "./plugins/flutter";
 /**
  * All available Flutter plugins in a single array

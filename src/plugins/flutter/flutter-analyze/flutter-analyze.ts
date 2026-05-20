@@ -238,11 +238,16 @@ function translateFlutterAnalyzeMessage(message: string, ruleName: string): stri
     prefer_const_declarations: "Prefira declarações const para valores constantes",
     prefer_const_literals_to_create_immutables: "Use const para criar coleções imutáveis",
     unnecessary_const: "Palavra-chave const desnecessária",
+    unnecessary_const_in_enum_constructor:
+      "Palavra-chave `const` desnecessária em construtor de enum — construtores generativos de enum já são implicitamente const",
     unnecessary_new: "Palavra-chave new desnecessária",
     unnecessary_constructor_name: "Nome de construtor .new desnecessário",
+    unnecessary_type_name_in_constructor:
+      "Nome do tipo desnecessário no construtor — use `.new()` ou `.named()` ao invés de `TypeName.new()` ou `TypeName.named()` dentro da própria classe",
     sort_constructors_first: "Coloque construtores primeiro na classe",
     sort_unnamed_constructors_first: "Coloque o construtor sem nome primeiro",
-    prefer_initializing_formals: "Use this.param no construtor",
+    prefer_initializing_formals:
+      "Use `this._field` no construtor (private named parameters — Dart 3.12+). Elimine a initializer list redundante e deixe o Dart gerar o nome público automaticamente. Aplique: `dart fix --code=prefer_initializing_formals`",
     use_super_parameters: "Use super parameters ao invés de passar para super manualmente",
 
     // ── Print e logging ──
@@ -253,7 +258,8 @@ function translateFlutterAnalyzeMessage(message: string, ruleName: string): stri
     sort_pub_dependencies: "Ordene dependências do pubspec.yaml alfabeticamente",
     depend_on_referenced_packages: "Dependa apenas de pacotes referenciados",
     always_use_package_imports: "Use package imports ao invés de relativos",
-    simple_directive_paths: "Use caminhos simples em diretivas de import/export",
+    simple_directive_paths:
+      "Simplifique caminhos em diretivas de import/export — remova segmentos redundantes como `./` ou `../` desnecessários. Aplique: `dart fix --code=simple_directive_paths`",
     avoid_relative_lib_imports: "Evite imports relativos para arquivos em lib/",
     prefer_relative_imports: "Use imports relativos dentro do mesmo package",
     implementation_imports: "Evite importar arquivos de src/ de outros packages",
@@ -429,6 +435,8 @@ function translateFlutterAnalyzeMessage(message: string, ruleName: string): stri
       "Prefira construtores ao invés de métodos estáticos para criação",
     prefer_mixin: "Use mixin ao invés de classe abstrata para mixins",
     avoid_equals_and_hash_code_on_mutable_classes: "Evite == e hashCode em classes mutáveis",
+    avoid_unstable_final_fields:
+      "Campo final sobrescrito retorna valores diferentes em chamadas consecutivas — garanta que o getter/field retorne sempre o mesmo valor",
     one_member_abstracts: "Classe abstrata com um membro — considere typedef",
     overridden_fields: "Campo sobrescrito — use getter",
     avoid_setters_without_getters: "Evite setters sem getters correspondentes",
