@@ -283,6 +283,158 @@ function isAgentNoun(word: string): boolean {
   return AGENT_NOUN_SUFFIXES.some((suffix) => lower.endsWith(suffix));
 }
 
+const COMPOUND_PARTICLES = new Set([
+  "in",
+  "out",
+  "up",
+  "down",
+  "over",
+  "off",
+  "on",
+  "back",
+  "away",
+  "only",
+  "through",
+  "around",
+  "time",
+  "base",
+  "source",
+  "set",
+  "line",
+  "side",
+  "end",
+  "able",
+]);
+
+const KNOWN_COMPOUNDS = new Set([
+  "read_only",
+  "start_up",
+  "startup",
+  "set_up",
+  "setup",
+  "check_out",
+  "checkout",
+  "look_up",
+  "lookup",
+  "break_down",
+  "log_in",
+  "login",
+  "log_out",
+  "logout",
+  "sign_in",
+  "sign_up",
+  "sign_out",
+  "opt_in",
+  "opt_out",
+  "drop_down",
+  "dropdown",
+  "pop_up",
+  "popup",
+  "push_notification",
+  "run_time",
+  "runtime",
+  "open_source",
+  "read_write",
+  "lock_down",
+  "lock_out",
+  "roll_back",
+  "rollback",
+  "call_back",
+  "callback",
+  "turn_over",
+  "turnover",
+  "make_over",
+  "hand_over",
+  "over_ride",
+  "override",
+  "over_load",
+  "overload",
+  "down_load",
+  "download",
+  "up_load",
+  "upload",
+  "search_result",
+  "search_results",
+  "search_criteria",
+  "search_query",
+  "search_bar",
+  "search_field",
+  "import_export",
+  "export_import",
+  "load_balance",
+  "load_test",
+  "read_model",
+  "write_model",
+  "split_view",
+  "merge_request",
+  "merge_conflict",
+]);
+
+function isPartOfCompoundNoun(words: string[], verbIdx: number): boolean {
+  const verb = words[verbIdx].toLowerCase();
+  const nextWord = words[verbIdx + 1]?.toLowerCase();
+  const prevWord = words[verbIdx - 1]?.toLowerCase();
+
+  if (nextWord) {
+    if (COMPOUND_PARTICLES.has(nextWord)) return true;
+    if (KNOWN_COMPOUNDS.has(`${verb}_${nextWord}`)) return true;
+  }
+
+  if (prevWord) {
+    if (KNOWN_COMPOUNDS.has(`${prevWord}_${verb}`)) return true;
+  }
+
+  return false;
+}
+
+const VERB_ALSO_NOUN = new Set([
+  "download",
+  "upload",
+  "export",
+  "import",
+  "update",
+  "build",
+  "search",
+  "filter",
+  "sort",
+  "run",
+  "call",
+  "copy",
+  "move",
+  "edit",
+  "display",
+  "archive",
+  "restore",
+  "merge",
+  "split",
+  "sync",
+  "login",
+  "logout",
+  "process",
+  "load",
+  "check",
+  "format",
+  "parse",
+  "convert",
+  "transform",
+  "generate",
+  "start",
+  "stop",
+  "lock",
+  "clone",
+  "render",
+  "dispatch",
+  "publish",
+  "read",
+  "write",
+  "open",
+  "close",
+  "block",
+  "handle",
+  "find",
+  "draw",
+]);
+
 async function loadWordPOS(): Promise<any> {
   try {
     const WordPOS = require("wordpos");
@@ -351,13 +503,33 @@ export default createPlugin(
             const lower = word.toLowerCase();
             if (lower.length < 2) continue;
             if (isAgentNoun(lower)) continue;
+            if (isPartOfCompoundNoun(words, wi)) continue;
 
             const isFirstWord = wi === 0;
 
-            if (isFirstWord && ACTION_VERBS.has(lower)) {
+            if (ACTION_VERBS.has(lower)) {
+              if (isFirstWord) {
+                if (VERB_ALSO_NOUN.has(lower) && words.length === 1) continue;
+                verbWords.push(lower);
+                continue;
+              }
+              if (VERB_ALSO_NOUN.has(lower)) {
+                if (wp) {
+                  try {
+                    const isNoun = await wp.isNoun(lower);
+                    if (isNoun) continue;
+                  } catch {
+                    continue;
+                  }
+                } else {
+                  continue;
+                }
+              }
               verbWords.push(lower);
               continue;
             }
+
+            if (!wp) continue;
 
             try {
               const isVerb = await wp.isVerb(lower);

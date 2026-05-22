@@ -339,7 +339,7 @@ function extractIdentifiers(line: string, lineNumber: number): IdentifierInfo[] 
   }
 
   const varRe =
-    /(?:final|const|var|late\s+final|late)\s+(?:[A-Za-z_]\w*(?:<[^>]*>)?\s+)?([a-z_]\w*)\s*[=;]/g;
+    /(?:final|const|var|late\s+final|late)\s+(?:[A-Za-z_]\w*(?:<[^>]*>)?\??\s+)?([a-z_]\w*)\s*[=;,)]/g;
   while ((m = varRe.exec(clean)) !== null) {
     const name = m[1];
     if (/^(i|j|k|e|x|y|_)$/.test(name)) continue;

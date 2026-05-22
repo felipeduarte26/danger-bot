@@ -7,13 +7,18 @@
  * 1. Dicionário interno (~400 palavras PT comuns em código) — rápido e preciso
  * 2. eld v2 (Efficient Language Detector) — detecta PT e ES (línguas próximas)
  * 3. eld palavra por palavra — pega textos misturados PT+EN
+ * 4. cspell (dicionário EN) — valida se a palavra é inglês válido; se NÃO é
+ *    inglês e eld detecta como PT/ES → sinaliza (pega variantes como "filials")
  *
  * Tradução:
  * - Identificadores: dicionário PT→EN interno
  * - Comentários/documentação: Google Translate (lib translate, sem API key)
  */
 import { createPlugin, getDanger, sendFormattedFail } from "@types";
+import { execSync } from "child_process";
 import * as fs from "fs";
+import * as path from "path";
+import * as os from "os";
 
 let _eld: any = null;
 let _eldLoaded = false;
@@ -47,6 +52,163 @@ async function translateToEnglish(text: string): Promise<string | null> {
   } catch {
     return null;
   }
+}
+
+// ---------------------------------------------------------------------------
+// cspell integration — valida batch de palavras contra dicionário EN
+// ---------------------------------------------------------------------------
+
+function validateWordsWithCspell(words: Set<string>): Set<string> {
+  if (words.size === 0) return new Set();
+  const tmpDir = path.join(os.tmpdir(), `danger-idlang-${Date.now()}`);
+  fs.mkdirSync(tmpDir, { recursive: true });
+
+  const wordsFile = path.join(tmpDir, "words.txt");
+  const configFile = path.join(tmpDir, "cspell.json");
+
+  try {
+    fs.writeFileSync(wordsFile, Array.from(words).join("\n"));
+
+    const customWords = getProjectCustomWords();
+
+    const cspellConfig = {
+      version: "0.2",
+      language: "en",
+      import: [
+        "@cspell/dict-dart/cspell-ext.json",
+        "@cspell/dict-flutter/cspell-ext.json",
+        "@cspell/dict-software-terms/cspell-ext.json",
+      ],
+      dictionaries: ["dart", "flutter", "softwareTerms", "project-terms"],
+      dictionaryDefinitions: [{ name: "project-terms", words: customWords }],
+    };
+    fs.writeFileSync(configFile, JSON.stringify(cspellConfig, null, 2));
+
+    let cspellOutput = "";
+    try {
+      execSync(
+        `./node_modules/.bin/cspell --config ${configFile} --no-progress --no-summary ${wordsFile}`,
+        { encoding: "utf-8", stdio: "pipe", timeout: 30000 }
+      );
+    } catch (error: any) {
+      cspellOutput = error.stdout || "";
+    }
+
+    const misspelled = new Set<string>();
+    const regex = /words\.txt:\d+:\d+\s*-\s*Unknown word \(([^)]+)\)/g;
+    let match;
+    while ((match = regex.exec(cspellOutput)) !== null) {
+      misspelled.add(match[1].toLowerCase());
+    }
+    return misspelled;
+  } catch {
+    return new Set();
+  } finally {
+    try {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    } catch {
+      // best-effort cleanup
+    }
+  }
+}
+
+function getProjectCustomWords(): string[] {
+  const techWords = [
+    "viewmodel",
+    "usecase",
+    "datasource",
+    "dto",
+    "bloc",
+    "cubit",
+    "riverpod",
+    "getx",
+    "hive",
+    "isar",
+    "freezed",
+    "equatable",
+    "dartz",
+    "fpdart",
+    "appbar",
+    "snackbar",
+    "bottomsheet",
+    "inkwell",
+    "stateful",
+    "stateless",
+    "mixin",
+    "typedef",
+    "impl",
+    "infra",
+    "params",
+    "args",
+    "ctx",
+    "btn",
+    "img",
+    "nav",
+    "util",
+    "utils",
+    "debounce",
+    "throttle",
+    "paginator",
+    "dio",
+    "retrofit",
+    "chopper",
+    "grpc",
+    "graphql",
+    "websocket",
+    "mqtt",
+    "firebase",
+    "supabase",
+    "crashlytics",
+    "pubspec",
+    "sqlite",
+    "onboarding",
+    "signup",
+    "signin",
+    "oauth",
+    "jwt",
+    "uuid",
+    "regex",
+    "cron",
+    "webhook",
+    "lottie",
+    "rive",
+    "rgba",
+    "argb",
+    "datetime",
+    "timestamp",
+    "timezone",
+    "nullable",
+    "nonnull",
+    "iterable",
+    "cancelable",
+    "listenable",
+    "notifier",
+    "changenotifier",
+    "valuenotifier",
+    "statenotifier",
+    "asyncnotifier",
+    "sliverappbar",
+    "mediaquery",
+    "autocomplete",
+    "typeahead",
+    "datatable",
+    "shimmer",
+    "skeleton",
+    "interactor",
+    "presenter",
+  ];
+
+  let vscodeWords: string[] = [];
+  try {
+    if (fs.existsSync(".vscode/settings.json")) {
+      const settings = JSON.parse(fs.readFileSync(".vscode/settings.json", "utf-8"));
+      vscodeWords = settings["cSpell.words"] || [];
+    }
+  } catch {
+    // ignore
+  }
+
+  return [...new Set([...techWords, ...vscodeWords])];
 }
 
 const NON_ENGLISH_LANGS = new Set(["pt", "es"]);
@@ -84,6 +246,48 @@ function detectWordLang(word: string): string | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * Verificação relaxada para palavras que cspell JÁ confirmou como inválidas em EN.
+ * Não exige isReliable() do eld — se a detecção indica PT/ES, mesmo com baixa
+ * confiança, é suficiente (cspell já deu o sinal forte).
+ * Também verifica proximidade com palavras PT conhecidas.
+ */
+function isLikelyNonEnglish(word: string): boolean {
+  if (_eld && word.length >= 6) {
+    try {
+      const result = _eld.detect(word);
+      if (result?.language && NON_ENGLISH_LANGS.has(result.language)) return true;
+    } catch {
+      // fallthrough
+    }
+  }
+
+  const normalized = normalizeAccents(word);
+  const maxDist = normalized.length <= 5 ? 1 : 2;
+  for (const ptWord of PT_WORDS) {
+    if (Math.abs(ptWord.length - normalized.length) > maxDist) continue;
+    if (levenshteinDistance(normalized, ptWord) <= maxDist) return true;
+  }
+
+  return false;
+}
+
+function levenshteinDistance(a: string, b: string): number {
+  const m = a.length;
+  const n = b.length;
+  const dp: number[][] = Array.from({ length: m + 1 }, (_, i) =>
+    Array.from({ length: n + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
+  );
+  for (let i = 1; i <= m; i++)
+    for (let j = 1; j <= n; j++)
+      dp[i][j] = Math.min(
+        dp[i - 1][j] + 1,
+        dp[i][j - 1] + 1,
+        dp[i - 1][j - 1] + (a[i - 1] !== b[j - 1] ? 1 : 0)
+      );
+  return dp[m][n];
 }
 
 function isNonEnglishComment(text: string): boolean {
@@ -675,6 +879,17 @@ export default createPlugin(
     const matches: IdentifierMatch[] = [];
     const commentMatches: { file: string; line: number; text: string; type: string }[] = [];
 
+    // Candidatos para validação cspell (palavras não pegas por PT_WORDS/eld)
+    interface CspellCandidate {
+      word: string;
+      file: string;
+      line: number;
+      identifier: string;
+      kind: string;
+    }
+    const cspellCandidates: CspellCandidate[] = [];
+    const candidateWords = new Set<string>();
+
     for (const file of dartFiles) {
       const content = fs.readFileSync(file, "utf-8");
       const lines = content.split("\n");
@@ -728,7 +943,47 @@ export default createPlugin(
 
           if (ptWords.length > 0) {
             matches.push({ file, line: i + 1, identifier, kind, ptWords });
+          } else {
+            for (const w of words) {
+              if (w.length < 4) continue;
+              if (AMBIGUOUS.has(w)) continue;
+              candidateWords.add(w);
+              cspellCandidates.push({ word: w, file, line: i + 1, identifier, kind });
+            }
           }
+        }
+      }
+    }
+
+    // Segundo passe: validar palavras não capturadas contra cspell (dicionário EN)
+    if (candidateWords.size > 0) {
+      const misspelled = validateWordsWithCspell(candidateWords);
+
+      if (misspelled.size > 0) {
+        const seen = new Set<string>();
+
+        for (const candidate of cspellCandidates) {
+          if (!misspelled.has(candidate.word)) continue;
+
+          const isNonEn = isLikelyNonEnglish(candidate.word);
+          if (!isNonEn) continue;
+
+          const key = `${candidate.file}::${candidate.line}::${candidate.identifier}`;
+          if (seen.has(key)) {
+            const existing = matches.find((m) => `${m.file}::${m.line}::${m.identifier}` === key);
+            if (existing) {
+              existing.ptWords.push(candidate.word);
+              continue;
+            }
+          }
+          seen.add(key);
+          matches.push({
+            file: candidate.file,
+            line: candidate.line,
+            identifier: candidate.identifier,
+            kind: candidate.kind,
+            ptWords: [candidate.word],
+          });
         }
       }
     }
@@ -985,7 +1240,7 @@ function extractIdentifiers(line: string): { identifier: string; kind: string }[
   }
 
   const varRe =
-    /(?:final|const|var|late\s+final|late)\s+(?:[A-Za-z_]\w*(?:<[^>]*>)?\s+)?([a-z_]\w*)\s*[=;]/g;
+    /(?:final|const|var|late\s+final|late)\s+(?:[A-Za-z_]\w*(?:<[^>]*>)?\??\s+)?([a-z_]\w*)\s*[=;,)]/g;
   while ((m = varRe.exec(line)) !== null) {
     if (!isReserved(m[1])) results.push({ identifier: m[1], kind: "variável" });
   }
