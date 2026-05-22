@@ -289,7 +289,14 @@ const TARGET_FOLDERS = [
   { folder: "/models/", label: "Model" },
 ];
 function isTargetFile(file) {
-  if (file.includes("/usecases/")) return null;
+  if (
+    file.includes("/usecases/") ||
+    file.includes("/use_cases/") ||
+    file.endsWith("_usecase.dart") ||
+    file.endsWith("_use_case.dart")
+  ) {
+    return null;
+  }
   for (const { folder, label } of TARGET_FOLDERS) {
     if (file.includes(folder)) return label;
   }
@@ -559,7 +566,7 @@ exports.default = (0, _types_1.createPlugin)(
         const suggestion = buildSuggestion(v.verbWords);
         (0, _types_1.sendFormattedFail)({
           title: "CLASSE COM VERBO NO NOME",
-          description: `**${v.layer}:** \`${v.className}\` — verbo(s) detectado(s): ${verbs}. Classes representam **coisas** (substantivos), não **ações** (verbos).`,
+          description: `**${v.layer}:** \`${v.className}\` — verbo(s) detectado(s): ${verbs}. Classes representam **coisas** (substantivos), não **ações** (verbos). Exceção: **UseCases** podem ter verbos pois representam comandos/ações do sistema.`,
           problem: {
             wrong: `class ${v.className} { }`,
             correct: `class ${suggestClassName(v.className, v.verbWords)} { }`,
@@ -570,7 +577,8 @@ exports.default = (0, _types_1.createPlugin)(
             text: suggestion,
             code: `class ${suggestClassName(v.className, v.verbWords)} { }`,
           },
-          objective: "Seguir **Clean Code** — classes como substantivos, métodos como verbos.",
+          objective:
+            "Seguir **Clean Code** — classes como substantivos, métodos como verbos. Somente **UseCases** devem ter verbos no nome (pois representam comandos: `GetUser`, `CreateOrder`, `DeleteAccount`).",
           reference: {
             text: "Clean Code: Naming Classes & Methods",
             url: "https://medium.com/@mikhailhusyev/writing-clean-code-naming-variables-functions-methods-and-classes-6074a6796c7b",
