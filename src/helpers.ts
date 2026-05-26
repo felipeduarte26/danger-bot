@@ -57,6 +57,7 @@
  * ```
  */
 
+import { execSync } from "child_process";
 import type { DangerDSLType, GitDSL } from "danger";
 
 const _sentMessages = new Set<string>();
@@ -96,14 +97,6 @@ export function verboseLog(...args: unknown[]): void {
  */
 export function setIgnoredFiles(files: string[]): void {
   _ignoredFiles = new Set(files.map((f) => f.replace(/^\.\//, "").replace(/\\/g, "/")));
-  if (_ignoredFiles.size > 0) {
-    console.log(`🚫 ${_ignoredFiles.size} arquivo(s) na lista de ignore`);
-    if (_verbose) {
-      for (const f of _ignoredFiles) {
-        console.log(`   ├─ ${f}`);
-      }
-    }
-  }
 }
 
 /**
@@ -111,6 +104,47 @@ export function setIgnoredFiles(files: string[]): void {
  */
 export function getIgnoredFiles(): Set<string> {
   return _ignoredFiles;
+}
+
+function normalizeIgnoredPath(path: string): string {
+  return path.replace(/^\.\//, "").replace(/\\/g, "/");
+}
+
+function wildcardToRegex(pattern: string): RegExp {
+  const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*");
+  return new RegExp(`^${escaped}$`);
+}
+
+export function isIgnoredFile(file: string): boolean {
+  const normalizedFile = normalizeIgnoredPath(file);
+
+  for (const pattern of _ignoredFiles) {
+    if (!pattern.includes("*")) {
+      if (normalizedFile === pattern) return true;
+      continue;
+    }
+
+    if (wildcardToRegex(pattern).test(normalizedFile)) return true;
+  }
+
+  return false;
+}
+
+export function getIgnoredFileMatches(): string[] {
+  if (_ignoredFiles.size === 0) return [];
+
+  try {
+    const trackedFiles = execSync("git ls-files", {
+      encoding: "utf-8",
+      stdio: ["ignore", "pipe", "ignore"],
+    })
+      .split("\n")
+      .filter(Boolean);
+
+    return trackedFiles.filter(isIgnoredFile);
+  } catch {
+    return [];
+  }
 }
 
 function dedupKey(type: string, msg: string, file?: string, line?: number): string {
@@ -667,9 +701,7 @@ export function getAllChangedFiles(): string[] {
     verboseLog(`📂 ${allFiles.length} arquivo(s) modificados/criados no PR`);
     return allFiles;
   }
-  const filtered = allFiles.filter(
-    (f) => !_ignoredFiles.has(f.replace(/^\.\//, "").replace(/\\/g, "/"))
-  );
+  const filtered = allFiles.filter((f) => !isIgnoredFile(f));
   const ignoredCount = allFiles.length - filtered.length;
   if (ignoredCount > 0) {
     verboseLog(

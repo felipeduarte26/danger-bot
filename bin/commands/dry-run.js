@@ -123,7 +123,12 @@ export async function dryRun(options) {
 
   const require = createRequire(import.meta.url);
   const { loadConfig, loadLocalPlugins } = require("../../dist/config.js");
-  const { setIgnoredFiles, setVerbose } = require("../../dist/helpers.js");
+  const {
+    setIgnoredFiles,
+    setVerbose,
+    isIgnoredFile,
+    getIgnoredFileMatches,
+  } = require("../../dist/helpers.js");
 
   const config = loadConfig();
   const verbose = options.verbose || config.settings?.verbose || false;
@@ -137,6 +142,11 @@ export async function dryRun(options) {
     console.error("\n❌ Diretório não é um repositório git");
     process.chdir(originalCwd);
     process.exit(1);
+  }
+
+  const ignoredFiles = getIgnoredFileMatches();
+  if (ignoredFiles.length > 0) {
+    console.log(`🚫 ${ignoredFiles.length} arquivo(s) em ignore_files`);
   }
 
   const currentBranch = execSafe("git rev-parse --abbrev-ref HEAD").trim();
@@ -169,14 +179,11 @@ export async function dryRun(options) {
     deletions,
   } = getGitDiffInfo(mergeBase);
 
-  const normalizePath = (p) => p.replace(/^\.\//, "").replace(/\\/g, "/");
-  const ignoredSet = new Set((config.ignore_files || []).map(normalizePath));
-  const isIgnored = (f) => ignoredSet.has(normalizePath(f));
-
-  const modifiedFiles = rawModified.filter((f) => !isIgnored(f));
-  const createdFiles = rawCreated.filter((f) => !isIgnored(f));
-  const ignoredCount =
-    rawModified.length + rawCreated.length - (modifiedFiles.length + createdFiles.length);
+  const ignoredChangedFiles = [
+    ...new Set([...rawModified, ...rawCreated].filter((f) => isIgnoredFile(f))),
+  ];
+  const modifiedFiles = rawModified.filter((f) => !isIgnoredFile(f));
+  const createdFiles = rawCreated.filter((f) => !isIgnoredFile(f));
 
   const allChangedFiles = [...new Set([...modifiedFiles, ...createdFiles])];
   const dartFiles = allChangedFiles.filter((f) => f.endsWith(".dart"));
@@ -185,8 +192,11 @@ export async function dryRun(options) {
   console.log(`   Arquivos criados:     ${createdFiles.length}`);
   console.log(`   Arquivos deletados:   ${deletedFiles.length}`);
   console.log(`   Arquivos .dart:       ${dartFiles.length}`);
-  if (ignoredCount > 0) {
-    console.log(`   Arquivos ignorados:   ${ignoredCount} (via danger-bot.yaml)`);
+  if (ignoredChangedFiles.length > 0) {
+    console.log(`   Arquivos ignorados:   ${ignoredChangedFiles.length} (via danger-bot.yaml)`);
+    for (const file of ignoredChangedFiles) {
+      console.log(`      - ${file}`);
+    }
   }
   console.log(`   Linhas: +${insertions} / -${deletions}`);
 

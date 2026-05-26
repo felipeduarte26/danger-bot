@@ -35,6 +35,8 @@ export {
   isInLayer,
   setIgnoredFiles,
   getIgnoredFiles,
+  isIgnoredFile,
+  getIgnoredFileMatches,
   setVerbose,
   isVerbose,
   verboseLog,
@@ -181,6 +183,8 @@ export function executeDangerBot(plugins: DangerPlugin[], callbacks?: DangerBotC
         setIgnoredFiles,
         setVerbose,
         verboseLog,
+        isIgnoredFile,
+        getIgnoredFileMatches,
         flushSummaries: flush,
       } = await import("./helpers");
 
@@ -194,28 +198,35 @@ export function executeDangerBot(plugins: DangerPlugin[], callbacks?: DangerBotC
         console.log("[verbose] ═══════════════════════════════════════");
         verboseLog(`📦 ${plugins.length} plugin(s) do pacote`);
         verboseLog(`📂 local_plugins: ${config.local_plugins?.length ?? 0} caminho(s)`);
-        verboseLog(`🚫 ignore_files: ${config.ignore_files?.length ?? 0} arquivo(s)`);
+        verboseLog(`🚫 ignore_files: ${config.ignore_files?.length ?? 0} padrão(ões)`);
       }
 
       if (config.ignore_files?.length) {
         setIgnoredFiles(config.ignore_files);
         const { getDanger } = await import("./helpers");
         const danger = getDanger();
-        const normalizePath = (p: string) => p.replace(/^\.\//, "").replace(/\\/g, "/");
-        const ignoredSet = new Set(config.ignore_files.map(normalizePath));
-        const isIgnored = (f: string) => ignoredSet.has(normalizePath(f));
         const git = danger.git as any;
-        const beforeModified = (git.modified_files || []).length;
-        const beforeCreated = (git.created_files || []).length;
-        git.modified_files = (git.modified_files || []).filter((f: string) => !isIgnored(f));
-        git.created_files = (git.created_files || []).filter((f: string) => !isIgnored(f));
-        const removedCount =
-          beforeModified + beforeCreated - git.modified_files.length - git.created_files.length;
-        if (removedCount > 0) {
-          console.log(`🚫 ${removedCount} arquivo(s) removido(s) por ignore_files`);
+        const ignoredFiles = getIgnoredFileMatches();
+        const ignoredChangedFiles = [
+          ...new Set(
+            [...(git.modified_files || []), ...(git.created_files || [])].filter(isIgnoredFile)
+          ),
+        ];
+        git.modified_files = (git.modified_files || []).filter((f: string) => !isIgnoredFile(f));
+        git.created_files = (git.created_files || []).filter((f: string) => !isIgnoredFile(f));
+        if (ignoredFiles.length > 0) {
+          console.log(`🚫 ${ignoredFiles.length} arquivo(s) em ignore_files`);
+        }
+        if (ignoredChangedFiles.length > 0) {
+          console.log(
+            `🚫 ${ignoredChangedFiles.length} arquivo(s) do diff removido(s) por ignore_files`
+          );
+          for (const file of ignoredChangedFiles) {
+            console.log(`   - ${file}`);
+          }
         }
         verboseLog(
-          `🚫 ignore_files: ${config.ignore_files.length} padrão(ões), ${removedCount} arquivo(s) efetivamente ignorado(s)`
+          `🚫 ignore_files: ${config.ignore_files.length} padrão(ões), ${ignoredChangedFiles.length} arquivo(s) efetivamente ignorado(s) no diff`
         );
       }
 
