@@ -203,7 +203,7 @@ export function executeDangerBot(plugins: DangerPlugin[], callbacks?: DangerBotC
 
       if (config.ignore_files?.length) {
         setIgnoredFiles(config.ignore_files);
-        const { getDanger } = await import("./helpers");
+        const { getDanger, isFileIgnored } = await import("./helpers");
         const danger = getDanger();
         const git = danger.git as any;
         const ignoredFiles = getIgnoredFileMatches();
