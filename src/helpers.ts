@@ -61,8 +61,7 @@ import { execSync } from "child_process";
 import type { DangerDSLType, GitDSL } from "danger";
 
 const _sentMessages = new Set<string>();
-let _ignoredPatterns: string[] = [];
-let _ignoredRegexes: RegExp[] = [];
+let _ignoredFiles = new Set<string>();
 let _verbose = false;
 
 const MAX_SUMMARY_PER_TYPE = 3;
@@ -95,14 +94,13 @@ export function verboseLog(...args: unknown[]): void {
 /**
  * Define os arquivos que devem ser ignorados por todos os plugins.
  * Chamado internamente pelo executeDangerBot ao carregar o danger-bot.yaml.
- * Suporta globs: *, ** e ? nos padrões.
  */
 export function setIgnoredFiles(files: string[]): void {
   _ignoredFiles = new Set(files.map((f) => f.replace(/^\.\//, "").replace(/\\/g, "/")));
 }
 
 /**
- * Retorna os padrões de arquivos ignorados configurados.
+ * Retorna os arquivos ignorados configurados.
  */
 export function getIgnoredFiles(): Set<string> {
   return _ignoredFiles;
@@ -699,7 +697,7 @@ export function getAllChangedFiles(): string[] {
   const danger = getDanger();
   const allFiles = [...danger.git.modified_files, ...danger.git.created_files];
 
-  if (_ignoredRegexes.length === 0) {
+  if (_ignoredFiles.size === 0) {
     verboseLog(`📂 ${allFiles.length} arquivo(s) modificados/criados no PR`);
     return allFiles;
   }
