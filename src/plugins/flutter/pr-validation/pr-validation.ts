@@ -1,4 +1,11 @@
-import { createPlugin, getDanger, sendFormattedFail, sendMessage, sendWarn } from "@types";
+import {
+  createPlugin,
+  getDanger,
+  isIgnoredFile,
+  sendFormattedFail,
+  sendMessage,
+  sendWarn,
+} from "@types";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -14,10 +21,11 @@ export default createPlugin(
 
     const minDescriptionLength = 15;
     const requireChangelog = true;
+    const shouldReport = (file: string) => !isIgnoredFile(file);
 
     const prDescription = danger.github?.pr?.body || danger.bitbucket_cloud?.pr?.description || "";
 
-    if (prDescription.length < minDescriptionLength) {
+    if (prDescription.length < minDescriptionLength && shouldReport("README.md")) {
       sendFormattedFail({
         title: "DESCRIÇÃO DO PR MUITO CURTA",
         description: `A descrição tem apenas **${prDescription.length} caracteres** (mínimo: ${minDescriptionLength}).`,
@@ -56,24 +64,26 @@ export default createPlugin(
         });
 
         if (!hasChangelog) {
-          sendFormattedFail({
-            title: "CHANGELOG NÃO ENCONTRADO",
-            description: "Este projeto não possui um arquivo `changelog.md` na raiz.",
-            problem: {
-              wrong: `// Sem changelog no projeto`,
-              correct: `# Changelog\n\n## [x.x.x] - DD/MM/AAAA\n\n### 🛠️ Fixed\n- [TICKET-000: Descrição](link)`,
-              wrongLabel: "Sem rastreamento de mudanças",
-              correctLabel: "Com changelog estruturado",
-            },
-            action: {
-              text: "Crie o arquivo `changelog.md` na raiz do projeto:",
-              code: `# Changelog\n\n## [x.x.x] - DD/MM/AAAA (Pre-Release)\n\n### 🛠️ Fixed\n- [TICKET-000: Descrição da correção](link)\n\n### 🆕 Added\n- [TICKET-000: Descrição](link)\n\n### 🔄 Changed\n- [TICKET-000: Descrição](link)`,
-            },
-            objective: "Rastrear **histórico de mudanças** e facilitar rollbacks.",
-            file: "changelog.md",
-            line: 1,
-          });
-        } else {
+          if (shouldReport("changelog.md")) {
+            sendFormattedFail({
+              title: "CHANGELOG NÃO ENCONTRADO",
+              description: "Este projeto não possui um arquivo `changelog.md` na raiz.",
+              problem: {
+                wrong: `// Sem changelog no projeto`,
+                correct: `# Changelog\n\n## [x.x.x] - DD/MM/AAAA\n\n### 🛠️ Fixed\n- [TICKET-000: Descrição](link)`,
+                wrongLabel: "Sem rastreamento de mudanças",
+                correctLabel: "Com changelog estruturado",
+              },
+              action: {
+                text: "Crie o arquivo `changelog.md` na raiz do projeto:",
+                code: `# Changelog\n\n## [x.x.x] - DD/MM/AAAA (Pre-Release)\n\n### 🛠️ Fixed\n- [TICKET-000: Descrição da correção](link)\n\n### 🆕 Added\n- [TICKET-000: Descrição](link)\n\n### 🔄 Changed\n- [TICKET-000: Descrição](link)`,
+              },
+              objective: "Rastrear **histórico de mudanças** e facilitar rollbacks.",
+              file: "changelog.md",
+              line: 1,
+            });
+          }
+        } else if (shouldReport("changelog.md") || shouldReport("CHANGELOG.md")) {
           sendFormattedFail({
             title: "CHANGELOG NÃO ATUALIZADO",
             description: "O arquivo `changelog.md` existe mas **não foi modificado** nesta PR.",
@@ -98,7 +108,7 @@ export default createPlugin(
     const pubspecYamlChanged = git.modified_files.includes("pubspec.yaml");
     const pubspecLockChanged = git.modified_files.includes("pubspec.lock");
 
-    if (pubspecLockChanged && !pubspecYamlChanged) {
+    if (pubspecLockChanged && !pubspecYamlChanged && shouldReport("pubspec.lock")) {
       sendFormattedFail({
         title: "PUBSPEC.LOCK MODIFICADO SEM PUBSPEC.YAML",
         description:

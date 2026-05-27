@@ -80,9 +80,19 @@ function createProgressBar(total) {
     },
   };
 }
-
+/*
 const SKIP_PLUGINS_DEFAULT = [
   "flutter-analyze",
+  "flutter-test-runner",
+  "test-coverage-summary",
+  "google-chat-notification",
+  "ai-code-review",
+  "spell-checker",
+  "pr-summary",
+];
+*/
+
+const SKIP_PLUGINS_DEFAULT = [
   "flutter-test-runner",
   "test-coverage-summary",
   "google-chat-notification",
