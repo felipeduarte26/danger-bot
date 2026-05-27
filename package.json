@@ -18,6 +18,7 @@
     "LICENSE"
   ],
   "scripts": {
+    "prepare": "husky",
     "build": "tsc && tsc-alias && echo '{\"type\":\"commonjs\"}' > dist/package.json",
     "watch": "tsc --watch",
     "prepublishOnly": "npm run build",
@@ -26,8 +27,7 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.ts\" \"bin/**/*.js\"",
     "format:check": "prettier --check \"src/**/*.ts\" \"bin/**/*.js\"",
-    "type-check": "tsc --noEmit",
-    "prepare": "husky"
+    "type-check": "tsc --noEmit"
   },
   "keywords": [
     "danger",
