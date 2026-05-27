@@ -73,12 +73,17 @@ export declare function verboseLog(...args: unknown[]): void;
 /**
  * Define os arquivos que devem ser ignorados por todos os plugins.
  * Chamado internamente pelo executeDangerBot ao carregar o danger-bot.yaml.
+ * Suporta globs: *, ** e ? nos padrões.
  */
 export declare function setIgnoredFiles(files: string[]): void;
 /**
- * Retorna os arquivos ignorados configurados.
+ * Retorna os padrões de arquivos ignorados configurados.
  */
 export declare function getIgnoredFiles(): Set<string>;
+/**
+ * Verifica se um arquivo corresponde a algum padrão de ignore.
+ */
+export declare function isFileIgnored(filePath: string): boolean;
 /**
  * Interface estendida do GitDSL do Danger que inclui propriedades
  * disponíveis em runtime mas não tipadas oficialmente.
@@ -90,10 +95,10 @@ export declare function getIgnoredFiles(): Set<string>;
  * (base, head, fileMatch, diffForFile, etc.) e adiciona as propriedades extras.
  */
 export interface ExtendedGitDSL extends GitDSL {
-    /** Total de linhas adicionadas no PR (disponível em runtime, não tipado oficialmente) */
-    insertions?: number;
-    /** Total de linhas removidas no PR (disponível em runtime, não tipado oficialmente) */
-    deletions?: number;
+  /** Total de linhas adicionadas no PR (disponível em runtime, não tipado oficialmente) */
+  insertions?: number;
+  /** Total de linhas removidas no PR (disponível em runtime, não tipado oficialmente) */
+  deletions?: number;
 }
 /**
  * Interface estendida do DangerDSLType com git tipado corretamente.
@@ -101,7 +106,7 @@ export interface ExtendedGitDSL extends GitDSL {
  * Use este tipo ao invés de `DangerDSLType` para ter acesso a `insertions` e `deletions`.
  */
 export interface ExtendedDangerDSLType extends DangerDSLType {
-    git: ExtendedGitDSL;
+  git: ExtendedGitDSL;
 }
 /**
  * Acessa o objeto danger que o Danger JS injeta globalmente
@@ -227,43 +232,43 @@ export declare function flushSummaries(): void;
  * Usado por sendFormattedFail e sendFormattedWarn.
  */
 export interface FormattedMessageOptions {
-    /** Título em CAPS (sem emoji). Ex: "BARREL FILE RECOMENDADO" */
-    title: string;
-    /** Descrição curta do problema (1-2 linhas, suporta **negrito**) */
-    description: string;
-    /** Bloco de código mostrando o problema — wrong (❌) e correct (✅) são formatados automaticamente */
-    problem: {
-        /** Código errado (será exibido com ❌) */
-        wrong: string;
-        /** Código correto (será exibido com ✅) */
-        correct: string;
-        /** Label customizado para o código errado (default: "Errado") */
-        wrongLabel?: string;
-        /** Label customizado para o código correto (default: "Correto") */
-        correctLabel?: string;
-        /** Linguagem do bloco de código (default: "dart") */
-        language?: string;
-    };
-    /** Ação necessária para corrigir o problema */
-    action: {
-        /** Texto explicando o que fazer (opcional, aparece antes do bloco de código) */
-        text?: string;
-        /** Bloco de código com a correção */
-        code: string;
-        /** Linguagem do bloco de código (default: "dart") */
-        language?: string;
-    };
-    /** Frase curta sobre o benefício da correção */
-    objective: string;
-    /** Link de referência */
-    reference?: {
-        text: string;
-        url: string;
-    };
-    /** Arquivo onde o problema foi encontrado */
-    file?: string;
-    /** Linha do problema */
-    line?: number;
+  /** Título em CAPS (sem emoji). Ex: "BARREL FILE RECOMENDADO" */
+  title: string;
+  /** Descrição curta do problema (1-2 linhas, suporta **negrito**) */
+  description: string;
+  /** Bloco de código mostrando o problema — wrong (❌) e correct (✅) são formatados automaticamente */
+  problem: {
+    /** Código errado (será exibido com ❌) */
+    wrong: string;
+    /** Código correto (será exibido com ✅) */
+    correct: string;
+    /** Label customizado para o código errado (default: "Errado") */
+    wrongLabel?: string;
+    /** Label customizado para o código correto (default: "Correto") */
+    correctLabel?: string;
+    /** Linguagem do bloco de código (default: "dart") */
+    language?: string;
+  };
+  /** Ação necessária para corrigir o problema */
+  action: {
+    /** Texto explicando o que fazer (opcional, aparece antes do bloco de código) */
+    text?: string;
+    /** Bloco de código com a correção */
+    code: string;
+    /** Linguagem do bloco de código (default: "dart") */
+    language?: string;
+  };
+  /** Frase curta sobre o benefício da correção */
+  objective: string;
+  /** Link de referência */
+  reference?: {
+    text: string;
+    url: string;
+  };
+  /** Arquivo onde o problema foi encontrado */
+  file?: string;
+  /** Linha do problema */
+  line?: number;
 }
 /**
  * Envia um erro formatado no padrão Danger Bot.

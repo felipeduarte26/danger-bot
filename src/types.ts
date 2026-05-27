@@ -199,16 +199,13 @@ export function executeDangerBot(plugins: DangerPlugin[], callbacks?: DangerBotC
 
       if (config.ignore_files?.length) {
         setIgnoredFiles(config.ignore_files);
-        const { getDanger } = await import("./helpers");
+        const { getDanger, isFileIgnored } = await import("./helpers");
         const danger = getDanger();
-        const normalizePath = (p: string) => p.replace(/^\.\//, "").replace(/\\/g, "/");
-        const ignoredSet = new Set(config.ignore_files.map(normalizePath));
-        const isIgnored = (f: string) => ignoredSet.has(normalizePath(f));
         const git = danger.git as any;
         const beforeModified = (git.modified_files || []).length;
         const beforeCreated = (git.created_files || []).length;
-        git.modified_files = (git.modified_files || []).filter((f: string) => !isIgnored(f));
-        git.created_files = (git.created_files || []).filter((f: string) => !isIgnored(f));
+        git.modified_files = (git.modified_files || []).filter((f: string) => !isFileIgnored(f));
+        git.created_files = (git.created_files || []).filter((f: string) => !isFileIgnored(f));
         const removedCount =
           beforeModified + beforeCreated - git.modified_files.length - git.created_files.length;
         if (removedCount > 0) {
