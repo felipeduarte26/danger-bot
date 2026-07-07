@@ -32,7 +32,7 @@ const IMPORT_RE = /^\s*import\s+['"]([^'"]+)['"]/;
 
 const ALLOWED_RETURN_TYPES = new Set(["void", "Future<void>", "FutureOr<void>"]);
 
-const METHOD_SIGNATURE_RE = /^\s+([\w<>,?\s]+?)\s+([a-z][a-zA-Z0-9]*)\s*[(<]/;
+const METHOD_SIGNATURE_RE = /^\s+([A-Za-z][\w<>,?\s]*?)\s+([a-z][a-zA-Z0-9]*)\s*[(<]/;
 
 const SKIP_KEYWORDS = new Set([
   "final",
@@ -62,6 +62,11 @@ const SKIP_KEYWORDS = new Set([
   "this",
   "operator",
   "factory",
+  "emit",
+  "state",
+  "setState",
+  "notify",
+  "notifyListeners",
 ]);
 
 interface PublicMethodViolation {
@@ -137,6 +142,7 @@ function findPublicMethodViolations(
     const returnType = methodMatch[1].trim();
     const methodName = methodMatch[2];
 
+    if (!returnType) continue;
     if (SKIP_KEYWORDS.has(returnType)) continue;
     if (SKIP_KEYWORDS.has(methodName)) continue;
     if (methodName.startsWith("_")) continue;
