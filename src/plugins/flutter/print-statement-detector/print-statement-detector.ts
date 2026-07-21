@@ -12,7 +12,7 @@
 import { createPlugin, getDanger, sendFormattedWarn } from "@types";
 import * as fs from "fs";
 
-const PRINT_RE = /\b(print|debugPrint|debugPrintStack|printError)\s*\(/;
+const PRINT_RE = /(?<!\.)\b(print|debugPrint|debugPrintStack|printError)\s*\(/;
 
 /**
  * Constrói máscara de linhas a ignorar (comentários de bloco, linha e multi-line strings).
