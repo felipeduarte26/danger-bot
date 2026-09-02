@@ -124,6 +124,7 @@ program
   .option("--plugins <list>", "Lista de plugins para executar (separados por vírgula)")
   .option("--all", "Executar todos os plugins (incluindo os que precisam de API/CLI externa)")
   .option("-v, --verbose", "Exibir detalhes completos")
+  .option("--no-blame", "Não exibir autoria (git blame) das linhas comentadas")
   .action(dryRun);
 
 // Comando: criar plugin

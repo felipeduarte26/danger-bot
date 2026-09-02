@@ -108,11 +108,13 @@ const SKIP_PLUGINS_DEFAULT = [
  * @param {string} [options.plugins]
  * @param {boolean} [options.verbose]
  * @param {boolean} [options.all]
+ * @param {boolean} [options.blame] - Exibir autoria (git blame) da linha. Default: true
  */
 export async function dryRun(options) {
   const projectPath = path.resolve(options.project || process.cwd());
   const baseBranch = options.base || "main";
   const runAll = options.all || false;
+  const showBlame = options.blame !== false;
   const pluginFilter = options.plugins
     ? options.plugins.split(",").map((s) => s.trim().toLowerCase())
     : null;
@@ -330,7 +332,7 @@ export async function dryRun(options) {
 
   const totalElapsed = Date.now() - startTime;
 
-  displayResults(results, verbose, totalElapsed);
+  displayResults(results, verbose, totalElapsed, showBlame);
   process.chdir(originalCwd);
 }
 
@@ -531,7 +533,104 @@ function cleanMsg(msg) {
   return msg.replace(/&#8203;/g, "").trim();
 }
 
-function displayResults(results, verbose, elapsedMs) {
+const blameCache = new Map();
+
+/**
+ * Roda `git blame` no arquivo inteiro (uma vez por arquivo) e devolve
+ * um Map<numeroDaLinha, { author, timestamp, sha, summary }>.
+ * @param {string} file
+ * @returns {Map<number, {author: string, timestamp: number, sha: string, summary: string}>}
+ */
+function getFileBlame(file) {
+  if (blameCache.has(file)) return blameCache.get(file);
+
+  const map = new Map();
+  const out = execSafe(`git blame --line-porcelain -- "${file}"`);
+
+  if (out) {
+    let sha = "";
+    let author = "";
+    let timestamp = 0;
+    let summary = "";
+    let lineNumber = 0;
+
+    for (const line of out.split("\n")) {
+      const header = line.match(/^([0-9a-f]{7,40}) \d+ (\d+)/);
+      if (header) {
+        sha = header[1];
+        lineNumber = parseInt(header[2], 10);
+      } else if (line.startsWith("author ")) {
+        author = line.slice(7).trim();
+      } else if (line.startsWith("author-time ")) {
+        timestamp = parseInt(line.slice(12).trim(), 10);
+      } else if (line.startsWith("summary ")) {
+        summary = line.slice(8).trim();
+      } else if (line.startsWith("\t") && lineNumber) {
+        map.set(lineNumber, { author, timestamp, sha, summary });
+      }
+    }
+  }
+
+  blameCache.set(file, map);
+  return map;
+}
+
+/**
+ * Formata um timestamp unix como tempo relativo em pt-BR.
+ * @param {number} timestamp
+ * @returns {string}
+ */
+function relativeTime(timestamp) {
+  if (!timestamp) return "";
+  const diffSeconds = Math.max(0, Math.floor(Date.now() / 1000) - timestamp);
+
+  const units = [
+    { limit: 60, label: "segundo", div: 1 },
+    { limit: 3600, label: "minuto", div: 60 },
+    { limit: 86400, label: "hora", div: 3600 },
+    { limit: 604800, label: "dia", div: 86400 },
+    { limit: 2592000, label: "semana", div: 604800 },
+    { limit: 31536000, label: "mês", plural: "meses", div: 2592000 },
+  ];
+
+  for (const unit of units) {
+    if (diffSeconds < unit.limit) {
+      const value = Math.max(1, Math.floor(diffSeconds / unit.div));
+      const label = value === 1 ? unit.label : (unit.plural ?? `${unit.label}s`);
+      return `há ${value} ${label}`;
+    }
+  }
+
+  const years = Math.max(1, Math.floor(diffSeconds / 31536000));
+  return `há ${years} ${years === 1 ? "ano" : "anos"}`;
+}
+
+/**
+ * Linha de autoria (quem mexeu por último naquela linha e quando).
+ * @param {string} file
+ * @param {number} line
+ * @returns {string}
+ */
+function formatBlameLine(file, line) {
+  const info = getFileBlame(file).get(line);
+  if (!info || !info.author) return "";
+
+  const uncommitted = /^0{7,40}$/.test(info.sha) || info.author === "Not Committed Yet";
+  if (uncommitted) {
+    return `${c.dim}👤 ${c.italic}"não commitado (working tree)"${c.reset}`;
+  }
+
+  const when = relativeTime(info.timestamp);
+  const date = info.timestamp ? new Date(info.timestamp * 1000).toLocaleDateString("pt-BR") : "";
+  const parts = [`${c.italic}"${info.author}"${c.reset}${c.dim}`];
+  if (when) parts.push(date ? `${when} (${date})` : when);
+  parts.push(info.sha.slice(0, 7));
+  if (info.summary) parts.push(`“${info.summary.slice(0, 50)}”`);
+
+  return `${c.dim}👤 ${parts.join(" · ")}${c.reset}`;
+}
+
+function displayResults(results, verbose, elapsedMs, showBlame) {
   const inlineComments = results.markdowns.filter((m) => m.file);
   const generalMarkdowns = results.markdowns.filter((m) => !m.file);
 
@@ -562,7 +661,7 @@ function displayResults(results, verbose, elapsedMs) {
     );
     console.log(`${c.bold}${c.red}${"─".repeat(60)}${c.reset}`);
     results.fails.forEach((item, i) => {
-      console.log(`\n  ${c.bold}${i + 1}.${c.reset} ${formatResultItem(item, verbose)}`);
+      console.log(`\n  ${c.bold}${i + 1}.${c.reset} ${formatResultItem(item, verbose, showBlame)}`);
     });
     console.log("");
   }
@@ -574,7 +673,7 @@ function displayResults(results, verbose, elapsedMs) {
     );
     console.log(`${c.bold}${c.magenta}${"─".repeat(60)}${c.reset}`);
     inlineComments.forEach((item, i) => {
-      console.log(`\n  ${c.bold}${i + 1}.${c.reset} ${formatResultItem(item, verbose)}`);
+      console.log(`\n  ${c.bold}${i + 1}.${c.reset} ${formatResultItem(item, verbose, showBlame)}`);
     });
     console.log("");
   }
@@ -586,7 +685,7 @@ function displayResults(results, verbose, elapsedMs) {
     );
     console.log(`${c.bold}${c.yellow}${"─".repeat(60)}${c.reset}`);
     results.warns.forEach((item, i) => {
-      console.log(`\n  ${c.bold}${i + 1}.${c.reset} ${formatResultItem(item, verbose)}`);
+      console.log(`\n  ${c.bold}${i + 1}.${c.reset} ${formatResultItem(item, verbose, showBlame)}`);
     });
     console.log("");
   }
@@ -596,7 +695,7 @@ function displayResults(results, verbose, elapsedMs) {
     console.log(`${c.bold}${c.blue}💬 MENSAGENS (${results.messages.length})${c.reset}`);
     console.log(`${c.bold}${c.blue}${"─".repeat(60)}${c.reset}`);
     results.messages.forEach((item, i) => {
-      console.log(`\n  ${c.bold}${i + 1}.${c.reset} ${formatResultItem(item, verbose)}`);
+      console.log(`\n  ${c.bold}${i + 1}.${c.reset} ${formatResultItem(item, verbose, showBlame)}`);
     });
     console.log("");
   }
@@ -606,7 +705,7 @@ function displayResults(results, verbose, elapsedMs) {
     console.log(`${c.bold}${c.white}📝 RELATÓRIO DETALHADO (${generalMarkdowns.length})${c.reset}`);
     console.log(`${c.bold}${c.white}${"─".repeat(60)}${c.reset}`);
     generalMarkdowns.forEach((item, i) => {
-      console.log(`\n  ${c.bold}${i + 1}.${c.reset} ${formatResultItem(item, verbose)}`);
+      console.log(`\n  ${c.bold}${i + 1}.${c.reset} ${formatResultItem(item, verbose, showBlame)}`);
     });
     console.log("");
   }
@@ -626,7 +725,7 @@ function displayResults(results, verbose, elapsedMs) {
   console.log(c.bold + c.cyan + "═".repeat(60) + c.reset + "\n");
 }
 
-function formatResultItem(item, verbose) {
+function formatResultItem(item, verbose, showBlame) {
   const location = item.file
     ? `${c.dim}📄 ${item.file}${item.line ? `:${item.line}` : ""}${c.reset}`
     : "";
@@ -646,7 +745,9 @@ function formatResultItem(item, verbose) {
       .replace(/\*\*(.*?)\*\*/g, `${c.bold}$1${c.reset}`)
       .replace(/`([^`]*)`/g, `${c.cyan}$1${c.reset}`);
 
-    return `${c.bold}${c.white}${title}${c.reset}${location ? `\n     ${location}` : ""}\n\n${fullBody}`;
+    const blame = showBlame && item.file && item.line ? formatBlameLine(item.file, item.line) : "";
+
+    return `${c.bold}${c.white}${title}${c.reset}${location ? `\n     ${location}` : ""}${blame ? `\n     ${blame}` : ""}\n\n${fullBody}`;
   }
 
   let explanation = "";
@@ -710,6 +811,11 @@ function formatResultItem(item, verbose) {
         }
       } catch {
         /* file read is non-critical for display */
+      }
+
+      if (showBlame) {
+        const blame = formatBlameLine(item.file, item.line);
+        if (blame) output += `\n     ${blame}`;
       }
     }
   }
