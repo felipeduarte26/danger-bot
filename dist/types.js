@@ -68,6 +68,8 @@ exports.loadLocalPlugins =
   exports.verboseLog =
   exports.isVerbose =
   exports.setVerbose =
+  exports.getIgnoredFileMatches =
+  exports.isIgnoredFile =
   exports.getIgnoredFiles =
   exports.setIgnoredFiles =
   exports.isInLayer =
@@ -237,6 +239,18 @@ Object.defineProperty(exports, "getIgnoredFiles", {
     return helpers_1.getIgnoredFiles;
   },
 });
+Object.defineProperty(exports, "isIgnoredFile", {
+  enumerable: true,
+  get: function () {
+    return helpers_1.isIgnoredFile;
+  },
+});
+Object.defineProperty(exports, "getIgnoredFileMatches", {
+  enumerable: true,
+  get: function () {
+    return helpers_1.getIgnoredFileMatches;
+  },
+});
 Object.defineProperty(exports, "setVerbose", {
   enumerable: true,
   get: function () {
@@ -370,6 +384,8 @@ function executeDangerBot(plugins, callbacks) {
         setIgnoredFiles,
         setVerbose,
         verboseLog,
+        isIgnoredFile,
+        getIgnoredFileMatches,
         flushSummaries: flush,
       } = await Promise.resolve().then(() => __importStar(require("./helpers")));
       const config = loadConfig();
@@ -381,26 +397,36 @@ function executeDangerBot(plugins, callbacks) {
         console.log("[verbose] ═══════════════════════════════════════");
         verboseLog(`📦 ${plugins.length} plugin(s) do pacote`);
         verboseLog(`📂 local_plugins: ${config.local_plugins?.length ?? 0} caminho(s)`);
-        verboseLog(`🚫 ignore_files: ${config.ignore_files?.length ?? 0} arquivo(s)`);
+        verboseLog(`🚫 ignore_files: ${config.ignore_files?.length ?? 0} padrão(ões)`);
       }
       if (config.ignore_files?.length) {
         setIgnoredFiles(config.ignore_files);
-        const { getDanger, isFileIgnored } = await Promise.resolve().then(() =>
+        const { getDanger } = await Promise.resolve().then(() =>
           __importStar(require("./helpers"))
         );
         const danger = getDanger();
         const git = danger.git;
-        const beforeModified = (git.modified_files || []).length;
-        const beforeCreated = (git.created_files || []).length;
-        git.modified_files = (git.modified_files || []).filter((f) => !isFileIgnored(f));
-        git.created_files = (git.created_files || []).filter((f) => !isFileIgnored(f));
-        const removedCount =
-          beforeModified + beforeCreated - git.modified_files.length - git.created_files.length;
-        if (removedCount > 0) {
-          console.log(`🚫 ${removedCount} arquivo(s) removido(s) por ignore_files`);
+        const ignoredFiles = getIgnoredFileMatches();
+        const ignoredChangedFiles = [
+          ...new Set(
+            [...(git.modified_files || []), ...(git.created_files || [])].filter(isIgnoredFile)
+          ),
+        ];
+        git.modified_files = (git.modified_files || []).filter((f) => !isIgnoredFile(f));
+        git.created_files = (git.created_files || []).filter((f) => !isIgnoredFile(f));
+        if (ignoredFiles.length > 0) {
+          console.log(`🚫 ${ignoredFiles.length} arquivo(s) em ignore_files`);
+        }
+        if (ignoredChangedFiles.length > 0) {
+          console.log(
+            `🚫 ${ignoredChangedFiles.length} arquivo(s) do diff removido(s) por ignore_files`
+          );
+          for (const file of ignoredChangedFiles) {
+            console.log(`   - ${file}`);
+          }
         }
         verboseLog(
-          `🚫 ignore_files: ${config.ignore_files.length} padrão(ões), ${removedCount} arquivo(s) efetivamente ignorado(s)`
+          `🚫 ignore_files: ${config.ignore_files.length} padrão(ões), ${ignoredChangedFiles.length} arquivo(s) efetivamente ignorado(s) no diff`
         );
       }
       let allPlugins = [...plugins];

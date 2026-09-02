@@ -115,7 +115,8 @@ exports.isVerbose = isVerbose;
 exports.verboseLog = verboseLog;
 exports.setIgnoredFiles = setIgnoredFiles;
 exports.getIgnoredFiles = getIgnoredFiles;
-exports.isFileIgnored = isFileIgnored;
+exports.isIgnoredFile = isIgnoredFile;
+exports.getIgnoredFileMatches = getIgnoredFileMatches;
 exports.getDanger = getDanger;
 exports.sendMessage = sendMessage;
 exports.sendWarn = sendWarn;
@@ -140,9 +141,9 @@ exports.hasFilesMatching = hasFilesMatching;
 exports.getPRDescription = getPRDescription;
 exports.getPRTitle = getPRTitle;
 exports.getLinesChanged = getLinesChanged;
+const child_process_1 = require("child_process");
 const _sentMessages = new Set();
-let _ignoredPatterns = [];
-let _ignoredRegexes = [];
+let _ignoredFiles = new Set();
 let _verbose = false;
 const MAX_SUMMARY_PER_TYPE = 3;
 const _failSummary = new Map();
@@ -170,67 +171,47 @@ function verboseLog(...args) {
 /**
  * Define os arquivos que devem ser ignorados por todos os plugins.
  * Chamado internamente pelo executeDangerBot ao carregar o danger-bot.yaml.
- * Suporta globs: *, ** e ? nos padrões.
  */
 function setIgnoredFiles(files) {
-  _ignoredPatterns = files.map((f) => f.replace(/^\.\//, "").replace(/\\/g, "/"));
-  _ignoredRegexes = _ignoredPatterns.map(globToRegex);
-  if (_ignoredPatterns.length > 0) {
-    console.log(`🚫 ${_ignoredPatterns.length} padrão(ões) na lista de ignore`);
-    if (_verbose) {
-      for (const f of _ignoredPatterns) {
-        console.log(`   ├─ ${f}`);
-      }
-    }
-  }
+  _ignoredFiles = new Set(files.map((f) => f.replace(/^\.\//, "").replace(/\\/g, "/")));
 }
 /**
- * Retorna os padrões de arquivos ignorados configurados.
+ * Retorna os arquivos ignorados configurados.
  */
 function getIgnoredFiles() {
-  return new Set(_ignoredPatterns);
+  return _ignoredFiles;
 }
-/**
- * Verifica se um arquivo corresponde a algum padrão de ignore.
- */
-function isFileIgnored(filePath) {
-  if (_ignoredRegexes.length === 0) return false;
-  const normalized = filePath.replace(/^\.\//, "").replace(/\\/g, "/");
-  return _ignoredRegexes.some((regex) => regex.test(normalized));
+function normalizeIgnoredPath(path) {
+  return path.replace(/^\.\//, "").replace(/\\/g, "/");
 }
-function globToRegex(pattern) {
-  let regexStr = "";
-  let i = 0;
-  while (i < pattern.length) {
-    const char = pattern[i];
-    if (char === "*") {
-      if (pattern[i + 1] === "*") {
-        if (pattern[i + 2] === "/") {
-          regexStr += "(?:.+/)?";
-          i += 3;
-        } else {
-          regexStr += ".*";
-          i += 2;
-        }
-      } else {
-        regexStr += "[^/]*";
-        i++;
-      }
-    } else if (char === "?") {
-      regexStr += "[^/]";
-      i++;
-    } else if (".+^${}()|[]\\".includes(char)) {
-      regexStr += "\\" + char;
-      i++;
-    } else {
-      regexStr += char;
-      i++;
+function wildcardToRegex(pattern) {
+  const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*");
+  return new RegExp(`^${escaped}$`);
+}
+function isIgnoredFile(file) {
+  const normalizedFile = normalizeIgnoredPath(file);
+  for (const pattern of _ignoredFiles) {
+    if (!pattern.includes("*")) {
+      if (normalizedFile === pattern) return true;
+      continue;
     }
+    if (wildcardToRegex(pattern).test(normalizedFile)) return true;
   }
-  if (pattern.endsWith("/*")) {
-    regexStr = regexStr.slice(0, -"[^/]*".length) + ".*";
+  return false;
+}
+function getIgnoredFileMatches() {
+  if (_ignoredFiles.size === 0) return [];
+  try {
+    const trackedFiles = (0, child_process_1.execSync)("git ls-files", {
+      encoding: "utf-8",
+      stdio: ["ignore", "pipe", "ignore"],
+    })
+      .split("\n")
+      .filter(Boolean);
+    return trackedFiles.filter(isIgnoredFile);
+  } catch {
+    return [];
   }
-  return new RegExp(`^${regexStr}$`);
 }
 function dedupKey(type, msg, file, line) {
   return `${type}::${file ?? ""}::${line ?? ""}::${msg}`;
@@ -679,11 +660,11 @@ function scheduleTask(fn) {
 function getAllChangedFiles() {
   const danger = getDanger();
   const allFiles = [...danger.git.modified_files, ...danger.git.created_files];
-  if (_ignoredRegexes.length === 0) {
+  if (_ignoredFiles.size === 0) {
     verboseLog(`📂 ${allFiles.length} arquivo(s) modificados/criados no PR`);
     return allFiles;
   }
-  const filtered = allFiles.filter((f) => !isFileIgnored(f));
+  const filtered = allFiles.filter((f) => !isIgnoredFile(f));
   const ignoredCount = allFiles.length - filtered.length;
   if (ignoredCount > 0) {
     verboseLog(

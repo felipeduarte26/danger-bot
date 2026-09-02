@@ -73,17 +73,14 @@ export declare function verboseLog(...args: unknown[]): void;
 /**
  * Define os arquivos que devem ser ignorados por todos os plugins.
  * Chamado internamente pelo executeDangerBot ao carregar o danger-bot.yaml.
- * Suporta globs: *, ** e ? nos padrões.
  */
 export declare function setIgnoredFiles(files: string[]): void;
 /**
- * Retorna os padrões de arquivos ignorados configurados.
+ * Retorna os arquivos ignorados configurados.
  */
 export declare function getIgnoredFiles(): Set<string>;
-/**
- * Verifica se um arquivo corresponde a algum padrão de ignore.
- */
-export declare function isFileIgnored(filePath: string): boolean;
+export declare function isIgnoredFile(file: string): boolean;
+export declare function getIgnoredFileMatches(): string[];
 /**
  * Interface estendida do GitDSL do Danger que inclui propriedades
  * disponíveis em runtime mas não tipadas oficialmente.
