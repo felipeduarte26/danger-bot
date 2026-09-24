@@ -3,7 +3,7 @@
  * Gera um sumário rico da PR com métricas, camadas, risco e checklist.
  * Usa apenas Markdown puro (sem HTML) para compatibilidade com Bitbucket Cloud.
  */
-import { createPlugin, getDanger, sendMarkdown } from "@types";
+import { createPlugin, getDanger, getLineStats, sendMarkdown } from "@types";
 
 interface FileCategory {
   label: string;
@@ -35,8 +35,8 @@ export default createPlugin(
       return;
     }
 
-    const added = git.insertions || 0;
-    const removed = git.deletions || 0;
+    // git.insertions/deletions só existem no dry-run: no CI as linhas vêm do diff
+    const { added, removed } = await getLineStats();
     const lines = added + removed;
 
     const categories = categorizeFiles(all);

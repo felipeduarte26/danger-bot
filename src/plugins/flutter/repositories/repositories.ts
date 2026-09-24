@@ -18,6 +18,7 @@
 import { createPlugin, getDanger, sendFormattedFail } from "@types";
 import * as fs from "fs";
 import * as path from "path";
+import { normalizePrimaryConstructorHeaders } from "../primary-constructors/primary-constructors";
 
 function isBarrelFile(filePath: string): boolean {
   const fileName = path.basename(filePath, ".dart");
@@ -77,7 +78,7 @@ function validateDomainRepository(file: string): void {
   }
 
   const content = fs.readFileSync(file, "utf-8");
-  const lines = content.split("\n");
+  const lines = normalizePrimaryConstructorHeaders(content).split("\n");
 
   const interfaces: { name: string; line: number }[] = [];
 
@@ -203,7 +204,7 @@ function validateDataRepository(file: string): void {
   }
 
   const content = fs.readFileSync(file, "utf-8");
-  const lines = content.split("\n");
+  const lines = normalizePrimaryConstructorHeaders(content).split("\n");
 
   const classes: { name: string; line: number; declaration: string }[] = [];
 

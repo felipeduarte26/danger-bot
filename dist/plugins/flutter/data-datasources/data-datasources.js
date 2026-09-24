@@ -63,6 +63,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const _types_1 = require("../../../types");
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
+const primary_constructors_1 = require("../primary-constructors/primary-constructors");
 function isBarrelFile(filePath) {
   const fileName = path.basename(filePath, ".dart");
   const parentDir = path.basename(path.dirname(filePath));
@@ -133,7 +134,9 @@ exports.default = (0, _types_1.createPlugin)(
         });
       }
       const content = fs.readFileSync(file, "utf-8");
-      const lines = content.split("\n");
+      const lines = (0, primary_constructors_1.normalizePrimaryConstructorHeaders)(content).split(
+        "\n"
+      );
       const interfaces = [];
       const implementations = [];
       let inBlockComment = false;

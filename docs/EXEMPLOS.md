@@ -146,16 +146,18 @@ import {
   executeDangerBot,
   getDanger,
   getDartFiles,
-  getLinesChanged,
+  getLineStats,
   sendMessage,
   sendWarn,
   sendMarkdown,
 } from "@felipeduarte26/danger-bot";
 
 executeDangerBot(allFlutterPlugins, {
-  onBeforeRun: () => {
+  onBeforeRun: async () => {
     const dartFiles = getDartFiles();
-    const lines = getLinesChanged();
+    // git.insertions/deletions só existem no dry-run: no CI as linhas vêm do diff
+    const { added, removed } = await getLineStats();
+    const lines = added + removed;
 
     sendMarkdown(`
 ## Resumo do PR

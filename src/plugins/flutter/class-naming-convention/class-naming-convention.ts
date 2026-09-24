@@ -11,6 +11,7 @@
  */
 import { createPlugin, getDanger, sendFormattedFail } from "@types";
 import * as fs from "fs";
+import { normalizePrimaryConstructorHeaders } from "../primary-constructors/primary-constructors";
 
 let compromiseLib: any = null;
 try {
@@ -487,7 +488,7 @@ export default createPlugin(
       for (const file of targetFiles) {
         const layer = isTargetFile(file)!;
         const content = fs.readFileSync(file, "utf-8");
-        const lines = content.split("\n");
+        const lines = normalizePrimaryConstructorHeaders(content).split("\n");
 
         let inBlock = false;
         for (let i = 0; i < lines.length; i++) {
@@ -665,7 +666,7 @@ function checkPluralClassNames(targetFiles: string[]): void {
     const layer = isTargetFile(file)!;
     if (layer === "ViewModel") continue;
     const content = fs.readFileSync(file, "utf-8");
-    const lines = content.split("\n");
+    const lines = normalizePrimaryConstructorHeaders(content).split("\n");
 
     let inBlock = false;
     for (let i = 0; i < lines.length; i++) {

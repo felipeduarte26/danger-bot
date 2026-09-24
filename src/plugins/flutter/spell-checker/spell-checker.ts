@@ -302,7 +302,7 @@ function extractIdentifiers(line: string, lineNumber: number): IdentifierInfo[] 
   if (!clean.trim()) return results;
 
   const classMatch = clean.match(
-    /(?:abstract\s+interface\s+class|abstract\s+class|final\s+class|sealed\s+class|class)\s+([A-Za-z_]\w*)/
+    /(?:abstract\s+interface\s+class|abstract\s+class|final\s+class|sealed\s+class|class)\s+(?:const\s+)?([A-Za-z_]\w*)/
   );
   if (classMatch) {
     for (const word of breakCamelCase(classMatch[1])) {

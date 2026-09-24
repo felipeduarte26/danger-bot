@@ -8,6 +8,7 @@
  */
 import { createPlugin, getDanger, sendFormattedFail } from "@types";
 import * as fs from "fs";
+import { normalizePrimaryConstructorHeaders } from "../primary-constructors/primary-constructors";
 
 interface Disposable {
   name: string;
@@ -62,7 +63,7 @@ export default createPlugin(
 
       if (!content.includes("extends State<") && !content.includes("extends ViewState<")) continue;
 
-      const lines = content.split("\n");
+      const lines = normalizePrimaryConstructorHeaders(content).split("\n");
 
       const disposables = findDisposables(lines);
       if (disposables.length === 0) continue;

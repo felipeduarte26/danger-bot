@@ -93,7 +93,7 @@ executeDangerBot(plugins);
 | `prSummaryPlugin` | `pr-summary` | Gera sumario automatico com estatisticas do PR |
 | `prSizeCheckerPlugin` | `pr-size-checker` | Verifica tamanho do PR por arquivos .dart |
 | `prValidationPlugin` | `pr-validation` | Valida descricao, changelog e aspectos gerais do PR |
-| `changelogCheckerPlugin` | `changelog-checker` | Verifica se o CHANGELOG.md foi atualizado |
+| `changelogCheckerPlugin` | `changelog-checker` | Avisa quando o PR muda codigo sem atualizar o CHANGELOG; nao roda se o `pr-validation` estiver ativo (ele ja reprova pelo mesmo motivo) |
 | `mergeConflictCheckerPlugin` | `merge-conflict-checker` | Detecta conflitos de merge com o branch de destino |
 
 ### Clean Architecture - Domain
@@ -139,6 +139,7 @@ executeDangerBot(plugins);
 | `emptyCatchDetectorPlugin` | `empty-catch-detector` | Detecta blocos `catch` vazios sem tratamento |
 | `futureWaitModernizerPlugin` | `future-wait-modernizer` | Sugere `Future.wait` ao inves de awaits sequenciais independentes |
 | `aiCodeReviewPlugin` | `ai-code-review` | Code review com IA (Gemini) — Clean Code, SOLID, seguranca e bugs (mensagens como aviso) |
+| `primaryConstructorsPlugin` | `primary-constructors` | Obriga o uso de primary constructors em classes e enums (Dart 3.13+); so roda com `sdk` minimo >= 3.13 |
 
 ### Performance e Flutter
 
@@ -156,7 +157,7 @@ executeDangerBot(plugins);
 
 | Plugin | Nome interno | Descricao |
 |--------|-------------|-----------|
-| `testFileCheckerPlugin` | `test-file-checker` | Verifica se arquivos da PR possuem testes correspondentes |
+| `testFileCheckerPlugin` | `test-file-checker` | Verifica se arquivos da PR possuem testes correspondentes (`lib/x.dart` → `test/x_test.dart`, tambem em monorepo e por nome em qualquer pasta de `test/`) |
 | `flutterTestRunnerPlugin` | `flutter-test-runner` | Executa testes da PR e reporta resultados (nao quebra a pipeline) |
 | `testCoverageSummaryPlugin` | `test-coverage-summary` | Mostra cobertura de testes no summary da PR (le `coverage/lcov.info`) |
 
@@ -338,8 +339,11 @@ A CLI pergunta nome e descricao, e gera automaticamente:
 - Arquivo do plugin com `createPlugin`
 - `index.ts` com export
 - `README.md` com documentacao
-- Atualiza barrel files (`src/plugins/flutter/index.ts`)
-- Adiciona no `allFlutterPlugins` em `src/index.ts` usando `require().default`
+- Atualiza o barrel da plataforma (`src/plugins/flutter/index.ts`)
+- Em `src/index.ts`: adiciona o **export por nome** (bloco `export { ... } from "./plugins/flutter"`), o `import` usado pelos arrays de categoria e o `require().default` no `allFlutterPlugins` — **antes** do `google-chat-notification`, que precisa continuar sendo o ultimo
+- Nao duplica nada se rodar de novo e avisa (`[WARN]`) se algum bloco nao for encontrado
+
+O unico passo manual e colocar o plugin num array de categoria (`codeQualityPlugins`, `performancePlugins`...), se fizer sentido — a CLI lembra disso no final.
 
 > **Sempre use a CLI para criar plugins do pacote.** Ela garante o padrao correto automaticamente.
 
@@ -413,7 +417,7 @@ export default createPlugin(
 export { default } from "./meu-plugin";
 ```
 
-**Registrar o plugin (3 passos):**
+**Registrar o plugin (4 passos — e o que a CLI faz automaticamente):**
 
 1. Adicione o export em `src/plugins/flutter/index.ts`:
 
@@ -421,16 +425,27 @@ export { default } from "./meu-plugin";
 export { default as meuPluginPlugin } from "./meu-plugin";
 ```
 
-2. Adicione no `allFlutterPlugins` em `src/index.ts` usando **`require().default`**:
+2. Adicione o nome no bloco `export { ... } from "./plugins/flutter";` do topo de `src/index.ts` — sem isso `import { meuPluginPlugin } from "@felipeduarte26/danger-bot"` vem `undefined`:
+
+```typescript
+export {
+  // ... plugins existentes ...
+  meuPluginPlugin,
+} from "./plugins/flutter";
+```
+
+3. Adicione no `allFlutterPlugins` em `src/index.ts` usando **`require().default`**, **antes** do `google-chat-notification` (ele precisa ser sempre o ultimo):
 
 ```typescript
 export const allFlutterPlugins = [
   // ... plugins existentes ...
   require("./plugins/flutter/meu-plugin").default,  // ✅ Correto
+  // google-chat-notification deve ser sempre o último plugin
+  require("./plugins/flutter/google-chat-notification").default,
 ];
 ```
 
-3. Adicione no import e no array de categoria correspondente em `src/index.ts`:
+4. Adicione no import e no array de categoria correspondente em `src/index.ts`:
 
 ```typescript
 import {
@@ -492,8 +507,47 @@ import {
   getDomainDartFiles, getDataDartFiles, getPresentationDartFiles, isInLayer,
 
   // PR info
-  getPRDescription, getPRTitle, getLinesChanged,
+  getPRDescription, getPRTitle, getLineStats,
+
+  // Plugins ativos na execucao (evitar checagens duplicadas entre plugins)
+  isPluginActive,
+
+  // Primary constructors (Dart 3.13+)
+  normalizePrimaryConstructorHeaders, findPrimaryConstructors, primaryConstructorFieldsByLine,
 } from "@felipeduarte26/danger-bot";
 ```
+
+### Linhas alteradas no PR
+
+`danger.git.insertions` / `danger.git.deletions` **nao existem no Danger real** (so no mock do `dry-run`) — no CI eles vem `undefined`. Use o helper assincrono, que soma o `diffForFile` de cada arquivo (o mesmo calculo do `danger.git.linesOfCode()`) e funciona em GitHub, GitLab e Bitbucket:
+
+```typescript
+const { added, removed } = await getLineStats();
+```
+
+`getLinesChanged()` (sincrono) continua exportado por compatibilidade, mas esta **obsoleto**: fora do dry-run so tem o total do GitHub.
+
+### Evitar checagens duplicadas
+
+`isPluginActive("nome-do-plugin")` diz se outro plugin vai rodar nesta execucao (o `runPlugins`/`executeDangerBot` e o `dry-run` registram os plugins habilitados). Exemplo: o `changelog-checker` nao avisa quando o `pr-validation` esta ativo, porque ele ja reprova o PR pelo mesmo motivo.
+
+### Classes com primary constructor (Dart 3.13+)
+
+Com primary constructor, o cabeçalho da classe passa a ter `const` e a lista de parâmetros entre o nome e as cláusulas (`class const Foo({required final Bar bar}) extends Base {`), e os campos passam a ser **parâmetros declarantes**. Regex como `class\s+(\w+)\s+extends` ou "juntar linhas até o primeiro `{`" deixam de funcionar. Plugins que analisam a estrutura da classe devem usar:
+
+| Helper | O que faz |
+| ------ | --------- |
+| `normalizePrimaryConstructorHeaders(content)` | Reescreve cada cabeçalho com primary constructor como o cabeçalho clássico equivalente (`final class Foo extends Base {`) na mesma linha e deixa em branco as demais linhas do cabeçalho — a numeração das linhas do corpo não muda. Em código clássico devolve o texto original |
+| `findPrimaryConstructors(content)` | Lista as classes/enums com primary constructor e os campos declarados no cabeçalho (`name`, `type`, `isFinal`, `lineIndex`, `text`, `docLines`) |
+| `primaryConstructorFieldsByLine(content)` | Os mesmos campos, indexados pela linha (base 0) em que o cabeçalho começa |
+
+```typescript
+const content = fs.readFileSync(file, "utf-8");
+const lines = normalizePrimaryConstructorHeaders(content).split("\n");
+const headerFields = primaryConstructorFieldsByLine(content);
+// ... ao achar a classe na linha i, some os campos do corpo com headerFields.get(i)
+```
+
+Plugins que conferem identificadores do arquivo inteiro (ex.: nomes de parâmetros) devem continuar lendo o conteúdo original.
 
 > Referencia completa: [Helpers](HELPERS.md) | [API](API.md)

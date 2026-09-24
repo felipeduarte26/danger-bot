@@ -67,6 +67,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  */
 const _types_1 = require("../../../types");
 const fs = __importStar(require("fs"));
+const primary_constructors_1 = require("../primary-constructors/primary-constructors");
 const KIND_ORDER = {
   constructor: 0,
   factory: 1,
@@ -95,7 +96,9 @@ exports.default = (0, _types_1.createPlugin)(
       if (!content.includes("extends State<") && !content.includes("extends StatelessWidget")) {
         continue;
       }
-      const lines = content.replace(/\r/g, "").split("\n");
+      const lines = (0, primary_constructors_1.normalizePrimaryConstructorHeaders)(content)
+        .replace(/\r/g, "")
+        .split("\n");
       const classes = extractClasses(lines);
       for (const cls of classes) {
         const methods = extractMethods(lines, cls.startLine, cls.endLine, cls.name);

@@ -9,11 +9,32 @@
 import { createPlugin, getDanger, sendFormattedFail } from "@types";
 import * as fs from "fs";
 import * as path from "path";
+import {
+  findPrimaryConstructors,
+  normalizePrimaryConstructorHeaders,
+} from "../primary-constructors/primary-constructors";
 
 function isBarrelFile(filePath: string): boolean {
   const fileName = path.basename(filePath, ".dart");
   const parentDir = path.basename(path.dirname(filePath));
   return fileName === parentDir;
+}
+
+/**
+ * Campos mutáveis (`var Tipo nome`) declarados no primary constructor (Dart 3.13+),
+ * indexados pela linha: o equivalente de `Tipo nome;` no corpo da classe.
+ */
+function mutableHeaderFieldsByLine(content: string): Map<number, string> {
+  const result = new Map<number, string>();
+  for (const decl of findPrimaryConstructors(content)) {
+    for (const f of decl.fields) {
+      const typed = /^(?:int|double|bool|num|[A-Z])/.test(f.type);
+      if (!f.isFinal && typed && !f.text.startsWith("@override") && !result.has(f.lineIndex)) {
+        result.set(f.lineIndex, f.name);
+      }
+    }
+  }
+  return result;
 }
 
 export default createPlugin(
@@ -58,7 +79,8 @@ export default createPlugin(
       }
 
       const content = fs.readFileSync(file, "utf-8");
-      const lines = content.split("\n");
+      const lines = normalizePrimaryConstructorHeaders(content).split("\n");
+      const mutableHeaderFields = mutableHeaderFieldsByLine(content);
 
       const classes: { name: string; line: number }[] = [];
       let hasNonFinalField = false;
@@ -113,10 +135,15 @@ export default createPlugin(
           const fieldMatch = line.match(
             /^\s+(?!final\s|static\s|const\s|late\s|@override)((?:String|int|double|bool|num|List|Map|Set|DateTime|[A-Z]\w*)[?<\s][\w<>,?\s]*)\s+(\w+)\s*;/
           );
+          const headerField = mutableHeaderFields.get(i);
           if (fieldMatch) {
             hasNonFinalField = true;
             nonFinalFieldLine = i + 1;
             nonFinalFieldName = fieldMatch[2];
+          } else if (headerField) {
+            hasNonFinalField = true;
+            nonFinalFieldLine = i + 1;
+            nonFinalFieldName = headerField;
           }
         }
       }

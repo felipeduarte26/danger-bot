@@ -67,6 +67,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  */
 const _types_1 = require("../../../types");
 const fs = __importStar(require("fs"));
+const primary_constructors_1 = require("../primary-constructors/primary-constructors");
 const FORBIDDEN_FIELD_TYPES = [
   { pattern: /Repository/, label: "Repository" },
   { pattern: /Datasource|DataSource/, label: "Datasource" },
@@ -182,6 +183,29 @@ function findPublicMethodViolations(lines, classStartLine, classEndLine) {
   }
   return violations;
 }
+function checkForbiddenField(file, fieldType, fieldName, line) {
+  for (const { pattern, label } of FORBIDDEN_FIELD_TYPES) {
+    if (!pattern.test(fieldType)) continue;
+    (0, _types_1.sendFormattedFail)({
+      title: `VIEWMODEL DEPENDE DE ${label.toUpperCase()} DIRETAMENTE`,
+      description: `Campo \`${fieldName}\` é do tipo \`${fieldType}\` — ViewModel deve depender apenas de **UseCases**.`,
+      problem: {
+        wrong: `final ${fieldType} ${fieldName};`,
+        correct: `final IGetDataUseCase _getDataUseCase;`,
+        wrongLabel: `Dependência direta de ${label}`,
+        correctLabel: "Dependência via UseCase",
+      },
+      action: {
+        text: "Substitua a dependência direta por um UseCase:",
+        code: `final class MyViewModel extends ViewModelBase<MyState> {\n  final IGetDataUseCase _getDataUseCase;\n}`,
+      },
+      objective: "ViewModel → **UseCase** → Repository → Datasource. Nunca pular camadas.",
+      file,
+      line,
+    });
+    return;
+  }
+}
 exports.default = (0, _types_1.createPlugin)(
   {
     name: "presentation-viewmodels",
@@ -196,7 +220,10 @@ exports.default = (0, _types_1.createPlugin)(
     for (const file of files) {
       const content = fs.readFileSync(file, "utf-8");
       if (!content.includes("extends ViewModelBase")) continue;
-      const lines = content.split("\n");
+      const lines = (0, primary_constructors_1.normalizePrimaryConstructorHeaders)(content).split(
+        "\n"
+      );
+      const headerFields = (0, primary_constructors_1.primaryConstructorFieldsByLine)(content);
       // ── 1. Verificar imports proibidos ──
       for (let i = 0; i < lines.length; i++) {
         const importMatch = lines[i].match(IMPORT_RE);
@@ -236,6 +263,12 @@ exports.default = (0, _types_1.createPlugin)(
           insideClass = true;
           braceDepth = 0;
           classStartLine = i;
+          // Dependências declaradas no primary constructor (Dart 3.13+): mesmo critério da FIELD_RE
+          for (const f of headerFields.get(i) ?? []) {
+            if (f.isFinal && /^[\w<>,?\s]+$/.test(f.type)) {
+              checkForbiddenField(file, f.type, f.name, f.lineIndex + 1);
+            }
+          }
         }
         if (!insideClass) continue;
         for (const ch of line) {
@@ -277,30 +310,7 @@ exports.default = (0, _types_1.createPlugin)(
         // ── 2. Verificar campos proibidos ──
         const fieldMatch = line.match(FIELD_RE);
         if (!fieldMatch) continue;
-        const fieldType = fieldMatch[1].trim();
-        const fieldName = fieldMatch[2];
-        for (const { pattern, label } of FORBIDDEN_FIELD_TYPES) {
-          if (pattern.test(fieldType)) {
-            (0, _types_1.sendFormattedFail)({
-              title: `VIEWMODEL DEPENDE DE ${label.toUpperCase()} DIRETAMENTE`,
-              description: `Campo \`${fieldName}\` é do tipo \`${fieldType}\` — ViewModel deve depender apenas de **UseCases**.`,
-              problem: {
-                wrong: `final ${fieldType} ${fieldName};`,
-                correct: `final IGetDataUseCase _getDataUseCase;`,
-                wrongLabel: `Dependência direta de ${label}`,
-                correctLabel: "Dependência via UseCase",
-              },
-              action: {
-                text: "Substitua a dependência direta por um UseCase:",
-                code: `final class MyViewModel extends ViewModelBase<MyState> {\n  final IGetDataUseCase _getDataUseCase;\n}`,
-              },
-              objective: "ViewModel → **UseCase** → Repository → Datasource. Nunca pular camadas.",
-              file,
-              line: i + 1,
-            });
-            break;
-          }
-        }
+        checkForbiddenField(file, fieldMatch[1].trim(), fieldMatch[2], i + 1);
       }
     }
   }

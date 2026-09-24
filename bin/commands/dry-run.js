@@ -123,7 +123,7 @@ export async function dryRun(options) {
 
   const require = createRequire(import.meta.url);
   const { loadConfig, loadLocalPlugins } = require("../../dist/config.js");
-  const { setIgnoredFiles, setVerbose } = require("../../dist/helpers.js");
+  const { setIgnoredFiles, setVerbose, setActivePlugins } = require("../../dist/helpers.js");
 
   const config = loadConfig();
   const verbose = options.verbose || config.settings?.verbose || false;
@@ -267,6 +267,8 @@ export async function dryRun(options) {
   console.log("\n" + "─".repeat(60));
   console.log("⚡ Executando plugins...");
   console.log("─".repeat(60));
+
+  setActivePlugins?.(pluginsToRun.map((p) => p.config.name));
 
   const startTime = Date.now();
   const errors = [];

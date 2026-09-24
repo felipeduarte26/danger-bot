@@ -7,6 +7,15 @@ export * from "./types";
 export * from "./helpers";
 export * from "./config";
 export {
+  findPrimaryConstructors,
+  normalizePrimaryConstructorHeaders,
+  primaryConstructorFieldsByLine,
+} from "./plugins/flutter/primary-constructors/primary-constructors";
+export type {
+  PrimaryConstructorDecl,
+  PrimaryConstructorField,
+} from "./plugins/flutter/primary-constructors/primary-constructors";
+export {
   prSummaryPlugin,
   prSizeCheckerPlugin,
   changelogCheckerPlugin,
@@ -34,9 +43,14 @@ export {
   classNamingConventionPlugin,
   presentationTryCatchCheckerPlugin,
   mergeConflictCheckerPlugin,
+  avoidGodClassPlugin,
+  avoidSetstateAfterAsyncPlugin,
+  columnRowSpacingPlugin,
+  dateTypeCheckerPlugin,
   printStatementDetectorPlugin,
   emptyCatchDetectorPlugin,
   futureWaitModernizerPlugin,
+  aiCodeReviewPlugin,
   modelEntityInheritancePlugin,
   testFileCheckerPlugin,
   flutterTestRunnerPlugin,
@@ -48,6 +62,8 @@ export {
   presentationEncapsulationPlugin,
   folderNamingConventionPlugin,
   privateNamedParamsPlugin,
+  primaryConstructorsPlugin,
+  googleChatNotificationPlugin,
 } from "./plugins/flutter";
 /**
  * All available Flutter plugins in a single array

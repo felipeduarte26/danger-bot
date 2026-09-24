@@ -1222,7 +1222,8 @@ function stripCommentsAndStrings(line: string): string {
 function extractIdentifiers(line: string): { identifier: string; kind: string }[] {
   const results: { identifier: string; kind: string }[] = [];
 
-  const classRe = /(?:abstract\s+)?(?:final\s+|sealed\s+|base\s+|mixin\s+)?class\s+([A-Za-z_]\w*)/g;
+  const classRe =
+    /(?:abstract\s+)?(?:final\s+|sealed\s+|base\s+|mixin\s+)?class\s+(?:const\s+)?([A-Za-z_]\w*)/g;
   let m;
   while ((m = classRe.exec(line)) !== null) {
     results.push({ identifier: m[1], kind: "classe" });

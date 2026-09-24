@@ -118,8 +118,10 @@ flutter/
 
 Cria um novo plugin interativamente. A CLI pergunta:
 
-1. **Nome do plugin** (sera convertido para kebab-case)
-2. **Descricao** do que o plugin faz
+1. **Plataforma** (Flutter/Dart ou Node.js)
+2. **Nome do plugin** (sera convertido para kebab-case)
+3. **Descricao** do que o plugin faz
+4. Se o plugin vem **habilitado** por padrao
 
 ```bash
 danger-bot create-plugin
@@ -136,10 +138,14 @@ src/plugins/flutter/meu-plugin/
 └── README.md        # Documentacao do plugin
 ```
 
-**Alem disso, a CLI automaticamente:**
+**Alem disso, a CLI automaticamente (Flutter):**
 
 - Adiciona o export no barrel file `src/plugins/flutter/index.ts`
-- Adiciona o plugin no array `allFlutterPlugins` em `src/index.ts`
+- Adiciona o **export por nome** em `src/index.ts` (bloco `export { ... } from "./plugins/flutter"`), para `import { meuPluginPlugin } from "@felipeduarte26/danger-bot"` funcionar
+- Adiciona o `import` usado pelos arrays de categoria em `src/index.ts`
+- Adiciona o `require("./plugins/flutter/meu-plugin").default` no `allFlutterPlugins`, **antes** do `google-chat-notification` (que precisa continuar sendo o ultimo)
+
+As insercoes preservam o resto do arquivo (virgulas, comentarios e formatacao) e nao duplicam nada se o plugin ja estiver registrado. Se algum bloco nao for encontrado, a CLI mostra `[WARN]` para registrar manualmente. Colocar o plugin num array de categoria (`codeQualityPlugins`, `performancePlugins`...) continua manual — a CLI lembra no final.
 
 **Exemplo de uso:**
 

@@ -4,7 +4,7 @@ Gera um **comentário Markdown** com visão da PR: contagens de arquivos, linhas
 
 ## O que verifica
 
-- Não é regra de código: agrega `git.created_files`, `modified_files`, `deleted_files`, `insertions`, `deletions`
+- Não é regra de código: agrega `git.created_files`, `modified_files`, `deleted_files` e as linhas de `getLineStats()` (soma do `diffForFile` de cada arquivo — funciona no CI; `git.insertions`/`deletions` só existem no dry-run)
 
 ## Severidade
 

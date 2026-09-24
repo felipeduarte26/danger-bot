@@ -2,6 +2,8 @@
 
 Se o PR altera arquivos de código “relevantes” (`.dart`, `.ts`, `.js`, etc.) e **nenhum** arquivo com “changelog” no caminho foi modificado, emite aviso pedindo atualização do changelog.
 
+> **Não roda quando o `pr-validation` está ativo** na mesma execução: ele já reprova (`fail`) o PR que não atualiza o changelog, então este aviso seria duplicado. Com o `pr-validation` desabilitado ou fora da lista, o aviso volta a aparecer.
+
 ## O que verifica
 
 - Lista de criados/modificados: presença de mudança em arquivo cujo caminho contém `changelog` (case insensitive)

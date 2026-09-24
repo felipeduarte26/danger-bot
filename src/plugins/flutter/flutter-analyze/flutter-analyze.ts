@@ -115,6 +115,13 @@ function translateFlutterAnalyzeMessage(message: string, ruleName: string): stri
     unused_catch_stack: "Stack trace catch não utilizado",
     unused_result: "Resultado não utilizado — atribua a variável",
     unused_shown_name: "Nome mostrado não utilizado em import",
+    unused_element_parameter:
+      "Parâmetro opcional nunca recebe valor — remova o parâmetro ou passe o valor",
+    deprecated_lint: "Regra de lint obsoleta — remova do analysis_options.yaml",
+    async_return_with_no_await: "Use `await` ao retornar um Future de uma função `async`",
+    no_dynamic_casts: "Evite cast implícito de `dynamic` — converta explicitamente (`as Tipo`)",
+    no_raw_types:
+      "Evite tipos genéricos sem argumentos de tipo (raw types) — informe os tipos (`List<int>`)",
     missing_return: "Faltando declaração return",
     invalid_assignment: "Atribuição inválida — tipos incompatíveis",
     argument_type_not_assignable: "Tipo de argumento não atribuível",
@@ -250,6 +257,34 @@ function translateFlutterAnalyzeMessage(message: string, ruleName: string): stri
       "Use `this._field` no construtor (private named parameters — Dart 3.12+). Elimine a initializer list redundante e deixe o Dart gerar o nome público automaticamente. Aplique: `dart fix --code=prefer_initializing_formals`",
     use_super_parameters: "Use super parameters ao invés de passar para super manualmente",
 
+    // ── Primary constructors (Dart 3.13+) ──
+    use_primary_constructors:
+      "Use primary constructor (Dart 3.13+): declare o construtor no cabeçalho da classe (`class Foo(final Tipo campo)`)",
+    use_declaring_parameters:
+      "Use parâmetro declarante (`final Tipo campo`) no primary constructor em vez de `this.campo` com o campo declarado no corpo",
+    unnecessary_primary_constructor_body:
+      "Bloco `this` do primary constructor desnecessário — remova (sem initializer list, corpo nem documentação)",
+    empty_container_bodies: "Corpo vazio: use `;` em vez de `{}` (ex.: `class Foo(final int x);`)",
+    initialize_in_field_declaration:
+      "Inicialize o campo na própria declaração, em vez de no construtor",
+    primary_constructor_body_without_declaration:
+      "Bloco `this` sem primary constructor — declare os parâmetros no cabeçalho da classe (`class Foo(...)`)",
+    const_primary_constructor_with_body:
+      "Primary constructor `const` não pode ter corpo `{ }` no bloco `this` — mova a lógica ou remova o `const`",
+    multiple_primary_constructor_body_declarations:
+      "Só pode existir um bloco `this` no primary constructor — junte os dois",
+    non_redirecting_generative_constructor_with_primary:
+      "Com primary constructor, os outros construtores generativos precisam redirecionar para ele (`: this(...)`) — ou use factory",
+    assignment_to_primary_constructor_parameter:
+      "Parâmetro do primary constructor não pode ser alterado no initializer list (`x++`, `x = ...`)",
+    field_initialized_in_parameter_and_initializer:
+      "Campo inicializado duas vezes: no parâmetro e no initializer list — remova uma das duas",
+    mixin_class_declares_non_trivial_generative_constructor:
+      "`mixin class` não pode ter construtor generativo com parâmetros ou corpo",
+    duplicate_constructor: "Construtor duplicado — já existe um construtor com esse nome",
+    extraneous_modifier:
+      "Modificador não permitido nesta posição (no Dart 3.13, `final`/`var` em parâmetro só vale no primary constructor)",
+
     // ── Print e logging ──
     avoid_print: "Evite usar print() em código de produção",
 
@@ -300,6 +335,8 @@ function translateFlutterAnalyzeMessage(message: string, ruleName: string): stri
     tighten_type_of_initializing_formals: "Refine o tipo do parâmetro de inicialização",
 
     // ── Flutter específico ──
+    migrate_design_widgets:
+      "Importe os widgets de design dos pacotes Material/Cupertino — `package:flutter/material.dart` e `package:flutter/cupertino.dart` estão obsoletos",
     sort_child_properties_last: "Propriedade child deve vir por último",
     use_key_in_widget_constructors: "Use key em construtores de widgets",
     must_be_immutable: "Widget deve ser imutável",
@@ -600,7 +637,29 @@ function getDocumentationLink(ruleName: string): string | null {
     "field_initializer_not_assignable",
     "invalid_annotation_target",
     "expected_two_map_type_arguments",
+    "unnecessary_import",
+    "unused_element_parameter",
+    "deprecated_lint",
+    "duplicate_constructor",
+    "field_initialized_in_parameter_and_initializer",
+    "mixin_class_declares_non_trivial_generative_constructor",
+    // primary constructors (Dart 3.13)
+    "primary_constructor_body_without_declaration",
+    "multiple_primary_constructor_body_declarations",
+    "non_redirecting_generative_constructor_with_primary",
   ]);
+
+  // Sem página oficial (verificado em dart.dev): mostra só o nome da regra
+  const undocumented = new Set([
+    "use_primary_constructors", // lint em teste no Dart 3.13, sem documentação pública
+    "const_primary_constructor_with_body",
+    "assignment_to_primary_constructor_parameter",
+    "extraneous_modifier",
+  ]);
+
+  if (undocumented.has(ruleName)) {
+    return null;
+  }
 
   if (diagnosticMessages.has(ruleName)) {
     return `https://dart.dev/tools/diagnostics/${ruleName}`;

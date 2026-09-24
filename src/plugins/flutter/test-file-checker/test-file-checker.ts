@@ -59,60 +59,60 @@ function getTargetLayer(filePath: string): TargetLayer | null {
   return null;
 }
 
+/**
+ * Separa o caminho em raiz do pacote e caminho dentro de `lib/`. Aceita o
+ * formato do Danger (relativo à raiz: `lib/x.dart`), monorepo
+ * (`packages/app/lib/x.dart`) e caminho absoluto. Null se não estiver em `lib/`.
+ */
+function splitLibPath(sourcePath: string): { root: string; relative: string } | null {
+  const normalized = sourcePath.replace(/\\/g, "/");
+  const match = /(^|\/)lib\//.exec(normalized);
+  if (!match) return null;
+  return {
+    root: normalized.slice(0, match.index),
+    relative: normalized.slice(match.index + match[0].length),
+  };
+}
+
+/** Caminho esperado do teste: `lib/(...)/file.dart` → `test/(...)/file_test.dart`. */
 function computeTestPath(sourcePath: string): string {
-  const normalized = sourcePath.replace(/\\/g, "/");
-  const libIndex = normalized.indexOf("/lib/");
-  if (libIndex === -1) {
-    return normalized.replace(/\.dart$/, "_test.dart");
-  }
-
-  const projectRoot = normalized.substring(0, libIndex);
-  const relativePath = normalized.substring(libIndex + "/lib/".length);
-  const testRelative = relativePath.replace(/\.dart$/, "_test.dart");
-  return `${projectRoot}/test/${testRelative}`;
+  const parts = splitLibPath(sourcePath);
+  if (!parts) return sourcePath.replace(/\\/g, "/").replace(/\.dart$/, "_test.dart");
+  const testRoot = parts.root ? `${parts.root}/test` : "test";
+  return `${testRoot}/${parts.relative.replace(/\.dart$/, "_test.dart")}`;
 }
 
-function computeExpectedTestInPR(sourcePath: string): string {
-  const normalized = sourcePath.replace(/\\/g, "/");
-  const libIdx = normalized.indexOf("lib/");
-  if (libIdx === -1) return normalized.replace(/\.dart$/, "_test.dart");
-  const relative = normalized.substring(libIdx + "lib/".length);
-  return "test/" + relative.replace(/\.dart$/, "_test.dart");
-}
+/** Nomes de arquivos `_test.dart` sob cada pasta de testes (lida uma vez por execução). */
+const testNamesCache = new Map<string, Set<string>>();
 
-function findTestByName(sourcePath: string): boolean {
-  const normalized = sourcePath.replace(/\\/g, "/");
-  const libIndex = normalized.indexOf("/lib/");
-  if (libIndex === -1) return false;
-
-  const projectRoot = normalized.substring(0, libIndex);
-  const testFileName = path.basename(normalized, ".dart") + "_test.dart";
-  const testRoot = `${projectRoot}/test`;
-
-  if (!fs.existsSync(testRoot)) return false;
-
-  function searchDir(dir: string): boolean {
-    let entries: string[];
+function testFileNames(testRoot: string): Set<string> {
+  const cached = testNamesCache.get(testRoot);
+  if (cached) return cached;
+  const names = new Set<string>();
+  const walk = (dir: string): void => {
+    let entries: fs.Dirent[];
     try {
-      entries = fs.readdirSync(dir);
+      entries = fs.readdirSync(dir, { withFileTypes: true });
     } catch {
-      return false;
+      return;
     }
     for (const entry of entries) {
-      if (entry === testFileName) return true;
-      const full = path.join(dir, entry);
-      try {
-        if (fs.statSync(full).isDirectory()) {
-          if (searchDir(full)) return true;
-        }
-      } catch {
-        continue;
-      }
+      if (entry.isDirectory()) walk(path.join(dir, entry.name));
+      else if (entry.name.endsWith("_test.dart")) names.add(entry.name);
     }
-    return false;
-  }
+  };
+  walk(testRoot);
+  testNamesCache.set(testRoot, names);
+  return names;
+}
 
-  return searchDir(testRoot);
+/** Teste com o mesmo nome em qualquer subpasta de `test/` (estrutura diferente de `lib/`). */
+function findTestByName(sourcePath: string): boolean {
+  const parts = splitLibPath(sourcePath);
+  if (!parts) return false;
+  const testFileName = path.basename(parts.relative, ".dart") + "_test.dart";
+  const testRoot = parts.root ? `${parts.root}/test` : "test";
+  return testFileNames(testRoot).has(testFileName);
 }
 
 export default createPlugin(
@@ -139,11 +139,10 @@ export default createPlugin(
     const missingTests: string[] = [];
 
     for (const file of sourceFiles) {
-      const testPathAbsolute = computeTestPath(file);
-      const testPathRelative = computeExpectedTestInPR(file);
+      const testPath = computeTestPath(file);
 
-      const testExistsOnDisk = fs.existsSync(testPathAbsolute);
-      const testInPR = allPRFiles.has(testPathRelative);
+      const testExistsOnDisk = fs.existsSync(testPath);
+      const testInPR = allPRFiles.has(testPath);
       const testFoundElsewhere = !testExistsOnDisk && findTestByName(file);
 
       if (!testExistsOnDisk && !testInPR && !testFoundElsewhere) {

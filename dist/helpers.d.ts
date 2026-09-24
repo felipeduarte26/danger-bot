@@ -42,7 +42,8 @@
  * ### 📋 Informações do PR
  * - `getPRDescription()` - Descrição da Pull Request
  * - `getPRTitle()` - Título da Pull Request
- * - `getLinesChanged()` - Total de linhas alteradas
+ * - `getLineStats()` - Linhas adicionadas e removidas (assíncrono, funciona no CI)
+ * - `getLinesChanged()` - Total de linhas alteradas (obsoleto: 0 fora do dry-run/GitHub)
  *
  * @example
  * ```typescript
@@ -67,6 +68,13 @@ export declare function setVerbose(enabled: boolean): void;
  */
 export declare function isVerbose(): boolean;
 /**
+ * Registra os plugins que vão rodar nesta execução (chamado por `runPlugins`
+ * e pelo `dry-run`). Permite que um plugin evite repetir o que outro já verifica.
+ */
+export declare function setActivePlugins(names: string[]): void;
+/** Se o plugin vai rodar nesta execução. Sem registro (execução manual), retorna false. */
+export declare function isPluginActive(name: string): boolean;
+/**
  * Log condicional — só imprime quando verbose está ativo.
  */
 export declare function verboseLog(...args: unknown[]): void;
@@ -88,16 +96,16 @@ export declare function isFileIgnored(filePath: string): boolean;
  * Interface estendida do GitDSL do Danger que inclui propriedades
  * disponíveis em runtime mas não tipadas oficialmente.
  *
- * A interface GitDSL do Danger não inclui `insertions` e `deletions`,
- * mas essas propriedades existem em runtime e são úteis para análise de código.
+ * A interface GitDSL do Danger não inclui `insertions` e `deletions`: elas só
+ * existem no mock do `dry-run`. No Danger real use `getLineStats()`.
  *
  * Esta interface ESTENDE GitDSL para manter todas as propriedades oficiais
  * (base, head, fileMatch, diffForFile, etc.) e adiciona as propriedades extras.
  */
 export interface ExtendedGitDSL extends GitDSL {
-  /** Total de linhas adicionadas no PR (disponível em runtime, não tipado oficialmente) */
+  /** Total de linhas adicionadas (só no mock do dry-run; no Danger real use getLineStats) */
   insertions?: number;
-  /** Total de linhas removidas no PR (disponível em runtime, não tipado oficialmente) */
+  /** Total de linhas removidas (só no mock do dry-run; no Danger real use getLineStats) */
   deletions?: number;
 }
 /**
@@ -680,9 +688,27 @@ export declare function getPRDescription(): string;
  */
 export declare function getPRTitle(): string;
 /**
- * Get lines changed (insertions + deletions)
- * Retorna total de linhas alteradas
+ * Linhas adicionadas e removidas no PR.
  *
- * @returns Number of lines changed
+ * `git.insertions`/`git.deletions` não existem no Danger real (só no mock do
+ * dry-run). No CI soma o `danger.git.diffForFile` de cada arquivo — o mesmo
+ * cálculo do `danger.git.linesOfCode()`, que funciona em GitHub, GitLab e
+ * Bitbucket. O resultado fica em cache durante a execução.
+ *
+ * @example
+ * ```typescript
+ * const { added, removed } = await getLineStats();
+ * ```
+ */
+export declare function getLineStats(): Promise<{
+  added: number;
+  removed: number;
+}>;
+/**
+ * Total de linhas alteradas (síncrono).
+ *
+ * @deprecated No Danger real `git.insertions`/`git.deletions` não existem: fora
+ * do dry-run só há o total do GitHub (`pr.additions` + `pr.deletions`); nas
+ * outras plataformas retorna 0. Use `await getLineStats()`.
  */
 export declare function getLinesChanged(): number;

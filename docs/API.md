@@ -30,7 +30,13 @@ export {
 export { getDomainDartFiles, getDataDartFiles, getPresentationDartFiles, isInLayer };
 
 // Helpers de PR
-export { getPRDescription, getPRTitle, getLinesChanged };
+export { getPRDescription, getPRTitle, getLineStats, getLinesChanged /* obsoleto */ };
+
+// Plugins ativos na execução
+export { isPluginActive, setActivePlugins };
+
+// Primary constructors (Dart 3.13+)
+export { normalizePrimaryConstructorHeaders, findPrimaryConstructors, primaryConstructorFieldsByLine };
 
 // Tipos
 export { DangerPlugin, DangerPluginConfig, DangerBotCallbacks, DangerBotConfig };
@@ -121,13 +127,13 @@ interface DangerBotCallbacks {
 
 ### getDanger()
 
-Retorna o objeto `danger` injetado globalmente pelo Danger JS. Tipado com `ExtendedDangerDSLType` que inclui `insertions` e `deletions`.
+Retorna o objeto `danger` injetado globalmente pelo Danger JS. Tipado com `ExtendedDangerDSLType`, que declara `insertions` e `deletions` — mas eles **so existem no mock do dry-run**; no CI use `getLineStats()`.
 
 ```typescript
 const d = getDanger();
 const pr = d.github?.pr || d.bitbucket_cloud?.pr || d.gitlab?.mr;
 const files = d.git.modified_files;
-const insertions = d.git.insertions; // tipado!
+const { added, removed } = await getLineStats(); // funciona no CI e no dry-run
 ```
 
 ### sendMessage(msg, file?, line?)
@@ -323,16 +329,24 @@ Retorna a descricao do PR (funciona com GitHub, Bitbucket e GitLab).
 
 Retorna o titulo do PR.
 
-### getLinesChanged()
+### getLineStats()
 
-Retorna o total de linhas alteradas (insertions + deletions).
+Linhas adicionadas e removidas no PR (`Promise<{ added, removed }>`). Soma o `danger.git.diffForFile` de cada arquivo — o mesmo calculo do `danger.git.linesOfCode()` —, funcionando em GitHub, GitLab e Bitbucket; no dry-run usa o `git diff --stat`.
 
 ```typescript
-const lines = getLinesChanged();
-if (lines > 500) {
-  sendWarn(`PR muito grande: ${lines} linhas`);
+const { added, removed } = await getLineStats();
+if (added + removed > 500) {
+  sendWarn(`PR muito grande: ${added + removed} linhas`);
 }
 ```
+
+### getLinesChanged() — obsoleto
+
+Versao sincrona mantida por compatibilidade: fora do dry-run so tem o total do GitHub e retorna **0** nas outras plataformas. Use `await getLineStats()`.
+
+### isPluginActive(name)
+
+Se o plugin vai rodar nesta execucao (registrado pelo `runPlugins`/`executeDangerBot` e pelo dry-run). Sem registro, `false`.
 
 ---
 

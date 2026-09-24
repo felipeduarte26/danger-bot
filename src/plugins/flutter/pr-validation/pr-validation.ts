@@ -1,4 +1,11 @@
-import { createPlugin, getDanger, sendFormattedFail, sendMessage, sendWarn } from "@types";
+import {
+  createPlugin,
+  getDanger,
+  getLineStats,
+  sendFormattedFail,
+  sendMessage,
+  sendWarn,
+} from "@types";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -117,7 +124,9 @@ export default createPlugin(
       });
     }
 
-    const linesChanged = (git.insertions || 0) + (git.deletions || 0);
+    // git.insertions/deletions só existem no dry-run: no CI as linhas vêm do diff
+    const { added, removed } = await getLineStats();
+    const linesChanged = added + removed;
     const filesCreated = git.created_files.length;
     const filesModified = git.modified_files.length;
     const filesDeleted = git.deleted_files.length;

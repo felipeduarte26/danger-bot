@@ -148,47 +148,35 @@ export async function createPlugin() {
     }
   }
 
-  // Atualizar src/index.ts para adicionar no allFlutterPlugins (apenas para Flutter)
+  // Atualizar src/index.ts (apenas para Flutter): export por nome, import das
+  // categorias e allFlutterPlugins (antes do google-chat-notification, que é o último)
   if (platformFolder === "flutter") {
     const mainIndexPath = path.join(process.cwd(), "src", "index.ts");
     if (exists(mainIndexPath)) {
+      const pluginExport = `${camelName}Plugin`;
       let mainIndexContent = readFile(mainIndexPath);
 
-      // 1. Adicionar no import
-      const importRegex = /import\s*\{([^}]+)\}\s*from\s*["']\.\/plugins\/flutter["'];/;
-      const importMatch = mainIndexContent.match(importRegex);
+      const exported = addToNamedBlock(mainIndexContent, "export", pluginExport);
+      mainIndexContent = exported.content;
+      if (exported.status === "added") console.log(`[OK] Added to exports in src/index.ts`);
 
-      if (importMatch) {
-        const currentImports = importMatch[1];
-        const newImport = `${camelName}Plugin`;
+      const imported = addToNamedBlock(mainIndexContent, "import", pluginExport);
+      mainIndexContent = imported.content;
+      if (imported.status === "added") console.log(`[OK] Added to imports in src/index.ts`);
 
-        // Verificar se já existe
-        if (!currentImports.includes(newImport)) {
-          // Adicionar no final da lista de imports
-          const updatedImports = currentImports.trim() + `,\n  ${newImport}`;
-          mainIndexContent = mainIndexContent.replace(
-            importRegex,
-            `import {\n  ${updatedImports}\n} from "./plugins/flutter";`
+      const listed = addToAllFlutterPlugins(mainIndexContent, kebabName);
+      mainIndexContent = listed.content;
+      if (listed.status === "added") console.log(`[OK] Added to allFlutterPlugins in src/index.ts`);
+
+      for (const [what, result] of [
+        ['export { ... } from "./plugins/flutter"', exported],
+        ['import { ... } from "./plugins/flutter"', imported],
+        ["allFlutterPlugins", listed],
+      ]) {
+        if (result.status === "missing") {
+          console.warn(
+            `[WARN] ${what} não encontrado em src/index.ts — registre o plugin manualmente`
           );
-          console.log(`[OK] Added to imports in src/index.ts`);
-        }
-      }
-
-      // 2. Adicionar no array allFlutterPlugins (usando require().default para evitar referência circular)
-      const arrayRegex = /export const allFlutterPlugins = \[([\s\S]*?)\];/;
-      const arrayMatch = mainIndexContent.match(arrayRegex);
-
-      if (arrayMatch) {
-        const currentPlugins = arrayMatch[1];
-        const requireLine = `require("./plugins/flutter/${kebabName}").default`;
-
-        if (!currentPlugins.includes(kebabName)) {
-          const updatedPlugins = currentPlugins.trim() + `,\n  ${requireLine}`;
-          mainIndexContent = mainIndexContent.replace(
-            arrayRegex,
-            `export const allFlutterPlugins = [\n  ${updatedPlugins}\n];`
-          );
-          console.log(`[OK] Added to allFlutterPlugins in src/index.ts`);
         }
       }
 
@@ -209,8 +197,12 @@ export async function createPlugin() {
   console.log("Automatically updated:");
   console.log(`  ✅ ${platformFolder}/index.ts - Export added`);
   if (platformFolder === "flutter") {
+    console.log(`  ✅ src/index.ts - Export by name (${camelName}Plugin)`);
     console.log(`  ✅ src/index.ts - Import added`);
-    console.log(`  ✅ src/index.ts - Added to allFlutterPlugins`);
+    console.log(`  ✅ src/index.ts - Added to allFlutterPlugins (before google-chat-notification)`);
+    console.log(
+      `  ℹ️  Add ${camelName}Plugin to a category array (e.g. codeQualityPlugins) if it fits one`
+    );
   }
   console.log();
   console.log("Next steps:");
@@ -219,4 +211,60 @@ export async function createPlugin() {
   console.log(`  3. Implement the plugin logic`);
   console.log(`  4. Run: npm run build`);
   console.log(`  5. Use: import { ${camelName}Plugin } from "@felipeduarte26/danger-bot"\n`);
+}
+
+/**
+ * Adiciona `name` à lista de `import { ... }` / `export { ... } from "./plugins/flutter";`
+ * sem reescrever o bloco: garante a vírgula depois do último item e insere a
+ * nova linha antes do `}`. Não duplica se o nome já estiver na lista.
+ */
+function addToNamedBlock(content, keyword, name) {
+  const re = new RegExp(`${keyword}\\s*\\{([^}]*)\\}\\s*from\\s*["']\\./plugins/flutter["'];`);
+  const match = re.exec(content);
+  if (!match) return { content, status: "missing" };
+  const items = match[1]
+    .replace(/\/\/.*$/gm, "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+  if (items.includes(name)) return { content, status: "exists" };
+
+  const closeIndex = match.index + match[0].indexOf("}");
+  let before = content.slice(0, closeIndex).replace(/\s*$/, "");
+  if (!before.endsWith(",") && !before.endsWith("{")) before += ",";
+  return { content: `${before}\n  ${name},\n${content.slice(closeIndex)}`, status: "added" };
+}
+
+/**
+ * Adiciona o `require(...)` do plugin em `allFlutterPlugins`, antes do
+ * google-chat-notification (e do comentário que o acompanha), que precisa
+ * continuar sendo o último. Sem ele, adiciona no fim com a vírgula correta.
+ */
+function addToAllFlutterPlugins(content, kebabName) {
+  const re = /export const allFlutterPlugins = \[([\s\S]*?)\n\];/;
+  const match = re.exec(content);
+  if (!match) return { content, status: "missing" };
+  if (match[1].includes(`"./plugins/flutter/${kebabName}"`)) return { content, status: "exists" };
+
+  const requireLine = `  require("./plugins/flutter/${kebabName}").default,`;
+  const bodyStart = match.index + match[0].indexOf("[") + 1;
+  const lines = match[1].split("\n");
+  let index = lines.findIndex((line) =>
+    line.includes('"./plugins/flutter/google-chat-notification"')
+  );
+  if (index >= 0) {
+    while (index > 0 && lines[index - 1].trim().startsWith("//")) index--;
+    lines.splice(index, 0, requireLine);
+  } else {
+    let last = lines.length - 1;
+    while (last >= 0 && !lines[last].trim()) last--;
+    const lastLine = last >= 0 ? lines[last].trim() : "";
+    if (lastLine && !lastLine.endsWith(",") && !lastLine.startsWith("//")) lines[last] += ",";
+    lines.splice(last + 1, 0, requireLine);
+  }
+  const updated = lines.join("\n");
+  return {
+    content: content.slice(0, bodyStart) + updated + content.slice(bodyStart + match[1].length),
+    status: "added",
+  };
 }
