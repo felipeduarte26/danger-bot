@@ -299,6 +299,7 @@ let _eld = null;
 async function loadEld() {
   if (_eld) return _eld;
   try {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- evita resolução de tipos do módulo opcional
     const mod = await Promise.resolve(`${"eld/large"}`).then((s) => __importStar(require(s)));
     _eld = mod.default || mod;
     return _eld;

@@ -79,6 +79,7 @@ async function loadSpell() {
     const { createRequire } = await Promise.resolve().then(() => __importStar(require("module")));
     const req = createRequire(__filename);
     const Nodehun = req("nodehun");
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- evita resolução de tipos do módulo opcional
     const dictMod = await Promise.resolve(`${"dictionary-pt"}`).then((s) =>
       __importStar(require(s))
     );

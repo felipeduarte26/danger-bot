@@ -35,7 +35,8 @@ async function loadSpell(): Promise<SpellChecker | null> {
   try {
     const { createRequire } = await import("module");
     const req = createRequire(__filename);
-    const Nodehun = req("nodehun" as string);
+    const Nodehun = req("nodehun");
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- evita resolução de tipos do módulo opcional
     const dictMod = await import("dictionary-pt" as string);
     const dict = dictMod.default || dictMod;
     _spell = new Nodehun(dict.aff, dict.dic) as SpellChecker;

@@ -28,13 +28,15 @@ async function loadEld(): Promise<void> {
   if (_eldLoaded) return;
   _eldLoaded = true;
   try {
-    const mod = await import("eld/large");
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- evita resolução de tipos do módulo opcional
+    const mod = await import("eld/large" as string);
     _eld = mod.eld ?? mod.default?.eld ?? mod;
   } catch {
     // eld nao disponivel
   }
   try {
-    const tMod = await import("translate");
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- evita resolução de tipos do módulo opcional
+    const tMod = await import("translate" as string);
     _translate = tMod.default ?? tMod;
   } catch {
     // translate nao disponivel

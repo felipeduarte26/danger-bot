@@ -249,7 +249,8 @@ let _eld: { detect: (text: string) => { language: string } } | null = null;
 async function loadEld(): Promise<typeof _eld> {
   if (_eld) return _eld;
   try {
-    const mod = await import("eld/large");
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- evita resolução de tipos do módulo opcional
+    const mod = await import("eld/large" as string);
     _eld = mod.default || mod;
     return _eld;
   } catch {

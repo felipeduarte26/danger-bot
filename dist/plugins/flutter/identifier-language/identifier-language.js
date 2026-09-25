@@ -80,12 +80,14 @@ async function loadEld() {
   if (_eldLoaded) return;
   _eldLoaded = true;
   try {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- evita resolução de tipos do módulo opcional
     const mod = await Promise.resolve(`${"eld/large"}`).then((s) => __importStar(require(s)));
     _eld = mod.eld ?? mod.default?.eld ?? mod;
   } catch {
     // eld nao disponivel
   }
   try {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- evita resolução de tipos do módulo opcional
     const tMod = await Promise.resolve(`${"translate"}`).then((s) => __importStar(require(s)));
     _translate = tMod.default ?? tMod;
   } catch {
