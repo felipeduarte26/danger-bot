@@ -2706,10 +2706,10 @@ function reportClass(lx, file, report, plan) {
     fieldCount > 0 ? ` e repete **${fieldCount} campo(s)** que já chegam pelos parâmetros` : "";
   const correct = buildCorrectSnippet(plan);
   (0, _types_1.sendFormattedFail)({
-    title: "USAR PRIMARY CONSTRUCTOR (DART 3.13+)",
+    title: "USAR PRIMARY CONSTRUCTOR",
     description:
       `${typeLabel} \`${report.name}\` declara o construtor dentro do corpo${duplication}. ` +
-      "A partir do Dart 3.13, declare o construtor principal no **cabeçalho da classe** (primary constructor).",
+      "Declare o construtor principal no **cabeçalho da classe** (primary constructor).",
     problem: {
       wrong: buildWrongSnippet(lx, plan),
       correct,

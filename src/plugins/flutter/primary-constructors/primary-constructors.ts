@@ -3230,15 +3230,15 @@ function reportClass(
   const correct = buildCorrectSnippet(plan);
 
   sendFormattedFail({
-    title: "USAR PRIMARY CONSTRUCTOR (DART 3.13+)",
+    title: "USAR PRIMARY CONSTRUCTOR",
     description:
       `${typeLabel} \`${report.name}\` declara o construtor dentro do corpo${duplication}. ` +
-      "A partir do Dart 3.13, declare o construtor principal no **cabeçalho da classe** (primary constructor).",
+      "Declare o construtor principal no **cabeçalho da classe** (primary constructor).",
     problem: {
       wrong: buildWrongSnippet(lx, plan),
       correct,
       wrongLabel: "Construtor no corpo da classe",
-      correctLabel: "Primary constructor (Dart 3.13+)",
+      correctLabel: "Primary constructor",
     },
     action: {
       text:
