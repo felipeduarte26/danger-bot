@@ -28,13 +28,13 @@ async function loadEld(): Promise<void> {
   if (_eldLoaded) return;
   _eldLoaded = true;
   try {
-    const mod = await import("eld/large" as string);
+    const mod = await import("eld/large");
     _eld = mod.eld ?? mod.default?.eld ?? mod;
   } catch {
     // eld nao disponivel
   }
   try {
-    const tMod = await import("translate" as string);
+    const tMod = await import("translate");
     _translate = tMod.default ?? tMod;
   } catch {
     // translate nao disponivel
@@ -1222,7 +1222,8 @@ function stripCommentsAndStrings(line: string): string {
 function extractIdentifiers(line: string): { identifier: string; kind: string }[] {
   const results: { identifier: string; kind: string }[] = [];
 
-  const classRe = /(?:abstract\s+)?(?:final\s+|sealed\s+|base\s+|mixin\s+)?class\s+([A-Za-z_]\w*)/g;
+  const classRe =
+    /(?:abstract\s+)?(?:final\s+|sealed\s+|base\s+|mixin\s+)?class\s+(?:const\s+)?([A-Za-z_]\w*)/g;
   let m;
   while ((m = classRe.exec(line)) !== null) {
     results.push({ identifier: m[1], kind: "classe" });

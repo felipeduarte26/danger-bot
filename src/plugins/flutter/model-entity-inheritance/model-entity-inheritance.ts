@@ -14,6 +14,10 @@
 import { createPlugin, getDanger, sendFormattedFail } from "@types";
 import * as fs from "fs";
 import * as path from "path";
+import {
+  normalizePrimaryConstructorHeaders,
+  primaryConstructorFieldsByLine,
+} from "../primary-constructors/primary-constructors";
 
 function isBarrelFile(filePath: string): boolean {
   const fileName = path.basename(filePath, ".dart");
@@ -92,6 +96,16 @@ function parseFields(lines: string[], classStartLine: number): ClassField[] {
 }
 
 /**
+ * Campos `final` declarados no primary constructor (Dart 3.13+) da classe cujo
+ * cabeçalho começa na linha dada. Mesmo critério de `parseFields`.
+ */
+function parseHeaderFields(content: string, classStartLine: number): ClassField[] {
+  return (primaryConstructorFieldsByLine(content).get(classStartLine) ?? [])
+    .filter((f) => f.isFinal && f.type && /^[a-z_]\w*$/.test(f.name))
+    .map((f) => ({ type: f.type, name: f.name, line: f.lineIndex + 1 }));
+}
+
+/**
  * Collects the full class declaration from the `class` keyword until `{`.
  * Handles multi-line declarations like:
  *   final class FooModel
@@ -108,7 +122,7 @@ function collectClassDeclaration(lines: string[], startLine: number): string {
 }
 
 function parseModelClass(content: string): ModelClassInfo | null {
-  const lines = content.split("\n");
+  const lines = normalizePrimaryConstructorHeaders(content).split("\n");
   let inBlockComment = false;
 
   for (let i = 0; i < lines.length; i++) {
@@ -139,7 +153,7 @@ function parseModelClass(content: string): ModelClassInfo | null {
       const extendsMatch = fullDeclaration.match(/\bextends\s+([A-Za-z_]\w*)/);
       const hasExtends = !!extendsMatch;
       const extendsClass = extendsMatch ? extendsMatch[1] : null;
-      const fields = parseFields(lines, i);
+      const fields = [...parseHeaderFields(content, i), ...parseFields(lines, i)];
 
       let hasToEntity = false;
       let toEntityLine = 0;
@@ -186,7 +200,7 @@ function parseModelClass(content: string): ModelClassInfo | null {
 function parseEntityClass(
   content: string
 ): { name: string; fields: ClassField[]; isFinal: boolean } | null {
-  const lines = content.split("\n");
+  const lines = normalizePrimaryConstructorHeaders(content).split("\n");
   let inBlockComment = false;
 
   for (let i = 0; i < lines.length; i++) {
@@ -210,7 +224,7 @@ function parseEntityClass(
 
       const isFinal = !!classMatch[1];
       // Collect full declaration for multi-line support (not needed now but future-proof)
-      const fields = parseFields(lines, i);
+      const fields = [...parseHeaderFields(content, i), ...parseFields(lines, i)];
       return { name: classMatch[2], fields, isFinal };
     }
   }

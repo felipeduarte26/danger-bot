@@ -10,7 +10,8 @@ var __importDefault =
     return mod && mod.__esModule ? mod : { default: mod };
   };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.privateNamedParamsPlugin =
+exports.primaryConstructorsPlugin =
+  exports.privateNamedParamsPlugin =
   exports.folderNamingConventionPlugin =
   exports.presentationEncapsulationPlugin =
   exports.spellCheckerPtbrPlugin =
@@ -388,5 +389,12 @@ Object.defineProperty(exports, "privateNamedParamsPlugin", {
   enumerable: true,
   get: function () {
     return __importDefault(private_named_params_1).default;
+  },
+});
+var primary_constructors_1 = require("./primary-constructors");
+Object.defineProperty(exports, "primaryConstructorsPlugin", {
+  enumerable: true,
+  get: function () {
+    return __importDefault(primary_constructors_1).default;
   },
 });

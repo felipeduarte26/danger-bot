@@ -32,6 +32,7 @@ export {
   getPRDescription,
   getPRTitle,
   getLinesChanged,
+  getLineStats,
   isInLayer,
   setIgnoredFiles,
   getIgnoredFiles,
@@ -39,6 +40,8 @@ export {
   getIgnoredFileMatches,
   setVerbose,
   isVerbose,
+  setActivePlugins,
+  isPluginActive,
   verboseLog,
   sendFormattedFail,
   sendFormattedWarn,
@@ -85,8 +88,9 @@ export function createPlugin(config: DangerPluginConfig, runFn: () => Promise<vo
  * @param plugins - Array of plugins to run
  */
 export async function runPlugins(plugins: DangerPlugin[]): Promise<void> {
-  const { isVerbose } = await import("./helpers");
+  const { isVerbose, setActivePlugins } = await import("./helpers");
   const verbose = isVerbose();
+  setActivePlugins(plugins.filter((p) => p.config.enabled).map((p) => p.config.name));
   const totalStart = Date.now();
 
   if (verbose) {

@@ -32,14 +32,7 @@ var __exportStar =
         __createBinding(exports, m, p);
   };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.testPlugins =
-  exports.performancePlugins =
-  exports.codeQualityPlugins =
-  exports.cleanArchitecturePlugins =
-  exports.presentationLayerPlugins =
-  exports.dataLayerPlugins =
-  exports.domainLayerPlugins =
-  exports.allFlutterPlugins =
+exports.primaryConstructorsPlugin =
   exports.privateNamedParamsPlugin =
   exports.folderNamingConventionPlugin =
   exports.presentationEncapsulationPlugin =
@@ -51,9 +44,14 @@ exports.testPlugins =
   exports.flutterTestRunnerPlugin =
   exports.testFileCheckerPlugin =
   exports.modelEntityInheritancePlugin =
+  exports.aiCodeReviewPlugin =
   exports.futureWaitModernizerPlugin =
   exports.emptyCatchDetectorPlugin =
   exports.printStatementDetectorPlugin =
+  exports.dateTypeCheckerPlugin =
+  exports.columnRowSpacingPlugin =
+  exports.avoidSetstateAfterAsyncPlugin =
+  exports.avoidGodClassPlugin =
   exports.mergeConflictCheckerPlugin =
   exports.presentationTryCatchCheckerPlugin =
   exports.classNamingConventionPlugin =
@@ -81,11 +79,44 @@ exports.testPlugins =
   exports.changelogCheckerPlugin =
   exports.prSizeCheckerPlugin =
   exports.prSummaryPlugin =
+  exports.primaryConstructorFieldsByLine =
+  exports.normalizePrimaryConstructorHeaders =
+  exports.findPrimaryConstructors =
+    void 0;
+exports.testPlugins =
+  exports.performancePlugins =
+  exports.codeQualityPlugins =
+  exports.cleanArchitecturePlugins =
+  exports.presentationLayerPlugins =
+  exports.dataLayerPlugins =
+  exports.domainLayerPlugins =
+  exports.allFlutterPlugins =
+  exports.googleChatNotificationPlugin =
     void 0;
 // Export tipos e helpers
 __exportStar(require("./types"), exports);
 __exportStar(require("./helpers"), exports);
 __exportStar(require("./config"), exports);
+// Helpers para plugins que analisam classes escritas com primary constructors (Dart 3.13+)
+var primary_constructors_1 = require("./plugins/flutter/primary-constructors/primary-constructors");
+Object.defineProperty(exports, "findPrimaryConstructors", {
+  enumerable: true,
+  get: function () {
+    return primary_constructors_1.findPrimaryConstructors;
+  },
+});
+Object.defineProperty(exports, "normalizePrimaryConstructorHeaders", {
+  enumerable: true,
+  get: function () {
+    return primary_constructors_1.normalizePrimaryConstructorHeaders;
+  },
+});
+Object.defineProperty(exports, "primaryConstructorFieldsByLine", {
+  enumerable: true,
+  get: function () {
+    return primary_constructors_1.primaryConstructorFieldsByLine;
+  },
+});
 // Export all plugins
 var flutter_1 = require("./plugins/flutter");
 Object.defineProperty(exports, "prSummaryPlugin", {
@@ -250,6 +281,30 @@ Object.defineProperty(exports, "mergeConflictCheckerPlugin", {
     return flutter_1.mergeConflictCheckerPlugin;
   },
 });
+Object.defineProperty(exports, "avoidGodClassPlugin", {
+  enumerable: true,
+  get: function () {
+    return flutter_1.avoidGodClassPlugin;
+  },
+});
+Object.defineProperty(exports, "avoidSetstateAfterAsyncPlugin", {
+  enumerable: true,
+  get: function () {
+    return flutter_1.avoidSetstateAfterAsyncPlugin;
+  },
+});
+Object.defineProperty(exports, "columnRowSpacingPlugin", {
+  enumerable: true,
+  get: function () {
+    return flutter_1.columnRowSpacingPlugin;
+  },
+});
+Object.defineProperty(exports, "dateTypeCheckerPlugin", {
+  enumerable: true,
+  get: function () {
+    return flutter_1.dateTypeCheckerPlugin;
+  },
+});
 Object.defineProperty(exports, "printStatementDetectorPlugin", {
   enumerable: true,
   get: function () {
@@ -266,6 +321,12 @@ Object.defineProperty(exports, "futureWaitModernizerPlugin", {
   enumerable: true,
   get: function () {
     return flutter_1.futureWaitModernizerPlugin;
+  },
+});
+Object.defineProperty(exports, "aiCodeReviewPlugin", {
+  enumerable: true,
+  get: function () {
+    return flutter_1.aiCodeReviewPlugin;
   },
 });
 Object.defineProperty(exports, "modelEntityInheritancePlugin", {
@@ -334,6 +395,18 @@ Object.defineProperty(exports, "privateNamedParamsPlugin", {
     return flutter_1.privateNamedParamsPlugin;
   },
 });
+Object.defineProperty(exports, "primaryConstructorsPlugin", {
+  enumerable: true,
+  get: function () {
+    return flutter_1.primaryConstructorsPlugin;
+  },
+});
+Object.defineProperty(exports, "googleChatNotificationPlugin", {
+  enumerable: true,
+  get: function () {
+    return flutter_1.googleChatNotificationPlugin;
+  },
+});
 /**
  * All available Flutter plugins in a single array
  * Use this for quick setup with all plugins enabled
@@ -385,6 +458,7 @@ exports.allFlutterPlugins = [
   require("./plugins/flutter/presentation-encapsulation").default,
   require("./plugins/flutter/folder-naming-convention").default,
   require("./plugins/flutter/private-named-params").default,
+  require("./plugins/flutter/primary-constructors").default,
   // google-chat-notification deve ser sempre o último plugin
   require("./plugins/flutter/google-chat-notification").default,
 ];
@@ -433,6 +507,7 @@ exports.codeQualityPlugins = [
   flutter_2.buildDocCheckerPlugin,
   flutter_2.spellCheckerPtbrPlugin,
   flutter_2.privateNamedParamsPlugin,
+  flutter_2.primaryConstructorsPlugin,
 ];
 exports.performancePlugins = [
   flutter_2.flutterPerformancePlugin,

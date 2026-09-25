@@ -13,6 +13,10 @@
  */
 import { createPlugin, getDanger, sendFormattedFail } from "@types";
 import * as fs from "fs";
+import {
+  normalizePrimaryConstructorHeaders,
+  primaryConstructorFieldsByLine,
+} from "../primary-constructors/primary-constructors";
 
 const FORBIDDEN_FIELD_TYPES = [
   { pattern: /Repository/, label: "Repository" },
@@ -161,6 +165,35 @@ function findPublicMethodViolations(
   return violations;
 }
 
+function checkForbiddenField(
+  file: string,
+  fieldType: string,
+  fieldName: string,
+  line: number
+): void {
+  for (const { pattern, label } of FORBIDDEN_FIELD_TYPES) {
+    if (!pattern.test(fieldType)) continue;
+    sendFormattedFail({
+      title: `VIEWMODEL DEPENDE DE ${label.toUpperCase()} DIRETAMENTE`,
+      description: `Campo \`${fieldName}\` é do tipo \`${fieldType}\` — ViewModel deve depender apenas de **UseCases**.`,
+      problem: {
+        wrong: `final ${fieldType} ${fieldName};`,
+        correct: `final IGetDataUseCase _getDataUseCase;`,
+        wrongLabel: `Dependência direta de ${label}`,
+        correctLabel: "Dependência via UseCase",
+      },
+      action: {
+        text: "Substitua a dependência direta por um UseCase:",
+        code: `final class MyViewModel extends ViewModelBase<MyState> {\n  final IGetDataUseCase _getDataUseCase;\n}`,
+      },
+      objective: "ViewModel → **UseCase** → Repository → Datasource. Nunca pular camadas.",
+      file,
+      line,
+    });
+    return;
+  }
+}
+
 export default createPlugin(
   {
     name: "presentation-viewmodels",
@@ -180,7 +213,8 @@ export default createPlugin(
 
       if (!content.includes("extends ViewModelBase")) continue;
 
-      const lines = content.split("\n");
+      const lines = normalizePrimaryConstructorHeaders(content).split("\n");
+      const headerFields = primaryConstructorFieldsByLine(content);
 
       // ── 1. Verificar imports proibidos ──
       for (let i = 0; i < lines.length; i++) {
@@ -226,6 +260,12 @@ export default createPlugin(
           insideClass = true;
           braceDepth = 0;
           classStartLine = i;
+          // Dependências declaradas no primary constructor (Dart 3.13+): mesmo critério da FIELD_RE
+          for (const f of headerFields.get(i) ?? []) {
+            if (f.isFinal && /^[\w<>,?\s]+$/.test(f.type)) {
+              checkForbiddenField(file, f.type, f.name, f.lineIndex + 1);
+            }
+          }
         }
 
         if (!insideClass) continue;
@@ -276,31 +316,7 @@ export default createPlugin(
         const fieldMatch = line.match(FIELD_RE);
         if (!fieldMatch) continue;
 
-        const fieldType = fieldMatch[1].trim();
-        const fieldName = fieldMatch[2];
-
-        for (const { pattern, label } of FORBIDDEN_FIELD_TYPES) {
-          if (pattern.test(fieldType)) {
-            sendFormattedFail({
-              title: `VIEWMODEL DEPENDE DE ${label.toUpperCase()} DIRETAMENTE`,
-              description: `Campo \`${fieldName}\` é do tipo \`${fieldType}\` — ViewModel deve depender apenas de **UseCases**.`,
-              problem: {
-                wrong: `final ${fieldType} ${fieldName};`,
-                correct: `final IGetDataUseCase _getDataUseCase;`,
-                wrongLabel: `Dependência direta de ${label}`,
-                correctLabel: "Dependência via UseCase",
-              },
-              action: {
-                text: "Substitua a dependência direta por um UseCase:",
-                code: `final class MyViewModel extends ViewModelBase<MyState> {\n  final IGetDataUseCase _getDataUseCase;\n}`,
-              },
-              objective: "ViewModel → **UseCase** → Repository → Datasource. Nunca pular camadas.",
-              file,
-              line: i + 1,
-            });
-            break;
-          }
-        }
+        checkForbiddenField(file, fieldMatch[1].trim(), fieldMatch[2], i + 1);
       }
     }
   }

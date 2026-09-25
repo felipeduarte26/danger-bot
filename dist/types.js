@@ -66,6 +66,8 @@ exports.loadLocalPlugins =
   exports.sendFormattedWarn =
   exports.sendFormattedFail =
   exports.verboseLog =
+  exports.isPluginActive =
+  exports.setActivePlugins =
   exports.isVerbose =
   exports.setVerbose =
   exports.getIgnoredFileMatches =
@@ -73,6 +75,7 @@ exports.loadLocalPlugins =
   exports.getIgnoredFiles =
   exports.setIgnoredFiles =
   exports.isInLayer =
+  exports.getLineStats =
   exports.getLinesChanged =
   exports.getPRTitle =
   exports.getPRDescription =
@@ -221,6 +224,12 @@ Object.defineProperty(exports, "getLinesChanged", {
     return helpers_1.getLinesChanged;
   },
 });
+Object.defineProperty(exports, "getLineStats", {
+  enumerable: true,
+  get: function () {
+    return helpers_1.getLineStats;
+  },
+});
 Object.defineProperty(exports, "isInLayer", {
   enumerable: true,
   get: function () {
@@ -261,6 +270,18 @@ Object.defineProperty(exports, "isVerbose", {
   enumerable: true,
   get: function () {
     return helpers_1.isVerbose;
+  },
+});
+Object.defineProperty(exports, "setActivePlugins", {
+  enumerable: true,
+  get: function () {
+    return helpers_1.setActivePlugins;
+  },
+});
+Object.defineProperty(exports, "isPluginActive", {
+  enumerable: true,
+  get: function () {
+    return helpers_1.isPluginActive;
   },
 });
 Object.defineProperty(exports, "verboseLog", {
@@ -315,8 +336,11 @@ function createPlugin(config, runFn) {
  * @param plugins - Array of plugins to run
  */
 async function runPlugins(plugins) {
-  const { isVerbose } = await Promise.resolve().then(() => __importStar(require("./helpers")));
+  const { isVerbose, setActivePlugins } = await Promise.resolve().then(() =>
+    __importStar(require("./helpers"))
+  );
   const verbose = isVerbose();
+  setActivePlugins(plugins.filter((p) => p.config.enabled).map((p) => p.config.name));
   const totalStart = Date.now();
   if (verbose) {
     const enabled = plugins.filter((p) => p.config.enabled).length;

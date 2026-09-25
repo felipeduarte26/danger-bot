@@ -104,7 +104,9 @@ Funcoes auxiliares organizadas em categorias:
 - **Mensagens**: `sendMessage`, `sendWarn`, `sendFail`, `sendMarkdown`, `scheduleTask`
 - **Filtros de arquivos**: `getAllChangedFiles`, `getDartFiles`, `getFilesMatching`, etc.
 - **Clean Architecture**: `getDomainDartFiles`, `getDataDartFiles`, `isInLayer`, etc.
-- **Info do PR**: `getPRDescription`, `getPRTitle`, `getLinesChanged`
+- **Info do PR**: `getPRDescription`, `getPRTitle`, `getLineStats` (`getLinesChanged` obsoleto)
+- **Execucao**: `isPluginActive` / `setActivePlugins` (plugins habilitados na execucao)
+- **Primary constructors**: `normalizePrimaryConstructorHeaders`, `findPrimaryConstructors`, `primaryConstructorFieldsByLine`
 - **Configuracao**: `setIgnoredFiles`, `getIgnoredFiles` (usados internamente pelo config loader)
 
 > `getAllChangedFiles()` filtra automaticamente os arquivos listados em `ignore_files` do `danger-bot.yaml`.

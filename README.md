@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/felipeduarte26/danger-bot"><img src="https://img.shields.io/badge/version-3.3.2-blue.svg" alt="Version"></a>
+  <a href="https://github.com/felipeduarte26/danger-bot"><img src="https://img.shields.io/badge/version-3.3.3-blue.svg" alt="Version"></a>
   <a href="https://nodejs.org"><img src="https://img.shields.io/badge/node-%3E%3D25.2.1-brightgreen.svg" alt="Node"></a>
   <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.9-blue.svg" alt="TypeScript"></a>
   <a href="https://github.com/felipeduarte26/danger-bot/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License"></a>
@@ -89,13 +89,13 @@ O Danger Bot inclui plugins organizados em categorias:
 
 ### Pull Request
 
-| Plugin                     | Descricao                                          |
-| -------------------------- | -------------------------------------------------- |
-| **pr-summary**             | Gera sumario automatico do PR com estatisticas     |
-| **pr-size-checker**        | Alerta sobre PRs muito grandes                     |
-| **pr-validation**          | Valida descricao, titulo e formato do PR           |
-| **changelog-checker**      | Verifica se o CHANGELOG.md foi atualizado          |
-| **merge-conflict-checker** | Detecta conflitos de merge com o branch de destino |
+| Plugin                     | Descricao                                                                                |
+| -------------------------- | ---------------------------------------------------------------------------------------- |
+| **pr-summary**             | Gera sumario automatico do PR com estatisticas                                           |
+| **pr-size-checker**        | Alerta sobre PRs muito grandes                                                           |
+| **pr-validation**          | Valida descricao, changelog, `pubspec.lock` e tamanho do PR (linhas reais no CI)         |
+| **changelog-checker**      | Avisa se o CHANGELOG.md nao foi atualizado (desliga quando o `pr-validation` esta ativo) |
+| **merge-conflict-checker** | Detecta conflitos de merge com o branch de destino                                       |
 
 ### Clean Architecture - Domain
 
@@ -143,6 +143,7 @@ O Danger Bot inclui plugins organizados em categorias:
 | **boolean-naming-convention**  | Verifica nomes de booleans seguindo Effective Dart (`is`/`has`/`can`/`should`)            |
 | **positional-bool-params**     | Detecta parametros `bool` posicionais (Effective Dart: use named params)                  |
 | **build-doc-checker**          | Detecta `///` desnecessarios dentro de `Widget build` (poluem o codigo)                   |
+| **primary-constructors**       | Obriga primary constructors (Dart 3.13+) em classes e enums, com a conversao sugerida     |
 | **ai-code-review**             | Code review com IA (Gemini) — Clean Code, SOLID, seguranca e bugs (aviso, nao falha o CI) |
 
 ### Performance e Flutter
@@ -159,11 +160,11 @@ O Danger Bot inclui plugins organizados em categorias:
 
 ### Testes
 
-| Plugin                    | Descricao                                                                   |
-| ------------------------- | --------------------------------------------------------------------------- |
-| **test-file-checker**     | Verifica se arquivos da PR possuem testes correspondentes                   |
-| **flutter-test-runner**   | Executa testes da PR e reporta resultados (nao quebra a pipeline se falhar) |
-| **test-coverage-summary** | Mostra cobertura de testes no summary da PR (le `coverage/lcov.info`)       |
+| Plugin                    | Descricao                                                                     |
+| ------------------------- | ----------------------------------------------------------------------------- |
+| **test-file-checker**     | Verifica se arquivos da PR possuem testes correspondentes (no disco ou na PR) |
+| **flutter-test-runner**   | Executa testes da PR e reporta resultados (nao quebra a pipeline se falhar)   |
+| **test-coverage-summary** | Mostra cobertura de testes no summary da PR (le `coverage/lcov.info`)         |
 
 ---
 

@@ -17,6 +17,7 @@
  */
 import { createPlugin, getDanger, sendFormattedFail, sendMessage } from "@types";
 import * as fs from "fs";
+import { normalizePrimaryConstructorHeaders } from "../primary-constructors/primary-constructors";
 
 // ---------------------------------------------------------------------------
 // Generated / test file filters
@@ -446,7 +447,7 @@ export default createPlugin(
     for (const file of dartFiles) {
       try {
         const content = fs.readFileSync(file, "utf-8");
-        const lines = content.split("\n");
+        const lines = normalizePrimaryConstructorHeaders(content).split("\n");
 
         const stateClasses = findStateClasses(lines);
         if (stateClasses.length === 0) continue;

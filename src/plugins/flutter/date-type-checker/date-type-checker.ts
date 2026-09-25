@@ -16,6 +16,7 @@
  */
 import { createPlugin, getDanger, sendFormattedFail } from "@types";
 import * as fs from "fs";
+import { findPrimaryConstructors } from "../primary-constructors/primary-constructors";
 
 const DATE_SUFFIXES = ["At", "Date", "Timestamp", "Time", "Dt"];
 const DATE_PREFIXES = ["date", "timestamp", "dt"];
@@ -114,41 +115,64 @@ export default createPlugin(
       for (let i = 0; i < lines.length; i++) {
         const match = lines[i].match(STRING_FIELD_RE);
         if (!match) continue;
+        checkStringField(file, match[1], getDocComment(lines, i), lines[i].trim(), i + 1);
+      }
 
-        const fieldName = match[1];
-        const nameMatch = looksLikeDateField(fieldName);
-        const doc = getDocComment(lines, i);
-        const docMatch = doc.length > 0 && DOC_DATE_KEYWORDS_RE.test(doc);
-
-        if (!nameMatch && !docMatch) continue;
-
-        const lineContent = lines[i].trim();
-        const reason = nameMatch
-          ? `O campo \`${fieldName}\` parece representar uma data/hora mas está declarado como \`String\`.`
-          : `A documentação do campo \`${fieldName}\` menciona data/hora (\`${doc.slice(0, 80)}\`) mas o tipo é \`String\`.`;
-
-        sendFormattedFail({
-          title: "CAMPO DE DATA DECLARADO COMO STRING",
-          description: `${reason} Use \`DateTime\` para garantir tipagem segura e operações de data nativas.`,
-          problem: {
-            wrong: lineContent,
-            correct: lineContent.replace(/String\?/, "DateTime?").replace(/String /, "DateTime "),
-            wrongLabel: "String para campo de data",
-            correctLabel: "DateTime (tipagem correta)",
-          },
-          action: {
-            code: `final DateTime ${fieldName};\n\n// Ao receber de JSON:\nDateTime.parse(json['${fieldName}']);\n\n// Ao converter para JSON:\n${fieldName}.toIso8601String()`,
-          },
-          objective:
-            "Usar `DateTime` para campos de data garante **tipagem segura**, permite operações nativas (comparação, formatação, diferença) e evita erros de parsing em runtime.",
-          reference: {
-            text: "Dart DateTime class",
-            url: "https://api.dart.dev/stable/dart-core/DateTime-class.html",
-          },
-          file,
-          line: i + 1,
-        });
+      // Campos declarados no primary constructor (Dart 3.13+): `final String createdAt,`.
+      // A doc considerada é a do próprio parâmetro (nunca a da classe, acima do cabeçalho).
+      for (const decl of findPrimaryConstructors(content)) {
+        for (const field of decl.fields) {
+          if (!/^String\??$/.test(field.type)) continue;
+          const sameLine = lines[field.lineIndex]?.match(STRING_FIELD_RE);
+          if (sameLine?.[1] === field.name) continue; // já avaliado pelo laço acima
+          checkStringField(
+            file,
+            field.name,
+            field.docLines.join(" "),
+            field.text,
+            field.lineIndex + 1
+          );
+        }
       }
     }
   }
 );
+
+function checkStringField(
+  file: string,
+  fieldName: string,
+  doc: string,
+  lineContent: string,
+  line: number
+): void {
+  const nameMatch = looksLikeDateField(fieldName);
+  const docMatch = doc.length > 0 && DOC_DATE_KEYWORDS_RE.test(doc);
+
+  if (!nameMatch && !docMatch) return;
+
+  const reason = nameMatch
+    ? `O campo \`${fieldName}\` parece representar uma data/hora mas está declarado como \`String\`.`
+    : `A documentação do campo \`${fieldName}\` menciona data/hora (\`${doc.slice(0, 80)}\`) mas o tipo é \`String\`.`;
+
+  sendFormattedFail({
+    title: "CAMPO DE DATA DECLARADO COMO STRING",
+    description: `${reason} Use \`DateTime\` para garantir tipagem segura e operações de data nativas.`,
+    problem: {
+      wrong: lineContent,
+      correct: lineContent.replace(/String\?/, "DateTime?").replace(/String /, "DateTime "),
+      wrongLabel: "String para campo de data",
+      correctLabel: "DateTime (tipagem correta)",
+    },
+    action: {
+      code: `final DateTime ${fieldName};\n\n// Ao receber de JSON:\nDateTime.parse(json['${fieldName}']);\n\n// Ao converter para JSON:\n${fieldName}.toIso8601String()`,
+    },
+    objective:
+      "Usar `DateTime` para campos de data garante **tipagem segura**, permite operações nativas (comparação, formatação, diferença) e evita erros de parsing em runtime.",
+    reference: {
+      text: "Dart DateTime class",
+      url: "https://api.dart.dev/stable/dart-core/DateTime-class.html",
+    },
+    file,
+    line,
+  });
+}

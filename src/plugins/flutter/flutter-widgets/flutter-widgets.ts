@@ -13,6 +13,7 @@
  */
 import { createPlugin, getDanger, sendFormattedFail } from "@types";
 import * as fs from "fs";
+import { normalizePrimaryConstructorHeaders } from "../primary-constructors/primary-constructors";
 
 type MethodKind = "constructor" | "factory" | "override" | "public" | "private";
 
@@ -55,7 +56,7 @@ export default createPlugin(
         continue;
       }
 
-      const lines = content.replace(/\r/g, "").split("\n");
+      const lines = normalizePrimaryConstructorHeaders(content).replace(/\r/g, "").split("\n");
       const classes = extractClasses(lines);
 
       for (const cls of classes) {

@@ -126,9 +126,12 @@ npx danger-bot create-plugin
 2. Crie `meu-plugin.ts` com `createPlugin()`
 3. Crie `index.ts` com `export { default } from "./meu-plugin"`
 4. Adicione export em `src/plugins/flutter/index.ts`
-5. Adicione no array `allFlutterPlugins` em `src/index.ts`
-6. Build: `npm run build`
-7. Valide: `npx danger-bot validate src/plugins/flutter/meu-plugin/meu-plugin.ts`
+5. Em `src/index.ts`: adicione o nome no bloco `export { ... } from "./plugins/flutter"` (export por nome) e no `import` das categorias
+6. Adicione no array `allFlutterPlugins` em `src/index.ts`, **antes** do `google-chat-notification` (ele precisa ser o ultimo)
+7. Build: `npm run build`
+8. Valide: `npx danger-bot validate src/plugins/flutter/meu-plugin/meu-plugin.ts`
+
+> A CLI (`create-plugin`) faz os passos 1 a 6 automaticamente.
 
 ---
 

@@ -132,7 +132,9 @@ exports.default = (0, _types_1.createPlugin)(
           if (!trimmed.includes("*/")) inBlockComment = true;
           continue;
         }
-        if (trimmed === "@override" || trimmed.startsWith("@override")) {
+        // Dentro de uma assinatura (ex.: primary constructor com `@override final bool x`),
+        // `@override` anota o parâmetro e a linha faz parte da assinatura.
+        if (!inSignature && (trimmed === "@override" || trimmed.startsWith("@override"))) {
           isOverride = true;
           continue;
         }

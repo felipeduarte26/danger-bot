@@ -13,6 +13,7 @@
  */
 import { createPlugin, getDanger, sendFormattedWarn } from "@types";
 import * as fs from "fs";
+import { normalizePrimaryConstructorHeaders } from "../primary-constructors/primary-constructors";
 
 interface SetStateIssue {
   file: string;
@@ -115,7 +116,7 @@ export default createPlugin(
       if (!content.includes("extends State<") && !content.includes("extends ViewState<")) continue;
       if (!content.includes("setState")) continue;
 
-      const lines = content.split("\n");
+      const lines = normalizePrimaryConstructorHeaders(content).split("\n");
       const issues = findSetStateAfterAwait(lines);
 
       for (const issue of issues) {

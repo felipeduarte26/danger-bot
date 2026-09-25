@@ -43,7 +43,8 @@
  * ### 📋 Informações do PR
  * - `getPRDescription()` - Descrição da Pull Request
  * - `getPRTitle()` - Título da Pull Request
- * - `getLinesChanged()` - Total de linhas alteradas
+ * - `getLineStats()` - Linhas adicionadas e removidas (assíncrono, funciona no CI)
+ * - `getLinesChanged()` - Total de linhas alteradas (obsoleto: 0 fora do dry-run/GitHub)
  *
  * @example
  * ```typescript
@@ -112,6 +113,8 @@ var __importStar =
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.setVerbose = setVerbose;
 exports.isVerbose = isVerbose;
+exports.setActivePlugins = setActivePlugins;
+exports.isPluginActive = isPluginActive;
 exports.verboseLog = verboseLog;
 exports.setIgnoredFiles = setIgnoredFiles;
 exports.getIgnoredFiles = getIgnoredFiles;
@@ -140,6 +143,7 @@ exports.getFilesByExtension = getFilesByExtension;
 exports.hasFilesMatching = hasFilesMatching;
 exports.getPRDescription = getPRDescription;
 exports.getPRTitle = getPRTitle;
+exports.getLineStats = getLineStats;
 exports.getLinesChanged = getLinesChanged;
 const child_process_1 = require("child_process");
 const _sentMessages = new Set();
@@ -161,6 +165,18 @@ function setVerbose(enabled) {
  */
 function isVerbose() {
   return _verbose;
+}
+let _activePlugins = null;
+/**
+ * Registra os plugins que vão rodar nesta execução (chamado por `runPlugins`
+ * e pelo `dry-run`). Permite que um plugin evite repetir o que outro já verifica.
+ */
+function setActivePlugins(names) {
+  _activePlugins = new Set(names);
+}
+/** Se o plugin vai rodar nesta execução. Sem registro (execução manual), retorna false. */
+function isPluginActive(name) {
+  return _activePlugins?.has(name) ?? false;
 }
 /**
  * Log condicional — só imprime quando verbose está ativo.
@@ -972,12 +988,61 @@ function getPRTitle() {
   return danger.github?.pr?.title || danger.bitbucket_cloud?.pr?.title || "";
 }
 /**
- * Get lines changed (insertions + deletions)
- * Retorna total de linhas alteradas
+ * Linhas adicionadas e removidas no PR.
  *
- * @returns Number of lines changed
+ * `git.insertions`/`git.deletions` não existem no Danger real (só no mock do
+ * dry-run). No CI soma o `danger.git.diffForFile` de cada arquivo — o mesmo
+ * cálculo do `danger.git.linesOfCode()`, que funciona em GitHub, GitLab e
+ * Bitbucket. O resultado fica em cache durante a execução.
+ *
+ * @example
+ * ```typescript
+ * const { added, removed } = await getLineStats();
+ * ```
+ */
+async function getLineStats() {
+  const { git } = getDanger();
+  // dry-run: o mock já traz os totais do `git diff --stat`
+  if (typeof git.insertions === "number" && typeof git.deletions === "number") {
+    return { added: git.insertions, removed: git.deletions };
+  }
+  const cached = lineStatsCache.get(git);
+  if (cached) return cached;
+  const stats = computeLineStats(git);
+  lineStatsCache.set(git, stats);
+  return stats;
+}
+const lineStatsCache = new WeakMap();
+async function computeLineStats(git) {
+  const count = (text) => (text ? text.split("\n").length : 0);
+  const files = [...git.created_files, ...git.modified_files, ...git.deleted_files];
+  const diffs = await Promise.all(
+    files.map((file) =>
+      Promise.resolve()
+        .then(() => git.diffForFile(file))
+        .catch(() => null)
+    )
+  );
+  let added = 0;
+  let removed = 0;
+  for (const diff of diffs) {
+    added += count(diff?.added);
+    removed += count(diff?.removed);
+  }
+  return { added, removed };
+}
+/**
+ * Total de linhas alteradas (síncrono).
+ *
+ * @deprecated No Danger real `git.insertions`/`git.deletions` não existem: fora
+ * do dry-run só há o total do GitHub (`pr.additions` + `pr.deletions`); nas
+ * outras plataformas retorna 0. Use `await getLineStats()`.
  */
 function getLinesChanged() {
   const danger = getDanger();
-  return (danger.git.insertions || 0) + (danger.git.deletions || 0);
+  if (typeof danger.git.insertions === "number" || typeof danger.git.deletions === "number") {
+    return (danger.git.insertions || 0) + (danger.git.deletions || 0);
+  }
+  const pr = danger.github?.pr;
+  return (pr?.additions || 0) + (pr?.deletions || 0);
 }

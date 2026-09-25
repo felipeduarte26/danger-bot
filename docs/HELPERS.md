@@ -16,7 +16,7 @@ import { getDanger, sendMessage, getDartFiles /* ... */ } from "@felipeduarte26/
 
 Retorna o objeto `danger` injetado globalmente pelo Danger JS em runtime.
 
-O retorno e tipado com `ExtendedDangerDSLType`, que estende `DangerDSLType` do Danger JS adicionando `insertions` e `deletions` ao `git`.
+O retorno e tipado com `ExtendedDangerDSLType`, que estende `DangerDSLType` do Danger JS adicionando `insertions` e `deletions` ao `git`. **Atencao:** esses dois campos so existem no mock do `dry-run`; no Danger real (CI) vem `undefined`. Para linhas do PR use [`getLineStats()`](#getlinestats).
 
 ```typescript
 function getDanger(): ExtendedDangerDSLType
@@ -42,9 +42,8 @@ const modified = d.git.modified_files;
 const created = d.git.created_files;
 const deleted = d.git.deleted_files;
 
-// Linhas (tipado via ExtendedGitDSL)
-const insertions = d.git.insertions;
-const deletions = d.git.deletions;
+// Linhas do PR: use getLineStats() (git.insertions/deletions só existem no dry-run)
+const { added, removed } = await getLineStats();
 
 // Commits
 const commits = d.git.commits;
@@ -54,8 +53,8 @@ const commits = d.git.commits;
 
 ```typescript
 interface ExtendedGitDSL extends GitDSL {
-  insertions?: number;
-  deletions?: number;
+  insertions?: number; // só no mock do dry-run
+  deletions?: number; // só no mock do dry-run
 }
 
 interface ExtendedDangerDSLType extends DangerDSLType {
@@ -380,19 +379,27 @@ Retorna o titulo do PR.
 function getPRTitle(): string
 ```
 
-### getLinesChanged()
+### getLineStats()
 
-Retorna o total de linhas alteradas (insertions + deletions).
+Retorna as linhas adicionadas e removidas no PR. No Danger real soma o `danger.git.diffForFile` de cada arquivo criado, modificado ou removido — o mesmo calculo do `danger.git.linesOfCode()` —, entao funciona em GitHub, GitLab e Bitbucket. No `dry-run` usa os totais do `git diff --stat`. O resultado fica em cache durante a execucao (varios plugins podem chamar).
 
 ```typescript
-function getLinesChanged(): number
+function getLineStats(): Promise<{ added: number; removed: number }>
 ```
 
 ```typescript
-const lines = getLinesChanged();
-if (lines > 500) {
-  sendWarn(`PR com ${lines} linhas alteradas`);
+const { added, removed } = await getLineStats();
+if (added + removed > 500) {
+  sendWarn(`PR com ${added + removed} linhas alteradas (+${added} / -${removed})`);
 }
+```
+
+### getLinesChanged() — obsoleto
+
+Versao sincrona mantida por compatibilidade. No Danger real `git.insertions`/`git.deletions` nao existem: fora do `dry-run` so retorna o total do GitHub (`pr.additions + pr.deletions`) e **0 nas outras plataformas**. Use `await getLineStats()`.
+
+```typescript
+function getLinesChanged(): number
 ```
 
 ---
@@ -431,6 +438,36 @@ console.log(`${ignored.size} arquivo(s) ignorado(s)`);
 
 ---
 
+## Plugins ativos na execucao
+
+### isPluginActive()
+
+Diz se um plugin vai rodar nesta execucao. O `runPlugins` (usado pelo `executeDangerBot`) e o `dry-run` registram os plugins habilitados antes de executar — util para um plugin nao repetir o que outro ja verifica. Em execucao manual (sem registro) retorna `false`.
+
+```typescript
+function isPluginActive(name: string): boolean
+function setActivePlugins(names: string[]): void // chamado pelo runPlugins/dry-run
+```
+
+```typescript
+// changelog-checker: o pr-validation já reprova o PR pelo mesmo motivo
+if (isPluginActive("pr-validation")) return;
+```
+
+---
+
+## Primary constructors (Dart 3.13+)
+
+Para plugins que analisam a estrutura das classes (nome, `extends`/`implements`, campos). Com primary constructor o cabecalho tem `const` e a lista de parametros entre o nome e as clausulas, e os campos viram parametros declarantes. Detalhes e exemplo no [Guia de Plugins](GUIA_PLUGINS.md#classes-com-primary-constructor-dart-313).
+
+| Helper | Retorno |
+| ------ | ------- |
+| `normalizePrimaryConstructorHeaders(content)` | Texto com cada cabecalho reescrito na forma classica (mesma numeracao de linhas); identidade em codigo classico |
+| `findPrimaryConstructors(content)` | `PrimaryConstructorDecl[]`: `name`, `kind`, `lineIndex` e `fields` (`name`, `type`, `isFinal`, `lineIndex`, `text`, `docLines`) |
+| `primaryConstructorFieldsByLine(content)` | `Map<linha do cabecalho, PrimaryConstructorField[]>` |
+
+---
+
 ## Usando helpers em plugins customizados
 
 Exemplo completo de um plugin que usa varios helpers:
@@ -443,7 +480,7 @@ import {
   sendMessage,
   sendWarn,
   sendFail,
-  getLinesChanged,
+  getLineStats,
   isInLayer,
 } from "@felipeduarte26/danger-bot";
 
@@ -458,7 +495,8 @@ export default createPlugin(
     if (dartFiles.length === 0) return;
 
     // Verificar tamanho do PR
-    const lines = getLinesChanged();
+    const { added, removed } = await getLineStats();
+    const lines = added + removed;
     if (lines > 1000) {
       sendWarn(`PR muito grande: ${lines} linhas. Considere dividir.`);
     }

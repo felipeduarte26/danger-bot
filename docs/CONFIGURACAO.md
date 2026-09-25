@@ -287,7 +287,10 @@ import {
   // PR info
   getPRDescription,
   getPRTitle,
-  getLinesChanged,
+  getLineStats, // linhas do PR (async); getLinesChanged está obsoleto
+
+  // Plugins ativos na execução
+  isPluginActive,
 
   // Plugin factory
   createPlugin,

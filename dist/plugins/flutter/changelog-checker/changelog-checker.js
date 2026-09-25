@@ -2,15 +2,26 @@
 /**
  * 📄 CHANGELOG CHECKER PLUGIN
  * ==========================
- * Verifica se o CHANGELOG foi atualizado quando necessário
+ * Verifica se o CHANGELOG foi atualizado quando necessário.
+ * Quando o pr-validation está ativo, não roda: ele já reprova o PR pelo mesmo motivo.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 const _types_1 = require("../../../types");
-exports.default = (0, _types_1.createPlugin)({
+exports.default = (0, _types_1.createPlugin)(
+  {
     name: "changelog-checker",
     description: "Verifica se o CHANGELOG.md foi atualizado",
     enabled: true,
-}, async () => {
+  },
+  async () => {
+    // Com o pr-validation ativo, a falha dele (CHANGELOG NÃO ATUALIZADO/ENCONTRADO)
+    // já cobre este aviso: todo PR que este plugin avisaria, o pr-validation reprova.
+    if ((0, _types_1.isPluginActive)("pr-validation")) {
+      (0, _types_1.verboseLog)(
+        "[changelog-checker] ignorado: o pr-validation já verifica o changelog"
+      );
+      return;
+    }
     const danger = (0, _types_1.getDanger)();
     const modifiedFiles = danger.git.modified_files;
     const createdFiles = danger.git.created_files;
@@ -19,17 +30,17 @@ exports.default = (0, _types_1.createPlugin)({
     const changelogModified = allFiles.some((file) => file.toLowerCase().includes("changelog"));
     // Arquivos que requerem atualização do CHANGELOG
     const significantChanges = allFiles.filter((file) => {
-        // Ignorar arquivos de teste, docs, config
-        if (file.match(/\.(test|spec)\./))
-            return false;
-        if (file.match(/^(docs|test|tests|__tests__)\//))
-            return false;
-        if (file.match(/\.(md|txt|json|yaml|yml)$/))
-            return false;
-        // Contar apenas arquivos de código fonte
-        return file.match(/\.(dart|ts|js|tsx|jsx)$/);
+      // Ignorar arquivos de teste, docs, config
+      if (file.match(/\.(test|spec)\./)) return false;
+      if (file.match(/^(docs|test|tests|__tests__)\//)) return false;
+      if (file.match(/\.(md|txt|json|yaml|yml)$/)) return false;
+      // Contar apenas arquivos de código fonte
+      return file.match(/\.(dart|ts|js|tsx|jsx)$/);
     });
     if (significantChanges.length > 0 && !changelogModified) {
-        (0, _types_1.sendWarn)(`**CHANGELOG não atualizado** — Este PR modifica ${significantChanges.length} arquivo(s) de código. Atualize o CHANGELOG.md com o resumo das mudanças.`);
+      (0, _types_1.sendWarn)(
+        `**CHANGELOG não atualizado** — Este PR modifica ${significantChanges.length} arquivo(s) de código. Atualize o CHANGELOG.md com o resumo das mudanças.`
+      );
     }
-});
+  }
+);

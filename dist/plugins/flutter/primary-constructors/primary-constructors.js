@@ -1,0 +1,2781 @@
+"use strict";
+var __createBinding =
+  (this && this.__createBinding) ||
+  (Object.create
+    ? function (o, m, k, k2) {
+        if (k2 === undefined) k2 = k;
+        var desc = Object.getOwnPropertyDescriptor(m, k);
+        if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+          desc = {
+            enumerable: true,
+            get: function () {
+              return m[k];
+            },
+          };
+        }
+        Object.defineProperty(o, k2, desc);
+      }
+    : function (o, m, k, k2) {
+        if (k2 === undefined) k2 = k;
+        o[k2] = m[k];
+      });
+var __setModuleDefault =
+  (this && this.__setModuleDefault) ||
+  (Object.create
+    ? function (o, v) {
+        Object.defineProperty(o, "default", { enumerable: true, value: v });
+      }
+    : function (o, v) {
+        o["default"] = v;
+      });
+var __importStar =
+  (this && this.__importStar) ||
+  (function () {
+    var ownKeys = function (o) {
+      ownKeys =
+        Object.getOwnPropertyNames ||
+        function (o) {
+          var ar = [];
+          for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+          return ar;
+        };
+      return ownKeys(o);
+    };
+    return function (mod) {
+      if (mod && mod.__esModule) return mod;
+      var result = {};
+      if (mod != null)
+        for (var k = ownKeys(mod), i = 0; i < k.length; i++)
+          if (k[i] !== "default") __createBinding(result, mod, k[i]);
+      __setModuleDefault(result, mod);
+      return result;
+    };
+  })();
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.__testing = void 0;
+exports.analyzePrimaryConstructors = analyzePrimaryConstructors;
+exports.suggestPrimaryConstructors = suggestPrimaryConstructors;
+exports.convertToPrimaryConstructors = convertToPrimaryConstructors;
+exports.findPrimaryConstructors = findPrimaryConstructors;
+exports.primaryConstructorFieldsByLine = primaryConstructorFieldsByLine;
+exports.normalizePrimaryConstructorHeaders = normalizePrimaryConstructorHeaders;
+/**
+ * Primary Constructors Plugin
+ * ============================
+ * Obriga o uso de primary constructors (Dart 3.13+) em classes e enums que
+ * ainda declaram o construtor principal dentro do corpo da classe.
+ *
+ * Padrão antigo (detectado):
+ *   class Point {
+ *     const Point(this.x, this.y);
+ *     final int x;
+ *     final int y;
+ *   }
+ *
+ * Padrão novo (sugerido):
+ *   class const Point(final int x, final int y);
+ *
+ * Reporta somente quando a conversão é segura e mantém a mesma semântica:
+ * - O pacote do arquivo (pubspec.yaml mais próximo) exige SDK >= 3.13 e o
+ *   arquivo não rebaixa a versão com `// @dart=`
+ * - A classe tem exatamente um construtor generativo não-redirecionante
+ *   (factories e construtores redirecionantes continuam no corpo)
+ *
+ * Não reporta (evita falsos positivos):
+ * - mixin class, mixin application, extension type e classes que já usam
+ *   primary constructor
+ * - Classes sem construtor, com mais de um construtor generativo ou com
+ *   construtor `external`
+ * - Classes e construtores com anotações que podem gerar código
+ *   (@JsonSerializable, @freezed, @RoutePage...), arquivos com `part` gerado
+ *   (`x.g.dart`, `x.pb.dart`...), com cabeçalho de arquivo gerado ou `part of`
+ *   de uma biblioteca com código gerado
+ * - Construtor trivial (`Foo();`), que é equivalente ao construtor padrão
+ * - Inicializadores de campo que citam nomes de parâmetros do construtor: com
+ *   primary constructor eles passariam a enxergar o parâmetro (muda o valor)
+ * - Situações que viram erro de compilação com primary constructor: campo
+ *   inicializado na declaração e no construtor, atribuição a parâmetro no
+ *   initializer list
+ * - Construtor não-const em classe @immutable (Widgets, estados...) em que o
+ *   lint prefer_const_constructors_in_immutables do Dart 3.13 pediria `const`
+ *   indevidamente depois da conversão (o lint ignora o initializer list e os
+ *   inicializadores de campo no primary constructor)
+ * - Comentários que não teriam lugar na sugestão (depois do último parâmetro,
+ *   entre `)` e `:`, dentro de parâmetro/campo, no fim da linha do construtor)
+ *   e `// ignore:` acima do construtor
+ * - Qualquer trecho que o parser não entenda com segurança
+ *
+ * A análise é feita sobre tokens: quebras de linha, indentação, CRLF e tabs
+ * não mudam a decisão.
+ *
+ * Referência: https://dart.dev/language/primary-constructors
+ */
+const _types_1 = require("../../../types");
+const fs = __importStar(require("fs"));
+const path = __importStar(require("path"));
+const yaml = __importStar(require("js-yaml"));
+// ---------------------------------------------------------------------------
+// Configuração
+// ---------------------------------------------------------------------------
+const MIN_LANGUAGE_MAJOR = 3;
+const MIN_LANGUAGE_MINOR = 13;
+const PAGE_WIDTH = 80;
+const MAX_SNIPPET_ITEMS = 8;
+/** Anotações de classe que não geram código nem dependem do construtor. */
+const SAFE_CLASS_ANNOTATIONS = new Set([
+  "immutable",
+  "Deprecated",
+  "deprecated",
+  "visibleForTesting",
+  "internal",
+  "experimental",
+  "sealed",
+  "reopen",
+  "pragma",
+]);
+/** Anotações de campo que podem acompanhar o campo até o parâmetro declarante. */
+const SAFE_FIELD_ANNOTATIONS = new Set([
+  "override",
+  "Deprecated",
+  "deprecated",
+  "visibleForTesting",
+  "protected",
+  "internal",
+]);
+const GENERATED_SUFFIXES = [
+  ".g.dart",
+  ".freezed.dart",
+  ".mocks.dart",
+  ".gr.dart",
+  ".gen.dart",
+  ".config.dart",
+  ".chopper.dart",
+  ".mapper.dart",
+  ".module.dart",
+  ".graphql.dart",
+  ".reflectable.dart",
+  ".tailor.dart",
+];
+/** Diretórios ignorados (o caminho do Danger é relativo à raiz do repositório). */
+const EXCLUDED_DIRS = ["generated/", ".dart_tool/", "test/", "integration_test/"];
+/** URI de `part` com extensão dupla (`x.g.dart`, `x.freezed.dart`, `x.pb.dart`...): código gerado. */
+const GENERATED_PART_URI_RE = /^r?(['"])[^'"]*\.[A-Za-z0-9_]+\.dart\1$/;
+/** Marcas de arquivo gerado no comentário de cabeçalho. */
+const GENERATED_HEADER_RE =
+  /\b(?:generated code|auto-?generated|do not (?:modify|edit)|@generated|generated by)\b/i;
+const LANGUAGE_OVERRIDE_RE = /^\s*\/\/\s*@dart\s*=\s*(\d+)\.(\d+)\s*$/m;
+const PUNCTUATORS = [
+  ">>>=",
+  "...?",
+  "...",
+  ">>=",
+  "<<=",
+  "~/=",
+  "??=",
+  "?..",
+  "=>",
+  "==",
+  "!=",
+  "<=",
+  ">=",
+  "&&",
+  "||",
+  "??",
+  "?.",
+  "..",
+  "++",
+  "--",
+  "+=",
+  "-=",
+  "*=",
+  "/=",
+  "%=",
+  "&=",
+  "|=",
+  "^=",
+  "~/",
+  "<<",
+];
+function isIdentStart(c) {
+  return c !== undefined && /[A-Za-z_$]/.test(c);
+}
+function isIdentPart(c) {
+  return c !== undefined && /[A-Za-z0-9_$]/.test(c);
+}
+function isDigit(c) {
+  return c !== undefined && c >= "0" && c <= "9";
+}
+function skipBlockComment(s, i) {
+  let depth = 0;
+  let j = i;
+  while (j < s.length) {
+    if (s.startsWith("/*", j)) {
+      depth++;
+      j += 2;
+    } else if (s.startsWith("*/", j)) {
+      depth--;
+      j += 2;
+      if (depth === 0) return j;
+    } else {
+      j++;
+    }
+  }
+  return s.length;
+}
+/** Pula uma string Dart. `i` aponta para a aspa de abertura. */
+function skipString(s, i, raw) {
+  const q = s[i];
+  const triple = s[i + 1] === q && s[i + 2] === q;
+  let j = i + (triple ? 3 : 1);
+  while (j < s.length) {
+    const c = s[j];
+    if (!raw && c === "\\") {
+      j += 2;
+      continue;
+    }
+    if (triple) {
+      if (c === q && s[j + 1] === q && s[j + 2] === q) return j + 3;
+    } else {
+      if (c === q) return j + 1;
+      if (c === "\n") return j;
+    }
+    if (!raw && c === "$" && s[j + 1] === "{") {
+      j = skipInterpolation(s, j + 2);
+      continue;
+    }
+    j++;
+  }
+  return s.length;
+}
+/** Pula o conteúdo de `${ ... }`. `i` aponta para o primeiro caractere após `${`. */
+function skipInterpolation(s, i) {
+  let depth = 1;
+  let j = i;
+  while (j < s.length) {
+    const c = s[j];
+    if (c === "'" || c === '"') {
+      j = skipString(s, j, false);
+      continue;
+    }
+    if (c === "r" && (s[j + 1] === "'" || s[j + 1] === '"') && !isIdentPart(s[j - 1])) {
+      j = skipString(s, j + 1, true);
+      continue;
+    }
+    if (c === "/" && s[j + 1] === "/") {
+      const nl = s.indexOf("\n", j);
+      j = nl < 0 ? s.length : nl;
+      continue;
+    }
+    if (c === "/" && s[j + 1] === "*") {
+      j = skipBlockComment(s, j);
+      continue;
+    }
+    if (c === "{") depth++;
+    if (c === "}") {
+      depth--;
+      if (depth === 0) return j + 1;
+    }
+    j++;
+  }
+  return s.length;
+}
+function skipNumber(s, i) {
+  let j = i;
+  if (s[j] === "0" && (s[j + 1] === "x" || s[j + 1] === "X")) {
+    j += 2;
+    while (j < s.length && /[0-9a-fA-F_]/.test(s[j])) j++;
+    return j;
+  }
+  while (j < s.length && (isDigit(s[j]) || s[j] === "_")) j++;
+  if (s[j] === "." && isDigit(s[j + 1])) {
+    j++;
+    while (j < s.length && (isDigit(s[j]) || s[j] === "_")) j++;
+  }
+  if (
+    (s[j] === "e" || s[j] === "E") &&
+    (isDigit(s[j + 1]) || s[j + 1] === "+" || s[j + 1] === "-")
+  ) {
+    j += 2;
+    while (j < s.length && isDigit(s[j])) j++;
+  }
+  return j;
+}
+function lex(source) {
+  const tokens = [];
+  const comments = [];
+  const n = source.length;
+  let i = 0;
+  while (i < n) {
+    const c = source[i];
+    if (c === " " || c === "\t" || c === "\n" || c === "\r" || c === "\f" || c === "﻿") {
+      i++;
+      continue;
+    }
+    if (c === "/" && source[i + 1] === "/") {
+      const nl = source.indexOf("\n", i);
+      // em arquivos CRLF o `\r` não faz parte do comentário
+      const end = nl < 0 ? n : source[nl - 1] === "\r" ? nl - 1 : nl;
+      comments.push({ start: i, end });
+      i = end;
+      continue;
+    }
+    if (c === "/" && source[i + 1] === "*") {
+      const end = skipBlockComment(source, i);
+      comments.push({ start: i, end });
+      i = end;
+      continue;
+    }
+    if (c === "r" && (source[i + 1] === "'" || source[i + 1] === '"')) {
+      const end = skipString(source, i + 1, true);
+      tokens.push({ kind: "string", value: source.slice(i, end), start: i, end });
+      i = end;
+      continue;
+    }
+    if (c === "'" || c === '"') {
+      const end = skipString(source, i, false);
+      tokens.push({ kind: "string", value: source.slice(i, end), start: i, end });
+      i = end;
+      continue;
+    }
+    if (isIdentStart(c)) {
+      let j = i + 1;
+      while (j < n && isIdentPart(source[j])) j++;
+      tokens.push({ kind: "ident", value: source.slice(i, j), start: i, end: j });
+      i = j;
+      continue;
+    }
+    if (isDigit(c) || (c === "." && isDigit(source[i + 1]))) {
+      const end = skipNumber(source, i);
+      tokens.push({ kind: "number", value: source.slice(i, end), start: i, end });
+      i = end;
+      continue;
+    }
+    let matched = c;
+    for (const p of PUNCTUATORS) {
+      if (source.startsWith(p, i)) {
+        matched = p;
+        break;
+      }
+    }
+    tokens.push({ kind: "punct", value: matched, start: i, end: i + matched.length });
+    i += matched.length;
+  }
+  const lineStarts = [0];
+  for (let j = 0; j < n; j++) {
+    if (source[j] === "\n") lineStarts.push(j + 1);
+  }
+  return { source, tokens, comments, lineStarts };
+}
+/** Linha (1-based) de um offset. */
+function lineOf(lx, offset) {
+  let lo = 0;
+  let hi = lx.lineStarts.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+    if (lx.lineStarts[mid] <= offset) lo = mid;
+    else hi = mid - 1;
+  }
+  return lo + 1;
+}
+function lineStartOffset(lx, offset) {
+  return lx.lineStarts[lineOf(lx, offset) - 1];
+}
+function isPunct(t, v) {
+  return t?.kind === "punct" && t.value === v;
+}
+function isIdent(t, v) {
+  return t?.kind === "ident" && (v === undefined || t.value === v);
+}
+function tokText(lx, from, to) {
+  return lx.source.slice(lx.tokens[from].start, lx.tokens[to].end);
+}
+const CLOSERS = { "(": ")", "[": "]", "{": "}" };
+/** Índice do token que fecha o bracket aberto em `open`, ou -1. */
+function matchClose(tokens, open, limit = tokens.length) {
+  const stack = [];
+  for (let j = open; j < limit; j++) {
+    const t = tokens[j];
+    if (t.kind !== "punct") continue;
+    if (t.value === "(" || t.value === "[" || t.value === "{") {
+      stack.push(CLOSERS[t.value]);
+      continue;
+    }
+    if (t.value === ")" || t.value === "]" || t.value === "}") {
+      if (stack.pop() !== t.value) return -1;
+      if (stack.length === 0) return j;
+    }
+  }
+  return -1;
+}
+/** Índice do token que abre o bracket fechado em `close`, ou -1. */
+function matchOpenBackward(tokens, close, lower) {
+  const openers = { ")": "(", "]": "[", "}": "{" };
+  const stack = [];
+  for (let j = close; j >= lower; j--) {
+    const t = tokens[j];
+    if (t.kind !== "punct") continue;
+    if (t.value === ")" || t.value === "]" || t.value === "}") {
+      stack.push(openers[t.value]);
+      continue;
+    }
+    if (t.value === "(" || t.value === "[" || t.value === "{") {
+      if (stack.pop() !== t.value) return -1;
+      if (stack.length === 0) return j;
+    }
+  }
+  return -1;
+}
+const TYPE_ARG_PUNCT = new Set([",", ".", "?", "<", ">", "(", ")", "{", "}"]);
+/**
+ * True se um `<` logo após `prev` pode abrir argumentos de tipo: depois de um
+ * identificador (`List<int>`, `foo<T>()`) ou no início de uma expressão
+ * (`= <String, int>{}`), onde não pode ser uma comparação.
+ */
+function startsTypeArgs(prev) {
+  return prev.kind === "ident" || !isExpressionEnd(prev);
+}
+/**
+ * Tenta casar `<...>` como argumentos de tipo a partir de `open`.
+ * Retorna o índice do `>` correspondente ou -1 (ex.: é uma comparação).
+ */
+function matchTypeArgs(tokens, open, limit) {
+  let depth = 0;
+  for (let j = open; j < limit && j < open + 400; j++) {
+    const t = tokens[j];
+    if (t.kind === "ident") continue;
+    if (t.kind !== "punct" || !TYPE_ARG_PUNCT.has(t.value)) return -1;
+    if (t.value === "<") depth++;
+    if (t.value === ">") {
+      depth--;
+      if (depth === 0) return j;
+    }
+  }
+  return -1;
+}
+/**
+ * Avança de `from` até o primeiro token de `stops` no nível 0, pulando
+ * brackets e argumentos de tipo. Retorna o índice do token encontrado ou -1.
+ */
+function findAtDepth0(tokens, from, limit, stops) {
+  let j = from;
+  while (j < limit) {
+    const t = tokens[j];
+    if (t.kind === "punct") {
+      if (stops.includes(t.value)) return j;
+      if (t.value === "(" || t.value === "[" || t.value === "{") {
+        const close = matchClose(tokens, j, limit);
+        if (close < 0) return -1;
+        j = close + 1;
+        continue;
+      }
+      if (t.value === "<" && j > 0 && startsTypeArgs(tokens[j - 1])) {
+        const close = matchTypeArgs(tokens, j, limit);
+        if (close > 0) {
+          j = close + 1;
+          continue;
+        }
+      }
+    }
+    j++;
+  }
+  return -1;
+}
+/** Divide tokens[from..to] em pedaços separados por vírgula no nível 0. */
+function splitTopLevelCommas(tokens, from, to) {
+  const chunks = [];
+  let start = from;
+  let j = from;
+  while (j <= to) {
+    const comma = findAtDepth0(tokens, j, to + 1, [","]);
+    if (comma < 0) {
+      if (start <= to) chunks.push([start, to]);
+      break;
+    }
+    if (comma > start) chunks.push([start, comma - 1]);
+    start = comma + 1;
+    j = comma + 1;
+  }
+  return chunks;
+}
+const DECL_MODIFIERS = new Set(["abstract", "base", "final", "interface", "sealed", "mixin"]);
+const MEMBER_MODIFIERS = new Set([
+  "external",
+  "static",
+  "abstract",
+  "late",
+  "covariant",
+  "const",
+  "final",
+  "var",
+  "augment",
+]);
+function parseAnnotation(tokens, at) {
+  if (!isPunct(tokens[at], "@") || !isIdent(tokens[at + 1])) return null;
+  let j = at + 1;
+  let name = tokens[j].value;
+  j++;
+  while (isPunct(tokens[j], ".") && isIdent(tokens[j + 1])) {
+    name = tokens[j + 1].value;
+    j += 2;
+  }
+  if (isPunct(tokens[j], "<")) {
+    const close = matchTypeArgs(tokens, j, tokens.length);
+    if (close < 0) return null;
+    j = close + 1;
+  }
+  if (isPunct(tokens[j], "(")) {
+    const close = matchClose(tokens, j);
+    if (close < 0) return null;
+    j = close + 1;
+  }
+  return { name, startTok: at, endTok: j - 1 };
+}
+/** Encontra as declarações `class` e `enum` de nível superior. */
+function scanTypeDeclarations(lx) {
+  const { tokens } = lx;
+  const decls = [];
+  let i = 0;
+  let declStart = 0;
+  while (i < tokens.length) {
+    const t = tokens[i];
+    if (t.kind === "punct") {
+      if (t.value === "(" || t.value === "[" || t.value === "{") {
+        const close = matchClose(tokens, i);
+        if (close < 0) return decls;
+        i = close + 1;
+        if (t.value === "{") declStart = i;
+        continue;
+      }
+      if (t.value === ";") declStart = i + 1;
+      i++;
+      continue;
+    }
+    if ((t.value === "class" || t.value === "enum") && !isPunct(tokens[i - 1], ".")) {
+      const decl = parseTypeDecl(lx, i, declStart);
+      if (decl === null) return decls;
+      decls.push(decl);
+      i = decl.endTok + 1;
+      declStart = i;
+      continue;
+    }
+    i++;
+  }
+  return decls;
+}
+function parseTypeDecl(lx, keywordTok, declStart) {
+  const { tokens } = lx;
+  const kind = tokens[keywordTok].value === "class" ? "class" : "enum";
+  const modifiers = [];
+  let m = keywordTok - 1;
+  if (kind === "class") {
+    while (m >= declStart && isIdent(tokens[m]) && DECL_MODIFIERS.has(tokens[m].value)) {
+      modifiers.unshift(tokens[m].value);
+      m--;
+    }
+  }
+  const annotations = [];
+  let a = declStart;
+  while (a <= m) {
+    const ann = parseAnnotation(tokens, a);
+    if (ann === null) break;
+    annotations.push(ann);
+    a = ann.endTok + 1;
+  }
+  const firstTok = annotations.length > 0 ? annotations[0].startTok : m + 1;
+  let j = keywordTok + 1;
+  let hasPrimary = false;
+  const primaryIsConst = isIdent(tokens[j], "const");
+  if (primaryIsConst) {
+    hasPrimary = true;
+    j++;
+  }
+  if (!isIdent(tokens[j])) return null;
+  const nameTok = j;
+  j++;
+  let typeParamsText = "";
+  if (isPunct(tokens[j], "<")) {
+    const close = matchTypeArgs(tokens, j, tokens.length);
+    if (close < 0) return null;
+    typeParamsText = tokText(lx, j, close);
+    j = close + 1;
+  }
+  const base = {
+    kind,
+    name: tokens[nameTok].value,
+    firstTok,
+    keywordTok,
+    nameTok,
+    typeParamsText,
+    modifiers,
+    annotations,
+  };
+  if (kind === "class" && isPunct(tokens[j], "=")) {
+    const end = findAtDepth0(tokens, j, tokens.length, [";"]);
+    if (end < 0) return null;
+    return {
+      ...base,
+      hasPrimary,
+      isMixinApplication: true,
+      primaryParamsOpenTok: -1,
+      primaryName: null,
+      primaryIsConst,
+      clausesText: "",
+      bodyOpenTok: -1,
+      endTok: end,
+    };
+  }
+  let primaryName = null;
+  if (isPunct(tokens[j], ".") && isIdent(tokens[j + 1]) && isPunct(tokens[j + 2], "(")) {
+    hasPrimary = true;
+    primaryName = tokens[j + 1].value === "new" ? null : tokens[j + 1].value;
+    j += 2;
+  }
+  let primaryParamsOpenTok = -1;
+  if (isPunct(tokens[j], "(")) {
+    hasPrimary = true;
+    primaryParamsOpenTok = j;
+    const close = matchClose(tokens, j);
+    if (close < 0) return null;
+    j = close + 1;
+  }
+  const clausesStart = j;
+  const bodyTok = findAtDepth0(tokens, j, tokens.length, ["{", ";"]);
+  if (bodyTok < 0) return null;
+  const clausesText = bodyTok > clausesStart ? joinTokens(lx, clausesStart, bodyTok - 1) : "";
+  if (isPunct(tokens[bodyTok], ";")) {
+    return {
+      ...base,
+      hasPrimary,
+      isMixinApplication: false,
+      primaryParamsOpenTok,
+      primaryName,
+      primaryIsConst,
+      clausesText,
+      bodyOpenTok: -1,
+      endTok: bodyTok,
+    };
+  }
+  const close = matchClose(tokens, bodyTok);
+  if (close < 0) return null;
+  return {
+    ...base,
+    hasPrimary,
+    isMixinApplication: false,
+    primaryParamsOpenTok,
+    primaryName,
+    primaryIsConst,
+    clausesText,
+    bodyOpenTok: bodyTok,
+    endTok: close,
+  };
+}
+// ---------------------------------------------------------------------------
+// Membros do corpo
+// ---------------------------------------------------------------------------
+function parseBody(lx, decl) {
+  const { tokens } = lx;
+  const limit = decl.endTok;
+  let p = decl.bodyOpenTok + 1;
+  let entriesEndTok = -1;
+  if (decl.kind === "enum") {
+    const semi = findAtDepth0(tokens, p, limit, [";"]);
+    if (semi < 0) return { members: [], entriesEndTok: -1 };
+    entriesEndTok = semi;
+    p = semi + 1;
+  }
+  const members = [];
+  while (p < limit) {
+    if (isPunct(tokens[p], ";")) {
+      p++;
+      continue;
+    }
+    const member = parseMember(lx, p, limit, decl.name);
+    if (member === null) return null;
+    members.push(member);
+    p = member.endTok + 1;
+  }
+  return { members, entriesEndTok };
+}
+function parseMember(lx, startTok, limit, className) {
+  const { tokens } = lx;
+  const annotations = [];
+  let p = startTok;
+  while (isPunct(tokens[p], "@")) {
+    const ann = parseAnnotation(tokens, p);
+    if (ann === null) return null;
+    annotations.push(ann);
+    p = ann.endTok + 1;
+  }
+  const headTok = p;
+  const modifiers = new Set();
+  while (p < limit && isIdent(tokens[p]) && MEMBER_MODIFIERS.has(tokens[p].value)) {
+    modifiers.add(tokens[p].value);
+    p++;
+  }
+  if (p >= limit) return null;
+  const t = tokens[p];
+  const isClassicCtor =
+    isIdent(t, className) &&
+    (isPunct(tokens[p + 1], "(") ||
+      (isPunct(tokens[p + 1], ".") && isIdent(tokens[p + 2]) && isPunct(tokens[p + 3], "(")));
+  if (isIdent(t, "factory") || isIdent(t, "new") || isClassicCtor) {
+    return parseConstructor(lx, startTok, headTok, p, limit, modifiers, annotations, className);
+  }
+  // Método, getter, setter, operador ou campo.
+  let q = p;
+  while (q < limit) {
+    const tok = tokens[q];
+    if (tok.kind === "punct") {
+      if (tok.value === ";" || tok.value === "=") {
+        return parseField(lx, startTok, headTok, p, limit, modifiers, annotations);
+      }
+      if (tok.value === "=>" || tok.value === "{") return null;
+      if (tok.value === "<" && q > p && tokens[q - 1].kind === "ident") {
+        const close = matchTypeArgs(tokens, q, limit);
+        if (close < 0) return null;
+        if (isPunct(tokens[close + 1], "(")) {
+          return parseMethodLike(
+            lx,
+            startTok,
+            headTok,
+            close + 1,
+            limit,
+            annotations,
+            tokens[q - 1].value
+          );
+        }
+        q = close + 1;
+        continue;
+      }
+      if (tok.value === "(") {
+        const prev = tokens[q - 1];
+        const prevIsName =
+          q > p &&
+          prev.kind === "ident" &&
+          prev.value !== "Function" &&
+          !MEMBER_MODIFIERS.has(prev.value);
+        if (prevIsName) {
+          return parseMethodLike(lx, startTok, headTok, q, limit, annotations, prev.value);
+        }
+        const close = matchClose(tokens, q, limit);
+        if (close < 0) return null;
+        q = close + 1;
+        continue;
+      }
+    } else if (tok.kind === "ident") {
+      if ((tok.value === "get" || tok.value === "set") && isIdent(tokens[q + 1])) {
+        return parseMethodLike(
+          lx,
+          startTok,
+          headTok,
+          q + 1,
+          limit,
+          annotations,
+          tokens[q + 1].value
+        );
+      }
+      if (tok.value === "operator") {
+        return parseMethodLike(lx, startTok, headTok, q + 1, limit, annotations, null);
+      }
+    }
+    q++;
+  }
+  return null;
+}
+/** Métodos, getters, setters e operadores: só precisamos saber onde terminam. */
+function parseMethodLike(lx, startTok, headTok, from, limit, annotations, name) {
+  const { tokens } = lx;
+  const member = (endTok) => ({
+    kind: "method",
+    startTok,
+    endTok,
+    headTok,
+    annotations,
+    name,
+  });
+  let j = from;
+  while (j < limit) {
+    const t = tokens[j];
+    if (isPunct(t, "(")) {
+      const close = matchClose(tokens, j, limit);
+      if (close < 0) return null;
+      j = close + 1;
+      continue;
+    }
+    if (isPunct(t, ";")) return member(j);
+    if (isPunct(t, "=>")) {
+      const end = findAtDepth0(tokens, j + 1, limit, [";"]);
+      return end < 0 ? null : member(end);
+    }
+    if (isPunct(t, "{")) {
+      const close = matchClose(tokens, j, limit);
+      return close < 0 ? null : member(close);
+    }
+    j++;
+  }
+  return null;
+}
+function parseField(lx, startTok, headTok, declTok, limit, modifiers, annotations) {
+  const { tokens } = lx;
+  const end = findAtDepth0(tokens, declTok, limit, [";"]);
+  if (end < 0) return null;
+  const chunks = splitTopLevelCommas(tokens, declTok, end - 1);
+  if (chunks.length === 0) return null;
+  const vars = [];
+  let typeText = null;
+  let typeStartTok = -1;
+  let typeEndTok = -1;
+  for (let c = 0; c < chunks.length; c++) {
+    const [from, to] = chunks[c];
+    const eq = findAtDepth0(tokens, from, to + 1, ["="]);
+    const declEnd = eq >= 0 ? eq - 1 : to;
+    if (declEnd < from || !isIdent(tokens[declEnd])) return null;
+    if (c === 0) {
+      if (declEnd > from) {
+        typeText = tokText(lx, from, declEnd - 1);
+        typeStartTok = from;
+        typeEndTok = declEnd - 1;
+      }
+    } else if (declEnd !== from) {
+      return null;
+    }
+    if (eq >= 0 && eq + 1 > to) return null;
+    vars.push({
+      name: tokens[declEnd].value,
+      initStartTok: eq >= 0 ? eq + 1 : -1,
+      initEndTok: eq >= 0 ? to : -1,
+    });
+  }
+  return {
+    kind: "field",
+    startTok,
+    endTok: end,
+    headTok,
+    annotations,
+    modifiers,
+    typeText,
+    typeStartTok,
+    typeEndTok,
+    vars,
+  };
+}
+function parseConstructor(lx, startTok, headTok, at, limit, modifiers, annotations, className) {
+  const { tokens } = lx;
+  let q = at;
+  let isFactory = false;
+  let name = null;
+  if (isIdent(tokens[q], "factory")) {
+    isFactory = true;
+    q++;
+    if (
+      isIdent(tokens[q], className) &&
+      (isPunct(tokens[q + 1], "(") || isPunct(tokens[q + 1], "."))
+    ) {
+      q++;
+      if (isPunct(tokens[q], ".")) {
+        name = tokens[q + 1].value;
+        q += 2;
+      }
+    } else if (isIdent(tokens[q]) && isPunct(tokens[q + 1], "(")) {
+      name = tokens[q].value;
+      q++;
+    }
+  } else if (isIdent(tokens[q], "new")) {
+    q++;
+    if (isIdent(tokens[q]) && isPunct(tokens[q + 1], "(")) {
+      name = tokens[q].value;
+      q++;
+    }
+  } else {
+    q++;
+    if (isPunct(tokens[q], ".")) {
+      name = tokens[q + 1].value;
+      q += 2;
+    }
+  }
+  if (!isPunct(tokens[q], "(")) return null;
+  const paramsOpenTok = q;
+  const paramsCloseTok = matchClose(tokens, q, limit);
+  if (paramsCloseTok < 0) return null;
+  q = paramsCloseTok + 1;
+  const ctor = {
+    kind: "constructor",
+    startTok,
+    endTok: -1,
+    headTok,
+    annotations,
+    isConst: modifiers.has("const"),
+    isExternal: modifiers.has("external"),
+    isFactory,
+    name,
+    paramsOpenTok,
+    paramsCloseTok,
+    params: parseParams(lx, paramsOpenTok, paramsCloseTok),
+    initializers: [],
+    isRedirecting: false,
+    bodyOpenTok: -1,
+    bodyCloseTok: -1,
+  };
+  if (isFactory) {
+    const end = findAtDepth0(tokens, q, limit, [";", "{"]);
+    if (end < 0) return null;
+    if (isPunct(tokens[end], ";")) {
+      ctor.endTok = end;
+      return ctor;
+    }
+    const arrow = findAtDepth0(tokens, q, end, ["=>", "="]);
+    if (arrow >= 0) {
+      // `=> {...}` ou `= Redirect<{...}>`: o corpo é uma expressão, termina em `;`.
+      const semi = findAtDepth0(tokens, q, limit, [";"]);
+      if (semi < 0) return null;
+      ctor.endTok = semi;
+      return ctor;
+    }
+    const close = matchClose(tokens, end, limit);
+    if (close < 0) return null;
+    ctor.endTok = close;
+    return ctor;
+  }
+  if (isPunct(tokens[q], ";")) {
+    ctor.endTok = q;
+    return ctor;
+  }
+  if (isPunct(tokens[q], "{")) {
+    ctor.bodyOpenTok = q;
+    ctor.bodyCloseTok = matchClose(tokens, q, limit);
+    if (ctor.bodyCloseTok < 0) return null;
+    ctor.endTok = ctor.bodyCloseTok;
+    return ctor;
+  }
+  if (!isPunct(tokens[q], ":")) return null;
+  // Initializer list: termina em `;` ou no `{` do corpo (quando vem após uma expressão).
+  const initStart = q + 1;
+  let r = initStart;
+  let initEnd = -1;
+  while (r < limit) {
+    const t = tokens[r];
+    if (isPunct(t, ";")) {
+      initEnd = r - 1;
+      ctor.endTok = r;
+      break;
+    }
+    if (isPunct(t, "=>")) return null;
+    if (isPunct(t, "{") && isExpressionEnd(tokens[r - 1])) {
+      initEnd = r - 1;
+      ctor.bodyOpenTok = r;
+      ctor.bodyCloseTok = matchClose(tokens, r, limit);
+      if (ctor.bodyCloseTok < 0) return null;
+      ctor.endTok = ctor.bodyCloseTok;
+      break;
+    }
+    if (isPunct(t, "(") || isPunct(t, "[") || isPunct(t, "{")) {
+      const close = matchClose(tokens, r, limit);
+      if (close < 0) return null;
+      r = close + 1;
+      continue;
+    }
+    if (isPunct(t, "<") && startsTypeArgs(tokens[r - 1])) {
+      const close = matchTypeArgs(tokens, r, limit);
+      if (close > 0) {
+        r = close + 1;
+        continue;
+      }
+    }
+    r++;
+  }
+  if (initEnd < initStart) return null;
+  for (const [from, to] of splitTopLevelCommas(tokens, initStart, initEnd)) {
+    ctor.initializers.push(classifyInitializer(tokens, from, to));
+  }
+  const last = ctor.initializers[ctor.initializers.length - 1];
+  ctor.isRedirecting = last?.kind === "redirect";
+  return ctor;
+}
+function isExpressionEnd(t) {
+  if (t === undefined) return false;
+  if (t.kind === "number" || t.kind === "string") return true;
+  if (t.kind === "ident") {
+    return ![
+      "const",
+      "new",
+      "return",
+      "await",
+      "throw",
+      "is",
+      "as",
+      "in",
+      "case",
+      "yield",
+    ].includes(t.value);
+  }
+  return t.value === ")" || t.value === "]" || t.value === "}" || t.value === "!";
+}
+function classifyInitializer(tokens, from, to) {
+  const unknown = {
+    kind: "unknown",
+    startTok: from,
+    endTok: to,
+    fieldName: null,
+    exprStartTok: from,
+  };
+  const t = tokens[from];
+  const callKind = (keywordKind) => {
+    let j = from + 1;
+    if (keywordKind !== "assert" && isPunct(tokens[j], ".") && isIdent(tokens[j + 1])) j += 2;
+    if (!isPunct(tokens[j], "(")) return unknown;
+    const close = matchClose(tokens, j, to + 1);
+    return close === to ? { ...unknown, kind: keywordKind } : unknown;
+  };
+  if (isIdent(t, "super")) return callKind("super");
+  if (isIdent(t, "assert")) return callKind("assert");
+  if (isIdent(t, "this") && !isPunct(tokens[from + 2], "=")) {
+    if (isPunct(tokens[from + 1], "(") || isPunct(tokens[from + 3], "("))
+      return callKind("redirect");
+  }
+  let nameTok = from;
+  if (isIdent(t, "this") && isPunct(tokens[from + 1], ".")) nameTok = from + 2;
+  if (!isIdent(tokens[nameTok]) || !isPunct(tokens[nameTok + 1], "=") || nameTok + 2 > to)
+    return unknown;
+  return {
+    kind: "field",
+    startTok: from,
+    endTok: to,
+    fieldName: tokens[nameTok].value,
+    exprStartTok: nameTok + 2,
+  };
+}
+function parseParams(lx, open, close) {
+  const { tokens } = lx;
+  const params = [];
+  let q = open + 1;
+  const addChunks = (from, to, section) => {
+    for (const [a, b] of splitTopLevelCommas(tokens, from, to)) {
+      const param = parseParam(lx, a, b, section);
+      if (param === null) return false;
+      params.push(param);
+    }
+    return true;
+  };
+  while (q < close) {
+    if (isPunct(tokens[q], "[") || isPunct(tokens[q], "{")) {
+      const groupClose = matchClose(tokens, q, close);
+      if (groupClose < 0) return null;
+      const section = tokens[q].value === "[" ? "optional" : "named";
+      if (!addChunks(q + 1, groupClose - 1, section)) return null;
+      q = groupClose + 1;
+      while (isPunct(tokens[q], ",")) q++;
+      return q === close ? params : null;
+    }
+    const comma = findAtDepth0(tokens, q, close, [","]);
+    const chunkEnd = comma < 0 ? close - 1 : comma - 1;
+    if (chunkEnd < q) return null;
+    const param = parseParam(lx, q, chunkEnd, "positional");
+    if (param === null) return null;
+    params.push(param);
+    q = comma < 0 ? close : comma + 1;
+  }
+  return params;
+}
+function parseParam(lx, from, to, section) {
+  const { tokens } = lx;
+  const annotations = [];
+  let q = from;
+  while (isPunct(tokens[q], "@")) {
+    const ann = parseAnnotation(tokens, q);
+    if (ann === null || ann.endTok >= to) return null;
+    annotations.push(ann);
+    q = ann.endTok + 1;
+  }
+  let isRequired = false;
+  if (isIdent(tokens[q], "required")) {
+    isRequired = true;
+    q++;
+  }
+  let isCovariant = false;
+  if (isIdent(tokens[q], "covariant")) {
+    isCovariant = true;
+    q++;
+  }
+  let modifier = null;
+  if (isIdent(tokens[q]) && ["final", "var", "const"].includes(tokens[q].value)) {
+    modifier = tokens[q].value;
+    q++;
+  }
+  if (q > to) return null;
+  const eq = findAtDepth0(tokens, q, to + 1, ["="]);
+  const declEnd = eq >= 0 ? eq - 1 : to;
+  if (declEnd < q) return null;
+  if (eq >= 0 && eq + 1 > to) return null;
+  const base = {
+    section,
+    startTok: from,
+    endTok: to,
+    annotations,
+    isRequired,
+    isCovariant,
+    modifier,
+    defaultStartTok: eq >= 0 ? eq + 1 : -1,
+  };
+  for (let k = q; k + 2 <= declEnd; k++) {
+    if (
+      (isIdent(tokens[k], "this") || isIdent(tokens[k], "super")) &&
+      isPunct(tokens[k + 1], ".")
+    ) {
+      if (!isIdent(tokens[k + 2])) return null;
+      let after = k + 3;
+      let functionTyped = false;
+      if (after <= declEnd && isPunct(tokens[after], "(")) {
+        const close = matchClose(tokens, after, declEnd + 1);
+        if (close < 0) return null;
+        functionTyped = true;
+        after = close + 1;
+        if (after <= declEnd && isPunct(tokens[after], "?")) after++;
+      }
+      if (after !== declEnd + 1) return null;
+      return {
+        ...base,
+        kind: tokens[k].value === "this" ? "this" : "super",
+        typeText: k > q ? tokText(lx, q, k - 1) : null,
+        typeStartTok: k > q ? q : -1,
+        typeEndTok: k > q ? k - 1 : -1,
+        name: tokens[k + 2].value,
+        nameTok: k + 2,
+        functionTyped,
+      };
+    }
+  }
+  let last = declEnd;
+  let functionTyped = false;
+  if (isPunct(tokens[last], "?") && isPunct(tokens[last - 1], ")")) last--;
+  if (isPunct(tokens[last], ")")) {
+    const open = matchOpenBackward(tokens, last, q);
+    if (open <= q) return null;
+    functionTyped = true;
+    last = open - 1;
+  }
+  // `required` é palavra contextual: como modificador já foi consumido acima, aqui é o nome.
+  if (!isIdent(tokens[last]) || ["this", "super"].includes(tokens[last].value)) return null;
+  return {
+    ...base,
+    kind: "plain",
+    typeText: last > q ? tokText(lx, q, last - 1) : null,
+    typeStartTok: last > q ? q : -1,
+    typeEndTok: last > q ? last - 1 : -1,
+    name: tokens[last].value,
+    nameTok: last,
+    functionTyped,
+  };
+}
+// ---------------------------------------------------------------------------
+// Referências a nomes (inclui interpolação dentro de strings)
+// ---------------------------------------------------------------------------
+/** Tokens das expressões interpoladas (`$x` e `${...}`) de uma string. */
+function interpolationTokens(stringToken) {
+  const s = stringToken.value;
+  if (s.startsWith("r")) return [];
+  const result = [];
+  let i = s.startsWith("'''") || s.startsWith('"""') ? 3 : 1;
+  while (i < s.length) {
+    const c = s[i];
+    if (c === "\\") {
+      i += 2;
+      continue;
+    }
+    if (c === "$" && s[i + 1] === "{") {
+      const end = skipInterpolation(s, i + 2);
+      const inner = lex(s.slice(i + 2, end - 1));
+      for (const t of inner.tokens) {
+        result.push(t);
+        if (t.kind === "string") result.push(...interpolationTokens(t));
+      }
+      i = end;
+      continue;
+    }
+    if (c === "$" && isIdentStart(s[i + 1]) && s[i + 1] !== "$") {
+      let j = i + 2;
+      while (j < s.length && isIdentPart(s[j]) && s[j] !== "$") j++;
+      result.push({ kind: "ident", value: s.slice(i + 1, j), start: 0, end: 0 });
+      i = j;
+      continue;
+    }
+    i++;
+  }
+  return result;
+}
+/**
+ * True se algum nome de `names` é referenciado em tokens[from..to]
+ * (ignora acesso a membro `.x` e rótulos de argumentos nomeados `x:`).
+ */
+function referencesAny(tokens, from, to, names) {
+  const stack = [];
+  for (let j = from; j <= to; j++) {
+    const t = tokens[j];
+    if (t.kind === "string") {
+      const inner = interpolationTokens(t);
+      if (inner.length > 0 && referencesAny(inner, 0, inner.length - 1, names)) return true;
+      continue;
+    }
+    if (t.kind === "punct") {
+      if (t.value === "(" || t.value === "[" || t.value === "{") stack.push(t.value);
+      if (t.value === ")" || t.value === "]" || t.value === "}") stack.pop();
+      continue;
+    }
+    if (t.kind !== "ident" || !names.has(t.value)) continue;
+    const prev = j > from ? tokens[j - 1] : undefined;
+    if (prev?.kind === "punct" && [".", "?.", "..", "?.."].includes(prev.value)) continue;
+    const isNamedArgLabel =
+      stack[stack.length - 1] === "(" &&
+      isPunct(tokens[j + 1], ":") &&
+      prev !== undefined &&
+      (isPunct(prev, "(") || isPunct(prev, ","));
+    if (isNamedArgLabel) continue;
+    return true;
+  }
+  return false;
+}
+const ASSIGNMENT_OPERATORS = new Set([
+  "=",
+  "+=",
+  "-=",
+  "*=",
+  "/=",
+  "~/=",
+  "%=",
+  "<<=",
+  ">>=",
+  ">>>=",
+  "&=",
+  "|=",
+  "^=",
+  "??=",
+  "++",
+  "--",
+]);
+/** True se algum nome de `names` sofre atribuição (`x = `, `x++`, `++x`...) em tokens[from..to]. */
+function assignsAny(tokens, from, to, names) {
+  for (let j = from; j <= to; j++) {
+    const t = tokens[j];
+    if (t.kind !== "ident" || !names.has(t.value)) continue;
+    const prev = j > from ? tokens[j - 1] : undefined;
+    if (prev?.kind === "punct" && [".", "?.", "..", "?.."].includes(prev.value)) continue;
+    const next = tokens[j + 1];
+    if (next?.kind === "punct" && ASSIGNMENT_OPERATORS.has(next.value) && j + 1 <= to) {
+      return true;
+    }
+    if (prev && (isPunct(prev, "++") || isPunct(prev, "--"))) return true;
+  }
+  return false;
+}
+/** Bases externas (Flutter e pacotes comuns) anotadas com @immutable. */
+const IMMUTABLE_BASES = new Set([
+  "Widget",
+  "StatelessWidget",
+  "StatefulWidget",
+  "InheritedWidget",
+  "InheritedModel",
+  "InheritedNotifier",
+  "InheritedTheme",
+  "ProxyWidget",
+  "ParentDataWidget",
+  "RenderObjectWidget",
+  "LeafRenderObjectWidget",
+  "SingleChildRenderObjectWidget",
+  "MultiChildRenderObjectWidget",
+  "SlottedMultiChildRenderObjectWidget",
+  "ImplicitlyAnimatedWidget",
+  "AnimatedWidget",
+  "FormField",
+  "HookWidget",
+  "StatefulHookWidget",
+  "ConsumerWidget",
+  "ConsumerStatefulWidget",
+  "HookConsumerWidget",
+  "Equatable",
+  "Key",
+  "LocalKey",
+  "ValueKey",
+  "ObjectKey",
+  "Decoration",
+  "ShapeBorder",
+  "OutlinedBorder",
+  "InputBorder",
+  "TextStyle",
+  "ThemeExtension",
+  "Intent",
+  "TextFormField",
+  "RouteBase",
+  "GoRoute",
+]);
+/** Bases externas cujo construtor sem nome é const (conferido na fonte do Flutter). */
+const CONST_UNNAMED_CTOR_BASES = new Set([
+  "Widget",
+  "StatelessWidget",
+  "StatefulWidget",
+  "InheritedWidget",
+  "InheritedModel",
+  "InheritedNotifier",
+  "InheritedTheme",
+  "ProxyWidget",
+  "ParentDataWidget",
+  "RenderObjectWidget",
+  "LeafRenderObjectWidget",
+  "SingleChildRenderObjectWidget",
+  "MultiChildRenderObjectWidget",
+  "SlottedMultiChildRenderObjectWidget",
+  "ImplicitlyAnimatedWidget",
+  "AnimatedWidget",
+  "FormField",
+  "Equatable",
+  "LocalKey",
+  "ValueKey",
+  "ObjectKey",
+  "Decoration",
+  "ShapeBorder",
+  "OutlinedBorder",
+  "InputBorder",
+  "TextStyle",
+  "ThemeExtension",
+  "Intent",
+]);
+/** Bases externas cujo construtor sem nome não é const. */
+const NON_CONST_UNNAMED_CTOR_BASES = new Set(["TextFormField", "GoRoute"]);
+/** Bases externas conhecidas que não são @immutable. */
+const MUTABLE_BASES = new Set([
+  "Object",
+  "ChangeNotifier",
+  "ValueNotifier",
+  "State",
+  "Cubit",
+  "Bloc",
+  "Notifier",
+  "AsyncNotifier",
+  "StateNotifier",
+  "GetxController",
+  "Exception",
+  "Error",
+  "TextInputFormatter",
+  "CustomPainter",
+  "CustomClipper",
+  "Listenable",
+]);
+const declsCache = new WeakMap();
+function declsOf(lx) {
+  let decls = declsCache.get(lx);
+  if (decls === undefined) {
+    decls = scanTypeDeclarations(lx);
+    declsCache.set(lx, decls);
+  }
+  return decls;
+}
+function superclassName(decl) {
+  const match = decl.clausesText.match(/\bextends\s+((?:[A-Za-z_$][\w$]*\.)?[A-Za-z_$][\w$]*)/);
+  if (!match) return null;
+  const parts = match[1].split(".");
+  return parts[parts.length - 1];
+}
+function lookupClass(name, lx, resolver) {
+  const local = declsOf(lx).filter((d) => d.kind === "class" && d.name === name);
+  if (local.length === 1) return { lx, decl: local[0] };
+  if (local.length > 1) return null;
+  return resolver?.find(name) ?? null;
+}
+/** A classe (ou alguma superclasse) é @immutable? Segue a mesma regra do analyzer. */
+function immutability(lx, decl, resolver, depth = 0) {
+  if (decl.annotations.some((a) => a.name === "immutable")) return "yes";
+  const superName = superclassName(decl);
+  if (superName === null) return "no";
+  if (IMMUTABLE_BASES.has(superName)) return "yes";
+  if (MUTABLE_BASES.has(superName)) return "no";
+  if (depth >= 10) return "unknown";
+  const found = lookupClass(superName, lx, resolver);
+  if (found === null) return "unknown";
+  return immutability(found.lx, found.decl, resolver, depth + 1);
+}
+/** Constância do construtor generativo `name` (null = sem nome) declarado em `decl`. */
+function constructorConstness(lx, decl, name) {
+  if (decl.hasPrimary && decl.primaryName === name) return decl.primaryIsConst ? "yes" : "no";
+  if (decl.bodyOpenTok < 0) return !decl.hasPrimary && name === null ? "no" : "unknown";
+  const body = parseBody(lx, decl);
+  if (body === null) return "unknown";
+  const ctors = body.members.filter((m) => m.kind === "constructor");
+  const match = ctors.find((c) => !c.isFactory && (c.name === "new" ? null : c.name) === name);
+  if (match) return match.isConst ? "yes" : "no";
+  // Sem nenhum construtor declarado, vale o construtor padrão implícito (não é const).
+  if (name === null && ctors.length === 0 && !decl.hasPrimary) return "no";
+  return "unknown";
+}
+/** O construtor da superclasse chamado por `ctor` (explícito ou implícito) é const? */
+function superConstructorConstness(lx, decl, ctor, resolver) {
+  const call = ctor.initializers.find((e) => e.kind === "super");
+  const rawName =
+    call !== undefined && isPunct(lx.tokens[call.startTok + 1], ".")
+      ? lx.tokens[call.startTok + 2].value
+      : null;
+  const ctorName = rawName === "new" ? null : rawName;
+  const superName = superclassName(decl);
+  if (superName === null) return ctorName === null ? "yes" : "unknown";
+  if (ctorName === null && CONST_UNNAMED_CTOR_BASES.has(superName)) return "yes";
+  if (ctorName === null && NON_CONST_UNNAMED_CTOR_BASES.has(superName)) return "no";
+  const found = lookupClass(superName, lx, resolver);
+  if (found === null) return "unknown";
+  return constructorConstness(found.lx, found.decl, ctorName);
+}
+/** A própria classe declara um membro (campo, getter, método ou parâmetro declarante) com o nome? */
+function declaresMember(lx, decl, name) {
+  if (decl.primaryParamsOpenTok >= 0) {
+    const close = matchClose(lx.tokens, decl.primaryParamsOpenTok);
+    const params = close > 0 ? parseParams(lx, decl.primaryParamsOpenTok, close) : null;
+    if (params?.some((p) => p.name === name && p.modifier !== null)) return true;
+  }
+  if (decl.bodyOpenTok < 0) return false;
+  const body = parseBody(lx, decl);
+  if (body === null) return false;
+  return body.members.some((m) =>
+    m.kind === "field"
+      ? m.vars.some((v) => v.name === name)
+      : m.kind === "method" && m.name === name
+  );
+}
+/** O nome é um membro visível da classe ou de alguma superclasse? */
+function memberVisibility(lx, decl, name, resolver, depth = 0) {
+  if (declaresMember(lx, decl, name)) return "yes";
+  const superName = superclassName(decl);
+  if (superName === null) return "no";
+  if (name === "key" && IMMUTABLE_BASES.has(superName) && superName.endsWith("Widget"))
+    return "yes";
+  if (depth >= 10) return "unknown";
+  const found = lookupClass(superName, lx, resolver);
+  if (found === null) return "unknown";
+  return memberVisibility(found.lx, found.decl, name, resolver, depth + 1);
+}
+const CLASS_DECL_RE =
+  /^[ \t]*(?:(?:abstract|base|final|interface|sealed|mixin)[ \t]+)*class[ \t]+(?:const[ \t]+)?([A-Za-z_$][\w$]*)/gm;
+/** Índice (lazy) das classes declaradas em `lib/` do pacote. */
+class PackageClassIndex {
+  constructor(libDir) {
+    this.libDir = libDir;
+    this.names = null;
+    this.lexedFiles = new Map();
+  }
+  find(name) {
+    const files = this.index().get(name) ?? [];
+    if (files.length !== 1) return null;
+    const lx = this.lexFile(files[0]);
+    if (lx === null) return null;
+    const decls = declsOf(lx).filter((d) => d.kind === "class" && d.name === name);
+    return decls.length === 1 ? { lx, decl: decls[0] } : null;
+  }
+  lexFile(file) {
+    if (!this.lexedFiles.has(file)) {
+      let lx = null;
+      try {
+        lx = lex(fs.readFileSync(file, "utf-8"));
+      } catch {
+        lx = null;
+      }
+      this.lexedFiles.set(file, lx);
+    }
+    return this.lexedFiles.get(file) ?? null;
+  }
+  index() {
+    if (this.names) return this.names;
+    const names = new Map();
+    const visit = (dir) => {
+      let entries;
+      try {
+        entries = fs.readdirSync(dir, { withFileTypes: true });
+      } catch {
+        return;
+      }
+      for (const entry of entries) {
+        if (entry.name.startsWith(".")) continue;
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          visit(full);
+          continue;
+        }
+        if (!entry.name.endsWith(".dart")) continue;
+        if (GENERATED_SUFFIXES.some((s) => entry.name.endsWith(s))) continue;
+        let content;
+        try {
+          content = fs.readFileSync(full, "utf-8");
+        } catch {
+          continue;
+        }
+        for (const match of content.matchAll(CLASS_DECL_RE)) {
+          const list = names.get(match[1]) ?? [];
+          if (!list.includes(full)) list.push(full);
+          names.set(match[1], list);
+        }
+      }
+    };
+    visit(this.libDir);
+    this.names = names;
+    return names;
+  }
+}
+const resolverCache = new Map();
+/** Resolver das classes do pacote do arquivo (pubspec.yaml mais próximo). */
+function resolverFor(file) {
+  const pubspec = findNearestPubspec(file);
+  if (!pubspec) return null;
+  const libDir = path.join(path.dirname(pubspec), "lib");
+  let resolver = resolverCache.get(libDir);
+  if (resolver === undefined) {
+    resolver = new PackageClassIndex(libDir);
+    resolverCache.set(libDir, resolver);
+  }
+  return resolver;
+}
+function hasCommentBetween(lx, start, end) {
+  return lx.comments.some((c) => c.start >= start && c.end <= end);
+}
+/** True se alguma string de tokens[from..to] ocupa mais de uma linha. */
+function hasMultilineString(lx, from, to) {
+  for (let j = from; j <= to; j++) {
+    const t = lx.tokens[j];
+    if (t.kind === "string" && t.value.includes("\n")) return true;
+  }
+  return false;
+}
+function isOpener(t) {
+  return isPunct(t, "(") || isPunct(t, "[") || isPunct(t, "{");
+}
+function isCloser(t) {
+  return isPunct(t, ")") || isPunct(t, "]") || isPunct(t, "}");
+}
+/** Palavras depois das quais `(` abre um record/expressão, e não uma lista de argumentos. */
+const NON_CALLEE_WORDS = new Set([
+  "final",
+  "var",
+  "const",
+  "required",
+  "covariant",
+  "late",
+  "return",
+  "in",
+  "is",
+  "as",
+  "case",
+  "when",
+  "await",
+  "yield",
+  "throw",
+  "else",
+  "new",
+  "extends",
+  "implements",
+  "with",
+  "on",
+  "async",
+  "sync",
+]);
+/**
+ * Vírgula final (antes do fechamento) que pode ser removida. Em lista de
+ * argumentos/parâmetros (`foo(a,)`, `Function(int a,)`) ela é opcional; num
+ * record de um campo (`(1,)`, `(int,)`) é obrigatória e fica.
+ */
+function isRemovableTrailingComma(tokens, comma, lower) {
+  const close = tokens[comma + 1];
+  if (!isPunct(tokens[comma], ",") || !isCloser(close)) return false;
+  if (!isPunct(close, ")")) return true;
+  const open = matchOpenBackward(tokens, comma + 1, lower);
+  if (open < lower) return false;
+  const before = tokens[open - 1];
+  const isArgumentList =
+    isPunct(before, ">") ||
+    isPunct(before, ")") ||
+    (before?.kind === "ident" && !NON_CALLEE_WORDS.has(before.value));
+  return isArgumentList || findAtDepth0(tokens, open + 1, comma, [","]) >= 0;
+}
+/**
+ * Texto de tokens[from..to] em uma linha, juntando as quebras token a token
+ * (nunca altera o conteúdo de strings): sem espaço logo depois de `(`/`[` e
+ * antes de `)`/`]`, e sem vírgula final antes de fechamento (exceto em record
+ * de um campo). Retorna null se houver comentário ou string multi-linha.
+ */
+function singleLine(lx, from, to) {
+  const { tokens, source } = lx;
+  if (hasCommentBetween(lx, tokens[from].start, tokens[to].end)) return null;
+  if (hasMultilineString(lx, from, to)) return null;
+  let out = "";
+  for (let j = from; j <= to; j++) {
+    const t = tokens[j];
+    if (j > from) {
+      const prev = tokens[j - 1];
+      const gap = source.slice(prev.end, t.start);
+      const glued = isPunct(prev, "(") || isPunct(prev, "[") || isPunct(t, ")") || isPunct(t, "]");
+      if (gap.includes("\n")) {
+        out += isOpener(prev) || isCloser(t) ? "" : " ";
+      } else {
+        out += glued ? "" : gap;
+      }
+    }
+    if (j < to && isRemovableTrailingComma(tokens, j, from)) continue;
+    out += source.slice(t.start, t.end);
+  }
+  return out;
+}
+/** Tipo em uma linha no formato canônico (null se houver comentário ou string multi-linha). */
+function typeTextOf(lx, from, to) {
+  if (hasCommentBetween(lx, lx.tokens[from].start, lx.tokens[to].end)) return null;
+  if (hasMultilineString(lx, from, to)) return null;
+  return joinTokens(lx, from, to);
+}
+/** Comentários (texto original) imediatamente antes de `tok`, depois de `afterOffset`. */
+function leadingComments(lx, afterOffset, tok) {
+  const start = lx.tokens[tok].start;
+  return lx.comments.filter((c) => c.start >= afterOffset && c.end <= start);
+}
+function normalizeType(text) {
+  return (text ?? "").replace(/\s+/g, "");
+}
+/**
+ * No Dart 3.13, o lint `prefer_const_constructors_in_immutables` pede `const` em
+ * primary constructors de classes @immutable (Widgets, estados, entidades...)
+ * sem avaliar os inicializadores de campo nem o initializer list — então pede
+ * `const` até quando isso seria erro de compilação. Na forma clássica o lint
+ * avalia tudo e não reporta. Nesse cenário (construtor não-const, sem mixin,
+ * sem corpo, só campos final, hierarquia @immutable e construtor da superclasse
+ * const) o plugin não sugere a conversão, para não gerar um aviso contraditório
+ * no `flutter analyze`.
+ */
+function constLintWouldMisfire(lx, decl, ctor, fields, resolver) {
+  if (/\bwith\b/.test(decl.clausesText) || hasBodyContent(lx, ctor)) return false;
+  const instanceFields = fields.filter((f) => !f.modifiers.has("static"));
+  if (!instanceFields.every((f) => f.modifiers.has("final"))) return false;
+  if (immutability(lx, decl, resolver) === "no") return false;
+  // O lint só reporta quando o construtor da superclasse chamado é const.
+  return superConstructorConstness(lx, decl, ctor, resolver) !== "no";
+}
+function hasBodyContent(lx, ctor) {
+  if (ctor.bodyOpenTok < 0) return false;
+  if (ctor.bodyCloseTok > ctor.bodyOpenTok + 1) return true;
+  return hasCommentBetween(lx, lx.tokens[ctor.bodyOpenTok].end, lx.tokens[ctor.bodyCloseTok].start);
+}
+/** Campo simples (uma variável, sem inicializador, sem late/static...) com o nome dado. */
+function convertibleField(fields, name) {
+  const field = fields.find((f) => f.vars.some((v) => v.name === name));
+  if (field?.vars.length !== 1 || field.vars[0].initStartTok >= 0) return null;
+  if (!field.typeText) return null;
+  for (const mod of ["static", "late", "external", "covariant", "const", "abstract", "augment"]) {
+    if (field.modifiers.has(mod)) return null;
+  }
+  if (field.annotations.some((a) => !SAFE_FIELD_ANNOTATIONS.has(a.name))) return null;
+  return field;
+}
+/**
+ * Analisa as classes/enums de um arquivo Dart (exportado para testes). Com
+ * `file`, superclasses de outros arquivos do pacote também são resolvidas.
+ */
+function analyzePrimaryConstructors(source, file) {
+  const lx = lex(source);
+  const resolver = file ? resolverFor(file) : null;
+  return declsOf(lx).map((decl) => analyzeDecl(lx, decl, resolver).report);
+}
+function analyzeDecl(lx, decl, resolver) {
+  const { tokens } = lx;
+  const classLine = lineOf(lx, tokens[decl.nameTok].start);
+  const skip = (reason, line = classLine) => ({
+    report: { name: decl.name, kind: decl.kind, line, status: "skip", reason, movedFields: [] },
+    plan: null,
+  });
+  if (decl.isMixinApplication) return skip("mixin application");
+  if (decl.modifiers.includes("mixin")) return skip("mixin class");
+  if (decl.hasPrimary) return skip("já usa primary constructor");
+  const unsafeAnnotation = decl.annotations.find((a) => !SAFE_CLASS_ANNOTATIONS.has(a.name));
+  if (unsafeAnnotation) return skip(`anotação @${unsafeAnnotation.name} na classe`);
+  if (decl.bodyOpenTok < 0) return skip("sem corpo");
+  if (hasCommentBetween(lx, tokens[decl.nameTok].start, tokens[decl.bodyOpenTok].start)) {
+    return skip("comentário no cabeçalho da classe");
+  }
+  const body = parseBody(lx, decl);
+  if (body === null) return skip("corpo da classe não reconhecido");
+  const ctors = body.members.filter((m) => m.kind === "constructor");
+  if (ctors.length === 0) return skip("sem construtor explícito");
+  if (ctors.some((c) => c.isExternal)) return skip("construtor external");
+  const roots = ctors.filter((c) => !c.isFactory && !c.isRedirecting);
+  if (roots.length === 0) return skip("apenas factories ou construtores redirecionantes");
+  if (roots.length > 1) return skip("mais de um construtor generativo não-redirecionante");
+  const ctor = roots[0];
+  const ctorLine = lineOf(lx, tokens[ctor.headTok].start);
+  if (ctor.annotations.length > 0) return skip("construtor com anotação", ctorLine);
+  if (ctor.params === null) return skip("parâmetros do construtor não reconhecidos", ctorLine);
+  if (ctor.params.some((p) => p.modifier !== null)) {
+    return skip("parâmetro com final/var/const", ctorLine);
+  }
+  if (ctor.initializers.some((e) => e.kind === "unknown")) {
+    return skip("initializer list não reconhecida", ctorLine);
+  }
+  const isTrivial =
+    decl.kind === "class" &&
+    ctor.name === null &&
+    !ctor.isConst &&
+    ctor.params.length === 0 &&
+    ctor.initializers.length === 0 &&
+    !hasBodyContent(lx, ctor);
+  if (isTrivial) return skip("construtor trivial (equivalente ao construtor padrão)", ctorLine);
+  const paramNames = new Set(ctor.params.map((p) => p.name));
+  for (const e of ctor.initializers) {
+    if (
+      assignsAny(tokens, e.kind === "field" ? e.exprStartTok : e.startTok, e.endTok, paramNames)
+    ) {
+      return skip("atribuição a parâmetro no initializer list", ctorLine);
+    }
+  }
+  const fields = body.members.filter((m) => m.kind === "field");
+  const initializedByCtor = new Set();
+  for (const p of ctor.params) if (p.kind === "this") initializedByCtor.add(p.name);
+  for (const e of ctor.initializers) if (e.fieldName) initializedByCtor.add(e.fieldName);
+  for (const field of fields) {
+    if (field.modifiers.has("static")) continue;
+    for (const v of field.vars) {
+      if (v.initStartTok < 0) continue;
+      if (initializedByCtor.has(v.name)) {
+        return skip(`campo ${v.name} inicializado na declaração e no construtor`, ctorLine);
+      }
+      if (
+        !field.modifiers.has("late") &&
+        referencesAny(tokens, v.initStartTok, v.initEndTok, paramNames)
+      ) {
+        return skip(`inicializador de ${v.name} cita um nome de parâmetro do construtor`, ctorLine);
+      }
+    }
+  }
+  if (
+    !ctor.isConst &&
+    decl.kind === "class" &&
+    constLintWouldMisfire(lx, decl, ctor, fields, resolver)
+  ) {
+    return skip(
+      "construtor não-const em classe @immutable (no Dart 3.13 o lint prefer_const_constructors_in_immutables pediria const indevidamente após a conversão)",
+      ctorLine
+    );
+  }
+  const plan = buildPlan(lx, decl, body, ctor, fields, resolver);
+  if (plan === null) {
+    return skip("comentário ou string multi-linha em trecho que seria movido", ctorLine);
+  }
+  return {
+    report: {
+      name: decl.name,
+      kind: decl.kind,
+      line: ctorLine,
+      status: "flag",
+      reason: "",
+      movedFields: plan.movedFields.map((f) => f.vars[0].name),
+    },
+    plan,
+  };
+}
+function commentLines(lx, comments) {
+  const lines = [];
+  for (const c of comments) {
+    for (const line of lx.source.slice(c.start, c.end).split("\n")) lines.push(line.trim());
+  }
+  return lines;
+}
+function annotationsText(lx, annotations) {
+  const parts = [];
+  for (const a of annotations) {
+    const text = singleLine(lx, a.startTok, a.endTok);
+    if (text === null) return null;
+    parts.push(text);
+  }
+  return parts.join(" ");
+}
+/** Comentário na mesma linha, logo após o fim do membro (ex.: `final int x; // ...`). */
+function trailingComment(lx, endTok) {
+  const end = lx.tokens[endTok].end;
+  const comment = lx.comments.find((c) => c.start >= end && !lx.source.slice(end, c.start).trim());
+  if (!comment || lineOf(lx, comment.start) !== lineOf(lx, end)) return null;
+  return comment;
+}
+/** Indentação (em espaços) da linha onde está o offset. */
+function indentOf(lx, offset) {
+  const lineStart = lineStartOffset(lx, offset);
+  const line = lx.source.slice(lineStart, offset);
+  return line.length - line.trimStart().length;
+}
+/** Texto de `{ ... }` com a indentação das linhas internas relativa ao membro. */
+function relativeBlock(lx, open, close, baseIndent) {
+  const lines = lx.source.slice(lx.tokens[open].start, lx.tokens[close].end).split("\n");
+  return [
+    lines[0],
+    ...lines.slice(1).map((l) => l.slice(Math.min(l.length - l.trimStart().length, baseIndent))),
+  ].join("\n");
+}
+function buildPlan(lx, decl, body, ctor, fields, resolver) {
+  const { tokens } = lx;
+  const params = ctor.params ?? [];
+  const movedFields = [];
+  const consumed = new Set();
+  const rendered = [];
+  /** Parâmetros renomeados para o nome do campo (ex.: `name` → `_name`). */
+  const renames = new Map();
+  const referencedElsewhere = (name, except) => {
+    const names = new Set([name]);
+    for (const e of ctor.initializers) {
+      if (e !== except && referencesAny(tokens, e.startTok, e.endTok, names)) return true;
+    }
+    return (
+      ctor.bodyOpenTok >= 0 && referencesAny(tokens, ctor.bodyOpenTok, ctor.bodyCloseTok, names)
+    );
+  };
+  /** Comentários do construtor e dos campos movidos que a sugestão preserva. */
+  const kept = new Set();
+  let previousEnd = tokens[ctor.paramsOpenTok].end;
+  for (const param of params) {
+    const paramComments = leadingComments(lx, previousEnd, param.startTok);
+    paramComments.forEach((c) => kept.add(c));
+    const comments = commentLines(lx, paramComments);
+    previousEnd = tokens[param.endTok].end;
+    let field = null;
+    let fieldName = param.name;
+    let consumedInit = null;
+    if (param.kind === "this" && !param.functionTyped && !param.isCovariant) {
+      const candidate = convertibleField(fields, param.name);
+      const sameType =
+        candidate !== null &&
+        (param.typeText === null ||
+          normalizeType(param.typeText) === normalizeType(candidate.typeText));
+      if (candidate && sameType) field = candidate;
+    } else if (
+      param.kind === "plain" &&
+      !param.functionTyped &&
+      !param.isCovariant &&
+      param.typeText
+    ) {
+      const uses = ctor.initializers.filter(
+        (e) =>
+          e.kind === "field" && e.exprStartTok === e.endTok && isIdent(tokens[e.endTok], param.name)
+      );
+      const init = uses.length === 1 ? uses[0] : null;
+      const target = init?.fieldName ?? null;
+      const namesMatch =
+        target !== null &&
+        (target === param.name || target === `_${param.name}` || `_${target}` === param.name);
+      if (init && target && namesMatch && !referencedElsewhere(param.name, init)) {
+        const candidate = convertibleField(fields, target);
+        if (candidate && normalizeType(param.typeText) === normalizeType(candidate.typeText)) {
+          field = candidate;
+          fieldName = target;
+          consumedInit = init;
+        }
+      }
+    }
+    if (field) {
+      const typeText = typeTextOf(lx, field.typeStartTok, field.typeEndTok);
+      const defaultText =
+        param.defaultStartTok >= 0 ? singleLine(lx, param.defaultStartTok, param.endTok) : "";
+      const fieldAnnotations = annotationsText(lx, field.annotations);
+      const paramAnnotations = annotationsText(lx, param.annotations);
+      if (typeText === null || defaultText === null) return null;
+      if (fieldAnnotations === null || paramAnnotations === null) return null;
+      movedFields.push(field);
+      if (consumedInit) consumed.add(consumedInit);
+      if (fieldName !== param.name) renames.set(param.name, fieldName);
+      const fieldComments = leadingComments(
+        lx,
+        memberCommentStart(lx, body, field, decl),
+        field.startTok
+      );
+      const trailing = trailingComment(lx, field.endTok);
+      if (hasCommentBetween(lx, tokens[field.startTok].start, tokens[field.endTok].end)) {
+        return null; // comentário dentro da declaração do campo não teria lugar
+      }
+      const annotationPrefix = [fieldAnnotations, paramAnnotations].filter(Boolean).join(" ");
+      const prefix =
+        `${annotationPrefix ? `${annotationPrefix} ` : ""}${param.isRequired ? "required " : ""}` +
+        `${field.modifiers.has("final") ? "final" : "var"}`;
+      rendered.push({
+        section: param.section,
+        comments: [...comments, ...commentLines(lx, fieldComments)],
+        trailing: trailing ? lx.source.slice(trailing.start, trailing.end) : null,
+        text: `${prefix} ${typeText} ${fieldName}${defaultText ? ` = ${defaultText}` : ""}`,
+        layout: {
+          prefix,
+          typeText,
+          typeStartTok: field.typeStartTok,
+          typeEndTok: field.typeEndTok,
+          name: fieldName,
+          defaultStartTok: param.defaultStartTok,
+          defaultEndTok: param.endTok,
+        },
+      });
+      continue;
+    }
+    const text = singleLine(lx, param.startTok, param.endTok);
+    if (text === null) return null;
+    const layout = plainParamLayout(lx, param);
+    const defaultText =
+      layout && layout.defaultStartTok >= 0
+        ? singleLine(lx, layout.defaultStartTok, layout.defaultEndTok)
+        : "";
+    rendered.push({
+      section: param.section,
+      comments,
+      trailing: null,
+      // parâmetro comum tipado: tipo no formato canônico
+      text:
+        layout && defaultText !== null
+          ? `${layout.prefix ? `${layout.prefix} ` : ""}${layout.typeText} ${layout.name}` +
+            `${defaultText ? ` = ${defaultText}` : ""}`
+          : text,
+      layout,
+    });
+  }
+  const remainingInitializers = ctor.initializers.filter((e) => !consumed.has(e));
+  const initTexts = [];
+  for (const e of remainingInitializers) {
+    const text = singleLine(lx, e.startTok, e.endTok);
+    if (text === null) return null;
+    initTexts.push(text);
+  }
+  // Referências `[nome]` nos comentários passam a apontar para o nome novo do
+  // parâmetro renomeado (senão o lint comment_references reclama).
+  const renameDocRefs = (line) => {
+    let result = line;
+    for (const [from, to] of renames) result = result.split(`[${from}]`).join(`[${to}]`);
+    return result;
+  };
+  for (const r of rendered) r.comments = r.comments.map(renameDocRefs);
+  const ctorLeading = leadingComments(lx, memberCommentStart(lx, body, ctor, decl), ctor.startTok);
+  let ctorComments = commentLines(lx, ctorLeading).map(renameDocRefs);
+  // `// ignore:` vale para a linha seguinte: no bloco `this` não cobriria mais
+  // o diagnóstico, que passaria a ser reportado nos parâmetros do cabeçalho.
+  if (ctorComments.some((line) => /^\/\/\s*ignore\s*:/.test(line))) return null;
+  // Comentário no fim da linha do construtor não tem lugar na sugestão.
+  if (trailingComment(lx, ctor.endTok)) return null;
+  // Todo comentário dentro do construtor precisa ter destino na sugestão:
+  // antes de um parâmetro (vai junto) ou no corpo (copiado). Senão, não reporta.
+  if (ctor.bodyOpenTok >= 0) {
+    const bodyStart = tokens[ctor.bodyOpenTok].start;
+    const bodyEnd = tokens[ctor.bodyCloseTok].end;
+    lx.comments.forEach((c) => c.start >= bodyStart && c.end <= bodyEnd && kept.add(c));
+  }
+  const ctorStart = tokens[ctor.startTok].start;
+  const ctorEnd = tokens[ctor.endTok].end;
+  if (lx.comments.some((c) => c.start >= ctorStart && c.end <= ctorEnd && !kept.has(c))) {
+    return null;
+  }
+  // No bloco `this`, `[p]` de um parâmetro super só resolve se a hierarquia
+  // tiver um membro visível `p` (ex.: `message` da falha base). Caso contrário
+  // vira `p` em código, para não gerar comment_references.
+  for (const param of params) {
+    if (param.kind !== "super") continue;
+    const ref = `[${param.name}]`;
+    if (!ctorComments.some((line) => line.includes(ref))) continue;
+    if (memberVisibility(lx, decl, param.name, resolver) === "yes") continue;
+    ctorComments = ctorComments.map((line) => line.split(ref).join(`\`${param.name}\``));
+  }
+  let bodyText = null;
+  if (hasBodyContent(lx, ctor)) {
+    if (hasMultilineString(lx, ctor.bodyOpenTok, ctor.bodyCloseTok)) return null;
+    bodyText = relativeBlock(
+      lx,
+      ctor.bodyOpenTok,
+      ctor.bodyCloseTok,
+      indentOf(lx, tokens[ctor.headTok].start)
+    );
+  }
+  let thisPart = null;
+  if (ctorComments.length > 0 || initTexts.length > 0 || bodyText !== null) {
+    const closing = bodyText !== null ? ` ${bodyText}` : ";";
+    const ending = bodyText !== null ? " {" : ";";
+    const inline = initTexts.length > 0 ? `this : ${initTexts.join(", ")}` : "this";
+    if (`  ${inline}${ending}`.length <= PAGE_WIDTH) {
+      thisPart = [...ctorComments, `${inline}${closing}`];
+    } else {
+      // Como o `dart format`: `this` sozinho, cada item do initializer list a
+      // partir da coluna 6 e, se não couber, a chamada com um argumento por linha.
+      const initLines = [];
+      remainingInitializers.forEach((e, i) => {
+        const isLast = i === remainingInitializers.length - 1;
+        const lead = i === 0 ? "  : " : "    ";
+        const end = isLast ? "" : ",";
+        const line = `${lead}${initTexts[i]}${end}`;
+        const call =
+          `  ${line}${isLast ? ending : ""}`.length > PAGE_WIDTH ? splitCall(lx, e) : null;
+        if (call === null) {
+          initLines.push(line);
+          return;
+        }
+        initLines.push(
+          `${lead}${call.open}`,
+          ...call.args.map((a) => `      ${a},`),
+          `    ${call.close}${end}`
+        );
+      });
+      initLines[initLines.length - 1] += closing;
+      thisPart = [...ctorComments, "this", ...initLines];
+    }
+  }
+  if (/['"]/.test(decl.typeParamsText)) return null;
+  // Anotações da classe ficam como estão no código (a conversão não as altera).
+  const annotationLines = [];
+  for (const a of decl.annotations) {
+    // anotação de topo: primeira linha sem indentação, as demais relativas a ela
+    const column = tokens[a.startTok].start - lineStartOffset(lx, tokens[a.startTok].start);
+    const [first, ...rest] = lx.source
+      .slice(tokens[a.startTok].start, tokens[a.endTok].end)
+      .split("\n");
+    const relative = rest.map((l) => l.slice(Math.min(column, l.length - l.trimStart().length)));
+    annotationLines.push(...[first, ...relative].map((l) => l.replace(/\s+$/, "")));
+  }
+  const clauses = splitClauses(lx, decl);
+  if (clauses === null) return null;
+  const removed = new Set([ctor, ...movedFields]);
+  const emptyBody =
+    decl.kind === "class" && thisPart === null && body.members.every((m) => removed.has(m));
+  const modifiersText = decl.modifiers.length > 0 ? `${decl.modifiers.join(" ")} ` : "";
+  const constText = ctor.isConst && decl.kind === "class" ? "const " : "";
+  const ctorNameText = ctor.name !== null ? `.${ctor.name}` : "";
+  let typeParams = "";
+  if (isPunct(tokens[decl.nameTok + 1], "<")) {
+    const close = matchTypeArgs(tokens, decl.nameTok + 1, tokens.length);
+    if (close < 0) return null;
+    typeParams = joinTokens(lx, decl.nameTok + 1, close);
+  }
+  return {
+    lx,
+    decl,
+    body,
+    ctor,
+    params: rendered,
+    movedFields,
+    thisPart,
+    annotationLines,
+    headerPrefix: `${modifiersText}${decl.kind} ${constText}${decl.name}${typeParams}${ctorNameText}`,
+    clauses,
+    emptyBody,
+  };
+}
+/** Partes de um parâmetro comum tipado (`required String nome = ''`), para quebra de linha. */
+function plainParamLayout(lx, param) {
+  if (param.kind !== "plain" || param.functionTyped || param.typeStartTok < 0) return null;
+  const typeText = typeTextOf(lx, param.typeStartTok, param.typeEndTok);
+  const prefix =
+    param.typeStartTok > param.startTok
+      ? singleLine(lx, param.startTok, param.typeStartTok - 1)
+      : "";
+  if (typeText === null || prefix === null) return null;
+  return {
+    prefix,
+    typeText,
+    typeStartTok: param.typeStartTok,
+    typeEndTok: param.typeEndTok,
+    name: param.name,
+    defaultStartTok: param.defaultStartTok,
+    defaultEndTok: param.endTok,
+  };
+}
+/** Cláusulas `extends`/`with`/`implements` do cabeçalho, uma string por cláusula. */
+function splitClauses(lx, decl) {
+  const { tokens } = lx;
+  const start = clausesStartTok(lx, decl);
+  const bodyTok = decl.bodyOpenTok >= 0 ? decl.bodyOpenTok : decl.endTok;
+  if (start <= 0 || start > bodyTok) return null;
+  const clauses = [];
+  let clauseStart = start;
+  let depth = 0;
+  for (let k = start; k < bodyTok; k++) {
+    const t = tokens[k];
+    if (t.kind === "punct" && (t.value === "<" || t.value === "(")) depth++;
+    if (t.kind === "punct" && (t.value === ">" || t.value === ")")) depth--;
+    const isKeyword =
+      depth === 0 && isIdent(t) && ["extends", "with", "implements"].includes(t.value);
+    if (isKeyword && k > clauseStart) {
+      clauses.push(joinTokens(lx, clauseStart, k - 1));
+      clauseStart = k;
+    }
+  }
+  if (bodyTok > clauseStart) clauses.push(joinTokens(lx, clauseStart, bodyTok - 1));
+  return clauses;
+}
+/** Tokens depois dos quais `[`/`{` abre um literal (e não uma indexação ou um bloco). */
+const LITERAL_PREDECESSORS = new Set(["=", ">", "(", ",", ":"]);
+/**
+ * Chamada ou literal no fim de uma expressão (`assert(...)`, `super(...)`,
+ * `_x = Foo(...)`, `const [...]`, `const {...}`) separado em abertura, itens e
+ * fechamento, para a quebra "um item por linha" do `dart format`.
+ */
+function splitCall(lx, range) {
+  const { tokens } = lx;
+  const { startTok, endTok } = range;
+  const last = tokens[endTok];
+  if (!isPunct(last, ")") && !isPunct(last, "]") && !isPunct(last, "}")) return null;
+  const open = matchOpenBackward(tokens, endTok, startTok);
+  if (open < startTok) return null;
+  const before = open > startTok ? tokens[open - 1] : undefined;
+  if (isPunct(last, ")")) {
+    // chamada: precisa do nome (ou dos argumentos de tipo) antes do `(`
+    if (!before || (!isIdent(before) && !isPunct(before, ">"))) return null;
+  } else if (before && !isIdent(before, "const")) {
+    if (before.kind !== "punct" || !LITERAL_PREDECESSORS.has(before.value)) return null;
+  }
+  const openText = singleLine(lx, startTok, open);
+  if (openText === null) return null;
+  const args = [];
+  for (const [a, b] of splitTopLevelCommas(tokens, open + 1, endTok - 1)) {
+    const text = singleLine(lx, a, b);
+    if (text === null) return null;
+    args.push(text);
+  }
+  return args.length > 0 ? { open: openText, args, close: last.value } : null;
+}
+/** Offset a partir do qual os comentários pertencem ao membro (fim do membro anterior). */
+function memberCommentStart(lx, body, member, decl) {
+  const index = body.members.indexOf(member);
+  if (index > 0) return lx.tokens[body.members[index - 1].endTok].end;
+  if (body.entriesEndTok >= 0) return lx.tokens[body.entriesEndTok].end;
+  return lx.tokens[decl.bodyOpenTok].end;
+}
+// ---------------------------------------------------------------------------
+// Renderização (formato do `dart format`)
+// ---------------------------------------------------------------------------
+function paramSections(plan) {
+  const positional = plan.params.filter((p) => p.section === "positional");
+  const grouped = plan.params.filter((p) => p.section !== "positional");
+  const groupOpen = grouped.length > 0 && grouped[0].section === "optional" ? "[" : "{";
+  const groupClose = groupOpen === "[" ? "]" : "}";
+  return { positional, grouped, groupOpen, groupClose };
+}
+/** Lista de parâmetros em uma linha, ou null quando algum parâmetro tem comentário. */
+function inlineParamList(plan) {
+  if (plan.params.some((p) => p.comments.length > 0 || p.trailing !== null)) return null;
+  const { positional, grouped, groupOpen, groupClose } = paramSections(plan);
+  const pos = positional.map((p) => p.text).join(", ");
+  const group =
+    grouped.length > 0 ? `${groupOpen}${grouped.map((p) => p.text).join(", ")}${groupClose}` : "";
+  return `(${[pos, group].filter(Boolean).join(", ")})`;
+}
+/** Lista de parâmetros "tall" (um por linha), como o `dart format`. */
+function tallParamList(plan) {
+  const { positional, grouped, groupOpen, groupClose } = paramSections(plan);
+  const out = [grouped.length > 0 && positional.length === 0 ? `(${groupOpen}` : "("];
+  // Linha em branco antes de parâmetro comentado, exceto o primeiro da lista
+  // (inclusive logo após `, {` / `, [`, onde o formatter a mantém).
+  const pushParam = (p, isFirst, suffix) => {
+    if (p.comments.length > 0 && !isFirst) out.push("");
+    for (const c of p.comments) out.push(`  ${c}`);
+    out.push(...paramLines(plan.lx, p, suffix));
+  };
+  positional.forEach((p, i) => {
+    const opensGroup = i === positional.length - 1 && grouped.length > 0;
+    pushParam(p, i === 0, opensGroup ? `, ${groupOpen}` : ",");
+  });
+  grouped.forEach((p, i) => pushParam(p, i === 0 && positional.length === 0, ","));
+  out.push(`${grouped.length > 0 ? groupClose : ""})`);
+  return out;
+}
+/**
+ * Linhas de um parâmetro da lista "tall". Se `  parâmetro,` passa de 80 colunas,
+ * quebra como o `dart format`: depois do `=` (ou nos argumentos, se o valor
+ * padrão é uma chamada), entre o tipo e o nome, ou na lista de um tipo função.
+ */
+function paramLines(lx, p, suffix) {
+  const line = `  ${p.text}${suffix}${p.trailing ? ` ${p.trailing}` : ""}`;
+  const layout = p.layout;
+  if (line.length <= PAGE_WIDTH || layout === null || p.trailing !== null) return [line];
+  const head = layout.prefix ? `${layout.prefix} ${layout.typeText}` : layout.typeText;
+  if (layout.defaultStartTok >= 0) {
+    const value = singleLine(lx, layout.defaultStartTok, layout.defaultEndTok);
+    if (value === null) return [line];
+    const call = splitCall(lx, { startTok: layout.defaultStartTok, endTok: layout.defaultEndTok });
+    const open = call ? `  ${head} ${layout.name} = ${call.open}` : "";
+    if (call && open.length <= PAGE_WIDTH) {
+      return [open, ...call.args.map((a) => `    ${a},`), `  ${call.close}${suffix}`];
+    }
+    return [`  ${head} ${layout.name} =`, `      ${value}${suffix}`];
+  }
+  const nameLine = `  ${layout.name}${suffix}`;
+  if (`  ${head}`.length <= PAGE_WIDTH) return [`  ${head}`, nameLine];
+  const fn = splitFunctionType(lx, layout);
+  if (fn === null) return [line];
+  return [`  ${fn.open}`, ...fn.lines, `  ${fn.close}`, nameLine];
+}
+/**
+ * Tipo função (`void Function(A a, {B b})?`) quebrado como o `dart format`:
+ * abertura, um parâmetro por linha (grupo `{`/`[` aberto na linha do último
+ * posicional) e fechamento. Linhas relativas ao início do parâmetro.
+ */
+function splitFunctionType(lx, layout) {
+  const { tokens } = lx;
+  let fnTok = -1;
+  let depth = 0;
+  for (let k = layout.typeStartTok; k <= layout.typeEndTok; k++) {
+    const t = tokens[k];
+    if (t.kind === "punct" && (t.value === "<" || t.value === "(")) depth++;
+    if (t.kind === "punct" && (t.value === ">" || t.value === ")")) depth--;
+    if (depth === 0 && isIdent(t, "Function") && isPunct(tokens[k + 1], "(")) fnTok = k;
+  }
+  if (fnTok < 0) return null;
+  const close = matchClose(tokens, fnTok + 1);
+  if (close < 0 || close > layout.typeEndTok) return null;
+  const typeOpen = typeTextOf(lx, layout.typeStartTok, fnTok + 1);
+  const tail = close < layout.typeEndTok ? typeTextOf(lx, close + 1, layout.typeEndTok) : "";
+  if (typeOpen === null || tail === null) return null;
+  const chunks = splitTopLevelCommas(tokens, fnTok + 2, close - 1);
+  let group = null;
+  const lastChunk = chunks[chunks.length - 1];
+  if (lastChunk && (isPunct(tokens[lastChunk[0]], "{") || isPunct(tokens[lastChunk[0]], "["))) {
+    const groupClose = matchClose(tokens, lastChunk[0]);
+    if (groupClose !== lastChunk[1]) return null;
+    const items = [];
+    for (const [a, b] of splitTopLevelCommas(tokens, lastChunk[0] + 1, groupClose - 1)) {
+      const text = typeTextOf(lx, a, b);
+      if (text === null) return null;
+      items.push(text);
+    }
+    group = { open: tokens[lastChunk[0]].value, close: tokens[groupClose].value, items };
+    chunks.pop();
+  }
+  const positional = [];
+  for (const [a, b] of chunks) {
+    const text = typeTextOf(lx, a, b);
+    if (text === null) return null;
+    positional.push(text);
+  }
+  if (positional.length === 0 && (group === null || group.items.length === 0)) return null;
+  const lines = positional.map(
+    (text, i) => `    ${text}${i === positional.length - 1 && group ? `, ${group.open}` : ","}`
+  );
+  if (group) lines.push(...group.items.map((item) => `    ${item},`));
+  const opener = group && positional.length === 0 ? group.open : "";
+  return {
+    open: `${layout.prefix ? `${layout.prefix} ` : ""}${typeOpen}${opener}`,
+    lines,
+    close: `${group ? group.close : ""})${tail}`,
+  };
+}
+/**
+ * Cabeçalho do primary constructor (sem o `{`/`;` final), com as quebras do
+ * `dart format`: tudo em uma linha; senão parâmetros em uma linha e cláusulas
+ * nas linhas seguintes (+4); senão parâmetros um por linha, com a primeira
+ * cláusula na linha do `})` e as demais nas linhas seguintes.
+ */
+function renderHeader(plan) {
+  const ending = plan.emptyBody ? ";" : " {";
+  const { clauses } = plan;
+  const oneLineClauses = clauses.length > 0 ? ` ${clauses.join(" ")}` : "";
+  const fits = (text) => text.length <= PAGE_WIDTH;
+  const clauseLines = clauses.map((c) => `    ${c}`);
+  const clauseLinesFit = clauseLines.every((l, i) =>
+    fits(i === clauseLines.length - 1 ? `${l}${ending}` : l)
+  );
+  const inline = plan.params.length === 0 ? "()" : inlineParamList(plan);
+  if (inline !== null) {
+    const head = `${plan.headerPrefix}${inline}`;
+    if (fits(`${head}${oneLineClauses}${ending}`)) return `${head}${oneLineClauses}`;
+    if (clauses.length > 0 && fits(head) && (clauseLinesFit || plan.params.length === 0)) {
+      return [head, ...clauseLines].join("\n");
+    }
+    if (plan.params.length === 0) return `${head}${oneLineClauses}`;
+  }
+  const lines = tallParamList(plan);
+  lines[0] = `${plan.headerPrefix}${lines[0]}`;
+  const closeLine = lines[lines.length - 1];
+  if (fits(`${closeLine}${oneLineClauses}${ending}`) || clauses.length <= 1) {
+    lines[lines.length - 1] = `${closeLine}${oneLineClauses}`;
+  } else {
+    lines[lines.length - 1] = `${closeLine} ${clauses[0]}`;
+    lines.push(...clauseLines.slice(1));
+  }
+  return lines.join("\n");
+}
+function renderThisPart(plan, indent) {
+  if (plan.thisPart === null) return [];
+  return plan.thisPart.map((entry) =>
+    entry
+      .split("\n")
+      .map((line) => (line ? `${indent}${line}` : line))
+      .join("\n")
+  );
+}
+// ---------------------------------------------------------------------------
+// Snippets da mensagem
+// ---------------------------------------------------------------------------
+/** Linhas do código original entre dois offsets (sem cortar linhas que só contêm o trecho). */
+function sourceLines(lx, fromOffset, toOffset) {
+  const s = lx.source;
+  const lineStart = lineStartOffset(lx, fromOffset);
+  const start = s.slice(lineStart, fromOffset).trim() ? fromOffset : lineStart;
+  const nl = s.indexOf("\n", toOffset);
+  const lineEnd = nl < 0 ? s.length : nl;
+  const end =
+    s.slice(toOffset, lineEnd).trim() && !s.slice(toOffset, lineEnd).trim().startsWith("//")
+      ? toOffset
+      : lineEnd;
+  const text = s.slice(start, end);
+  return (start === lineStart ? text : `  ${text}`).split("\n");
+}
+function memberLines(lx, body, member, decl) {
+  const comments = leadingComments(lx, memberCommentStart(lx, body, member, decl), member.startTok);
+  const from = comments.length > 0 ? comments[0].start : lx.tokens[member.startTok].start;
+  return sourceLines(lx, from, lx.tokens[member.endTok].end);
+}
+function buildWrongSnippet(lx, plan) {
+  const { decl, ctor, body } = plan;
+  const headerStart = lx.tokens[decl.firstTok].start;
+  const headerEnd = lx.tokens[decl.bodyOpenTok].end;
+  const lines = lx.source.slice(lineStartOffset(lx, headerStart), headerEnd).split("\n");
+  if (decl.kind === "enum" && body.entriesEndTok >= 0) lines.push("  // ...valores do enum", "");
+  lines.push(...memberLines(lx, body, ctor, decl));
+  const shown = plan.movedFields.slice(0, MAX_SNIPPET_ITEMS);
+  for (const field of shown) lines.push("", ...memberLines(lx, body, field, decl));
+  if (plan.movedFields.length > shown.length) {
+    lines.push("", `  // ... +${plan.movedFields.length - shown.length} campo(s)`);
+  }
+  const removed = new Set([ctor, ...plan.movedFields]);
+  if (body.members.some((m) => !removed.has(m))) lines.push("", "  // ...");
+  lines.push("}");
+  // arquivos CRLF: o `\r` não vai para a mensagem
+  return lines.join("\n").replace(/\r/g, "");
+}
+function buildCorrectSnippet(plan) {
+  const header = renderHeader(plan);
+  if (plan.emptyBody) return [...plan.annotationLines, `${header};`].join("\n");
+  const removed = new Set([plan.ctor, ...plan.movedFields]);
+  const hasOtherMembers = plan.body.members.some((m) => !removed.has(m));
+  const lines = [...plan.annotationLines, `${header} {`];
+  if (plan.decl.kind === "enum" && plan.body.entriesEndTok >= 0) {
+    lines.push("  // ...valores do enum (sem alteração)");
+    if (plan.thisPart !== null || hasOtherMembers) lines.push("");
+  }
+  lines.push(...renderThisPart(plan, "  "));
+  if (hasOtherMembers) {
+    if (plan.thisPart !== null) lines.push("");
+    lines.push("  // ... demais membros sem alteração");
+  }
+  lines.push("}");
+  // arquivos CRLF: o `\r` não vai para a mensagem
+  return lines.join("\n").replace(/\r/g, "");
+}
+/** Intervalo a remover de um membro: linhas inteiras quando o membro ocupa a linha sozinho. */
+function removalRange(lx, body, member, decl) {
+  const s = lx.source;
+  const comments = leadingComments(lx, memberCommentStart(lx, body, member, decl), member.startTok);
+  let start = comments.length > 0 ? comments[0].start : lx.tokens[member.startTok].start;
+  let end = lx.tokens[member.endTok].end;
+  const trailing = trailingComment(lx, member.endTok);
+  if (trailing) end = trailing.end;
+  const lineStart = lineStartOffset(lx, start);
+  if (!s.slice(lineStart, start).trim()) start = lineStart;
+  const nl = s.indexOf("\n", end);
+  if (nl >= 0 && !s.slice(end, nl).trim()) {
+    end = nl + 1;
+    const nextNl = s.indexOf("\n", end);
+    if (nextNl >= 0 && !s.slice(end, nextNl).trim()) end = nextNl + 1;
+  }
+  return { start, end, text: "" };
+}
+/** Trechos "errado"/"correto" que o plugin publicaria para cada classe (exportado para testes). */
+function suggestPrimaryConstructors(source, file) {
+  const lx = lex(source);
+  const resolver = file ? resolverFor(file) : null;
+  const suggestions = [];
+  for (const decl of declsOf(lx)) {
+    const { report, plan } = analyzeDecl(lx, decl, resolver);
+    if (plan === null) continue;
+    suggestions.push({
+      name: report.name,
+      line: report.line,
+      wrong: buildWrongSnippet(lx, plan),
+      correct: buildCorrectSnippet(plan),
+      hasCtorBody: hasBodyContent(lx, plan.ctor),
+    });
+  }
+  return suggestions;
+}
+/** Aplica todas as conversões seguras do arquivo (exportado para testes). */
+function convertToPrimaryConstructors(source, file) {
+  const lx = lex(source);
+  const { tokens } = lx;
+  const resolver = file ? resolverFor(file) : null;
+  const edits = [];
+  for (const decl of declsOf(lx)) {
+    const { plan } = analyzeDecl(lx, decl, resolver);
+    if (plan === null) continue;
+    const headerStart = tokens[decl.keywordTok - decl.modifiers.length].start;
+    const header = renderHeader(plan);
+    if (plan.emptyBody) {
+      edits.push({ start: headerStart, end: tokens[decl.endTok].end, text: `${header};` });
+      continue;
+    }
+    edits.push({ start: headerStart, end: tokens[decl.bodyOpenTok].start, text: `${header} ` });
+    if (plan.thisPart !== null) {
+      const insertAt =
+        decl.kind === "enum" && plan.body.entriesEndTok >= 0
+          ? tokens[plan.body.entriesEndTok].end
+          : tokens[decl.bodyOpenTok].end;
+      edits.push({
+        start: insertAt,
+        end: insertAt,
+        text: `\n\n${renderThisPart(plan, "  ").join("\n")}\n`,
+      });
+    }
+    for (const member of [plan.ctor, ...plan.movedFields]) {
+      edits.push(removalRange(lx, plan.body, member, decl));
+    }
+  }
+  edits.sort((a, b) => b.start - a.start || b.end - a.end);
+  let out = source;
+  for (const e of edits) out = out.slice(0, e.start) + e.text + out.slice(e.end);
+  return out;
+}
+/**
+ * Filtro barato antes de tokenizar: algum `class`/`enum` com `const` ou com `(`
+ * antes do `{`/`;` do cabeçalho. Pode dar falso "talvez" (a tokenização decide),
+ * nunca falso "não" — senão os plugins que usam os helpers voltariam a errar.
+ */
+const PRIMARY_HEADER_HINT_RE = /\b(?:class|enum)\s+const\b|\b(?:class|enum)\s[^{;]*\(/;
+const JOIN_OPENERS = new Set(["(", "[", "{", "<"]);
+const JOIN_CLOSERS = new Set([")", "]", "}", ">"]);
+/**
+ * Texto dos tokens `[from, to]` em uma linha e sem comentários, no formato de
+ * uma linha do `dart format`: um espaço onde havia separação, exceto junto de
+ * `(`, `[`, `{`, `<` e fechamentos, e sem a vírgula final do formato "tall"
+ * (`Function(\n  String a,\n)` → `Function(String a)`).
+ */
+function joinTokens(lx, from, to) {
+  const { tokens } = lx;
+  let out = "";
+  let previous = null;
+  for (let k = from; k <= to; k++) {
+    const t = tokens[k];
+    const next = k < to ? tokens[k + 1] : undefined;
+    if (isPunct(t, ",") && isPunct(next, ">")) continue;
+    if (k < to && isRemovableTrailingComma(tokens, k, from)) continue;
+    const separated = previous !== null && (t.start > previous.end || isPunct(previous, ","));
+    const glued =
+      (previous?.kind === "punct" && JOIN_OPENERS.has(previous.value)) ||
+      (t.kind === "punct" && JOIN_CLOSERS.has(t.value));
+    if (separated && !glued) out += " ";
+    out += t.value;
+    previous = t;
+  }
+  return out;
+}
+function primaryDeclsOf(lx) {
+  return declsOf(lx).filter((d) => d.hasPrimary && !d.isMixinApplication);
+}
+/** Primeiro token depois do nome, dos parâmetros de tipo e da lista do primary constructor. */
+function clausesStartTok(lx, decl) {
+  if (decl.primaryParamsOpenTok >= 0) return matchClose(lx.tokens, decl.primaryParamsOpenTok) + 1;
+  const afterName = decl.nameTok + 1;
+  if (!isPunct(lx.tokens[afterName], "<")) return afterName;
+  return matchTypeArgs(lx.tokens, afterName, lx.tokens.length) + 1;
+}
+/** Cabeçalho clássico equivalente: `final class Foo<T> extends Bar implements Baz {`. */
+function classicHeader(lx, decl) {
+  const { tokens } = lx;
+  let text = [...decl.modifiers, decl.kind, decl.name].join(" ");
+  if (isPunct(tokens[decl.nameTok + 1], "<")) {
+    const close = matchTypeArgs(tokens, decl.nameTok + 1, tokens.length);
+    if (close < 0) return null;
+    text += joinTokens(lx, decl.nameTok + 1, close);
+  }
+  const bodyTok = decl.bodyOpenTok >= 0 ? decl.bodyOpenTok : decl.endTok;
+  const clausesStart = clausesStartTok(lx, decl);
+  if (clausesStart <= 0 || clausesStart > bodyTok) return null;
+  if (clausesStart < bodyTok) text += ` ${joinTokens(lx, clausesStart, bodyTok - 1)}`;
+  return `${text} ${decl.bodyOpenTok >= 0 ? "{" : "{}"}`;
+}
+/** Linhas `///` imediatamente acima do parâmetro (como o `///` acima de um campo). */
+function docLinesBefore(lx, comments) {
+  const lines = commentLines(lx, comments);
+  let first = lines.length;
+  while (first > 0 && lines[first - 1].startsWith("///")) first--;
+  return lines.slice(first);
+}
+function declaringFields(lx, decl) {
+  const { tokens } = lx;
+  if (decl.primaryParamsOpenTok < 0) return [];
+  const close = matchClose(tokens, decl.primaryParamsOpenTok);
+  const params = close < 0 ? null : parseParams(lx, decl.primaryParamsOpenTok, close);
+  if (params === null) return [];
+  const fields = [];
+  let previousEnd = tokens[decl.primaryParamsOpenTok].end;
+  for (const param of params) {
+    const comments = leadingComments(lx, previousEnd, param.startTok);
+    previousEnd = tokens[param.endTok].end;
+    if (param.kind !== "plain" || (param.modifier !== "final" && param.modifier !== "var")) {
+      continue;
+    }
+    fields.push({
+      name: param.name,
+      type: param.typeStartTok >= 0 ? joinTokens(lx, param.typeStartTok, param.typeEndTok) : "",
+      isFinal: param.modifier === "final",
+      lineIndex: lineOf(lx, tokens[param.nameTok].start) - 1,
+      text: joinTokens(lx, param.startTok, param.endTok),
+      docLines: docLinesBefore(lx, comments),
+    });
+  }
+  return fields;
+}
+/**
+ * Classes e enums com primary constructor, com os parâmetros declarantes (que
+ * também são campos da classe). Vazio quando o arquivo não usa o recurso.
+ */
+function findPrimaryConstructors(source) {
+  if (!PRIMARY_HEADER_HINT_RE.test(source)) return [];
+  try {
+    const lx = lex(source);
+    return primaryDeclsOf(lx).map((decl) => ({
+      name: decl.name,
+      kind: decl.kind,
+      lineIndex: lineOf(lx, lx.tokens[decl.keywordTok - decl.modifiers.length].start) - 1,
+      fields: declaringFields(lx, decl),
+    }));
+  } catch {
+    return [];
+  }
+}
+/** Campos do cabeçalho de cada classe, indexados pela linha (base 0) onde o cabeçalho começa. */
+function primaryConstructorFieldsByLine(source) {
+  return new Map(findPrimaryConstructors(source).map((d) => [d.lineIndex, d.fields]));
+}
+/**
+ * Reescreve cada cabeçalho com primary constructor como o cabeçalho clássico
+ * equivalente (`final class Foo extends Bar implements Baz {`), na linha da
+ * palavra-chave `class`/`enum`, e deixa em branco as demais linhas do
+ * cabeçalho: o corpo mantém a mesma numeração de linhas. Os parâmetros
+ * declarantes somem do texto; use `findPrimaryConstructors` para obtê-los.
+ * Sem primary constructor, devolve o texto original.
+ */
+function normalizePrimaryConstructorHeaders(source) {
+  if (!PRIMARY_HEADER_HINT_RE.test(source)) return source;
+  try {
+    const lx = lex(source);
+    let out = "";
+    let cursor = 0;
+    for (const decl of primaryDeclsOf(lx)) {
+      const header = classicHeader(lx, decl);
+      if (header === null) continue;
+      const start = lx.tokens[decl.keywordTok - decl.modifiers.length].start;
+      const end = lx.tokens[decl.bodyOpenTok >= 0 ? decl.bodyOpenTok : decl.endTok].end;
+      const newlines = source.slice(start, end).split("\n").length - 1;
+      out += source.slice(cursor, start) + header + "\n".repeat(newlines);
+      cursor = end;
+    }
+    return out + source.slice(cursor);
+  } catch {
+    return source;
+  }
+}
+const pubspecCache = new Map();
+function readPubspec(pubspecPath) {
+  const cached = pubspecCache.get(pubspecPath);
+  if (cached) return cached;
+  const info = { name: null, version: null };
+  try {
+    const parsed = yaml.load(fs.readFileSync(pubspecPath, "utf-8"));
+    if (typeof parsed?.name === "string") info.name = parsed.name;
+    const sdk = parsed?.environment?.sdk;
+    if (typeof sdk === "string") info.version = parseSdkLowerBound(sdk);
+  } catch {
+    // pubspec inválido: sem versão (o plugin não roda)
+  }
+  pubspecCache.set(pubspecPath, info);
+  return info;
+}
+/**
+ * Versão mínima (major.minor) de uma restrição de SDK: `^3.13.0`,
+ * `>=3.13.0 <4.0.0`, `<4.0.0 >=3.13.0`, `">= 3.13.0-0"`, `3.13.0`. Limites
+ * superiores (`<`, `<=`) não contam; sem limite inferior (`any`) retorna null.
+ */
+function parseSdkLowerBound(constraint) {
+  let lower = null;
+  const re = /(\^|>=|<=|>|<)?\s*(\d+)\.(\d+)(?:\.\d+)?(?:[-+][0-9A-Za-z.-]*)?/g;
+  for (const m of constraint.matchAll(re)) {
+    if (m[1] === "<" || m[1] === "<=") continue;
+    const version = { major: parseInt(m[2], 10), minor: parseInt(m[3], 10) };
+    const higher =
+      lower === null ||
+      version.major > lower.major ||
+      (version.major === lower.major && version.minor > lower.minor);
+    if (higher) lower = version;
+  }
+  return lower;
+}
+function readPackageLanguageVersion(pubspecPath) {
+  return readPubspec(pubspecPath).version;
+}
+function findNearestPubspec(file) {
+  let dir = path.dirname(path.resolve(file));
+  const root = path.parse(dir).root;
+  while (true) {
+    const candidate = path.join(dir, "pubspec.yaml");
+    if (fs.existsSync(candidate)) return candidate;
+    if (dir === root) return null;
+    dir = path.dirname(dir);
+  }
+}
+function isAtLeast(version) {
+  return (
+    version.major > MIN_LANGUAGE_MAJOR ||
+    (version.major === MIN_LANGUAGE_MAJOR && version.minor >= MIN_LANGUAGE_MINOR)
+  );
+}
+/** Motivo para não analisar o arquivo, ou null se primary constructors estão disponíveis. */
+function languageVersionIssue(file, content) {
+  const pubspec = findNearestPubspec(file);
+  if (!pubspec) return "pubspec.yaml não encontrado";
+  const version = readPackageLanguageVersion(pubspec);
+  if (!version) return `SDK não declarado em ${pubspec}`;
+  if (!isAtLeast(version)) return `SDK mínimo ${version.major}.${version.minor} (< 3.13)`;
+  const override = content.match(LANGUAGE_OVERRIDE_RE);
+  if (override) {
+    const fileVersion = { major: parseInt(override[1], 10), minor: parseInt(override[2], 10) };
+    if (!isAtLeast(fileVersion)) return `// @dart=${override[1]}.${override[2]} no arquivo`;
+  }
+  return null;
+}
+// ---------------------------------------------------------------------------
+// Plugin
+// ---------------------------------------------------------------------------
+/** Arquivo apontado por uma URI de diretiva (relativa ou `package:` do próprio pacote). */
+function resolveDartUri(file, uri) {
+  if (!uri.startsWith("package:")) {
+    return /^[a-z]+:/i.test(uri) ? null : path.resolve(path.dirname(file), uri);
+  }
+  const [pkg, ...rest] = uri.slice("package:".length).split("/");
+  const pubspec = findNearestPubspec(file);
+  if (!pubspec || readPubspec(pubspec).name !== pkg || rest.length === 0) return null;
+  return path.join(path.dirname(pubspec), "lib", ...rest);
+}
+/**
+ * Para arquivos `part of`: motivo para não analisar quando a biblioteca-mãe tem
+ * código gerado (o `part 'x.g.dart';` fica nela) ou não pode ser verificada.
+ */
+function parentLibraryReason(lx, file) {
+  const { tokens } = lx;
+  for (let k = 0; k + 2 < tokens.length; k++) {
+    if (!isIdent(tokens[k], "part") || !isIdent(tokens[k + 1], "of")) continue;
+    if (isPunct(tokens[k - 1], ".")) continue;
+    const uriTok = tokens[k + 2];
+    if (uriTok.kind !== "string")
+      return "part of por nome de biblioteca (biblioteca não verificável)";
+    const uri = uriTok.value.replace(/^r/, "").slice(1, -1);
+    const parent = resolveDartUri(file, uri);
+    if (!parent || !fs.existsSync(parent)) return `biblioteca ${uri} não encontrada`;
+    const reason = generatedCodeReason(lex(fs.readFileSync(parent, "utf-8")));
+    return reason ? `biblioteca ${path.basename(parent)}: ${reason}` : null;
+  }
+  return null;
+}
+/**
+ * Motivo para tratar o arquivo como código gerado (ou ligado a código gerado):
+ * `part 'x.g.dart';` (qualquer quebra de linha; comentários não contam) ou
+ * comentário de cabeçalho como `// GENERATED CODE - DO NOT MODIFY BY HAND`.
+ */
+function generatedCodeReason(lx) {
+  const { tokens } = lx;
+  for (let k = 0; k + 2 < tokens.length; k++) {
+    if (!isIdent(tokens[k], "part") || isPunct(tokens[k - 1], ".")) continue;
+    const uri = tokens[k + 1];
+    if (
+      uri.kind === "string" &&
+      isPunct(tokens[k + 2], ";") &&
+      GENERATED_PART_URI_RE.test(uri.value)
+    ) {
+      return `part de código gerado (${uri.value})`;
+    }
+  }
+  const firstToken = tokens.length > 0 ? tokens[0].start : lx.source.length;
+  for (const c of lx.comments) {
+    if (c.start > firstToken) break;
+    if (GENERATED_HEADER_RE.test(lx.source.slice(c.start, c.end))) return "arquivo gerado";
+  }
+  return null;
+}
+function isCandidateFile(file) {
+  const normalized = file.replace(/\\/g, "/");
+  return (
+    normalized.endsWith(".dart") &&
+    !normalized.endsWith("_test.dart") &&
+    !GENERATED_SUFFIXES.some((s) => normalized.endsWith(s)) &&
+    !EXCLUDED_DIRS.some((d) => normalized.startsWith(d) || normalized.includes(`/${d}`))
+  );
+}
+function reportClass(lx, file, report, plan) {
+  const typeLabel = plan.decl.kind === "enum" ? "O enum" : "A classe";
+  const fieldCount = plan.movedFields.length;
+  const duplication =
+    fieldCount > 0 ? ` e repete **${fieldCount} campo(s)** que já chegam pelos parâmetros` : "";
+  const correct = buildCorrectSnippet(plan);
+  (0, _types_1.sendFormattedFail)({
+    title: "USAR PRIMARY CONSTRUCTOR",
+    description:
+      `${typeLabel} \`${report.name}\` declara o construtor dentro do corpo${duplication}. ` +
+      "Declare o construtor principal no **cabeçalho da classe** (primary constructor).",
+    problem: {
+      wrong: buildWrongSnippet(lx, plan),
+      correct,
+      wrongLabel: "Construtor no corpo da classe",
+      correctLabel: "Primary constructor",
+    },
+    action: {
+      text:
+        "Mova a lista de parâmetros para o cabeçalho. `this.campo` vira `final Tipo campo` e a declaração do campo sai do corpo. " +
+        "Initializer list, corpo e `///` do construtor antigo ficam no bloco `this`. " +
+        "Na IDE: **Convert to primary constructor** no construtor e depois **Convert to declaring parameter** em cada `this.campo`.",
+      code: correct,
+    },
+    objective:
+      "Declarar o estado da classe em **um único lugar**: sem repetir campos e parâmetros, com a mesma semântica em tempo de execução.",
+    reference: {
+      text: "Dart — Primary constructors",
+      url: "https://dart.dev/language/primary-constructors",
+    },
+    file,
+    line: report.line,
+  });
+}
+/** Funções internas expostas só para os testes do plugin. */
+exports.__testing = {
+  parseSdkLowerBound,
+  languageVersionIssue,
+  isCandidateFile,
+  generatedCodeReason: (source) => generatedCodeReason(lex(source)),
+  parentLibraryReason: (source, file) => parentLibraryReason(lex(source), file),
+};
+exports.default = (0, _types_1.createPlugin)(
+  {
+    name: "primary-constructors",
+    description: "Obriga o uso de primary constructors em classes e enums (Dart 3.13+)",
+    enabled: true,
+  },
+  async () => {
+    const { git } = (0, _types_1.getDanger)();
+    const files = [...git.created_files, ...git.modified_files].filter(
+      (f) => isCandidateFile(f) && fs.existsSync(f)
+    );
+    for (const file of files) {
+      const content = fs.readFileSync(file, "utf-8");
+      const versionIssue = languageVersionIssue(file, content);
+      if (versionIssue) {
+        (0, _types_1.verboseLog)(`[primary-constructors] ${file} ignorado: ${versionIssue}`);
+        continue;
+      }
+      const lx = lex(content);
+      const generated = generatedCodeReason(lx) ?? parentLibraryReason(lx, file);
+      if (generated) {
+        (0, _types_1.verboseLog)(`[primary-constructors] ${file} ignorado: ${generated}`);
+        continue;
+      }
+      const resolver = resolverFor(file);
+      for (const decl of declsOf(lx)) {
+        const { report, plan } = analyzeDecl(lx, decl, resolver);
+        if (plan !== null) {
+          reportClass(lx, file, report, plan);
+        } else {
+          (0, _types_1.verboseLog)(
+            `[primary-constructors] ${file}:${report.line} ${report.name}: ${report.reason}`
+          );
+        }
+      }
+    }
+  }
+);

@@ -9,6 +9,17 @@ export * from "./types";
 export * from "./helpers";
 export * from "./config";
 
+// Helpers para plugins que analisam classes escritas com primary constructors (Dart 3.13+)
+export {
+  findPrimaryConstructors,
+  normalizePrimaryConstructorHeaders,
+  primaryConstructorFieldsByLine,
+} from "./plugins/flutter/primary-constructors/primary-constructors";
+export type {
+  PrimaryConstructorDecl,
+  PrimaryConstructorField,
+} from "./plugins/flutter/primary-constructors/primary-constructors";
+
 // Export all plugins
 export {
   prSummaryPlugin,
@@ -38,9 +49,14 @@ export {
   classNamingConventionPlugin,
   presentationTryCatchCheckerPlugin,
   mergeConflictCheckerPlugin,
+  avoidGodClassPlugin,
+  avoidSetstateAfterAsyncPlugin,
+  columnRowSpacingPlugin,
+  dateTypeCheckerPlugin,
   printStatementDetectorPlugin,
   emptyCatchDetectorPlugin,
   futureWaitModernizerPlugin,
+  aiCodeReviewPlugin,
   modelEntityInheritancePlugin,
   testFileCheckerPlugin,
   flutterTestRunnerPlugin,
@@ -52,6 +68,8 @@ export {
   presentationEncapsulationPlugin,
   folderNamingConventionPlugin,
   privateNamedParamsPlugin,
+  primaryConstructorsPlugin,
+  googleChatNotificationPlugin,
 } from "./plugins/flutter";
 
 /**
@@ -105,6 +123,7 @@ export const allFlutterPlugins = [
   require("./plugins/flutter/presentation-encapsulation").default,
   require("./plugins/flutter/folder-naming-convention").default,
   require("./plugins/flutter/private-named-params").default,
+  require("./plugins/flutter/primary-constructors").default,
   // google-chat-notification deve ser sempre o último plugin
   require("./plugins/flutter/google-chat-notification").default,
 ];
@@ -148,6 +167,7 @@ import {
   presentationEncapsulationPlugin,
   folderNamingConventionPlugin,
   privateNamedParamsPlugin,
+  primaryConstructorsPlugin,
 } from "./plugins/flutter";
 
 export const domainLayerPlugins = [
@@ -197,6 +217,7 @@ export const codeQualityPlugins = [
   buildDocCheckerPlugin,
   spellCheckerPtbrPlugin,
   privateNamedParamsPlugin,
+  primaryConstructorsPlugin,
 ];
 
 export const performancePlugins = [

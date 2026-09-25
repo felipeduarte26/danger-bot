@@ -138,6 +138,7 @@ export async function dryRun(options) {
   const {
     setIgnoredFiles,
     setVerbose,
+    setActivePlugins,
     isIgnoredFile,
     getIgnoredFileMatches,
   } = require("../../dist/helpers.js");
@@ -289,6 +290,8 @@ export async function dryRun(options) {
   console.log("\n" + "─".repeat(60));
   console.log("⚡ Executando plugins...");
   console.log("─".repeat(60));
+
+  setActivePlugins?.(pluginsToRun.map((p) => p.config.name));
 
   const startTime = Date.now();
   const errors = [];

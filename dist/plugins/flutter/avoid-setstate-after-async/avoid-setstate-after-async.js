@@ -67,6 +67,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  */
 const _types_1 = require("../../../types");
 const fs = __importStar(require("fs"));
+const primary_constructors_1 = require("../primary-constructors/primary-constructors");
 function findSetStateAfterAwait(lines) {
   const issues = [];
   let inStateClass = false;
@@ -144,7 +145,9 @@ exports.default = (0, _types_1.createPlugin)(
       const content = fs.readFileSync(file, "utf-8");
       if (!content.includes("extends State<") && !content.includes("extends ViewState<")) continue;
       if (!content.includes("setState")) continue;
-      const lines = content.split("\n");
+      const lines = (0, primary_constructors_1.normalizePrimaryConstructorHeaders)(content).split(
+        "\n"
+      );
       const issues = findSetStateAfterAwait(lines);
       for (const issue of issues) {
         (0, _types_1.sendFormattedWarn)({

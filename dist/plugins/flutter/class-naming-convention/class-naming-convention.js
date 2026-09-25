@@ -65,6 +65,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  */
 const _types_1 = require("../../../types");
 const fs = __importStar(require("fs"));
+const primary_constructors_1 = require("../primary-constructors/primary-constructors");
 let compromiseLib = null;
 try {
   compromiseLib = require("compromise");
@@ -503,7 +504,9 @@ exports.default = (0, _types_1.createPlugin)(
       for (const file of targetFiles) {
         const layer = isTargetFile(file);
         const content = fs.readFileSync(file, "utf-8");
-        const lines = content.split("\n");
+        const lines = (0, primary_constructors_1.normalizePrimaryConstructorHeaders)(content).split(
+          "\n"
+        );
         let inBlock = false;
         for (let i = 0; i < lines.length; i++) {
           const comment = isInsideComment(lines[i], inBlock);
@@ -661,7 +664,9 @@ function checkPluralClassNames(targetFiles) {
     const layer = isTargetFile(file);
     if (layer === "ViewModel") continue;
     const content = fs.readFileSync(file, "utf-8");
-    const lines = content.split("\n");
+    const lines = (0, primary_constructors_1.normalizePrimaryConstructorHeaders)(content).split(
+      "\n"
+    );
     let inBlock = false;
     for (let i = 0; i < lines.length; i++) {
       const comment = isInsideComment(lines[i], inBlock);

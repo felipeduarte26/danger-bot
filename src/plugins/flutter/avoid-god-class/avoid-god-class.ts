@@ -12,6 +12,7 @@
  */
 import { createPlugin, getDanger, sendFormattedFail } from "@types";
 import * as fs from "fs";
+import { normalizePrimaryConstructorHeaders } from "../primary-constructors/primary-constructors";
 
 const MAX_CLASS_LINES = 300;
 const MAX_CLASS_LINES_PRESENTATION = 600;
@@ -349,7 +350,7 @@ export default createPlugin(
 
     for (const file of dartFiles) {
       const content = fs.readFileSync(file, "utf-8");
-      const lines = content.split("\n");
+      const lines = normalizePrimaryConstructorHeaders(content).split("\n");
       const classes = parseClasses(lines);
 
       for (const cls of classes) {

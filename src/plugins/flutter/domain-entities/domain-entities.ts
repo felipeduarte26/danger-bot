@@ -13,6 +13,10 @@
 import { createPlugin, getDanger, sendFormattedFail } from "@types";
 import * as fs from "fs";
 import * as path from "path";
+import {
+  normalizePrimaryConstructorHeaders,
+  primaryConstructorFieldsByLine,
+} from "../primary-constructors/primary-constructors";
 
 function isBarrelFile(filePath: string): boolean {
   const fileName = path.basename(filePath, ".dart");
@@ -165,6 +169,23 @@ function parseClassFields(lines: string[], classStartLine: number): ClassField[]
   return fields;
 }
 
+/**
+ * Campos `final` declarados no primary constructor (Dart 3.13+) de cada classe,
+ * indexados pela linha do cabeçalho. Mesmo critério de `parseClassFields`.
+ */
+function headerFieldsByLine(content: string): Map<number, ClassField[]> {
+  const result = new Map<number, ClassField[]>();
+  for (const [lineIndex, fields] of primaryConstructorFieldsByLine(content)) {
+    result.set(
+      lineIndex,
+      fields
+        .filter((f) => f.isFinal && f.type && /^[a-z_]\w*$/.test(f.name))
+        .map((f) => ({ type: f.type, name: f.name, line: f.lineIndex + 1 }))
+    );
+  }
+  return result;
+}
+
 function toSnakeCase(name: string): string {
   return name
     .replace(/([a-z])([A-Z])/g, "$1_$2")
@@ -235,7 +256,7 @@ function isEntityExtendedByModel(
   if (!modelPath) return false;
 
   const modelContent = fs.readFileSync(modelPath, "utf-8");
-  const modelLines = modelContent.split("\n");
+  const modelLines = normalizePrimaryConstructorHeaders(modelContent).split("\n");
 
   // Check if model already extends this entity (multi-line aware)
   for (let i = 0; i < modelLines.length; i++) {
@@ -269,7 +290,8 @@ function isEntityExtendedByModel(
 }
 
 function parseModelFields(content: string): ClassField[] {
-  const lines = content.split("\n");
+  const lines = normalizePrimaryConstructorHeaders(content).split("\n");
+  const headerFields = headerFieldsByLine(content);
 
   for (let i = 0; i < lines.length; i++) {
     const trimmed = lines[i].trimStart();
@@ -278,7 +300,7 @@ function parseModelFields(content: string): ClassField[] {
     const classMatch = trimmed.match(/^(?:abstract\s+)?(?:final\s+)?class\s+([A-Za-z_]\w*Model)/);
     if (classMatch) {
       if (trimmed.startsWith("abstract")) continue;
-      return parseClassFields(lines, i);
+      return [...(headerFields.get(i) ?? []), ...parseClassFields(lines, i)];
     }
   }
   return [];
@@ -342,14 +364,15 @@ export default createPlugin(
 
       if (subfolder && VALID_ENUM_PARENTS.has(subfolder)) {
         const content = fs.readFileSync(file, "utf-8");
-        validateEnum(file, content);
+        validateEnum(file, normalizePrimaryConstructorHeaders(content));
         continue;
       }
 
       const content = fs.readFileSync(file, "utf-8");
+      const normalized = normalizePrimaryConstructorHeaders(content);
 
-      if (isEnumFile(content)) {
-        validateEnum(file, content);
+      if (isEnumFile(normalized)) {
+        validateEnum(file, normalized);
         continue;
       }
 
@@ -373,7 +396,8 @@ export default createPlugin(
         continue;
       }
 
-      const lines = content.split("\n");
+      const lines = normalized.split("\n");
+      const headerFields = headerFieldsByLine(content);
 
       const classes: { name: string; line: number; isFinal: boolean }[] = [];
 
@@ -458,7 +482,10 @@ export default createPlugin(
           });
         }
 
-        const fields = parseClassFields(lines, cls.line - 1);
+        const fields = [
+          ...(headerFields.get(cls.line - 1) ?? []),
+          ...parseClassFields(lines, cls.line - 1),
+        ];
 
         const extendedByModel = isEntityExtendedByModel(file, cls.name, fields);
 

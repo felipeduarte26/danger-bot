@@ -62,6 +62,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  */
 const _types_1 = require("../../../types");
 const fs = __importStar(require("fs"));
+const primary_constructors_1 = require("../primary-constructors/primary-constructors");
 const DISPOSE_TYPES = [
   "TextEditingController",
   "AnimationController",
@@ -100,7 +101,9 @@ exports.default = (0, _types_1.createPlugin)(
     for (const file of dartFiles) {
       const content = fs.readFileSync(file, "utf-8");
       if (!content.includes("extends State<") && !content.includes("extends ViewState<")) continue;
-      const lines = content.split("\n");
+      const lines = (0, primary_constructors_1.normalizePrimaryConstructorHeaders)(content).split(
+        "\n"
+      );
       const disposables = findDisposables(lines);
       if (disposables.length === 0) continue;
       const disposeBody = extractDisposeBody(lines);

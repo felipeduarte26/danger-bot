@@ -1,10 +1,11 @@
 /**
  * 📄 CHANGELOG CHECKER PLUGIN
  * ==========================
- * Verifica se o CHANGELOG foi atualizado quando necessário
+ * Verifica se o CHANGELOG foi atualizado quando necessário.
+ * Quando o pr-validation está ativo, não roda: ele já reprova o PR pelo mesmo motivo.
  */
 
-import { createPlugin, getDanger, sendWarn } from "@types";
+import { createPlugin, getDanger, isPluginActive, sendWarn, verboseLog } from "@types";
 
 export default createPlugin(
   {
@@ -13,6 +14,13 @@ export default createPlugin(
     enabled: true,
   },
   async () => {
+    // Com o pr-validation ativo, a falha dele (CHANGELOG NÃO ATUALIZADO/ENCONTRADO)
+    // já cobre este aviso: todo PR que este plugin avisaria, o pr-validation reprova.
+    if (isPluginActive("pr-validation")) {
+      verboseLog("[changelog-checker] ignorado: o pr-validation já verifica o changelog");
+      return;
+    }
+
     const danger = getDanger();
     const modifiedFiles = danger.git.modified_files;
     const createdFiles = danger.git.created_files;

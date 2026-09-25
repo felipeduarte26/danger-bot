@@ -249,7 +249,7 @@ let _eld: { detect: (text: string) => { language: string } } | null = null;
 async function loadEld(): Promise<typeof _eld> {
   if (_eld) return _eld;
   try {
-    const mod = await import("eld/large" as string);
+    const mod = await import("eld/large");
     _eld = mod.default || mod;
     return _eld;
   } catch {
@@ -302,7 +302,7 @@ function extractIdentifiers(line: string, lineNumber: number): IdentifierInfo[] 
   if (!clean.trim()) return results;
 
   const classMatch = clean.match(
-    /(?:abstract\s+interface\s+class|abstract\s+class|final\s+class|sealed\s+class|class)\s+([A-Za-z_]\w*)/
+    /(?:abstract\s+interface\s+class|abstract\s+class|final\s+class|sealed\s+class|class)\s+(?:const\s+)?([A-Za-z_]\w*)/
   );
   if (classMatch) {
     for (const word of breakCamelCase(classMatch[1])) {
