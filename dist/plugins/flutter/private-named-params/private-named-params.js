@@ -69,7 +69,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * Escopo: ViewModels, Datasources, Repositories, Widgets e qualquer classe.
  * Referência: https://dart.dev/to/private-named-parameters
  */
-const _types_1 = require("../../../types");
+const _types_1 = require("../../../types.js");
 const fs = __importStar(require("fs"));
 function isGeneratedOrTestFile(file) {
   return (

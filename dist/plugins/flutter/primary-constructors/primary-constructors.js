@@ -110,7 +110,7 @@ exports.normalizePrimaryConstructorHeaders = normalizePrimaryConstructorHeaders;
  *
  * Referência: https://dart.dev/language/primary-constructors
  */
-const _types_1 = require("../../../types");
+const _types_1 = require("../../../types.js");
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 const yaml = __importStar(require("js-yaml"));
@@ -2714,7 +2714,7 @@ function reportClass(lx, file, report, plan) {
       wrong: buildWrongSnippet(lx, plan),
       correct,
       wrongLabel: "Construtor no corpo da classe",
-      correctLabel: "Primary constructor (Dart 3.13+)",
+      correctLabel: "Primary constructor",
     },
     action: {
       text:

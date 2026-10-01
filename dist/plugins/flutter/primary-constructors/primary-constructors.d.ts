@@ -91,5 +91,5 @@ export declare const __testing: {
   generatedCodeReason: (source: string) => string | null;
   parentLibraryReason: (source: string, file: string) => string | null;
 };
-declare const _default: import("../../../types").DangerPlugin;
+declare const _default: import("../../../types.js").DangerPlugin;
 export default _default;

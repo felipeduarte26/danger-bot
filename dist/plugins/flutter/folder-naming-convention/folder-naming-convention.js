@@ -11,7 +11,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * Reporta cada pasta incorreta apenas uma vez, independente de quantos
  * arquivos dentro dela foram alterados.
  */
-const _types_1 = require("../../../types");
+const _types_1 = require("../../../types.js");
 const FOLDER_RULES = [
   {
     pattern: /\/domain\/usecase\//,

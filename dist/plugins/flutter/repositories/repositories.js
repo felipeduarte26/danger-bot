@@ -69,7 +69,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * - Deve estender BaseRepository
  * - Somente uma classe por arquivo
  */
-const _types_1 = require("../../../types");
+const _types_1 = require("../../../types.js");
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 const primary_constructors_1 = require("../primary-constructors/primary-constructors");

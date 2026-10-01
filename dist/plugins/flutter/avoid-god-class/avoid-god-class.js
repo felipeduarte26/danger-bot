@@ -64,7 +64,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * - Mais de 15 métodos públicos → warning
  * - Exclui: classes geradas (.g.dart, .freezed.dart), enums, mixins, extensions
  */
-const _types_1 = require("../../../types");
+const _types_1 = require("../../../types.js");
 const fs = __importStar(require("fs"));
 const primary_constructors_1 = require("../primary-constructors/primary-constructors");
 const MAX_CLASS_LINES = 300;

@@ -6,7 +6,7 @@
  * Quando o pr-validation está ativo, não roda: ele já reprova o PR pelo mesmo motivo.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-const _types_1 = require("../../../types");
+const _types_1 = require("../../../types.js");
 exports.default = (0, _types_1.createPlugin)(
   {
     name: "changelog-checker",
