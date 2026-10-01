@@ -97,6 +97,8 @@ Ele grava `node_modules/danger/.danger-bot-patched` com `PATCH_VERSION` (hoje ig
 
 ## Criando um plugin
 
+Toda mensagem de plugin segue o [padrão obrigatório das mensagens](#padrão-obrigatório-das-mensagens): helpers `sendFormatted*`, código real do erro, a correção, a ação, o objetivo e o link de referência.
+
 **Prefira `node bin/cli.js create-plugin`.** Ele cria a pasta, o `index.ts` e o README, e registra o plugin em `src/index.ts` (falta só colocá-lo num array de categoria). O `remove-plugin` desfaz tudo.
 
 ### Estrutura
@@ -117,7 +119,7 @@ src/plugins/flutter/<nome-kebab>/
 
 ### Template (arquivo inteiro)
 
-A maioria dos plugins lê o arquivo inteiro com `fs.readFileSync`:
+A maioria dos plugins lê o arquivo inteiro com `fs.readFileSync`. Toda mensagem segue o [padrão obrigatório](#padrão-obrigatório-das-mensagens): código real do erro, a mesma linha corrigida, ação, objetivo e referência.
 
 ```typescript
 /**
@@ -126,6 +128,9 @@ A maioria dos plugins lê o arquivo inteiro com `fs.readFileSync`:
  */
 import { createPlugin, getDanger, sendFormattedFail } from "@types";
 import * as fs from "fs";
+
+const PATTERN = /padraoProblematico\(/;
+const REPLACEMENT = "padraoCorreto(";
 
 export default createPlugin(
   {
@@ -149,20 +154,23 @@ export default createPlugin(
       const lines = fs.readFileSync(file, "utf-8").split("\n");
 
       for (let i = 0; i < lines.length; i++) {
-        if (!/padrao-problematico/.test(lines[i])) continue;
+        if (!PATTERN.test(lines[i])) continue;
+
+        const wrong = lines[i].trim(); // código REAL do arquivo
+        const fixed = wrong.replace(PATTERN, REPLACEMENT); // a mesma linha, já corrigida
 
         sendFormattedFail({
           title: "TITULO FIXO EM CAPS", // chave do resumo: sem dados variáveis
-          description: `Explicação curta com \`código\` e **negrito**.`,
+          description: "Por que `padraoProblematico()` é um problema (1-2 linhas, **negrito** no essencial).",
           problem: {
-            wrong: lines[i].trim(),
-            correct: "codigo_correto();",
-            wrongLabel: "Errado", // opcional
-            correctLabel: "Correto", // opcional
+            wrong,
+            correct: fixed,
+            wrongLabel: "Efeito do código atual",
+            correctLabel: "O que muda com a correção",
           },
-          action: { text: "O que fazer:", code: "codigo_correto();" },
+          action: { text: "Substitua por:", code: fixed },
           objective: "Benefício da correção em uma frase.",
-          reference: { text: "Effective Dart", url: "https://dart.dev/effective-dart" },
+          reference: { text: "Nome da doc oficial", url: "https://api.flutter.dev/..." },
           file,
           line: i + 1,
         });
@@ -196,7 +204,31 @@ export default createPlugin({ name: "regra-local", description: "...", enabled: 
 
 O Node carrega o `.ts` direto ([type stripping](https://nodejs.org/api/typescript.html)), então use só sintaxe apagável: tipos e interfaces, sem `enum` e sem `namespace`.
 
-### Formato da mensagem
+### Padrão obrigatório das mensagens
+
+**Todo problema apontado num arquivo/linha usa `sendFormattedFail` (regra) ou `sendFormattedWarn` (heurística).** Nunca use `sendFail`/`sendWarn` com template literal montado à mão. O exemplo de referência é o [mediaquery-modern.ts](src/plugins/flutter/mediaquery-modern/mediaquery-modern.ts) (veja o `sendFormattedFail` do `MediaQuery.of(...).<prop>`):
+
+| Campo | O que colocar | No mediaquery-modern |
+|---|---|---|
+| `title` | Problema em CAPS, sem emoji e **fixo** (é a chave do resumo) | `"MEDIAQUERY.OF() — USE API MODERNA"` |
+| `description` | Por que é problema, citando o trecho detectado | `` `MediaQuery.of(...).${property}` causa rebuilds desnecessários. `` |
+| `problem.wrong` | O **código real** do erro (linha ou trecho do arquivo) | `line.trim()` |
+| `problem.correct` | O **mesmo código já corrigido** | `line.trim().replace(MQ_OF_RE, alternative)` |
+| `wrongLabel` / `correctLabel` | O efeito de cada versão | `"Rebuild quando QUALQUER propriedade muda"` / `` `Rebuild apenas quando ${property} muda` `` |
+| `action` | `text`: o que fazer; `code`: a correção pronta para copiar | `` `Substitua por \`${alternative}\`:` `` + a linha corrigida |
+| `objective` | O benefício em uma frase | `"Melhor **performance** com rebuilds mais eficientes."` |
+| `reference` | Link oficial (dart.dev, docs.flutter.dev, api.flutter.dev, linter rules...) **sempre que existir** | `MediaQuery-class.html` na api.flutter.dev |
+| `file` / `line` | Para o comentário inline na linha do problema | `file`, `i + 1` |
+
+Quando não der para mostrar a linha real:
+- **Regra estrutural** (nome de arquivo, pasta, classe ou método ausente): use os nomes reais do arquivo (ex.: `wrong: fileName` e ``correct: `${fileName.replace(".dart", "")}_entity.dart` ``) ou um esqueleto com o nome real da classe (`class ${cls.name} { }`). Veja domain-entities e data-datasources.
+- **Dado sensível** (security-checker): não repita o segredo no PR; use um exemplo genérico.
+- **Sem documentação confiável:** só então omita `reference`.
+
+Os outros helpers ficam para mensagens **sem** linha de código associada:
+- `sendFail`/`sendWarn` sem arquivo — resumo de uma linha no formato `**TÍTULO** — detalhe`. Ex.: pr-size-checker, o total do flutter-analyze, flutter-test-runner, changelog-checker.
+- `sendMarkdown` — relatórios e tabelas (pr-summary, test-coverage-summary). Também serve para repassar a saída de uma ferramenta externa linha a linha, com o link da regra: é o que o flutter-analyze faz com cada diagnóstico, somando um `sendFail` de resumo.
+- `sendMessage` — informação neutra.
 
 `sendFormattedFail`/`sendFormattedWarn` montam este layout:
 
@@ -217,7 +249,7 @@ frase curta
 📖 [link de referência](url)
 ```
 
-**Sempre inclua `reference`** com um link oficial (dart.dev, docs.flutter.dev, api.flutter.dev...). `problem.language`/`action.language` têm padrão `dart`; use `"text"` para árvores de pastas.
+`problem.language`/`action.language` têm padrão `dart`; use `"text"` para árvores de pastas.
 
 **Severidade:** `fail` para regra do padrão do time. `warn` para heurística sujeita a falso positivo (ex.: print-statement-detector, avoid-setstate-after-async). `message`/`sendMarkdown` para informação (resumos, tabelas).
 
