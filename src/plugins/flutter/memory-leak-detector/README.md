@@ -5,7 +5,8 @@ Em `State<>` / `ViewState<>`, encontra **campos** típicos que precisam de `disp
 ## O que verifica
 
 - Tipos com dispose: `TextEditingController`, `AnimationController`, `FocusNode`, `ChangeNotifier`, etc.
-- Tipos com cancel: `Timer`, `StreamSubscription`, `StreamController`
+- Tipos com cancel: `Timer`, `StreamSubscription`
+- Tipos com close: `StreamController`
 
 ## Severidade
 

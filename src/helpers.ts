@@ -36,7 +36,7 @@
  * - `isInLayer()` - Verifica se arquivo está em camada específica
  *
  * ### 📖 Leitura de Conteúdo
- * - `getFileContent()` - Lê conteúdo de arquivo do git diff
+ * - `getFileContent()` - Lê o conteúdo do arquivo depois das mudanças do PR
  * - `fileContainsPattern()` - Verifica se arquivo contém padrão
  *
  * ### 📋 Informações do PR
@@ -460,6 +460,18 @@ export function flushSummaries(): void {
 
   if (failFn && _failSummary.size > 0) flushMap(_failSummary, failFn);
   if (warnFn && _warnSummary.size > 0) flushMap(_warnSummary, warnFn);
+}
+
+/**
+ * Ocorrências de fails/warns inline (com arquivo e linha) que ainda vão para a
+ * tabela principal no `flushSummaries()`. Antes do flush elas ainda não estão
+ * em `results.fails`/`results.warnings` do Danger.
+ */
+export function getPendingSummaryCounts(): { fails: number; warnings: number } {
+  if (_summaryFlushed) return { fails: 0, warnings: 0 };
+  const total = (map: Map<string, { count: number }>): number =>
+    [...map.values()].reduce((sum, entry) => sum + entry.count, 0);
+  return { fails: total(_failSummary), warnings: total(_warnSummary) };
 }
 
 /**
@@ -984,19 +996,25 @@ export function isInLayer(file: string, layer: "domain" | "data" | "presentation
 }
 
 /**
- * Read file content from git diff
- * Lê o conteúdo de um arquivo do diff do git
+ * Conteúdo do arquivo depois das mudanças do PR.
  *
- * @param file - File path
- * @returns File content as string, or null if not available
+ * Usa o `after` de `danger.git.diffForFile` (funciona em todas as plataformas e
+ * no dry-run) e, se a plataforma não devolver o conteúdo, lê o arquivo do disco.
+ *
+ * @param file - Caminho do arquivo
+ * @returns Conteúdo do arquivo, ou null se não estiver disponível (ex.: removido)
  */
 export async function getFileContent(file: string): Promise<string | null> {
   try {
-    const danger = getDanger();
-    const content = await danger.git.structuredDiffForFile(file);
-    if (!content) return null;
-    return content.chunks.map((c: any) => c.content).join("\n");
-  } catch (e) {
+    const diff = await getDanger().git.diffForFile(file);
+    if (diff?.after) return diff.after;
+  } catch {
+    // sem diff para o arquivo: tenta o disco
+  }
+  try {
+    const { existsSync, readFileSync } = await import("fs");
+    return existsSync(file) ? readFileSync(file, "utf-8") : null;
+  } catch {
     return null;
   }
 }

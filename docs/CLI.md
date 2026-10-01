@@ -82,35 +82,29 @@ danger-bot ls
 
 **Saida:**
 
+```text
+============================================================
+DANGER BOT PLUGINS
+============================================================
+
+--- FLUTTER ---
+
+[1] AI-CODE-REVIEW
+    Platform: flutter
+    Folder: ai-code-review/
+    File: ai-code-review.ts
+    Description: Code review com IA (Gemini) — analisa Clean Code, SOLID, segurança e bugs
+    Status: DISABLED
+    Documentation: README.md
+
+[2] AVOID-GOD-CLASS
+    ...
+
+============================================================
+Total: 48 plugin(s) across 1 platform(s)
 ```
-DANGER BOT - PLUGINS DISPONÍVEIS
-=================================
 
-flutter/
-
-  PR & Validação:
-    - pr-summary
-    - pr-size-checker
-    - pr-validation
-    - changelog-checker
-    - merge-conflict-checker
-
-  Clean Architecture - Domain:
-    - domain-entities
-    - domain-failures
-    - repositories
-    - domain-usecases
-
-  Clean Architecture - Data:
-    - data-datasources
-    - data-models
-
-  Clean Architecture - Presentation:
-    - presentation-viewmodels
-    - presentation-try-catch-checker
-
-  ...
-```
+> Comandos de desenvolvimento do pacote (`list`, `info`, `create-plugin`, `remove-plugin`) leem `src/plugins/` do diretorio atual: rode-os na raiz do repositorio do danger-bot. `dry-run`, `init` e `gen` sao para o projeto que usa o Danger Bot; `validate` recebe o caminho do arquivo e funciona em qualquer lugar.
 
 ---
 
@@ -185,19 +179,19 @@ danger-bot remove-plugin
 danger-bot rm
 ```
 
-**O que e removido:**
+**O que e removido** (o inverso do `create-plugin`):
 
 - Pasta completa do plugin (`src/plugins/flutter/<nome>/`)
 - Export do barrel file (`src/plugins/flutter/index.ts`)
-- Referencia no `allFlutterPlugins` (`src/index.ts`)
+- Em `src/index.ts`: o nome no bloco `export { ... } from "./plugins/flutter"`, no `import` das categorias, o `require(...)` do `allFlutterPlugins` e os arrays de categoria (`codeQualityPlugins`, `domainLayerPlugins`...)
 
-A CLI pede confirmacao antes de remover.
+O nome exportado e lido do barrel (ex.: `domain-usecases` → `domainUseCasesPlugin`). So as linhas do plugin sao removidas — o resto do arquivo fica como esta. A CLI pede confirmacao antes de remover.
 
 ---
 
 ## danger-bot generate-dangerfile
 
-Gera um arquivo `dangerfile.example.ts` com todos os plugins disponiveis.
+Gera um arquivo `dangerfile.example.ts` no diretorio atual (o projeto que vai usar o Danger Bot), usando `allFlutterPlugins` com o `executeDangerBot`.
 
 ```bash
 danger-bot generate-dangerfile
@@ -304,50 +298,28 @@ danger-bot info
 
 **Saida:**
 
-```
+```text
 ============================================================
 DANGER BOT - PROJECT INFO
 ============================================================
 
 Name:        @felipeduarte26/danger-bot
-Version:     1.8.0
+Version:     3.4.0
 Description: Conjunto modular de plugins Danger JS
 
 Platforms:
 
-  flutter/
-    - barrel-files-enforcer/
-    - changelog-checker/
-    - class-naming-convention/
-    - clean-architecture/
-    - comments-checker/
-    - data-datasources/
-    - data-models/
-    - domain-entities/
-    - domain-failures/
-    - domain-usecases/
-    - file-naming/
-    - flutter-analyze/
-    - flutter-performance/
-    - flutter-widgets/
-    - identifier-language/
-    - late-final-checker/
-    - mediaquery-modern/
-    - memory-leak-detector/
-    - merge-conflict-checker/
-    - pr-size-checker/
-    - pr-summary/
-    - pr-validation/
-    - presentation-try-catch-checker/
-    - presentation-viewmodels/
-    - repositories/
-    - security-checker/
-    - spell-checker/
+  flutter/ (48 plugins)
+    - ai-code-review/
+    - avoid-god-class/
+    - ...
 
-Total: plugin(s) across 1 platform(s)
+Total: 48 plugin(s) across 1 platform(s)
 
 ============================================================
 ```
+
+So entram na contagem as pastas que tem o arquivo do plugin (`<pasta>/<nome>.ts`); pastas vazias ou em construcao sao ignoradas, como no `list`.
 
 ---
 

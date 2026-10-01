@@ -18,7 +18,7 @@ Guias de configuracao do Danger Bot em diferentes plataformas de CI/CD.
 
 ## Requisitos gerais
 
-1. **Node.js 22+** instalado no CI
+1. **Node.js 25.2.1+** (o `engines` do pacote) instalado no CI
 2. **Access Token** do git provider (para comentar em PRs)
 3. **dangerfile.ts** commitado no repositorio
 4. **Variavel de ambiente** com o token configurada
@@ -69,7 +69,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "25"
       - run: npm ci
       - run: npx danger ci
         env:
@@ -89,7 +89,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "25"
           cache: "npm"
       - run: npm ci
       - run: npx danger ci
@@ -105,7 +105,7 @@ Adicione ao `.gitlab-ci.yml`:
 
 ```yaml
 danger:
-  image: node:22
+  image: node:25
   stage: test
   only:
     - merge_requests
@@ -131,7 +131,7 @@ version: 2.1
 jobs:
   danger:
     docker:
-      - image: cimg/node:22.0
+      - image: cimg/node:25.2
     steps:
       - checkout
       - restore_cache:

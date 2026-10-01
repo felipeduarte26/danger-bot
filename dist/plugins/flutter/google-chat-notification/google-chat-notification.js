@@ -29,13 +29,19 @@ function getWebhookUrl() {
   if (envUrl?.startsWith("https://")) return envUrl;
   return null;
 }
+/**
+ * Fails/warnings da execução: os que já estão nos resultados do Danger mais os
+ * inline (com arquivo e linha), que só entram nos resultados no `flushSummaries()`,
+ * depois de todos os plugins.
+ */
 function getDangerResults() {
   const results = global.results ?? globalThis.results;
-  if (!results) return { fails: 0, warnings: 0, messages: 0 };
+  const pending = (0, helpers_1.getPendingSummaryCounts)();
+  const count = (list) => (Array.isArray(list) ? list.length : 0);
   return {
-    fails: Array.isArray(results.fails) ? results.fails.length : 0,
-    warnings: Array.isArray(results.warnings) ? results.warnings.length : 0,
-    messages: Array.isArray(results.messages) ? results.messages.length : 0,
+    fails: count(results?.fails) + pending.fails,
+    warnings: count(results?.warnings) + pending.warnings,
+    messages: count(results?.messages),
   };
 }
 function getPRUrl() {

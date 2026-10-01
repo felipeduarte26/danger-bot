@@ -62,6 +62,7 @@ var __importStar =
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.loadLocalPlugins =
   exports.loadConfig =
+  exports.getPendingSummaryCounts =
   exports.flushSummaries =
   exports.sendFormattedWarn =
   exports.sendFormattedFail =
@@ -294,6 +295,12 @@ Object.defineProperty(exports, "flushSummaries", {
     return helpers_1.flushSummaries;
   },
 });
+Object.defineProperty(exports, "getPendingSummaryCounts", {
+  enumerable: true,
+  get: function () {
+    return helpers_1.getPendingSummaryCounts;
+  },
+});
 var config_1 = require("./config");
 Object.defineProperty(exports, "loadConfig", {
   enumerable: true,
@@ -360,12 +367,24 @@ async function runPlugins(plugins) {
     console.log(`[verbose] ⏱️  Tempo total de execução: ${totalElapsed}ms`);
   }
 }
+/** Plugin que resume o resultado final: precisa rodar depois de todos os outros. */
+const LAST_PLUGIN_NAME = "google-chat-notification";
+/** Move o `google-chat-notification` para o fim, mantendo a ordem dos demais. */
+function withNotificationLast(plugins) {
+  const isLast = (p) => p.config.name === LAST_PLUGIN_NAME;
+  return [...plugins.filter((p) => !isLast(p)), ...plugins.filter(isLast)];
+}
 /**
  * Execute Danger Bot with plugins - Simplifies dangerfile.ts
  *
  * Carrega automaticamente o arquivo `danger-bot.yaml` da raiz do projeto.
  * - `ignore_files`: arquivos ignorados por todos os plugins
  * - `local_plugins`: plugins locais do projeto, carregados e executados junto com os plugins padrão
+ *   (antes do `google-chat-notification`, que é sempre o último)
+ *
+ * A execução é registrada com `schedule()`, então o Danger espera todos os
+ * plugins terminarem antes de publicar os comentários. A Promise retornada
+ * resolve no fim; erros dos plugins não a rejeitam, vão para `onError`.
  *
  * @param plugins - Array of plugins to run
  * @param callbacks - Optional callbacks for lifecycle hooks
@@ -385,17 +404,17 @@ async function runPlugins(plugins) {
  * ```
  */
 function executeDangerBot(plugins, callbacks) {
-  void (async () => {
+  const run = (async () => {
+    const { flushSummaries: flush } = await Promise.resolve().then(() =>
+      __importStar(require("./helpers"))
+    );
     try {
       const { loadConfig, loadLocalPlugins } = await Promise.resolve().then(() =>
         __importStar(require("./config"))
       );
-      const {
-        setIgnoredFiles,
-        setVerbose,
-        verboseLog,
-        flushSummaries: flush,
-      } = await Promise.resolve().then(() => __importStar(require("./helpers")));
+      const { setIgnoredFiles, setVerbose, verboseLog } = await Promise.resolve().then(() =>
+        __importStar(require("./helpers"))
+      );
       const config = loadConfig();
       const verbose = config.settings?.verbose ?? false;
       setVerbose(verbose);
@@ -432,6 +451,7 @@ function executeDangerBot(plugins, callbacks) {
         const localPlugins = await loadLocalPlugins(config.local_plugins);
         allPlugins = [...allPlugins, ...localPlugins];
       }
+      allPlugins = withNotificationLast(allPlugins);
       if (verbose) {
         verboseLog(`🔌 Total de plugins para execução: ${allPlugins.length}`);
         console.log("[verbose] ───────────────────────────────────────");
@@ -454,9 +474,17 @@ function executeDangerBot(plugins, callbacks) {
       }
       console.error("Danger Bot execution error:", error);
     } finally {
+      // Mesmo se um plugin falhar, os fails/warns inline já emitidos precisam ir
+      // para a tabela principal (é o que reprova o build). No-op se já rodou.
+      flush();
       if (callbacks?.onFinally) {
         await callbacks.onFinally();
       }
     }
   })();
+  // O Danger só espera o que foi registrado com schedule(): sem isso ele pode
+  // publicar os comentários antes de plugins com I/O assíncrono terminarem.
+  const scheduleFn = global.schedule || globalThis.schedule;
+  if (typeof scheduleFn === "function") scheduleFn(run);
+  return run;
 }

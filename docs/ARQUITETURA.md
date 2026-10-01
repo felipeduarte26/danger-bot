@@ -13,6 +13,7 @@ danger-bot/
 │   ├── types.ts            # Interfaces, tipos e funcoes core
 │   ├── helpers.ts          # Funcoes auxiliares
 │   ├── config.ts           # Loader do danger-bot.yaml (plugins locais + ignore)
+│   ├── native-import.ts    # import() nativo (pacotes so-ESM e plugins locais no build CommonJS)
 │   └── plugins/
 │       ├── index.ts        # Barrel file de plataformas
 │       └── flutter/        # Plugins Flutter/Dart
@@ -26,6 +27,7 @@ danger-bot/
 ├── bin/                    # CLI
 │   ├── cli.js              # Entry point da CLI (Commander)
 │   ├── commands/           # Implementacao dos comandos
+│   │   ├── dry-run.js
 │   │   ├── create-plugin.js
 │   │   ├── remove-plugin.js
 │   │   ├── list-plugins.js
@@ -60,19 +62,21 @@ danger-bot/
 2. CI/CD executa `npx danger ci`
    └── Danger JS carrega dangerfile.ts
 
-3. executeDangerBot(plugins, callbacks?)
+3. executeDangerBot(plugins, callbacks?) — registra a execucao com schedule()
    ├── loadConfig() → carrega danger-bot.yaml (se existir)
-   ├── setIgnoredFiles(config.ignore_files) → filtra arquivos ignorados
-   ├── loadLocalPlugins(config.local_plugins) → carrega plugins locais
+   ├── setIgnoredFiles(config.ignore_files) → tira os ignorados (globs) de danger.git
+   ├── loadLocalPlugins(config.local_plugins) → carrega plugins locais (import() nativo)
+   ├── google-chat-notification vai para o fim da lista
    ├── callbacks.onBeforeRun() → false cancela
    ├── runPlugins([...plugins, ...localPlugins])
    │   └── Para cada plugin habilitado:
    │       └── plugin.run()
    │           └── Usa helpers (getDartFiles, sendWarn, etc.)
    ├── callbacks.onSuccess() ou callbacks.onError()
+   ├── flushSummaries() → fails/warns agrupados (sempre, mesmo se um plugin falhar)
    └── callbacks.onFinally()
 
-4. Danger JS posta comentarios no PR
+4. Danger JS espera as tarefas do schedule() e posta os comentarios no PR
 ```
 
 ---
@@ -157,7 +161,15 @@ function createPlugin(config: DangerPluginConfig, runFn: () => Promise<void>): D
 
 ### Execucao
 
-Os plugins sao executados **sequencialmente** por `runPlugins()`. Se um plugin lanca erro, a execucao para e `onError` e chamado.
+Os plugins sao executados **sequencialmente** por `runPlugins()`. Se um plugin lanca erro, a execucao para e `onError` e chamado; os fails/warns que ja tinham sido emitidos continuam sendo publicados (o `flushSummaries()` roda no `finally`).
+
+### Mensagens e falha do build
+
+`sendFail`/`sendWarn` com `file` e `line` publicam um comentario inline via `markdown()` e guardam a ocorrencia num resumo. O `flushSummaries()`, no fim da execucao, emite na tabela principal um `fail`/`warn` por titulo (ate 3 ocorrencias com o arquivo; acima disso, a contagem) — e esse `fail` que reprova o build. Antes do flush essas ocorrencias nao estao em `results.fails`; quem precisa do total (ex.: `google-chat-notification`) usa `getPendingSummaryCounts()`.
+
+### Build em CommonJS e import()
+
+O build e CommonJS (`module: CommonJS`), e o TypeScript troca `import()` por `require()`. Para pacotes so-ESM (`eld`, `dictionary-pt`) e para os plugins locais (carregados por URL `file://`), use `importModule()` de `src/native-import.ts`, que mantem o `import()` nativo do Node.
 
 Plugins com `config.enabled = false` sao pulados automaticamente.
 
@@ -187,13 +199,9 @@ Executado automaticamente no `postinstall`. Modifica o Danger JS para:
 
 Usa um sistema de versionamento de patches (`.danger-bot-patched`) para evitar reaplicacao.
 
-### extract_dart_identifiers.js
+### extract_dart_identifiers.js e setup_spell_check.sh (legado)
 
-Extrai identificadores (classes, metodos, variaveis) de arquivos Dart e quebra nomes camelCase em palavras individuais para verificacao ortografica com cspell.
-
-### setup_spell_check.sh
-
-Configura o cspell para CI/CD, extraindo palavras customizadas do `.vscode/settings.json` e gerando `cspell.config.json`.
+Scripts da versao antiga do spell check, quando o cspell rodava como step separado do CI. Nada no pacote os usa hoje: o plugin `spell-checker` monta a configuracao do cspell sozinho. O `extract_dart_identifiers.js` usa `require` e nao roda como `.js` neste pacote (`"type": "module"`).
 
 ---
 

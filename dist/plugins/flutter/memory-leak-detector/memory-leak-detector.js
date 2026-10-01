@@ -58,7 +58,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * State<> que não têm dispose/cancel correspondente.
  *
  * Para cada disposable encontrado como campo da classe, verifica se existe
- * uma chamada .dispose() ou .cancel() com o mesmo nome no método dispose().
+ * uma chamada .dispose(), .cancel() (Timer, StreamSubscription) ou .close()
+ * (StreamController) com o mesmo nome no método dispose().
  */
 const _types_1 = require("../../../types.js");
 const fs = __importStar(require("fs"));
@@ -80,7 +81,8 @@ const DISPOSE_TYPES = [
   "UndoHistoryController",
   "OverlayPortalController",
 ];
-const CANCEL_TYPES = ["Timer", "StreamSubscription", "StreamController"];
+const CANCEL_TYPES = ["Timer", "StreamSubscription"];
+const CLOSE_TYPES = ["StreamController"];
 const FIELD_RE = /^\s+(?:late\s+)?(?:final\s+)?(?:([\w<>,?\s]+?)\s+)?(_?\w+)\s*[=;]/;
 exports.default = (0, _types_1.createPlugin)(
   {
@@ -108,14 +110,14 @@ exports.default = (0, _types_1.createPlugin)(
       if (disposables.length === 0) continue;
       const disposeBody = extractDisposeBody(lines);
       for (const d of disposables) {
-        const cleanupCall = d.needsCancel ? `${d.name}?.cancel()` : `${d.name}.dispose()`;
-        const hasCleanup =
-          disposeBody.includes(`${d.name}.dispose()`) ||
-          disposeBody.includes(`${d.name}?.dispose()`) ||
-          disposeBody.includes(`${d.name}.cancel()`) ||
-          disposeBody.includes(`${d.name}?.cancel()`);
+        const action = d.cleanup;
+        const cleanupCall = action === "cancel" ? `${d.name}?.cancel()` : `${d.name}.${action}()`;
+        const hasCleanup = ["dispose", "cancel", "close"].some(
+          (method) =>
+            disposeBody.includes(`${d.name}.${method}()`) ||
+            disposeBody.includes(`${d.name}?.${method}()`)
+        );
         if (hasCleanup) continue;
-        const action = d.needsCancel ? "cancel" : "dispose";
         (0, _types_1.sendFormattedFail)({
           title: `VAZAMENTO DE MEMÓRIA — ${d.type} SEM ${action.toUpperCase()}()`,
           description: `\`${d.name}\` (${d.type}) não tem \`${action}()\` no método \`dispose()\`.`,
@@ -169,17 +171,21 @@ function findDisposables(lines) {
       const rightSide = line.split("=")[1] || "";
       for (const type of DISPOSE_TYPES) {
         if (explicitType.includes(type) || rightSide.includes(`${type}(`)) {
-          result.push({ name: varName, type, line: i + 1, needsDispose: true, needsCancel: false });
+          result.push({ name: varName, type, line: i + 1, cleanup: "dispose" });
           break;
         }
       }
-      for (const type of CANCEL_TYPES) {
-        if (
-          explicitType.includes(type) ||
-          rightSide.includes(`${type}(`) ||
-          rightSide.includes(`${type}.`)
-        ) {
-          result.push({ name: varName, type, line: i + 1, needsDispose: false, needsCancel: true });
+      const streamOrTimerTypes = [
+        [CANCEL_TYPES, "cancel"],
+        [CLOSE_TYPES, "close"],
+      ];
+      for (const [types, cleanup] of streamOrTimerTypes) {
+        const type = types.find(
+          (t) =>
+            explicitType.includes(t) || rightSide.includes(`${t}(`) || rightSide.includes(`${t}.`)
+        );
+        if (type) {
+          result.push({ name: varName, type, line: i + 1, cleanup });
           break;
         }
       }

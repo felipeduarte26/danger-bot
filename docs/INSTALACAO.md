@@ -23,7 +23,7 @@ No `package.json`, ficara assim:
 ```json
 {
   "devDependencies": {
-    "danger": "^13.0.7",
+    "danger": "^14.0.7",
     "@felipeduarte26/danger-bot": "git+https://github.com/felipeduarte26/danger-bot.git#main"
   }
 }
@@ -31,10 +31,12 @@ No `package.json`, ficara assim:
 
 ### Versao especifica via tag
 
+Troque `vX.Y.Z` por uma tag existente (`git ls-remote --tags https://github.com/felipeduarte26/danger-bot.git`).
+
 ```json
 {
   "devDependencies": {
-    "@felipeduarte26/danger-bot": "git+https://github.com/felipeduarte26/danger-bot.git#v1.8.0"
+    "@felipeduarte26/danger-bot": "git+https://github.com/felipeduarte26/danger-bot.git#vX.Y.Z"
   }
 }
 ```
@@ -44,7 +46,7 @@ No `package.json`, ficara assim:
 ```json
 {
   "devDependencies": {
-    "@felipeduarte26/danger-bot": "git+ssh://git@github.com/felipeduarte26/danger-bot.git#v1.8.0"
+    "@felipeduarte26/danger-bot": "git+ssh://git@github.com/felipeduarte26/danger-bot.git#vX.Y.Z"
   }
 }
 ```
@@ -134,8 +136,8 @@ npx danger-bot init
 npm list danger @felipeduarte26/danger-bot
 
 # Saida esperada
-# ├── danger@13.x.x
-# └── @felipeduarte26/danger-bot@1.8.0
+# ├── danger@14.x.x
+# └── @felipeduarte26/danger-bot@3.4.0
 
 # Testar localmente (sem tokens, sem CI)
 npx danger-bot dry-run --base develop

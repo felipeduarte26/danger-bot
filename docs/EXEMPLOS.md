@@ -154,7 +154,7 @@ import {
 
 executeDangerBot(allFlutterPlugins, {
   onBeforeRun: async () => {
-    const dartFiles = getDartFiles();
+    const dartFiles = await getDartFiles();
     // git.insertions/deletions só existem no dry-run: no CI as linhas vêm do diff
     const { added, removed } = await getLineStats();
     const lines = added + removed;
@@ -200,7 +200,7 @@ const noTodoPlugin = createPlugin(
     enabled: true,
   },
   async () => {
-    const files = getDartFiles();
+    const files = await getDartFiles();
     for (const file of files) {
       const content = await getFileContent(file);
       if (content?.includes("// TODO")) {
@@ -242,7 +242,7 @@ export default createPlugin(
     enabled: true,
   },
   async () => {
-    const files = getDartFiles().filter((f) => fs.existsSync(f));
+    const files = await getDartFiles(); // so arquivos existentes, sem testes
     for (const file of files) {
       const content = fs.readFileSync(file, "utf-8");
       const lines = content.split("\n");

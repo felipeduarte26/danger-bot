@@ -69,11 +69,13 @@ export {
 Funcao principal que executa uma lista de plugins com callbacks opcionais.
 
 Carrega automaticamente o `danger-bot.yaml` da raiz do projeto (se existir) para:
-- Aplicar `ignore_files` no filtro de arquivos
-- Carregar e executar `local_plugins` apos os plugins passados por parametro
+- Aplicar `ignore_files` no filtro de arquivos (aceita globs `*`, `**` e `?`)
+- Carregar e executar `local_plugins` apos os plugins passados por parametro (o `google-chat-notification` continua sendo o ultimo)
+
+A execucao e registrada com o `schedule()` do Danger, que espera todos os plugins terminarem antes de publicar os comentarios. A Promise retornada resolve no fim; erros dos plugins nao a rejeitam (vao para `onError`), e os fails/warns ja emitidos sao publicados mesmo quando um plugin falha.
 
 ```typescript
-function executeDangerBot(plugins: DangerPlugin[], callbacks?: DangerBotCallbacks): void
+function executeDangerBot(plugins: DangerPlugin[], callbacks?: DangerBotCallbacks): Promise<void>
 ```
 
 **Parametros:**
@@ -232,20 +234,19 @@ const files = getAllChangedFiles();
 
 ### getDartFiles()
 
-Retorna apenas arquivos `.dart` modificados ou criados.
+Retorna (assincrono) os arquivos `.dart` modificados ou criados que existem no disco, **exceto testes** (`_test.dart`).
 
 ```typescript
-const dartFiles = getDartFiles();
-const codeFiles = dartFiles.filter(f => !f.includes("_test.dart"));
-const testFiles = dartFiles.filter(f => f.includes("_test.dart"));
+const dartFiles = await getDartFiles();
+const testFiles = getFilesMatching(/_test\.dart$/); // testes
 ```
 
 ### getDartFilesInDirectory(directory)
 
-Retorna arquivos `.dart` de um diretorio especifico.
+Retorna (assincrono) os arquivos de `getDartFiles()` de um diretorio especifico.
 
 ```typescript
-const authFiles = getDartFilesInDirectory("/core/auth/");
+const authFiles = await getDartFilesInDirectory("/core/auth/");
 ```
 
 ### getFilesMatching(pattern)
@@ -277,7 +278,7 @@ if (hasFilesMatching(/pubspec\.yaml$/)) {
 
 ### getFileContent(file)
 
-Le o conteudo de um arquivo do diff do git.
+Le o conteudo do arquivo depois das mudancas do PR (`after` do `danger.git.diffForFile`; se a plataforma nao devolver, le do disco). Retorna `null` se o arquivo nao existir.
 
 ```typescript
 const content = await getFileContent("lib/main.dart");
@@ -297,15 +298,15 @@ const hasEval = await fileContainsPattern("lib/utils.dart", /eval\(/);
 
 ### getDomainDartFiles()
 
-Atalho para `getDartFilesInDirectory("/domain/")`.
+Atalho para `await getDartFilesInDirectory("/domain/")` (assincrono).
 
 ### getDataDartFiles()
 
-Atalho para `getDartFilesInDirectory("/data/")`.
+Atalho para `await getDartFilesInDirectory("/data/")` (assincrono).
 
 ### getPresentationDartFiles()
 
-Atalho para `getDartFilesInDirectory("/presentation/")`.
+Atalho para `await getDartFilesInDirectory("/presentation/")` (assincrono).
 
 ### isInLayer(file, layer)
 
@@ -387,7 +388,7 @@ export default createPlugin(
     enabled: true,
   },
   async () => {
-    const files = getDartFiles();
+    const files = await getDartFiles();
     if (files.length > 20) {
       sendWarn("Muitos arquivos Dart modificados!");
     }
@@ -401,14 +402,16 @@ export default createPlugin(
 
 | Export | Plugins incluidos | Quantidade |
 |--------|-------------------|------------|
-| `allFlutterPlugins` | Todos os plugins do pacote | — |
+| `allFlutterPlugins` | Todos os plugins do pacote (`google-chat-notification` por ultimo) | 48 |
 | `domainLayerPlugins` | entities, failures, repositories, usecases | 4 |
-| `dataLayerPlugins` | datasources, models | 2 |
-| `presentationLayerPlugins` | viewmodels, try-catch-checker | 2 |
-| `cleanArchitecturePlugins` | domain + data + presentation + clean-architecture | 9 |
-| `codeQualityPlugins` | late-final, memory-leak, comments, security, barrel, identifier-language, class-naming, avoid-god-class, avoid-setstate-after-async, date-type-checker, print-statement-detector, empty-catch-detector, future-wait-modernizer, ai-code-review | 14 |
+| `dataLayerPlugins` | datasources, models, model-entity-inheritance | 3 |
+| `presentationLayerPlugins` | viewmodels, try-catch-checker, presentation-encapsulation | 3 |
+| `cleanArchitecturePlugins` | domain + data + presentation + clean-architecture + folder-naming-convention | 12 |
+| `codeQualityPlugins` | late-final, memory-leak, comments, security, barrel, identifier-language, class-naming, avoid-god-class, avoid-setstate-after-async, date-type-checker, print-statement-detector, empty-catch-detector, future-wait-modernizer, ai-code-review, boolean-naming-convention, positional-bool-params, build-doc-checker, spell-checker-ptbr, private-named-params, primary-constructors | 20 |
 | `performancePlugins` | flutter-performance, mediaquery-modern, column-row-spacing | 3 |
 | `testPlugins` | test-file-checker, flutter-test-runner, test-coverage-summary | 3 |
+
+> Fora das categorias (so em `allFlutterPlugins` ou importando pelo nome): pr-summary, pr-size-checker, changelog-checker, flutter-analyze, spell-checker, pr-validation, file-naming, flutter-widgets, merge-conflict-checker e google-chat-notification.
 
 ---
 

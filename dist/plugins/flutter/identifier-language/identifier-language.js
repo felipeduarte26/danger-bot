@@ -59,10 +59,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
  *
  * Detecção:
  * 1. Dicionário interno (~400 palavras PT comuns em código) — rápido e preciso
- * 2. eld v2 (Efficient Language Detector) — detecta PT e ES (línguas próximas)
- * 3. eld palavra por palavra — pega textos misturados PT+EN
- * 4. cspell (dicionário EN) — valida se a palavra é inglês válido; se NÃO é
- *    inglês e eld detecta como PT/ES → sinaliza (pega variantes como "filials")
+ * 2. cspell (dicionário EN) — valida se a palavra é inglês válido; se NÃO é
+ *    inglês e está a até 1-2 letras de uma palavra PT conhecida → sinaliza
+ *    (pega variantes como "filials")
+ *
+ * O eld (detector de idioma) fica desligado: palavra por palavra ele reprovava
+ * comentários e identificadores em inglês (`listener`, `internal`, "Converts this
+ * model to a map"). Medido no esfera-web: 181 → 2.022 falhas com ele ligado.
+ * Para religar, carregue `_eld` em `loadDependencies` e recalibre as heurísticas.
  *
  * Tradução:
  * - Identificadores: dicionário PT→EN interno
@@ -73,20 +77,16 @@ const child_process_1 = require("child_process");
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 const os = __importStar(require("os"));
-let _eld = null;
-let _eldLoaded = false;
+const native_import_1 = require("../../../native-import");
+/** Detector de idioma: desligado de propósito (ver o cabeçalho do arquivo). */
+const _eld = null;
+let _depsLoaded = false;
 let _translate = null;
-async function loadEld() {
-  if (_eldLoaded) return;
-  _eldLoaded = true;
+async function loadDependencies() {
+  if (_depsLoaded) return;
+  _depsLoaded = true;
   try {
-    const mod = await Promise.resolve(`${"eld/large"}`).then((s) => __importStar(require(s)));
-    _eld = mod.eld ?? mod.default?.eld ?? mod;
-  } catch {
-    // eld nao disponivel
-  }
-  try {
-    const tMod = await Promise.resolve(`${"translate"}`).then((s) => __importStar(require(s)));
+    const tMod = await (0, native_import_1.importModule)("translate");
     _translate = tMod.default ?? tMod;
   } catch {
     // translate nao disponivel
@@ -131,7 +131,8 @@ function validateWordsWithCspell(words) {
     let cspellOutput = "";
     try {
       (0, child_process_1.execSync)(
-        `./node_modules/.bin/cspell --config ${configFile} --no-progress --no-summary ${wordsFile}`,
+        // --root: o cspell ignora arquivos fora da raiz (cwd por padrão)
+        `./node_modules/.bin/cspell --config ${configFile} --root ${tmpDir} --no-progress --no-summary ${wordsFile}`,
         { encoding: "utf-8", stdio: "pipe", timeout: 30000 }
       );
     } catch (error) {
@@ -874,7 +875,7 @@ exports.default = (0, _types_1.createPlugin)(
   },
   async () => {
     const { git } = (0, _types_1.getDanger)();
-    await loadEld();
+    await loadDependencies();
     const dartFiles = [...git.modified_files, ...git.created_files].filter(
       (f) =>
         f.endsWith(".dart") &&

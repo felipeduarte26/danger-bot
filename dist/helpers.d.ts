@@ -36,7 +36,7 @@
  * - `isInLayer()` - Verifica se arquivo está em camada específica
  *
  * ### 📖 Leitura de Conteúdo
- * - `getFileContent()` - Lê conteúdo de arquivo do git diff
+ * - `getFileContent()` - Lê o conteúdo do arquivo depois das mudanças do PR
  * - `fileContainsPattern()` - Verifica se arquivo contém padrão
  *
  * ### 📋 Informações do PR
@@ -235,6 +235,15 @@ export declare function sendFail(msg: string, file?: string, line?: number): voi
  * Chamado automaticamente pelo executeDangerBot após todos os plugins.
  */
 export declare function flushSummaries(): void;
+/**
+ * Ocorrências de fails/warns inline (com arquivo e linha) que ainda vão para a
+ * tabela principal no `flushSummaries()`. Antes do flush elas ainda não estão
+ * em `results.fails`/`results.warnings` do Danger.
+ */
+export declare function getPendingSummaryCounts(): {
+  fails: number;
+  warnings: number;
+};
 /**
  * Opções para mensagens formatadas no padrão Danger Bot.
  * Usado por sendFormattedFail e sendFormattedWarn.
@@ -641,11 +650,13 @@ export declare function getPresentationDartFiles(): Promise<string[]>;
  */
 export declare function isInLayer(file: string, layer: "domain" | "data" | "presentation"): boolean;
 /**
- * Read file content from git diff
- * Lê o conteúdo de um arquivo do diff do git
+ * Conteúdo do arquivo depois das mudanças do PR.
  *
- * @param file - File path
- * @returns File content as string, or null if not available
+ * Usa o `after` de `danger.git.diffForFile` (funciona em todas as plataformas e
+ * no dry-run) e, se a plataforma não devolver o conteúdo, lê o arquivo do disco.
+ *
+ * @param file - Caminho do arquivo
+ * @returns Conteúdo do arquivo, ou null se não estiver disponível (ex.: removido)
  */
 export declare function getFileContent(file: string): Promise<string | null>;
 /**

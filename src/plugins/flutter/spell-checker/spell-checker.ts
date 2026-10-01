@@ -13,6 +13,7 @@ import { execSync } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
+import { importModule } from "../../../native-import";
 
 const TECH_WORDS = [
   "viewmodel",
@@ -249,18 +250,24 @@ let _eld: { detect: (text: string) => { language: string } } | null = null;
 async function loadEld(): Promise<typeof _eld> {
   if (_eld) return _eld;
   try {
-    const mod = await import("eld/large" as string);
-    _eld = mod.default || mod;
+    const mod = await importModule("eld/large");
+    _eld = mod.eld ?? mod.default;
     return _eld;
   } catch {
     return null;
   }
 }
 
+/**
+ * Idiomas que contam como "não está em inglês". Palavra solta o eld detecta mal:
+ * qualquer idioma ≠ en rotulava 6 de 10 typos em inglês (`paramter` → de,
+ * `contoller` → fr) como outro idioma. Só PT/ES (o caso do time) não erra typos.
+ */
+const NON_ENGLISH_LANGS = new Set(["pt", "es"]);
+
 function isNonEnglishWord(word: string, eld: NonNullable<typeof _eld>): boolean {
   if (NON_ENGLISH_FALLBACK.has(word.toLowerCase())) return true;
-  const result = eld.detect(word);
-  return result.language !== "en";
+  return NON_ENGLISH_LANGS.has(eld.detect(word).language);
 }
 
 interface IdentifierInfo {
@@ -447,7 +454,9 @@ export default createPlugin(
       let cspellOutput = "";
       try {
         execSync(
-          `./node_modules/.bin/cspell --config ${configFile} --no-progress --no-summary ${wordsFile}`,
+          // --root: o cspell ignora arquivos fora da raiz (cwd por padrão) — sem isso o
+          // words.txt do tmpdir não era verificado e o plugin nunca reportava nada
+          `./node_modules/.bin/cspell --config ${configFile} --root ${tmpDir} --no-progress --no-summary ${wordsFile}`,
           { encoding: "utf-8", stdio: "pipe", timeout: 30000 }
         );
       } catch (error: any) {

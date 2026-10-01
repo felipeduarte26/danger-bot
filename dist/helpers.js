@@ -37,7 +37,7 @@
  * - `isInLayer()` - Verifica se arquivo está em camada específica
  *
  * ### 📖 Leitura de Conteúdo
- * - `getFileContent()` - Lê conteúdo de arquivo do git diff
+ * - `getFileContent()` - Lê o conteúdo do arquivo depois das mudanças do PR
  * - `fileContainsPattern()` - Verifica se arquivo contém padrão
  *
  * ### 📋 Informações do PR
@@ -124,6 +124,7 @@ exports.sendMessage = sendMessage;
 exports.sendWarn = sendWarn;
 exports.sendFail = sendFail;
 exports.flushSummaries = flushSummaries;
+exports.getPendingSummaryCounts = getPendingSummaryCounts;
 exports.sendFormattedFail = sendFormattedFail;
 exports.sendFormattedWarn = sendFormattedWarn;
 exports.sendMarkdown = sendMarkdown;
@@ -478,6 +479,16 @@ function flushSummaries() {
   const warnFn = global.warn || globalThis.warn;
   if (failFn && _failSummary.size > 0) flushMap(_failSummary, failFn);
   if (warnFn && _warnSummary.size > 0) flushMap(_warnSummary, warnFn);
+}
+/**
+ * Ocorrências de fails/warns inline (com arquivo e linha) que ainda vão para a
+ * tabela principal no `flushSummaries()`. Antes do flush elas ainda não estão
+ * em `results.fails`/`results.warnings` do Danger.
+ */
+function getPendingSummaryCounts() {
+  if (_summaryFlushed) return { fails: 0, warnings: 0 };
+  const total = (map) => [...map.values()].reduce((sum, entry) => sum + entry.count, 0);
+  return { fails: total(_failSummary), warnings: total(_warnSummary) };
 }
 function buildFormattedMessage(opts) {
   const lang = opts.problem.language ?? "dart";
@@ -938,19 +949,27 @@ function isInLayer(file, layer) {
   return file.includes(`/${layer}/`);
 }
 /**
- * Read file content from git diff
- * Lê o conteúdo de um arquivo do diff do git
+ * Conteúdo do arquivo depois das mudanças do PR.
  *
- * @param file - File path
- * @returns File content as string, or null if not available
+ * Usa o `after` de `danger.git.diffForFile` (funciona em todas as plataformas e
+ * no dry-run) e, se a plataforma não devolver o conteúdo, lê o arquivo do disco.
+ *
+ * @param file - Caminho do arquivo
+ * @returns Conteúdo do arquivo, ou null se não estiver disponível (ex.: removido)
  */
 async function getFileContent(file) {
   try {
-    const danger = getDanger();
-    const content = await danger.git.structuredDiffForFile(file);
-    if (!content) return null;
-    return content.chunks.map((c) => c.content).join("\n");
-  } catch (e) {
+    const diff = await getDanger().git.diffForFile(file);
+    if (diff?.after) return diff.after;
+  } catch {
+    // sem diff para o arquivo: tenta o disco
+  }
+  try {
+    const { existsSync, readFileSync } = await Promise.resolve().then(() =>
+      __importStar(require("fs"))
+    );
+    return existsSync(file) ? readFileSync(file, "utf-8") : null;
+  } catch {
     return null;
   }
 }

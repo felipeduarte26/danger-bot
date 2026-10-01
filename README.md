@@ -120,6 +120,7 @@ O Danger Bot inclui plugins organizados em categorias:
 | ---------------------------------- | ----------------------------------------------------- |
 | **presentation-viewmodels**        | Valida que ViewModels usem UseCases, nao Repositories |
 | **presentation-try-catch-checker** | Detecta uso de try-catch na camada Presentation       |
+| **presentation-encapsulation**     | Membros publicos em `State` que deveriam ser privados |
 
 ### Qualidade de Codigo
 
@@ -127,11 +128,13 @@ O Danger Bot inclui plugins organizados em categorias:
 | ------------------------------ | ----------------------------------------------------------------------------------------- |
 | **clean-architecture**         | Detecta violacoes entre camadas (imports indevidos)                                       |
 | **file-naming**                | Verifica nomenclatura `snake_case` em arquivos `.dart`                                    |
+| **folder-naming-convention**   | Pastas da Clean Architecture no plural (`usecases/`, `entities/`, `models/`...)           |
 | **comments-checker**           | Forca uso de `///` ao inves de `//`                                                       |
 | **late-final-checker**         | Detecta `late final` e sugere alternativas                                                |
 | **barrel-files-enforcer**      | Forca uso de barrel files para organizar exports                                          |
-| **security-checker**           | Detecta API keys hardcoded, `eval()` e vulnerabilidades                                   |
+| **security-checker**           | Detecta API keys, tokens e senhas hardcoded e arquivos sensiveis commitados               |
 | **spell-checker**              | Verifica ortografia em identificadores Dart                                               |
+| **spell-checker-ptbr**         | Verifica ortografia e acentuacao em strings PT-BR (linhas adicionadas)                    |
 | **identifier-language**        | Detecta identificadores e comentarios que nao estao em ingles                             |
 | **class-naming-convention**    | Verifica se nomes de classes usam substantivos (Clean Code)                               |
 | **avoid-god-class**            | Detecta classes muito grandes (SRP — responsabilidade unica)                              |
@@ -139,10 +142,11 @@ O Danger Bot inclui plugins organizados em categorias:
 | **date-type-checker**          | Detecta campos de data declarados como String ao inves de DateTime                        |
 | **print-statement-detector**   | Detecta `print()` e `debugPrint()` em codigo de producao                                  |
 | **empty-catch-detector**       | Detecta blocos `catch` vazios sem tratamento                                              |
-| **future-wait-modernizer**     | Sugere `Future.wait` ao inves de awaits sequenciais independentes                         |
+| **future-wait-modernizer**     | Troca `Future.wait([...])` com lista literal pela tupla com `.wait` do Dart 3             |
 | **boolean-naming-convention**  | Verifica nomes de booleans seguindo Effective Dart (`is`/`has`/`can`/`should`)            |
 | **positional-bool-params**     | Detecta parametros `bool` posicionais (Effective Dart: use named params)                  |
 | **build-doc-checker**          | Detecta `///` desnecessarios dentro de `Widget build` (poluem o codigo)                   |
+| **private-named-params**       | Sugere `this._campo` no construtor em vez de initializer list (Dart 3.12+)                |
 | **primary-constructors**       | Obriga primary constructors (Dart 3.13+) em classes e enums, com a conversao sugerida     |
 | **ai-code-review**             | Code review com IA (Gemini) — Clean Code, SOLID, seguranca e bugs (aviso, nao falha o CI) |
 
@@ -163,8 +167,8 @@ O Danger Bot inclui plugins organizados em categorias:
 | Plugin                    | Descricao                                                                     |
 | ------------------------- | ----------------------------------------------------------------------------- |
 | **test-file-checker**     | Verifica se arquivos da PR possuem testes correspondentes (no disco ou na PR) |
-| **flutter-test-runner**   | Executa testes da PR e reporta resultados (nao quebra a pipeline se falhar)   |
-| **test-coverage-summary** | Mostra cobertura de testes no summary da PR (le `coverage/lcov.info`)         |
+| **flutter-test-runner**   | Executa os testes da PR e mostra o resultado (teste quebrando falha o build)  |
+| **test-coverage-summary** | Mostra cobertura de testes no summary da PR (le ou gera `coverage/lcov.info`) |
 
 ---
 
@@ -176,9 +180,9 @@ Alem de `allFlutterPlugins`, voce pode importar plugins por categoria:
 import {
   domainLayerPlugins, // 4 plugins (entities, failures, repositories, usecases)
   dataLayerPlugins, // 3 plugins (datasources, models, model-entity-inheritance)
-  presentationLayerPlugins, // 2 plugins (viewmodels, try-catch-checker)
-  cleanArchitecturePlugins, // 10 plugins (todas as camadas + validacao cross-layer)
-  codeQualityPlugins, // 17 plugins (late-final, memory-leak, comments, security, barrel, identifier-language, class-naming, avoid-god-class, avoid-setstate-after-async, date-type-checker, print-statement-detector, empty-catch-detector, future-wait-modernizer, ai-code-review, boolean-naming-convention, positional-bool-params, build-doc-checker)
+  presentationLayerPlugins, // 3 plugins (viewmodels, try-catch-checker, presentation-encapsulation)
+  cleanArchitecturePlugins, // 12 plugins (todas as camadas + clean-architecture + folder-naming-convention)
+  codeQualityPlugins, // 20 plugins (late-final, memory-leak, comments, security, barrel, identifier-language, class-naming, avoid-god-class, avoid-setstate-after-async, date-type-checker, print-statement-detector, empty-catch-detector, future-wait-modernizer, ai-code-review, boolean-naming-convention, positional-bool-params, build-doc-checker, spell-checker-ptbr, private-named-params, primary-constructors)
   performancePlugins, // 3 plugins (flutter-performance, mediaquery-modern, column-row-spacing)
   testPlugins, // 3 plugins (test-file-checker, flutter-test-runner, test-coverage-summary)
   executeDangerBot,

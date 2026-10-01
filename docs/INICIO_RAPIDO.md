@@ -125,7 +125,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "25"
       - run: npm ci
       - run: npx danger ci
         env:
@@ -142,7 +142,7 @@ pipelines:
     '**':
       - step:
           name: Danger Bot
-          image: node:22
+          image: node:25
           script:
             - npm ci
             - npx danger ci

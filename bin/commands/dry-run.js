@@ -123,7 +123,12 @@ export async function dryRun(options) {
 
   const require = createRequire(import.meta.url);
   const { loadConfig, loadLocalPlugins } = require("../../dist/config.js");
-  const { setIgnoredFiles, setVerbose, setActivePlugins } = require("../../dist/helpers.js");
+  const {
+    setIgnoredFiles,
+    setVerbose,
+    setActivePlugins,
+    isFileIgnored,
+  } = require("../../dist/helpers.js");
 
   const config = loadConfig();
   const verbose = options.verbose || config.settings?.verbose || false;
@@ -169,12 +174,9 @@ export async function dryRun(options) {
     deletions,
   } = getGitDiffInfo(mergeBase);
 
-  const normalizePath = (p) => p.replace(/^\.\//, "").replace(/\\/g, "/");
-  const ignoredSet = new Set((config.ignore_files || []).map(normalizePath));
-  const isIgnored = (f) => ignoredSet.has(normalizePath(f));
-
-  const modifiedFiles = rawModified.filter((f) => !isIgnored(f));
-  const createdFiles = rawCreated.filter((f) => !isIgnored(f));
+  // Mesmo filtro do executeDangerBot no CI (aceita globs: *, ** e ?)
+  const modifiedFiles = rawModified.filter((f) => !isFileIgnored(f));
+  const createdFiles = rawCreated.filter((f) => !isFileIgnored(f));
   const ignoredCount =
     rawModified.length + rawCreated.length - (modifiedFiles.length + createdFiles.length);
 
@@ -225,6 +227,10 @@ export async function dryRun(options) {
     const localPlugins = await loadLocalPlugins(config.local_plugins);
     allPlugins = [...allPlugins, ...localPlugins];
   }
+
+  // Como no executeDangerBot: o google-chat-notification resume o resultado e roda por último
+  const isLastPlugin = (p) => p.config.name === "google-chat-notification";
+  allPlugins = [...allPlugins.filter((p) => !isLastPlugin(p)), ...allPlugins.filter(isLastPlugin)];
 
   let pluginsToRun = allPlugins.filter((p) => {
     if (!p.config.enabled) return false;

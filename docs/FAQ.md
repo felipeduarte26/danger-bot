@@ -70,7 +70,7 @@ executeDangerBot(plugins);
 import { getDanger, sendMessage, getDartFiles } from "@felipeduarte26/danger-bot";
 
 const d = getDanger();
-const files = getDartFiles();
+const files = await getDartFiles(); // assincrono; nao inclui testes
 sendMessage(`${files.length} arquivos Dart modificados`);
 ```
 
@@ -205,6 +205,7 @@ Adicione ao `danger-bot.yaml`:
 ignore_files:
   - lib/features/old_module/legacy_page.dart
   - lib/core/deprecated_helper.dart
+  - lib/legacy/** # globs: *, ** e ?
 ```
 
 ### Posso criar plugins locais no meu projeto?
@@ -229,12 +230,12 @@ Migre os caminhos para o `danger-bot.yaml` em `ignore_files` e remova o `ignore_
 
 ### Quantos plugins existem?
 
-Os plugins do pacote estao organizados em categorias:
+Sao 48 plugins, organizados em categorias:
 - Pull Request (pr-summary, pr-size-checker, pr-validation, changelog-checker, merge-conflict-checker)
 - Domain — Clean Architecture (entities, failures, repositories, usecases)
-- Data — Clean Architecture (datasources, models)
-- Presentation — Clean Architecture (viewmodels, try-catch-checker)
-- Qualidade de Codigo (clean-architecture, file-naming, comments, late-final, barrel-files, security, spell-checker, identifier-language, class-naming, avoid-god-class, avoid-setstate-after-async, date-type-checker, print-statement-detector, empty-catch-detector, future-wait-modernizer, ai-code-review)
+- Data — Clean Architecture (datasources, models, model-entity-inheritance)
+- Presentation — Clean Architecture (viewmodels, try-catch-checker, presentation-encapsulation)
+- Qualidade de Codigo (clean-architecture, file-naming, folder-naming-convention, comments, build-doc-checker, late-final, barrel-files, security, spell-checker, spell-checker-ptbr, identifier-language, class-naming, boolean-naming-convention, positional-bool-params, private-named-params, primary-constructors, avoid-god-class, avoid-setstate-after-async, date-type-checker, print-statement-detector, empty-catch-detector, future-wait-modernizer, ai-code-review)
 - Performance e Flutter (flutter-analyze, flutter-performance, flutter-widgets, mediaquery-modern, memory-leak-detector, column-row-spacing)
 - Testes (test-file-checker, flutter-test-runner, test-coverage-summary)
 - Notificacoes (google-chat-notification)

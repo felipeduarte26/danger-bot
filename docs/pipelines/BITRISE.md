@@ -42,7 +42,7 @@ Se o projeto nao tem `package.json`, crie na raiz:
     "danger:ci": "danger ci"
   },
   "devDependencies": {
-    "danger": "^13.0.7",
+    "danger": "^14.0.7",
     "@felipeduarte26/danger-bot": "git+https://github.com/felipeduarte26/danger-bot.git#main"
   }
 }
@@ -90,7 +90,7 @@ workflows:
 
       - nvm@1:
           inputs:
-            - node_version: "22"
+            - node_version: "25"
 
       - script@1:
           title: Install dependencies
@@ -114,7 +114,7 @@ workflows:
 
 - nvm@1:
     inputs:
-      - node_version: "22"
+      - node_version: "25"
 
 - script@1:
     title: Install dependencies
@@ -185,7 +185,7 @@ Adicione o step `nvm` antes do `npm ci`:
 ```yaml
 - nvm@1:
     inputs:
-      - node_version: "22"
+      - node_version: "25"
 ```
 
 ### Build muito lento

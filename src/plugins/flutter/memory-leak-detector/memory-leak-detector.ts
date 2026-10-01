@@ -4,18 +4,20 @@
  * State<> que não têm dispose/cancel correspondente.
  *
  * Para cada disposable encontrado como campo da classe, verifica se existe
- * uma chamada .dispose() ou .cancel() com o mesmo nome no método dispose().
+ * uma chamada .dispose(), .cancel() (Timer, StreamSubscription) ou .close()
+ * (StreamController) com o mesmo nome no método dispose().
  */
 import { createPlugin, getDanger, sendFormattedFail } from "@types";
 import * as fs from "fs";
 import { normalizePrimaryConstructorHeaders } from "../primary-constructors/primary-constructors";
 
+type CleanupMethod = "dispose" | "cancel" | "close";
+
 interface Disposable {
   name: string;
   type: string;
   line: number;
-  needsDispose: boolean;
-  needsCancel: boolean;
+  cleanup: CleanupMethod;
 }
 
 const DISPOSE_TYPES = [
@@ -36,7 +38,9 @@ const DISPOSE_TYPES = [
   "OverlayPortalController",
 ];
 
-const CANCEL_TYPES = ["Timer", "StreamSubscription", "StreamController"];
+const CANCEL_TYPES = ["Timer", "StreamSubscription"];
+
+const CLOSE_TYPES = ["StreamController"];
 
 const FIELD_RE = /^\s+(?:late\s+)?(?:final\s+)?(?:([\w<>,?\s]+?)\s+)?(_?\w+)\s*[=;]/;
 
@@ -71,17 +75,16 @@ export default createPlugin(
       const disposeBody = extractDisposeBody(lines);
 
       for (const d of disposables) {
-        const cleanupCall = d.needsCancel ? `${d.name}?.cancel()` : `${d.name}.dispose()`;
+        const action = d.cleanup;
+        const cleanupCall = action === "cancel" ? `${d.name}?.cancel()` : `${d.name}.${action}()`;
 
-        const hasCleanup =
-          disposeBody.includes(`${d.name}.dispose()`) ||
-          disposeBody.includes(`${d.name}?.dispose()`) ||
-          disposeBody.includes(`${d.name}.cancel()`) ||
-          disposeBody.includes(`${d.name}?.cancel()`);
+        const hasCleanup = (["dispose", "cancel", "close"] as const).some(
+          (method) =>
+            disposeBody.includes(`${d.name}.${method}()`) ||
+            disposeBody.includes(`${d.name}?.${method}()`)
+        );
 
         if (hasCleanup) continue;
-
-        const action = d.needsCancel ? "cancel" : "dispose";
 
         sendFormattedFail({
           title: `VAZAMENTO DE MEMÓRIA — ${d.type} SEM ${action.toUpperCase()}()`,
@@ -147,18 +150,22 @@ function findDisposables(lines: string[]): Disposable[] {
 
       for (const type of DISPOSE_TYPES) {
         if (explicitType.includes(type) || rightSide.includes(`${type}(`)) {
-          result.push({ name: varName, type, line: i + 1, needsDispose: true, needsCancel: false });
+          result.push({ name: varName, type, line: i + 1, cleanup: "dispose" });
           break;
         }
       }
 
-      for (const type of CANCEL_TYPES) {
-        if (
-          explicitType.includes(type) ||
-          rightSide.includes(`${type}(`) ||
-          rightSide.includes(`${type}.`)
-        ) {
-          result.push({ name: varName, type, line: i + 1, needsDispose: false, needsCancel: true });
+      const streamOrTimerTypes: [string[], CleanupMethod][] = [
+        [CANCEL_TYPES, "cancel"],
+        [CLOSE_TYPES, "close"],
+      ];
+      for (const [types, cleanup] of streamOrTimerTypes) {
+        const type = types.find(
+          (t) =>
+            explicitType.includes(t) || rightSide.includes(`${t}(`) || rightSide.includes(`${t}.`)
+        );
+        if (type) {
+          result.push({ name: varName, type, line: i + 1, cleanup });
           break;
         }
       }

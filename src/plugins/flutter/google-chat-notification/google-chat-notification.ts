@@ -14,7 +14,7 @@
 
 import { createPlugin, getDanger } from "@types";
 import { loadConfig } from "../../../config";
-import { getPRTitle } from "../../../helpers";
+import { getPendingSummaryCounts, getPRTitle } from "../../../helpers";
 
 const REQUEST_TIMEOUT_MS = 10000;
 
@@ -33,14 +33,20 @@ function getWebhookUrl(): string | null {
   return null;
 }
 
+/**
+ * Fails/warnings da execução: os que já estão nos resultados do Danger mais os
+ * inline (com arquivo e linha), que só entram nos resultados no `flushSummaries()`,
+ * depois de todos os plugins.
+ */
 function getDangerResults(): { fails: number; warnings: number; messages: number } {
   const results = (global as any).results ?? (globalThis as any).results;
-  if (!results) return { fails: 0, warnings: 0, messages: 0 };
+  const pending = getPendingSummaryCounts();
+  const count = (list: unknown): number => (Array.isArray(list) ? list.length : 0);
 
   return {
-    fails: Array.isArray(results.fails) ? results.fails.length : 0,
-    warnings: Array.isArray(results.warnings) ? results.warnings.length : 0,
-    messages: Array.isArray(results.messages) ? results.messages.length : 0,
+    fails: count(results?.fails) + pending.fails,
+    warnings: count(results?.warnings) + pending.warnings,
+    messages: count(results?.messages),
   };
 }
 

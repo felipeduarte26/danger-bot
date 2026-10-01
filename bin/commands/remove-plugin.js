@@ -10,6 +10,8 @@ import { question, closeReadline } from "../utils/readline-helper.js";
 import { toCamelCase } from "../utils/string-helpers.js";
 import { exists, readFile, writeFile } from "../utils/fs-helpers.js";
 
+const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 /**
  * Remover um plugin existente
  */
@@ -81,7 +83,12 @@ export async function removePlugin() {
   }
 
   const kebabName = plugins[pluginIndex];
-  const camelName = toCamelCase(kebabName);
+  const platformIndexPath = path.join(platformDir, "index.ts");
+  // O nome exportado vem do barrel (ex.: domain-usecases → domainUseCasesPlugin);
+  // derivar da pasta só serve de fallback
+  const exportName =
+    (exists(platformIndexPath) && findExportName(readFile(platformIndexPath), kebabName)) ||
+    `${toCamelCase(kebabName)}Plugin`;
 
   console.log(`\n⚠️  WARNING: This will permanently delete the plugin "${kebabName}"!`);
   const confirm = await question("Are you sure? (yes/no): ");
@@ -100,7 +107,6 @@ export async function removePlugin() {
 
   // Caminhos
   const pluginFolder = path.join(platformDir, kebabName);
-  const platformIndexPath = path.join(platformDir, "index.ts");
   const mainIndexPath = path.join(process.cwd(), "src", "index.ts");
 
   // 1. Remover pasta do plugin
@@ -111,86 +117,42 @@ export async function removePlugin() {
 
   // 2. Remover do barrel file da plataforma
   if (exists(platformIndexPath)) {
-    let platformIndexContent = readFile(platformIndexPath);
-    const exportLine = `export { default as ${camelName}Plugin } from "./${kebabName}";`;
+    const platformIndexContent = readFile(platformIndexPath);
+    const exportLineRe = new RegExp(
+      `^export \\{ default as \\w+ \\} from ["']\\./${escapeRegExp(kebabName)}["'];\\r?\\n?`,
+      "m"
+    );
 
-    if (platformIndexContent.includes(exportLine)) {
-      platformIndexContent = platformIndexContent.replace(exportLine + "\n", "");
-      writeFile(platformIndexPath, platformIndexContent);
+    if (exportLineRe.test(platformIndexContent)) {
+      writeFile(platformIndexPath, platformIndexContent.replace(exportLineRe, ""));
       console.log(`[OK] Removed export from ${platformFolder}/index.ts`);
     }
   }
 
-  // 3. Remover do src/index.ts (apenas para Flutter)
+  // 3. Remover do src/index.ts (apenas para Flutter): os mesmos lugares que o
+  //    create-plugin preenche, sem reescrever o resto do arquivo
   if (platformFolder === "flutter" && exists(mainIndexPath)) {
-    let mainIndexContent = readFile(mainIndexPath);
-    let modified = false;
+    let content = readFile(mainIndexPath);
+    const original = content;
 
-    // Remover do import
-    const importRegex = /import\s*\{([^}]+)\}\s*from\s*["']\.\/plugins\/flutter["'];/;
-    const importMatch = mainIndexContent.match(importRegex);
-
-    if (importMatch) {
-      const currentImports = importMatch[1];
-      const pluginName = `${camelName}Plugin`;
-
-      if (currentImports.includes(pluginName)) {
-        // Remover o plugin do import
-        const imports = currentImports
-          .split(",")
-          .map((imp) => imp.trim())
-          .filter((imp) => imp && imp !== pluginName);
-
-        if (imports.length > 0) {
-          const updatedImports = imports.join(",\n  ");
-          mainIndexContent = mainIndexContent.replace(
-            importRegex,
-            `import {\n  ${updatedImports}\n} from "./plugins/flutter";`
-          );
-        } else {
-          // Se não sobrou nenhum import, remover a linha toda
-          mainIndexContent = mainIndexContent.replace(importRegex + "\n", "");
-        }
-        console.log(`[OK] Removed from imports in src/index.ts`);
-        modified = true;
-      }
+    for (const keyword of ["export", "import"]) {
+      const result = removeFromNamedBlock(content, keyword, exportName);
+      content = result.content;
+      if (result.removed) console.log(`[OK] Removed from ${keyword} block in src/index.ts`);
     }
 
-    // Remover do array allFlutterPlugins
-    const arrayRegex = /export const allFlutterPlugins = \[([\s\S]*?)\];/;
-    const arrayMatch = mainIndexContent.match(arrayRegex);
+    const listed = removeAllFlutterPluginsEntry(content, kebabName);
+    content = listed.content;
+    if (listed.removed) console.log(`[OK] Removed from allFlutterPlugins in src/index.ts`);
 
-    if (arrayMatch) {
-      const currentPlugins = arrayMatch[1];
-      const pluginName = `${camelName}Plugin`;
-
-      if (currentPlugins.includes(pluginName)) {
-        // Remover o plugin do array
-        const plugins = currentPlugins
-          .split(",")
-          .map((plugin) => plugin.trim())
-          .filter((plugin) => plugin && plugin !== pluginName);
-
-        if (plugins.length > 0) {
-          const updatedPlugins = plugins.join(",\n  ");
-          mainIndexContent = mainIndexContent.replace(
-            arrayRegex,
-            `export const allFlutterPlugins = [\n  ${updatedPlugins}\n];`
-          );
-        } else {
-          // Se não sobrou nenhum plugin, deixar array vazio
-          mainIndexContent = mainIndexContent.replace(
-            arrayRegex,
-            "export const allFlutterPlugins = [];"
-          );
-        }
-        console.log(`[OK] Removed from allFlutterPlugins in src/index.ts`);
-        modified = true;
-      }
+    const categories = removeFromCategoryArrays(content, exportName);
+    content = categories.content;
+    for (const array of categories.arrays) {
+      console.log(`[OK] Removed from ${array} in src/index.ts`);
     }
 
-    if (modified) {
-      writeFile(mainIndexPath, mainIndexContent);
+    if (content !== original) {
+      writeFile(mainIndexPath, content);
     }
   }
 
@@ -202,11 +164,78 @@ export async function removePlugin() {
   console.log(`  ❌ ${platformFolder}/${kebabName}/ - Plugin folder deleted`);
   console.log(`  ❌ ${platformFolder}/index.ts - Export removed`);
   if (platformFolder === "flutter") {
-    console.log(`  ❌ src/index.ts - Import removed`);
-    console.log(`  ❌ src/index.ts - Removed from allFlutterPlugins`);
+    console.log(`  ❌ src/index.ts - ${exportName} removed (exports, imports, arrays)`);
   }
   console.log();
   console.log("Next steps:");
   console.log(`  1. Run: npm run build`);
   console.log(`  2. Commit the changes\n`);
+}
+
+/** Nome exportado pelo barrel da plataforma para a pasta do plugin. */
+function findExportName(barrelContent, kebabName) {
+  const re = new RegExp(
+    `export \\{ default as (\\w+) \\} from ["']\\./${escapeRegExp(kebabName)}["'];`
+  );
+  return re.exec(barrelContent)?.[1] ?? null;
+}
+
+/**
+ * Remove `name` da lista de `import { ... }` / `export { ... } from "./plugins/flutter";`.
+ * Remove só a linha do item (formato um-por-linha do prettier); se o item estiver
+ * numa linha com outros, remove apenas ele dessa linha.
+ */
+function removeFromNamedBlock(content, keyword, name) {
+  const re = new RegExp(`${keyword}\\s*\\{([^}]*)\\}\\s*from\\s*["']\\./plugins/flutter["'];`);
+  const match = re.exec(content);
+  if (!match) return { content, removed: false };
+  const body = match[1];
+  const updated = removeListItem(body, name);
+  if (updated === body) return { content, removed: false };
+  const bodyStart = match.index + match[0].indexOf("{") + 1;
+  return {
+    content: content.slice(0, bodyStart) + updated + content.slice(bodyStart + body.length),
+    removed: true,
+  };
+}
+
+/** Remove a linha `require("./plugins/flutter/<kebab>").default,` do allFlutterPlugins. */
+function removeAllFlutterPluginsEntry(content, kebabName) {
+  const lineRe = new RegExp(
+    `^[ \\t]*require\\(["']\\./plugins/flutter/${escapeRegExp(kebabName)}["']\\)\\.default,?[ \\t]*\\r?\\n`,
+    "m"
+  );
+  const match = /export const allFlutterPlugins = \[[\s\S]*?\n\];/.exec(content);
+  if (!match || !lineRe.test(match[0])) return { content, removed: false };
+  const updated = match[0].replace(lineRe, "");
+  return {
+    content: content.slice(0, match.index) + updated + content.slice(match.index + match[0].length),
+    removed: true,
+  };
+}
+
+/** Remove o plugin dos arrays de categoria (`export const xxxPlugins = [ ... ];`). */
+function removeFromCategoryArrays(content, name) {
+  const arrays = [];
+  const updated = content.replace(
+    /(export const (\w+Plugins) = \[)([\s\S]*?)(\];)/g,
+    (whole, open, arrayName, body, close) => {
+      if (arrayName === "allFlutterPlugins") return whole;
+      const newBody = removeListItem(body, name);
+      if (newBody === body) return whole;
+      arrays.push(arrayName);
+      return open + newBody + close;
+    }
+  );
+  return { content: updated, arrays };
+}
+
+/** Remove um identificador de uma lista separada por vírgulas, preservando o resto. */
+function removeListItem(body, name) {
+  const ownLine = new RegExp(`^[ \\t]*${escapeRegExp(name)}[ \\t]*,?[ \\t]*\\r?\\n`, "m");
+  if (ownLine.test(body)) return body.replace(ownLine, "");
+  const inline = new RegExp(
+    `(^|[{,\\s])${escapeRegExp(name)}\\s*,\\s*|,\\s*${escapeRegExp(name)}(?=\\s*$)`
+  );
+  return body.replace(inline, "$1");
 }

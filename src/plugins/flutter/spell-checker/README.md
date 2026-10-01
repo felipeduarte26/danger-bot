@@ -2,7 +2,7 @@
 
 Verifica ortografia em **nomes de identificadores** (classes, métodos, variáveis) nas linhas adicionadas do PR. Detecta dois tipos de problema:
 
-1. **Identificador não está em inglês** — usa [eld](https://github.com/nitotm/efficient-language-detector-js) para detectar palavras em qualquer idioma que não seja inglês
+1. **Identificador não está em inglês** — usa [eld](https://github.com/nitotm/efficient-language-detector-js) para detectar palavras em português ou espanhol
 2. **Erro ortográfico (typo)** — usa [cspell](https://cspell.org/) com dicionários de Dart, Flutter e termos de software para identificar palavras escritas incorretamente
 
 ## Como funciona
@@ -10,7 +10,7 @@ Verifica ortografia em **nomes de identificadores** (classes, métodos, variáve
 1. Extrai identificadores das linhas adicionadas no diff
 2. Quebra camelCase/PascalCase em palavras individuais (`fetchUserData` → `fetch`, `user`, `data`)
 3. Verifica cada palavra com **cspell** (dicionários + palavras customizadas)
-4. Palavras desconhecidas pelo cspell são classificadas com **eld**: se não é inglês → "não está em inglês"; se é inglês mas desconhecida → "typo"
+4. Palavras desconhecidas pelo cspell são classificadas com **eld**: detectada como português/espanhol → "não está em inglês"; qualquer outro resultado → "typo" (palavra solta o eld detecta mal: considerar todo idioma ≠ inglês rotulava a maioria dos typos como outro idioma)
 
 ## Como ignorar falsos positivos
 

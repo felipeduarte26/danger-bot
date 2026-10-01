@@ -15,7 +15,7 @@ Ele simula o ambiente do Danger usando o `git diff` local e exibe no terminal ex
 
 | Requisito | Versao minima | Verificar |
 |-----------|---------------|-----------|
-| **Node.js** | >= 18 | `node --version` |
+| **Node.js** | >= 25.2.1 | `node --version` |
 | **npm** | >= 9 | `npm --version` |
 | **Git** | qualquer | `git --version` |
 
@@ -149,7 +149,7 @@ danger-bot dry-run --base develop
 Rode esses comandos para confirmar que o ambiente esta OK:
 
 ```bash
-node --version    # Deve mostrar v18+
+node --version    # Deve mostrar v25.2.1+
 npm --version     # Deve mostrar 9+
 git --version     # Deve mostrar qualquer versao
 ```

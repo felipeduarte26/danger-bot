@@ -60,18 +60,25 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * Extrai conteúdo de strings (entre aspas) usando um parser stateful
  * que lida corretamente com aspas aninhadas, escapadas e triple-quoted.
  *
- * Usa nodehun + dictionary-pt como verificador primário (Hunspell nativo),
- * com fallback para padrões de sufixo nos casos em que o dicionário
- * VERO aceita a forma sem acento como válida.
+ * Detecta erros de acentuação e cedilha com uma lista de palavras que
+ * precisam de acento (`HUNSPELL_BLIND_SPOTS`) e padrões de sufixo
+ * (`-cao` → `-ção`, `-avel` → `-ável`...). Sempre inclui a correção.
  *
- * Detecta: erros de acentuação, cedilha, ortografia geral.
- * Sempre inclui sugestões de correção quando disponíveis.
+ * O Hunspell (nodehun + dictionary-pt) fica desligado (`HUNSPELL_ENABLED`):
+ * em strings de código ele reprovava chaves, URLs e termos em inglês
+ * (`'sku'`, `'name'`, `'products/varieties'`). Medido no esfera-web:
+ * 5 → 78 falhas com ele ligado. O loader continua pronto para quando as
+ * regras forem recalibradas.
  */
 const _types_1 = require("../../../types.js");
 const fs = __importStar(require("fs"));
+const native_import_1 = require("../../../native-import");
+/** Hunspell desligado de propósito (ver o cabeçalho do arquivo). */
+const HUNSPELL_ENABLED = false;
 let _spell = null;
 let _spellLoadAttempted = false;
 async function loadSpell() {
+  if (!HUNSPELL_ENABLED) return null;
   if (_spell) return _spell;
   if (_spellLoadAttempted) return null;
   _spellLoadAttempted = true;
@@ -79,9 +86,8 @@ async function loadSpell() {
     const { createRequire } = await Promise.resolve().then(() => __importStar(require("module")));
     const req = createRequire(__filename);
     const Nodehun = req("nodehun");
-    const dictMod = await Promise.resolve(`${"dictionary-pt"}`).then((s) =>
-      __importStar(require(s))
-    );
+    // dictionary-pt é só-ESM e usa top-level await: precisa do import() nativo
+    const dictMod = await (0, native_import_1.importModule)("dictionary-pt");
     const dict = dictMod.default || dictMod;
     _spell = new Nodehun(dict.aff, dict.dic);
     return _spell;

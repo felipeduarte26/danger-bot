@@ -8,6 +8,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { pathToFileURL } from "url";
 import * as yaml from "js-yaml";
+import { importModule } from "./native-import";
 import type { DangerPlugin } from "./types";
 
 export interface DangerBotConfig {
@@ -92,8 +93,10 @@ export async function loadLocalPlugins(pluginPaths: string[]): Promise<DangerPlu
 
 async function tryLoadPlugin(filePath: string, originalPath: string): Promise<DangerPlugin | null> {
   try {
-    const mod = await import(pathToFileURL(filePath).href);
-    const plugin: unknown = mod.default ?? mod;
+    const mod = await importModule(pathToFileURL(filePath).href);
+    // CommonJS compilado pelo TypeScript chega como { default: { __esModule, default: plugin } }
+    const exported = mod.default ?? mod;
+    const plugin: unknown = isValidPlugin(exported) ? exported : (exported?.default ?? exported);
 
     if (isValidPlugin(plugin)) {
       console.log(`  ✅ ${plugin.config.name} (${originalPath})`);

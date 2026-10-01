@@ -58,7 +58,7 @@ export default createPlugin(
     enabled: true,
   },
   async () => {
-    const dartFiles = getDartFiles().filter((f) => fs.existsSync(f));
+    const dartFiles = await getDartFiles(); // ja vem sem testes e so com arquivos existentes
 
     for (const file of dartFiles) {
       const content = fs.readFileSync(file, "utf-8");
@@ -125,29 +125,33 @@ import { allFlutterPlugins, executeDangerBot } from "@felipeduarte26/danger-bot"
 executeDangerBot(allFlutterPlugins);
 ```
 
-Os plugins locais sao executados **depois** dos plugins passados para `executeDangerBot`.
+Os plugins locais sao executados **depois** dos plugins passados para `executeDangerBot` e **antes** do `google-chat-notification`, que sempre roda por ultimo para resumir o resultado final.
+
+Arquivos `.ts` sao carregados direto pelo Node (type stripping, Node >= 22.18), entao use apenas sintaxe TypeScript "apagavel" (tipos e interfaces; sem `enum` e sem `namespace`). Arquivos `.js` podem ser ESM (`export default`) ou CommonJS (`module.exports`).
 
 ---
 
 ## ignore_files
 
-Array de caminhos de arquivos que devem ser ignorados por **todos** os plugins. Os caminhos sao relativos a raiz do repositorio.
+Array de caminhos de arquivos que devem ser ignorados por **todos** os plugins. Os caminhos sao relativos a raiz do repositorio e aceitam globs:
+
+| Padrao | Ignora |
+| ------ | ------ |
+| `lib/core/legacy_helper.dart` | O arquivo exato |
+| `lib/legacy/*.dart` | Arquivos `.dart` direto em `lib/legacy/` (`*` nao cruza `/`) |
+| `lib/legacy/*` | Tudo dentro de `lib/legacy/`, inclusive subpastas |
+| `lib/legacy/**` | Tudo dentro de `lib/legacy/`, inclusive subpastas |
+| `**/old_page.dart` | `old_page.dart` em qualquer pasta |
+| `lib/page?.dart` | `?` vale por um caractere (`page1.dart`, `pageA.dart`) |
 
 ```yaml
 ignore_files:
   - lib/features/old_budget/new_budget_one_controller.dart
   - lib/features/products/stringbox/view/stringbox_page.dart
-  - lib/features/products/inverters/view/page_inverters.dart
+  - lib/features/products/inverters/view/*
 ```
 
-Quando um arquivo esta na lista de `ignore_files`, ele nao aparece nos resultados de:
-
-- `getAllChangedFiles()`
-- `getDartFiles()`
-- `getDartFilesInDirectory()`
-- `getDomainDartFiles()`, `getDataDartFiles()`, `getPresentationDartFiles()`
-- `getFilesMatching()`, `getFilesByExtension()`
-- `hasFilesMatching()`
+O `executeDangerBot` (e o `dry-run`, com a mesma regra) remove esses arquivos de `danger.git.modified_files` e `danger.git.created_files` antes de rodar os plugins, entao eles nao aparecem para nenhum plugin nem nos helpers (`getAllChangedFiles()`, `getDartFiles()`, `getFilesMatching()`...).
 
 ---
 
@@ -200,7 +204,7 @@ Mais detalhes: [README do plugin](../src/plugins/flutter/ai-code-review/README.m
 
 ### `google_chat_webhook` (plugin google-chat-notification)
 
-O plugin **google-chat-notification** envia uma notificacao ao **Google Chat** quando o Danger Bot termina o code review da PR. O card (formato **Cards V2**) inclui status (verde / amarelo / vermelho), titulo do PR, autor, quantidade de falhas, avisos e mensagens, e link para o PR.
+O plugin **google-chat-notification** envia uma notificacao ao **Google Chat** quando o Danger Bot termina o code review da PR. O card (formato **Cards V2**) inclui o status (vermelho com falhas, amarelo so com avisos, verde sem nada — contando tambem os comentarios inline), o titulo do PR e um botao com o link para o PR (GitHub ou Bitbucket Cloud).
 
 **Configuracao:**
 
@@ -215,7 +219,7 @@ O plugin **google-chat-notification** envia uma notificacao ao **Google Chat** q
 
 Se nenhuma das duas estiver definida, o plugin registra um aviso no log e nao envia mensagem.
 
-**Ordem de execucao:** o plugin deve rodar por ultimo para refletir o resultado final; no pacote ele ja e o ultimo item de `allFlutterPlugins`.
+**Ordem de execucao:** o plugin precisa rodar por ultimo para refletir o resultado final. O `executeDangerBot` garante isso: move o `google-chat-notification` para o fim da lista, depois dos plugins locais.
 
 **Webhook no Google Chat:** Espaco > **Apps e integracoes** > **Webhooks** > **Adicionar webhook**. Copie a URL gerada para o YAML ou para a env var.
 
@@ -325,4 +329,8 @@ executeDangerBot(plugins);
 
 ### O ignore_files aceita glob patterns?
 
-Nao. Use caminhos exatos relativos a raiz do repositorio.
+Sim: `*`, `**` e `?`, alem de caminhos exatos relativos a raiz do repositorio. Veja a tabela em [ignore_files](#ignore_files). O `dry-run` usa a mesma regra do CI.
+
+### Migrando do ignore_danger_files.json
+
+Copie os caminhos do `ignore_danger_files.json` para a lista `ignore_files` do `danger-bot.yaml` (mesmo formato: caminhos relativos a raiz) e apague o arquivo antigo — ele nao e mais lido.

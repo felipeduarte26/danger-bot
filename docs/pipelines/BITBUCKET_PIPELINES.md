@@ -45,7 +45,7 @@ Se o projeto nao tem `package.json`:
     "danger:ci": "danger ci"
   },
   "devDependencies": {
-    "danger": "^13.0.7",
+    "danger": "^14.0.7",
     "@felipeduarte26/danger-bot": "git+https://github.com/felipeduarte26/danger-bot.git#main"
   }
 }
@@ -62,7 +62,7 @@ executeDangerBot(allFlutterPlugins);
 ### 5. Configurar bitbucket-pipelines.yml
 
 ```yaml
-image: node:22
+image: node:25
 
 pipelines:
   pull-requests:
@@ -94,7 +94,7 @@ pipelines:
     '**':
       - step:
           name: Danger Bot
-          image: node:22
+          image: node:25
           caches:
             - node-cache
           script:
@@ -118,7 +118,7 @@ pipelines:
       - parallel:
           - step:
               name: Danger Bot
-              image: node:22
+              image: node:25
               caches:
                 - node
               script:
@@ -177,7 +177,7 @@ caches:
 ```
 
 2. Use `npm ci` ao inves de `npm install`
-3. Use imagem `node:22` especifica (nao `latest`)
+3. Use imagem `node:25` especifica (nao `latest`)
 
 ---
 

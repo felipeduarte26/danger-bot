@@ -176,7 +176,7 @@ export default createPlugin(
         f.endsWith(".dart") &&
         !f.endsWith("_test.dart") &&
         !f.endsWith("usecases.dart") &&
-        !f.endsWith("usecase.dart") &&
+        path.basename(f) !== "usecase.dart" &&
         !isBarrelFile(f) &&
         fs.existsSync(f)
     );

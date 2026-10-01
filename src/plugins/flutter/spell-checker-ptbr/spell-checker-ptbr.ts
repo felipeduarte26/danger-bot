@@ -6,15 +6,19 @@
  * Extrai conteúdo de strings (entre aspas) usando um parser stateful
  * que lida corretamente com aspas aninhadas, escapadas e triple-quoted.
  *
- * Usa nodehun + dictionary-pt como verificador primário (Hunspell nativo),
- * com fallback para padrões de sufixo nos casos em que o dicionário
- * VERO aceita a forma sem acento como válida.
+ * Detecta erros de acentuação e cedilha com uma lista de palavras que
+ * precisam de acento (`HUNSPELL_BLIND_SPOTS`) e padrões de sufixo
+ * (`-cao` → `-ção`, `-avel` → `-ável`...). Sempre inclui a correção.
  *
- * Detecta: erros de acentuação, cedilha, ortografia geral.
- * Sempre inclui sugestões de correção quando disponíveis.
+ * O Hunspell (nodehun + dictionary-pt) fica desligado (`HUNSPELL_ENABLED`):
+ * em strings de código ele reprovava chaves, URLs e termos em inglês
+ * (`'sku'`, `'name'`, `'products/varieties'`). Medido no esfera-web:
+ * 5 → 78 falhas com ele ligado. O loader continua pronto para quando as
+ * regras forem recalibradas.
  */
 import { createPlugin, getDanger, sendFormattedFail, sendMessage } from "@types";
 import * as fs from "fs";
+import { importModule } from "../../../native-import";
 
 // ---------------------------------------------------------------------------
 // Nodehun lazy loader (singleton)
@@ -25,18 +29,23 @@ interface SpellChecker {
   suggest(word: string): Promise<string[] | null>;
 }
 
+/** Hunspell desligado de propósito (ver o cabeçalho do arquivo). */
+const HUNSPELL_ENABLED = false;
+
 let _spell: SpellChecker | null = null;
 let _spellLoadAttempted = false;
 
 async function loadSpell(): Promise<SpellChecker | null> {
+  if (!HUNSPELL_ENABLED) return null;
   if (_spell) return _spell;
   if (_spellLoadAttempted) return null;
   _spellLoadAttempted = true;
   try {
     const { createRequire } = await import("module");
     const req = createRequire(__filename);
-    const Nodehun = req("nodehun" as string);
-    const dictMod = await import("dictionary-pt" as string);
+    const Nodehun = req("nodehun");
+    // dictionary-pt é só-ESM e usa top-level await: precisa do import() nativo
+    const dictMod = await importModule("dictionary-pt");
     const dict = dictMod.default || dictMod;
     _spell = new Nodehun(dict.aff, dict.dic) as SpellChecker;
     return _spell;

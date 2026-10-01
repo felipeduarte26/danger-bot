@@ -206,30 +206,29 @@ const testFiles = files.filter(f => f.includes("_test."));
 
 ### getDartFiles()
 
-Retorna apenas arquivos `.dart` modificados ou criados.
+Retorna os arquivos `.dart` modificados ou criados que existem no disco, **exceto testes** (`_test.dart`). E assincrona.
 
 ```typescript
-function getDartFiles(): string[]
+async function getDartFiles(): Promise<string[]>
 ```
 
 ```typescript
-const dartFiles = getDartFiles();
-const codeFiles = dartFiles.filter(f => !f.includes("_test.dart"));
-const testFiles = dartFiles.filter(f => f.includes("_test.dart"));
+const dartFiles = await getDartFiles();
+const testFiles = getFilesMatching(/_test\.dart$/); // testes ficam de fora do getDartFiles
 ```
 
 ### getDartFilesInDirectory(directory)
 
-Retorna arquivos `.dart` de um diretorio especifico.
+Retorna os arquivos de `getDartFiles()` que estao em um diretorio especifico. E assincrona.
 
 ```typescript
-function getDartFilesInDirectory(directory: string): string[]
+async function getDartFilesInDirectory(directory: string): Promise<string[]>
 ```
 
 ```typescript
-const domainFiles = getDartFilesInDirectory("/domain/");
-const userFiles = getDartFilesInDirectory("/features/user/");
-const authFiles = getDartFilesInDirectory("/core/auth/");
+const domainFiles = await getDartFilesInDirectory("/domain/");
+const userFiles = await getDartFilesInDirectory("/features/user/");
+const authFiles = await getDartFilesInDirectory("/core/auth/");
 ```
 
 ### getFilesMatching(pattern)
@@ -275,7 +274,7 @@ if (hasFilesMatching(/pubspec\.yaml$/)) {
 
 ### getFileContent(file)
 
-Le o conteudo de um arquivo a partir do diff do git.
+Le o conteudo do arquivo depois das mudancas do PR: usa o `after` do `danger.git.diffForFile` (GitHub, GitLab, Bitbucket e dry-run) e, se a plataforma nao devolver o conteudo, le do disco. Retorna `null` se o arquivo nao existir (ex.: removido no PR).
 
 ```typescript
 async function getFileContent(file: string): Promise<string | null>
@@ -312,11 +311,11 @@ if (hasEval) {
 Atalho para `getDartFilesInDirectory("/domain/")`.
 
 ```typescript
-function getDomainDartFiles(): string[]
+async function getDomainDartFiles(): Promise<string[]>
 ```
 
 ```typescript
-const domainFiles = getDomainDartFiles();
+const domainFiles = await getDomainDartFiles();
 const entities = domainFiles.filter(f => f.includes("/entities/"));
 const usecases = domainFiles.filter(f => f.includes("/usecases/"));
 ```
@@ -326,11 +325,11 @@ const usecases = domainFiles.filter(f => f.includes("/usecases/"));
 Atalho para `getDartFilesInDirectory("/data/")`.
 
 ```typescript
-function getDataDartFiles(): string[]
+async function getDataDartFiles(): Promise<string[]>
 ```
 
 ```typescript
-const dataFiles = getDataDartFiles();
+const dataFiles = await getDataDartFiles();
 const datasources = dataFiles.filter(f => f.includes("/datasources/"));
 ```
 
@@ -339,7 +338,7 @@ const datasources = dataFiles.filter(f => f.includes("/datasources/"));
 Atalho para `getDartFilesInDirectory("/presentation/")`.
 
 ```typescript
-function getPresentationDartFiles(): string[]
+async function getPresentationDartFiles(): Promise<string[]>
 ```
 
 ### isInLayer(file, layer)
@@ -351,7 +350,7 @@ function isInLayer(file: string, layer: "domain" | "data" | "presentation"): boo
 ```
 
 ```typescript
-const files = getDartFiles();
+const files = await getDartFiles();
 for (const file of files) {
   if (isInLayer(file, "domain") && file.includes("viewmodel")) {
     sendFail(`ViewModel na camada Domain: ${file}`);
@@ -414,10 +413,13 @@ Define os arquivos que devem ser ignorados por todos os plugins. Chamado interna
 function setIgnoredFiles(files: string[]): void
 ```
 
+Aceita caminhos exatos e globs: `*` nao cruza `/` (exceto um `/*` no fim, que ignora a pasta inteira), `**` cruza pastas e `?` e um caractere:
+
 ```typescript
 setIgnoredFiles([
   "lib/features/old_module/legacy_page.dart",
   "lib/core/deprecated_helper.dart",
+  "lib/legacy/**",
 ]);
 ```
 
@@ -452,6 +454,14 @@ function setActivePlugins(names: string[]): void // chamado pelo runPlugins/dry-
 ```typescript
 // changelog-checker: o pr-validation já reprova o PR pelo mesmo motivo
 if (isPluginActive("pr-validation")) return;
+```
+
+### getPendingSummaryCounts()
+
+Fails/warns enviados com arquivo e linha viram comentario inline na hora, mas so entram em `results.fails`/`results.warnings` do Danger no `flushSummaries()`, depois de todos os plugins. Este helper devolve quantas ocorrencias ainda estao pendentes — util para um plugin que resume o resultado (como o `google-chat-notification`) somar com o que ja esta nos resultados.
+
+```typescript
+function getPendingSummaryCounts(): { fails: number; warnings: number }
 ```
 
 ---
@@ -491,7 +501,7 @@ export default createPlugin(
     enabled: true,
   },
   async () => {
-    const dartFiles = getDartFiles();
+    const dartFiles = await getDartFiles();
     if (dartFiles.length === 0) return;
 
     // Verificar tamanho do PR
@@ -506,8 +516,8 @@ export default createPlugin(
       const content = await getFileContent(file);
       if (!content) continue;
 
-      // Verificar print() em codigo de producao
-      if (!file.includes("_test.dart") && content.includes("print(")) {
+      // Verificar print() em codigo de producao (getDartFiles ja exclui testes)
+      if (content.includes("print(")) {
         sendWarn(`print() encontrado em ${file}. Use um logger.`);
       }
 

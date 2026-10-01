@@ -158,7 +158,7 @@ executeDangerBot([
 
 | Pacote | Versão | Uso |
 |--------|--------|-----|
-| \`danger\` | ^13.0.0 | Framework base (peer dependency) |
+| \`danger\` | ^14.0.7 | Framework base (peer dependency) |
 | \`@felipeduarte26/danger-bot\` | latest | Helpers e tipos |
 
 ---

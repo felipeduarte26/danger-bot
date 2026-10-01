@@ -5,7 +5,7 @@
  */
 
 import path from "path";
-import { exists, readFile, getDirectories } from "../utils/fs-helpers.js";
+import { exists, readFile, getDirectories, getFiles } from "../utils/fs-helpers.js";
 
 /**
  * Mostrar informações do projeto
@@ -39,7 +39,10 @@ export function showInfo() {
 
     platformFolders.forEach((platform) => {
       const platformPath = path.join(pluginsDir, platform);
-      const pluginFolders = getDirectories(platformPath);
+      // Só pastas com o arquivo do plugin (ignora pastas vazias ou em construção), como o `list`
+      const hasPluginFile = (folder) =>
+        getFiles(path.join(platformPath, folder), ".ts").some((f) => f !== "index.ts");
+      const pluginFolders = getDirectories(platformPath).filter(hasPluginFile);
 
       console.log(`  ${platform}/ (${pluginFolders.length} plugins)`);
       pluginFolders.forEach((folder) => {

@@ -39,6 +39,7 @@ export {
   sendFormattedFail,
   sendFormattedWarn,
   flushSummaries,
+  getPendingSummaryCounts,
 } from "./helpers";
 export type { FormattedMessageOptions } from "./helpers";
 export { loadConfig, loadLocalPlugins } from "./config";
@@ -101,6 +102,11 @@ export interface DangerBotCallbacks {
  * Carrega automaticamente o arquivo `danger-bot.yaml` da raiz do projeto.
  * - `ignore_files`: arquivos ignorados por todos os plugins
  * - `local_plugins`: plugins locais do projeto, carregados e executados junto com os plugins padrão
+ *   (antes do `google-chat-notification`, que é sempre o último)
+ *
+ * A execução é registrada com `schedule()`, então o Danger espera todos os
+ * plugins terminarem antes de publicar os comentários. A Promise retornada
+ * resolve no fim; erros dos plugins não a rejeitam, vão para `onError`.
  *
  * @param plugins - Array of plugins to run
  * @param callbacks - Optional callbacks for lifecycle hooks
@@ -122,4 +128,4 @@ export interface DangerBotCallbacks {
 export declare function executeDangerBot(
   plugins: DangerPlugin[],
   callbacks?: DangerBotCallbacks
-): void;
+): Promise<void>;

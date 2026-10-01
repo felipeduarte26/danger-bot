@@ -111,6 +111,7 @@ executeDangerBot(plugins);
 |--------|-------------|-----------|
 | `dataDatasourcesPlugin` | `data-datasources` | Valida Data Sources |
 | `dataModelsPlugin` | `data-models` | Valida Data Models |
+| `modelEntityInheritancePlugin` | `model-entity-inheritance` | Model com os mesmos campos da Entity deve fazer `extends` dela; aponta `toEntity()` redundante |
 
 ### Clean Architecture - Presentation
 
@@ -118,6 +119,7 @@ executeDangerBot(plugins);
 |--------|-------------|-----------|
 | `presentationViewModelsPlugin` | `presentation-viewmodels` | Valida que ViewModels dependam apenas de UseCases |
 | `presentationTryCatchCheckerPlugin` | `presentation-try-catch-checker` | Detecta uso de try-catch na camada Presentation |
+| `presentationEncapsulationPlugin` | `presentation-encapsulation` | Membros publicos em classes `State` da presentation que deveriam ser privados |
 
 ### Qualidade de Codigo
 
@@ -125,19 +127,25 @@ executeDangerBot(plugins);
 |--------|-------------|-----------|
 | `cleanArchitecturePlugin` | `clean-architecture` | Detecta violacoes entre camadas (imports indevidos) |
 | `fileNamingPlugin` | `file-naming` | Verifica nomenclatura de arquivos Dart (snake_case) |
+| `folderNamingConventionPlugin` | `folder-naming-convention` | Pastas da Clean Architecture no plural (`usecases/`, `entities/`, `models/`...) |
 | `commentsCheckerPlugin` | `comments-checker` | Verifica uso correto de comentarios |
+| `buildDocCheckerPlugin` | `build-doc-checker` | Detecta `///` desnecessarios dentro do metodo `build` |
 | `lateFinalCheckerPlugin` | `late-final-checker` | Detecta late final desnecessario com valor atribuido |
 | `barrelFilesEnforcerPlugin` | `barrel-files-enforcer` | Sugere barrel files quando multiplos imports vem da mesma pasta |
 | `securityCheckerPlugin` | `security-checker` | Detecta problemas de seguranca (keys, secrets, arquivos sensiveis) |
 | `spellCheckerPlugin` | `spell-checker` | Verifica ortografia em identificadores Dart |
+| `spellCheckerPtbrPlugin` | `spell-checker-ptbr` | Verifica ortografia e acentuacao em strings PT-BR (linhas adicionadas) |
 | `identifierLanguagePlugin` | `identifier-language` | Detecta identificadores e comentarios que nao estao em ingles |
 | `classNamingConventionPlugin` | `class-naming-convention` | Verifica se nomes de classes usam substantivos (Clean Code) |
+| `booleanNamingConventionPlugin` | `boolean-naming-convention` | Booleans com frase nao imperativa (`is`, `has`, `can`, `should`...) — Effective Dart |
+| `positionalBoolParamsPlugin` | `positional-bool-params` | Parametros `bool` posicionais devem ser named — Effective Dart |
+| `privateNamedParamsPlugin` | `private-named-params` | Sugere `this._campo` no construtor em vez de initializer list (Dart 3.12+) |
 | `avoidGodClassPlugin` | `avoid-god-class` | Detecta classes muito grandes (SRP — responsabilidade unica) |
 | `avoidSetstateAfterAsyncPlugin` | `avoid-setstate-after-async` | Detecta setState apos await sem verificar mounted |
 | `dateTypeCheckerPlugin` | `date-type-checker` | Detecta campos de data declarados como String ao inves de DateTime |
 | `printStatementDetectorPlugin` | `print-statement-detector` | Detecta `print()` e `debugPrint()` em codigo de producao |
 | `emptyCatchDetectorPlugin` | `empty-catch-detector` | Detecta blocos `catch` vazios sem tratamento |
-| `futureWaitModernizerPlugin` | `future-wait-modernizer` | Sugere `Future.wait` ao inves de awaits sequenciais independentes |
+| `futureWaitModernizerPlugin` | `future-wait-modernizer` | Detecta `Future.wait([...])` com lista literal e sugere a tupla com `.wait` do Dart 3 (type-safe, sem cast por indice) |
 | `aiCodeReviewPlugin` | `ai-code-review` | Code review com IA (Gemini) — Clean Code, SOLID, seguranca e bugs (mensagens como aviso) |
 | `primaryConstructorsPlugin` | `primary-constructors` | Obriga o uso de primary constructors em classes e enums (Dart 3.13+); so roda com `sdk` minimo >= 3.13 |
 
@@ -158,8 +166,8 @@ executeDangerBot(plugins);
 | Plugin | Nome interno | Descricao |
 |--------|-------------|-----------|
 | `testFileCheckerPlugin` | `test-file-checker` | Verifica se arquivos da PR possuem testes correspondentes (`lib/x.dart` → `test/x_test.dart`, tambem em monorepo e por nome em qualquer pasta de `test/`) |
-| `flutterTestRunnerPlugin` | `flutter-test-runner` | Executa testes da PR e reporta resultados (nao quebra a pipeline) |
-| `testCoverageSummaryPlugin` | `test-coverage-summary` | Mostra cobertura de testes no summary da PR (le `coverage/lcov.info`) |
+| `flutterTestRunnerPlugin` | `flutter-test-runner` | Executa os testes da PR e mostra o resultado; teste quebrando **falha o build** |
+| `testCoverageSummaryPlugin` | `test-coverage-summary` | Mostra cobertura de testes no summary da PR (le `coverage/lcov.info` ou gera com `flutter test --coverage`) e o checklist de plataformas |
 
 ---
 

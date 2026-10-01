@@ -6,10 +6,9 @@
 
 /**
  * Gerar dangerfile de exemplo
- * @param {string[]} plugins - Lista de nomes dos plugins
  * @returns {string} - Conteúdo do dangerfile
  */
-export function generateDangerfileTemplate(plugins) {
+export function generateDangerfileTemplate() {
   return `/**
  * DANGER BOT - DANGERFILE
  * ========================

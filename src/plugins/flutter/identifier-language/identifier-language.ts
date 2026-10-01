@@ -5,10 +5,14 @@
  *
  * Detecção:
  * 1. Dicionário interno (~400 palavras PT comuns em código) — rápido e preciso
- * 2. eld v2 (Efficient Language Detector) — detecta PT e ES (línguas próximas)
- * 3. eld palavra por palavra — pega textos misturados PT+EN
- * 4. cspell (dicionário EN) — valida se a palavra é inglês válido; se NÃO é
- *    inglês e eld detecta como PT/ES → sinaliza (pega variantes como "filials")
+ * 2. cspell (dicionário EN) — valida se a palavra é inglês válido; se NÃO é
+ *    inglês e está a até 1-2 letras de uma palavra PT conhecida → sinaliza
+ *    (pega variantes como "filials")
+ *
+ * O eld (detector de idioma) fica desligado: palavra por palavra ele reprovava
+ * comentários e identificadores em inglês (`listener`, `internal`, "Converts this
+ * model to a map"). Medido no esfera-web: 181 → 2.022 falhas com ele ligado.
+ * Para religar, carregue `_eld` em `loadDependencies` e recalibre as heurísticas.
  *
  * Tradução:
  * - Identificadores: dicionário PT→EN interno
@@ -19,22 +23,18 @@ import { execSync } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
+import { importModule } from "../../../native-import";
 
-let _eld: any = null;
-let _eldLoaded = false;
+/** Detector de idioma: desligado de propósito (ver o cabeçalho do arquivo). */
+const _eld: any = null;
+let _depsLoaded = false;
 let _translate: any = null;
 
-async function loadEld(): Promise<void> {
-  if (_eldLoaded) return;
-  _eldLoaded = true;
+async function loadDependencies(): Promise<void> {
+  if (_depsLoaded) return;
+  _depsLoaded = true;
   try {
-    const mod = await import("eld/large" as string);
-    _eld = mod.eld ?? mod.default?.eld ?? mod;
-  } catch {
-    // eld nao disponivel
-  }
-  try {
-    const tMod = await import("translate" as string);
+    const tMod = await importModule("translate");
     _translate = tMod.default ?? tMod;
   } catch {
     // translate nao disponivel
@@ -87,7 +87,8 @@ function validateWordsWithCspell(words: Set<string>): Set<string> {
     let cspellOutput = "";
     try {
       execSync(
-        `./node_modules/.bin/cspell --config ${configFile} --no-progress --no-summary ${wordsFile}`,
+        // --root: o cspell ignora arquivos fora da raiz (cwd por padrão)
+        `./node_modules/.bin/cspell --config ${configFile} --root ${tmpDir} --no-progress --no-summary ${wordsFile}`,
         { encoding: "utf-8", stdio: "pipe", timeout: 30000 }
       );
     } catch (error: any) {
@@ -863,7 +864,7 @@ export default createPlugin(
   async () => {
     const { git } = getDanger();
 
-    await loadEld();
+    await loadDependencies();
 
     const dartFiles = [...git.modified_files, ...git.created_files].filter(
       (f: string) =>
