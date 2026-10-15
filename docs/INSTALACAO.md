@@ -35,7 +35,7 @@ No `package.json`, ficara assim:
 
 ### Versao especifica via tag
 
-Troque `vX.Y.Z` por uma tag existente (`git ls-remote --tags https://github.com/felipeduarte26/danger-bot.git`).
+Troque `vX.Y.Z` por uma tag existente (`git ls-remote --tags https://github.com/felipeduarte26/danger-bot.git`). As tags comecam na `v4.0.1`; o que muda em cada versao esta no [CHANGELOG](../CHANGELOG.md). Com a versao fixa, o projeto so recebe mudancas quando voce troca a tag, inclusive regras novas que podem reprovar PRs.
 
 ```json
 {
@@ -141,7 +141,7 @@ npm list danger @felipeduarte26/danger-bot
 
 # Saida esperada
 # ├── danger@14.x.x
-# └── @felipeduarte26/danger-bot@3.5.0
+# └── @felipeduarte26/danger-bot@4.0.1
 
 # Testar localmente (sem tokens, sem CI)
 npx danger-bot dry-run --base develop

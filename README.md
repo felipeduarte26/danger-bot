@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/felipeduarte26/danger-bot"><img src="https://img.shields.io/badge/version-4.0.0-blue.svg" alt="Version"></a>
+  <a href="https://github.com/felipeduarte26/danger-bot"><img src="https://img.shields.io/badge/version-4.0.1-blue.svg" alt="Version"></a>
   <a href="https://nodejs.org"><img src="https://img.shields.io/badge/node-%3E%3D25.2.1-brightgreen.svg" alt="Node"></a>
   <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.9-blue.svg" alt="TypeScript"></a>
   <a href="https://github.com/felipeduarte26/danger-bot/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License"></a>
@@ -299,6 +299,7 @@ db ls                         # Equivalente a: danger-bot list
 | [Configuracao](docs/CONFIGURACAO.md)       | Plugins locais e arquivos ignorados   |
 | [FAQ](docs/FAQ.md)                         | Perguntas frequentes                  |
 | [CI/CD](docs/pipelines/README.md)          | Guias de configuracao por plataforma  |
+| [Changelog](CHANGELOG.md)                  | O que mudou em cada versao            |
 
 ---
 
