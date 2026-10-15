@@ -21,7 +21,7 @@ export function validatePlugin(pluginPath) {
   const warnings = [];
 
   // Verificações obrigatórias
-  if (!content.includes("import { createPlugin }")) {
+  if (!/import\s*\{[^}]*\bcreatePlugin\b[^}]*\}\s*from/.test(content)) {
     errors.push("❌ Falta import do createPlugin");
   }
 
@@ -60,6 +60,7 @@ export function validatePlugin(pluginPath) {
       console.log("❌ Erros encontrados:");
       errors.forEach((err) => console.log(`   ${err}`));
       console.log();
+      process.exitCode = 1;
     }
 
     if (warnings.length > 0) {

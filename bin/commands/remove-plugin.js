@@ -47,7 +47,7 @@ export async function removePlugin() {
   const platformInput = await question(`\nSelect platform (1-${platforms.length}): `);
   const platformIndex = parseInt(platformInput) - 1;
 
-  if (platformIndex < 0 || platformIndex >= platforms.length) {
+  if (!Number.isInteger(platformIndex) || platformIndex < 0 || platformIndex >= platforms.length) {
     console.error("Error: Invalid platform selection!");
     closeReadline();
     return;
@@ -76,7 +76,7 @@ export async function removePlugin() {
   const pluginInput = await question(`\nSelect plugin to remove (1-${plugins.length}): `);
   const pluginIndex = parseInt(pluginInput) - 1;
 
-  if (pluginIndex < 0 || pluginIndex >= plugins.length) {
+  if (!Number.isInteger(pluginIndex) || pluginIndex < 0 || pluginIndex >= plugins.length) {
     console.error("Error: Invalid plugin selection!");
     closeReadline();
     return;

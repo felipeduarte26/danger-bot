@@ -127,10 +127,12 @@ danger-bot new
 
 ```
 src/plugins/flutter/meu-plugin/
-├── meu-plugin.ts    # Codigo do plugin com createPlugin
+├── meu-plugin.ts    # Esqueleto com createPlugin e sendFormattedFail (padrao das mensagens)
 ├── index.ts         # Export default
-└── README.md        # Documentacao do plugin
+└── README.md        # Na estrutura padrao: O que verifica, Severidade, Exemplo, Referencias
 ```
+
+Troque o `PATTERN`, o `REPLACEMENT` e os textos de exemplo do `sendFormattedFail` pela regra real, e os exemplos do README pelos do plugin.
 
 **Alem disso, a CLI automaticamente (Flutter):**
 
@@ -223,13 +225,15 @@ danger-bot validate src/plugins/flutter/meu-plugin/meu-plugin.ts
 
 | Verificacao | Tipo | Descricao |
 |-------------|------|-----------|
-| `import { createPlugin }` | Erro | Import obrigatorio |
+| `import { createPlugin, ... }` | Erro | Import obrigatorio (pode vir junto com outros nomes) |
 | `export default createPlugin` | Erro | Export obrigatorio |
 | Campo `name` | Erro | Nome do plugin |
 | Campo `description` | Erro | Descricao do plugin |
 | Campo `enabled` | Aviso | Recomendado (default: true) |
 | `async ()` | Aviso | Funcao run deve ser async |
 | `/**` | Aviso | Documentacao JSDoc recomendada |
+
+Com algum erro, o comando sai com codigo 1. Ele nao confere o padrao das mensagens (`sendFormattedFail`/`sendFormattedWarn`).
 
 **Exemplo de saida:**
 
@@ -304,7 +308,7 @@ DANGER BOT - PROJECT INFO
 ============================================================
 
 Name:        @felipeduarte26/danger-bot
-Version:     3.5.0
+Version:     4.0.1
 Description: Conjunto modular de plugins Danger JS
 
 Platforms:

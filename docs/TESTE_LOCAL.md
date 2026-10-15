@@ -253,7 +253,7 @@ RESULTADOS DO DRY-RUN
 
 Tempo: 50ms
 
-Resumo: 8 erro(s)/inline, 2 aviso(s), 1 mensagem(ns)
+Resumo: 2 erro(s), 2 aviso(s), 1 mensagem(ns), 6 comentário(s) inline
 
 ────────────────────────────────────────────────────────────
 ERROS GERAIS (2) -- falhariam o build

@@ -208,6 +208,7 @@ export async function dryRun(options) {
     deletions,
     mergeBase,
     currentBranch,
+    baseBranch,
   });
 
   let dangerBot;
@@ -386,6 +387,7 @@ function setupDangerMock(results, gitInfo) {
     deletions,
     mergeBase,
     currentBranch,
+    baseBranch,
   } = gitInfo;
 
   const prTitle = execSafe("git log -1 --format=%s").trim() || "Local dry-run";
@@ -473,7 +475,7 @@ function setupDangerMock(results, gitInfo) {
         number: 0,
         user: { login: "local" },
         head: { ref: currentBranch },
-        base: { ref: "main" },
+        base: { ref: baseBranch },
       },
       thisPR: { owner: "local", repo: "dry-run", number: 0 },
       api: {},
@@ -538,9 +540,9 @@ function displayResults(results, verbose, elapsedMs) {
     return;
   }
 
-  const errTotal = results.fails.length + inlineComments.length;
+  const errTotal = results.fails.length;
   console.log(
-    `\n📊 Resumo: ${c.red}${errTotal} erro(s)${c.reset}, ${c.yellow}${results.warns.length} aviso(s)${c.reset}, ${c.blue}${results.messages.length} mensagem(ns)${c.reset}\n`
+    `\n📊 Resumo: ${c.red}${errTotal} erro(s)${c.reset}, ${c.yellow}${results.warns.length} aviso(s)${c.reset}, ${c.blue}${results.messages.length} mensagem(ns)${c.reset}, ${c.magenta}${inlineComments.length} comentário(s) inline${c.reset}\n`
   );
 
   if (results.fails.length > 0) {

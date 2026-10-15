@@ -344,9 +344,9 @@ danger-bot create-plugin
 ```
 
 A CLI pergunta nome e descricao, e gera automaticamente:
-- Arquivo do plugin com `createPlugin`
+- Arquivo do plugin com `createPlugin` e um `sendFormattedFail` de exemplo, no [padrao de mensagens](#padrao-de-mensagens-dos-plugins)
 - `index.ts` com export
-- `README.md` com documentacao
+- `README.md` na estrutura padrao (`O que verifica`, `Severidade`, `Exemplo`, `Referencias`)
 - Atualiza o barrel da plataforma (`src/plugins/flutter/index.ts`)
 - Em `src/index.ts`: adiciona o **export por nome** (bloco `export { ... } from "./plugins/flutter"`), o `import` usado pelos arrays de categoria e o `require().default` no `allFlutterPlugins` — **antes** do `google-chat-notification`, que precisa continuar sendo o ultimo
 - Nao duplica nada se rodar de novo e avisa (`[WARN]`) se algum bloco nao for encontrado

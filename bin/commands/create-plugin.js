@@ -117,7 +117,7 @@ export async function createPlugin() {
   console.log(`[OK] Created barrel file: ${platformFolder}/${kebabName}/index.ts`);
 
   // Criar README.md
-  const readmeContent = generatePluginReadme(name, description, kebabName, camelName);
+  const readmeContent = generatePluginReadme(name, description);
   writeFile(readmePath, readmeContent);
   console.log(`[OK] Created documentation: ${platformFolder}/${kebabName}/README.md`);
 
@@ -206,10 +206,13 @@ export async function createPlugin() {
   }
   console.log();
   console.log("Next steps:");
-  console.log(`  1. Edit: ${filePath}`);
-  console.log(`  2. Update documentation: ${readmePath}`);
-  console.log(`  3. Implement the plugin logic`);
-  console.log(`  4. Run: npm run build`);
+  console.log(`  1. Implement the rule: ${filePath}`);
+  console.log(`     (replace PATTERN, REPLACEMENT and the example texts of sendFormattedFail)`);
+  console.log(`  2. Replace the examples in: ${readmePath}`);
+  console.log(`  3. Run: npm run build`);
+  console.log(
+    `  4. Test: node bin/cli.js dry-run --project <flutter-project> --plugins ${kebabName} -v`
+  );
   console.log(`  5. Use: import { ${camelName}Plugin } from "@felipeduarte26/danger-bot"\n`);
 }
 

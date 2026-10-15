@@ -1,7 +1,7 @@
 /**
  * PLUGIN TEMPLATE
  * ===============
- * Template para criação de novos plugins
+ * Template para criação de novos plugins, no padrão obrigatório das mensagens
  */
 
 import { toKebabCase } from "../utils/string-helpers.js";
@@ -15,41 +15,63 @@ import { toKebabCase } from "../utils/string-helpers.js";
  */
 export function generatePluginTemplate(name, description, enabled) {
   const kebabName = toKebabCase(name);
+  const headerDescription = description.replace(/\*\//g, "*\\/");
 
   return `/**
- * ${name.toUpperCase()} PLUGIN
- * ${"=".repeat(name.length + 7)}
- * ${description}
+ * ${name}
+ * ${headerDescription}
  */
+import { createPlugin, getDanger, sendFormattedFail } from "@types";
+import * as fs from "fs";
 
-import { createPlugin, getDanger, sendMessage, sendWarn, sendFail } from "@types";
+const PATTERN = /\\bpadraoProblematico\\(/;
+const REPLACEMENT = "padraoCorreto(";
 
 export default createPlugin(
   {
     name: "${kebabName}",
-    description: "${description}",
+    description: ${JSON.stringify(description)},
     enabled: ${enabled},
   },
   async () => {
-    // TODO: Implement plugin logic
-    
-    // Acessar dados do Danger
-    const d = getDanger();
-    const modifiedFiles = d.git.modified_files;
-    const createdFiles = d.git.created_files;
-    const allFiles = [...modifiedFiles, ...createdFiles];
-    
-    // Enviar mensagens (com suporte a file e line opcionais)
-    sendMessage(\`✅ Plugin ${kebabName} executed successfully!\`);
-    
-    // Exemplos com arquivo e linha específicos:
-    // sendMessage("Mensagem específica", "path/to/file.dart", 42);
-    // sendWarn("⚠️ Warning message", "path/to/file.dart", 100);
-    // sendFail("❌ Error message", "path/to/file.dart", 200);
-    
-    // Outras opções:
-    // sendWarn("⚠️ Warning message");
-    // sendFail("❌ This will fail the build");
+    const { git } = getDanger();
+
+    const dartFiles = [...git.modified_files, ...git.created_files].filter(
+      (f: string) =>
+        f.endsWith(".dart") &&
+        !f.endsWith("_test.dart") &&
+        !f.endsWith(".g.dart") &&
+        !f.endsWith(".freezed.dart") &&
+        fs.existsSync(f)
+    );
+
+    for (const file of dartFiles) {
+      const lines = fs.readFileSync(file, "utf-8").split("\\n");
+
+      for (let i = 0; i < lines.length; i++) {
+        if (!PATTERN.test(lines[i])) continue;
+
+        const wrong = lines[i].trim(); // código REAL do arquivo
+        const fixed = wrong.replace(PATTERN, REPLACEMENT); // a mesma linha, já corrigida
+
+        sendFormattedFail({
+          title: "TITULO FIXO EM CAPS", // chave do resumo: sem dados variáveis
+          description:
+            "Por que \`padraoProblematico()\` é um problema (1-2 linhas, **negrito** no essencial).",
+          problem: {
+            wrong,
+            correct: fixed,
+            wrongLabel: "Efeito do código atual",
+            correctLabel: "O que muda com a correção",
+          },
+          action: { text: "Substitua por:", code: fixed },
+          objective: "Benefício da correção em uma frase.",
+          reference: { text: "Nome da doc oficial", url: "https://api.flutter.dev/" },
+          file,
+          line: i + 1,
+        });
+      }
+    }
   }
 );
 `;
