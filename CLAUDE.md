@@ -31,6 +31,22 @@ Não há suíte de testes. Para validar um plugin, use o **dry-run** num projeto
 
 **Commits:** [Conventional Commits](https://www.conventionalcommits.org/) (`docs/COMMITS.md`): `type(scope): subject`, subject em minúsculas e sem ponto final, header ≤ 100. Tipos: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert. Scope é opcional (sem ele, só um aviso).
 
+## Versões e releases
+
+O histórico fica no [CHANGELOG.md](CHANGELOG.md), no formato [Keep a Changelog 1.1.0](https://keepachangelog.com/pt-BR/1.1.0/) com [SemVer](https://semver.org/lang/pt-BR/). Quem instala via Git sem fixar versão (`#main`) recebe cada push na `main`, então registre a mudança no mesmo commit.
+
+- **Toda mudança que afeta quem usa o pacote** ganha um item em `## [Não publicado]`, na seção certa, nesta ordem: `Adicionado`, `Modificado`, `Obsoleto`, `Removido`, `Corrigido`, `Segurança`. Escreva para o consumidor (plugin, helper, chave do YAML ou comando em crase) e comece com `**Incompatível:**` o que quebra compatibilidade. Refactor, lint e formatação não entram.
+- **Qual número subir:**
+  - MAJOR: export, plugin, comando ou chave do `danger-bot.yaml` removido ou renomeado; comportamento padrão alterado para quem não configura nada; requisito novo (Node, Danger, dependência instalada pelo consumidor).
+  - MINOR: plugin, regra, helper, comando ou chave do YAML novos. Regra nova que reprova (`sendFormattedFail`) pode quebrar PRs que passavam: diga isso no item.
+  - PATCH: correção de falso positivo ou negativo, texto de mensagem, docs.
+- **Fechar uma versão:**
+  1. No `CHANGELOG.md`, troque `## [Não publicado]` por `## [X.Y.Z] - AAAA-MM-DD`, abra um `## [Não publicado]` vazio acima e atualize os links do fim (`[Não publicado]` compara `vX.Y.Z...HEAD`; `[X.Y.Z]` compara a tag anterior com `vX.Y.Z`).
+  2. Mesmo número no `package.json`, no badge do `README.md`, na saída do `info` em `docs/CLI.md` e na do `npm list` em `docs/INSTALACAO.md`. O `PATCH_VERSION` do patch lê o `package.json`.
+  3. Commit `chore(release): vX.Y.Z` e tag anotada nele: `git tag -a vX.Y.Z -m "vX.Y.Z"`.
+  4. `git push origin main vX.Y.Z`.
+- As tags `vX.Y.Z` começam na 4.0.1. As versões anteriores estão no CHANGELOG com links por hash de commit.
+
 ## Arquitetura
 
 ### Fluxo de uma execução
@@ -86,8 +102,8 @@ O postinstall substitui strings exatas no `node_modules/danger/distribution`:
 
 Como funciona:
 - Cada substituição é `[rótulo, original, novo]` e parte sempre do **original do Danger**, guardado em `<arquivo>.backup` na primeira vez. Reaplicar é seguro, e os textos `original` são os do Danger sem patch.
-- **Branding:** os textos novos usam `__dangerBotBranding.name`/`.url`. O script injeta no topo de cada arquivo que os usa uma declaração que chama `getBranding()` do `dist/branding.js` (caminho relativo ao arquivo do Danger), com fallback para o padrão. Por isso mudar o `branding` do YAML vale na próxima execução, sem reinstalar.
-- Ele grava `node_modules/danger/.danger-bot-patched` com `PATCH_VERSION` (hoje igual à versão do pacote). **Ao mudar os patches, mude `PATCH_VERSION`**, senão o marker impede a reaplicação.
+- **Branding:** entra só no rodapé (`Gerado por 🚀 <nome> no commit <hash>`), nos links invisíveis e no status do build; a frase de abertura com erros usa sempre o nome do produto (`PRODUCT_NAME`: "Danger Bot encontrou alguns problemas…"). Os textos novos usam `__dangerBotBranding.name`/`.url`. O script injeta no topo de cada arquivo que os usa uma declaração que chama `getBranding()` do `dist/branding.js` (caminho relativo ao arquivo do Danger), com fallback para o padrão. Por isso mudar o `branding` do YAML vale na próxima execução, sem reinstalar.
+- Ele grava `node_modules/danger/.danger-bot-patched` com `PATCH_VERSION`, que é o `version` do `package.json`. **Ao mudar os patches, suba a versão do pacote**, senão o marker impede a reaplicação nas instalações já patcheadas.
 - Trecho que não casa vira `⚠️ trecho nao encontrado (<rótulo>)` no log e um aviso de patch incompleto no fim. Ao atualizar o Danger, rode o script e corrija os textos `original` que deixaram de casar.
 - O GitLab usa o `githubIssueTemplate`; não há patch específico para ele.
 - Para conferir uma instalação: `cat node_modules/danger/.danger-bot-patched` e `grep -c "__dangerBotBranding" node_modules/danger/distribution/runner/templates/*.js`.
@@ -102,9 +118,13 @@ Como funciona:
 |---|---|
 | `dry-run`/`run`, `init`, `gen` | Para o projeto consumidor. `init` gera o `danger-bot.yaml` e `gen` gera o `dangerfile.example.ts` |
 | `list`/`ls`, `info`, `create-plugin`/`new`, `remove-plugin`/`rm` | Leem `src/plugins/` do cwd: rode na raiz deste repo |
-| `validate <arquivo>` | Valida o arquivo do plugin; funciona em qualquer lugar |
+| `validate <arquivo>` | Confere o mínimo de um arquivo de plugin (import e `export default` do `createPlugin`, `name`, `description`, `enabled`) e sai com código 1 se faltar algo. Funciona em qualquer lugar; não verifica o padrão das mensagens |
 
 `create-plugin` e `remove-plugin` são interativos (readline): stdin em pipe não funciona, porque o `rl.question` só lê a primeira linha. Para automatizar, use um script que escreve cada resposta quando aparece um prompt terminando em `: `.
+
+O `.ts` que o `create-plugin` gera é o [template](#template-arquivo-inteiro) com `PATTERN`, `REPLACEMENT` e textos de exemplo no `sendFormattedFail`, e o README já sai na estrutura de [README do plugin](#convenções-dos-plugins-existentes). Troque os exemplos pela regra real; o que ficar do exemplo vai para o PR.
+
+No resumo do dry-run, `erro(s)` conta os `fail` que reprovariam o build. Os comentários inline (de `fail` e de `warn`) aparecem numa seção à parte e não reprovam nada sozinhos: o que reprova é o resumo que o `flushSummaries()` gera.
 
 ## Criando um plugin
 
@@ -140,7 +160,7 @@ A maioria dos plugins lê o arquivo inteiro com `fs.readFileSync`. Toda mensagem
 import { createPlugin, getDanger, sendFormattedFail } from "@types";
 import * as fs from "fs";
 
-const PATTERN = /padraoProblematico\(/;
+const PATTERN = /\bpadraoProblematico\(/;
 const REPLACEMENT = "padraoCorreto(";
 
 export default createPlugin(
@@ -280,6 +300,18 @@ frase curta
 - **README do plugin:**
   - estrutura: título, parágrafo do que faz, `## O que verifica`, `## Severidade` (`- **Tipo:** \`fail\``), `## Exemplo` (❌ Errado / ✅ Correto em dart), `## Referências`;
   - confira se o exemplo "✅ Correto" passa nos **outros** plugins (ex.: `bool refresh` é reprovado pelo boolean-naming-convention).
+
+### Checklist de entrega (plugin novo ou alterado)
+
+1. Registro nos [4 lugares](#registro-4-lugares--o-que-a-cli-faz): a CLI faz os três primeiros; o array de categoria é manual.
+2. README do plugin na estrutura de [README do plugin](#convenções-dos-plugins-existentes).
+3. Plugin novo, nos docs:
+   - linha na tabela da categoria em `README.md` (`## Plugins`) e em `docs/GUIA_PLUGINS.md` (`## Lista completa de plugins`);
+   - se entrou num array de categoria, a lista desse array em `README.md` (`## Importacao por Categoria`), `docs/API.md` e `docs/FAQ.md`;
+   - o total de plugins em `docs/API.md`, `docs/FAQ.md`, `docs/CLI.md` e em [Plugins existentes](#plugins-existentes-48) (título e lista).
+4. Item em `## [Não publicado]` no `CHANGELOG.md` (ver [Versões e releases](#versões-e-releases)).
+5. `npm run lint`, `npm run type-check` e `npm run build`, com o `dist/` limpo como manda a [armadilha do dist](#armadilhas-conhecidas).
+6. Teste no dry-run ou no harness, com o caso que deve ser reportado e o que não deve.
 
 ## Helpers disponíveis
 
