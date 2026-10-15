@@ -13,6 +13,7 @@
  */
 
 import { createPlugin, getDanger } from "@types";
+import { getBranding } from "../../../branding";
 import { loadConfig } from "../../../config";
 import { getPendingSummaryCounts, getPRTitle } from "../../../helpers";
 
@@ -117,7 +118,7 @@ function buildChatMessage(): object {
         cardId: "danger-bot-review",
         card: {
           header: {
-            title: "Danger Bot — Code Review",
+            title: `${getBranding().name} — Code Review`,
             subtitle: prTitle,
             imageUrl: "https://cdn-icons-png.flaticon.com/128/4712/4712109.png",
             imageType: "CIRCLE",

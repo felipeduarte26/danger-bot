@@ -77,13 +77,24 @@ Detalhes do filtro `--plugins`:
 ### Patches no Danger ([scripts/patch-danger.cjs](scripts/patch-danger.cjs))
 
 O postinstall substitui strings exatas no `node_modules/danger/distribution`:
-- tradução pt-BR e branding "Danger Bot";
+- tradução pt-BR;
+- branding (nome e link) lido do `danger-bot.yaml` em tempo de execução (ver abaixo);
 - resumo em 3 cenários: fails → problemas; só warnings → "Aprovado!"; limpo → "Parabéns!";
 - comentários inline do Bitbucket Cloud no estilo Danger Ruby (link invisível com dangerID + arquivo/linha);
 - remoção do check de `uuid` para não duplicar comentários;
 - `DANGER_BITBUCKETCLOUD_REPO_ACCESSTOKEN` passa a usar o template inline do Bitbucket.
 
-Ele grava `node_modules/danger/.danger-bot-patched` com `PATCH_VERSION` (hoje igual à versão do pacote). **Ao mudar os patches, mude `PATCH_VERSION`**, senão o marker impede a reaplicação. Ao atualizar o Danger, confira se as strings ainda casam: o script avisa "nenhuma substituição necessária".
+Como funciona:
+- Cada substituição é `[rótulo, original, novo]` e parte sempre do **original do Danger**, guardado em `<arquivo>.backup` na primeira vez. Reaplicar é seguro, e os textos `original` são os do Danger sem patch.
+- **Branding:** os textos novos usam `__dangerBotBranding.name`/`.url`. O script injeta no topo de cada arquivo que os usa uma declaração que chama `getBranding()` do `dist/branding.js` (caminho relativo ao arquivo do Danger), com fallback para o padrão. Por isso mudar o `branding` do YAML vale na próxima execução, sem reinstalar.
+- Ele grava `node_modules/danger/.danger-bot-patched` com `PATCH_VERSION` (hoje igual à versão do pacote). **Ao mudar os patches, mude `PATCH_VERSION`**, senão o marker impede a reaplicação.
+- Trecho que não casa vira `⚠️ trecho nao encontrado (<rótulo>)` no log e um aviso de patch incompleto no fim. Ao atualizar o Danger, rode o script e corrija os textos `original` que deixaram de casar.
+- O GitLab usa o `githubIssueTemplate`; não há patch específico para ele.
+- Para conferir uma instalação: `cat node_modules/danger/.danger-bot-patched` e `grep -c "__dangerBotBranding" node_modules/danger/distribution/runner/templates/*.js`.
+
+### Scripts legados
+
+`scripts/extract_dart_identifiers.js` e `scripts/setup_spell_check.sh` são do spell check antigo, que rodava como step separado do CI. Nada os usa: o spell-checker monta a config do cspell sozinho, e o `.js` nem roda (usa `require` num pacote `"type": "module"`). Não os use como base nem os recomende em pipelines. Remover ou manter é decisão do dono, porque vão junto no pacote publicado (`files`).
 
 ### CLI ([bin/cli.js](bin/cli.js), alias `db`)
 
@@ -202,7 +213,11 @@ export default createPlugin({ name: "regra-local", description: "...", enabled: 
 });
 ```
 
-O Node carrega o `.ts` direto ([type stripping](https://nodejs.org/api/typescript.html)), então use só sintaxe apagável: tipos e interfaces, sem `enum` e sem `namespace`.
+O Node carrega o `.ts` direto ([type stripping](https://nodejs.org/api/typescript.html)), sem compilar. Ao escrever o plugin:
+- só sintaxe apagável: tipos e interfaces; `enum`, `namespace` e parameter properties dão `ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX`;
+- import relativo **com extensão**: `import { x } from "../shared/util.ts"`; sem ela dá `ERR_MODULE_NOT_FOUND`.
+
+As regras de carregamento estão em [Configuração no projeto consumidor](#configuração-no-projeto-consumidor).
 
 ### Padrão obrigatório das mensagens
 
@@ -352,6 +367,9 @@ Teste o caso que deve ser reportado **e** o que não deve. Para mudanças em par
 `danger-bot.yaml` na raiz (gerado por `danger-bot init`; detalhes em [docs/CONFIGURACAO.md](docs/CONFIGURACAO.md)):
 
 ```yaml
+branding:               # nome e link nos comentários e no status (default: Danger Bot + repo do GitHub)
+  name: "Minha Empresa"
+  url: "https://minhaempresa.com"
 local_plugins:          # arquivos .ts/.js ou pastas (exceto index.*)
   - ./danger/plugins/
 ignore_files:           # caminho exato ou glob: lib/legacy/**, **/old_page.dart, lib/x/*.dart
@@ -362,7 +380,28 @@ settings:
   google_chat_webhook: "https://chat.googleapis.com/v1/spaces/..."  # ou env GOOGLE_CHAT_WEBHOOK
 ```
 
-`settings.fail_on_errors` existe no tipo `DangerBotConfig`, mas nenhum código o lê.
+**Leitura do arquivo** ([src/config.ts](src/config.ts)):
+- `danger-bot.yaml` ou `.yml` no **cwd** do processo (a raiz do projeto, onde roda o `danger ci` ou o dry-run).
+- YAML inválido não quebra a execução: vira `⚠️ Erro ao ler config` no log e a configuração **inteira** é ignorada (sem ignore, sem plugins locais, sem keys).
+- `loadConfig()` loga `📄 Danger Bot config carregado` a cada chamada (o executeDangerBot e plugins como ai-code-review e google-chat-notification chamam). `readConfig()` é a versão silenciosa.
+- Chave desconhecida é ignorada sem aviso.
+
+**Chaves:**
+- **`branding`** — nome e link nos comentários e no status do build ([src/branding.ts](src/branding.ts), lido pelo Danger via patch). Campo inválido cai no padrão. Detalhes em [Patches no Danger](#patches-no-danger-scriptspatch-dangercjs) e em [docs/CONFIGURACAO.md](docs/CONFIGURACAO.md#branding).
+- **`local_plugins`** — plugins do próprio projeto, sem publicar no pacote:
+  - cada item é um arquivo ou uma pasta, relativo à raiz; pasta carrega só os `.ts`/`.js` do primeiro nível (não é recursiva; `.mjs`/`.cjs` ficam de fora) e pula `index.*`;
+  - o módulo precisa exportar um plugin (`config.name` + `run()`) como `export default` ou `module.exports`; `.js` pode ser ESM ou CommonJS;
+  - rodam **depois** dos plugins passados ao `executeDangerBot` e **antes** do google-chat-notification, compartilhando o estado do pacote (resumos, dedupe);
+  - caminho inexistente vira `⚠️ Plugin local não encontrado`; erro de carregamento (sintaxe não apagável, import relativo sem extensão) vira `❌ Erro ao carregar <arquivo>` e o plugin é **pulado**. Nos dois casos nada aparece na PR: só no log do CI;
+  - os arquivos ficam no repositório do projeto. No esfera-web o YAML vem do Bitrise, mas os plugins apontados por ele precisam estar commitados;
+  - o import de `@felipeduarte26/danger-bot` é resolvido a partir do arquivo do plugin, então o pacote precisa estar no `node_modules` do projeto. No CI está; no dry-run com a CLI via `npm link` e sem `package.json` no projeto (TESTE_LOCAL, cenário A), o plugin falha com `Cannot find package '@felipeduarte26/danger-bot'`.
+- **`ignore_files`** — remove os arquivos de `danger.git.modified_files`/`created_files` antes de qualquer plugin (os `deleted_files` ficam). Caminho exato ou glob relativo à raiz: `*` não cruza `/`, exceto num `/*` final, que pega a pasta inteira com subpastas; `**` cruza pastas; `?` é um caractere.
+- **`settings.verbose`** — logs `[verbose]` (o mesmo que o `-v` do dry-run).
+- **`settings.gemini_api_keys`** — keys do ai-code-review, somadas às env `GEMINI_API_KEYS`/`GEMINI_API_KEY`.
+- **`settings.google_chat_webhook`** — webhook do google-chat-notification (precisa começar com `https://`); alternativa: env `GOOGLE_CHAT_WEBHOOK`.
+- **`settings.fail_on_errors`** — existe no tipo `DangerBotConfig`, mas nenhum código o lê.
+
+Keys e webhook são segredos: um `danger-bot.yaml` com eles não deve ir para o git. O esfera-web mantém o arquivo no `.gitignore` e no Generic File Storage do Bitrise.
 
 Para desligar plugins, use o `dangerfile.ts` (não há opção no YAML):
 
@@ -382,47 +421,70 @@ executeDangerBot(plugins);
 
 ## Pipeline (CI)
 
-Guias completos: [docs/pipelines/](docs/pipelines/README.md) ([Bitbucket](docs/pipelines/BITBUCKET_PIPELINES.md), [Bitrise](docs/pipelines/BITRISE.md); GitHub Actions, GitLab e CircleCI no README).
+Exemplos completos por plataforma em [docs/pipelines/](docs/pipelines/README.md): GitHub Actions e GitLab no README, [Bitbucket Pipelines](docs/pipelines/BITBUCKET_PIPELINES.md) em arquivo próprio. Eles seguem as regras abaixo, conferidas no código do Danger 14 e dos plugins. Ao montar ou corrigir uma pipeline, valide cada item.
 
-| Plataforma | Token (variável de ambiente, secured) |
-|---|---|
-| Bitbucket Cloud | `DANGER_BITBUCKETCLOUD_REPO_ACCESSTOKEN` (App password: Repositories + Pull requests, Read/Write) |
-| GitHub | `GITHUB_TOKEN` (automático no Actions) ou `DANGER_GITHUB_API_TOKEN` |
-| GitLab | `DANGER_GITLAB_API_TOKEN` (scopes `api`, `write_repository`) |
+### Requisitos comuns
 
-Bitbucket Pipelines (o caso do time):
+- **Node ≥ 25.2.1** (`engines`).
+- **`package.json` do consumidor** (projeto Flutter costuma não ter; crie na raiz):
 
-```yaml
-image: node:25
+  ```json
+  {
+    "private": true,
+    "devDependencies": {
+      "danger": "^14.0.7",
+      "@felipeduarte26/danger-bot": "git+https://github.com/felipeduarte26/danger-bot.git#main",
+      "typescript": "^5.9.3"
+    }
+  }
+  ```
 
-pipelines:
-  pull-requests:
-    '**':
-      - step:
-          name: Danger Bot
-          clone:
-            depth: full        # merge-conflict-checker precisa do histórico para o git merge-tree
-          caches:
-            - node
-          script:
-            - npm ci           # sem package-lock.json commitado, use npm install
-            - npx danger ci
-```
-
-O que verificar ao montar ou depurar a pipeline:
-- **Node ≥ 25.2.1** na imagem/step (`node:25`, `node-version: "25"`, `nvm@1` com `node_version: "25"` no Bitrise).
-- **Flutter no PATH** para flutter-analyze, flutter-test-runner e test-coverage-summary. Sem Flutter:
+  - `danger` fora da faixa do `peerDependencies` faz o `npm install` falhar com `ERESOLVE`. **Ao mudar o peer do Danger ou o `engines` deste pacote, atualize as pipelines dos consumidores:** elas fixam essas versões e não acompanham o `#main`.
+  - O Danger não traz transpilador (`typescript` e Babel são só `devDependencies` dele). Sem `typescript` no projeto, o `dangerfile.ts` é executado sem transpilar e quebra no `import`.
+  - Sem `package-lock.json` commitado, use `npm install`; o `npm ci` exige o lock.
+  - `--ignore-scripts` pula os patches do postinstall. Para reaplicar: `rm -f node_modules/danger/.danger-bot-patched && npm rebuild @felipeduarte26/danger-bot`.
+- **Imagem com Node 25 e Flutter.** Sem imagem pronta, parta da do Flutter (`ghcr.io/cirruslabs/flutter:<versão>`) e instale o Node com nvm no mesmo script. Sem Flutter no PATH, desligue esses plugins no `dangerfile.ts`, senão:
   - o flutter-analyze publica **"✅ Nenhum problema encontrado"** sem ter analisado nada;
   - o flutter-test-runner fica em silêncio;
   - o test-coverage-summary diz "indisponível".
-  Use uma imagem com Node e Flutter, ou desligue esses plugins no `dangerfile.ts`.
+- **Código gerado:** se o projeto não versiona `*.g.dart`/`*.freezed.dart` (o esfera-web não versiona), rode `flutter pub get` e `dart run build_runner build --delete-conflicting-outputs` antes do Danger. Sem isso os testes não compilam e o flutter-test-runner reprova a PR.
+- **Histórico completo do git:** o merge-conflict-checker faz `git fetch origin` e `git merge-tree` contra `origin/<destino>`.
 - **Rede de saída:**
   - identifier-language → Google Translate;
   - ai-code-review → Gemini;
   - google-chat-notification → webhook;
   - merge-conflict-checker → `git fetch origin`.
-- **`npm ci`** exige `package-lock.json` commitado (o docs/INSTALACAO.md sugere ignorá-lo em projetos Flutter — nesse caso use `npm install`).
-- Os patches do postinstall precisam rodar (`npm install --ignore-scripts` os pula). Para reaplicar: `rm -f node_modules/danger/.danger-bot-patched && npm rebuild @felipeduarte26/danger-bot`.
+- **Secrets opcionais:** `GEMINI_API_KEYS`/`GEMINI_API_KEY` e `GOOGLE_CHAT_WEBHOOK` (ou no `danger-bot.yaml`).
+- **Detecção da plataforma:** o Danger escolhe pelas variáveis presentes, nesta ordem: Bitbucket Server → Bitbucket Cloud → GitLab → GitHub. Uma variável de outra plataforma no ambiente desvia a execução.
+
+### GitHub Actions
+
+- **Disparo:** `on: pull_request`. O `branches:` desse evento filtra a branch de **destino**.
+- **Token:** `GITHUB_TOKEN` automático, com `permissions: contents: read`, `pull-requests: write` e `statuses: write`. Os comentários saem como `github-actions[bot]`; para outro usuário, use um PAT em `DANGER_GITHUB_API_TOKEN`.
+- **Checkout:** `fetch-depth: 0` e `ref: ${{ github.event.pull_request.head.sha }}`. O padrão do `pull_request` é o merge commit, e os plugins leem do disco o conteúdo dos arquivos.
+- **PR de fork:** o `GITHUB_TOKEN` é só leitura e o Danger não comenta. `pull_request_target` resolve, mas roda código da PR com acesso aos secrets: só em repositório interno.
+- **merge-conflict-checker:** com conflito o GitHub não dispara o `pull_request`, então ele não roda nesse caso.
+
+### GitLab CI
+
+- **Disparo:** `rules: - if: $CI_PIPELINE_SOURCE == "merge_request_event"`. Para filtrar o destino, some `&& $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "develop"`. O Danger só reconhece o MR com `CI_MERGE_REQUEST_IID`, que existe apenas em pipelines de merge request.
+- **Token:** `DANGER_GITLAB_API_TOKEN` (project ou personal access token, escopo `api`). O `CI_JOB_TOKEN` não comenta.
+  - Marque a variável como **Masked**, não como **Protected**: variável protegida não chega a MR de branch não protegida.
+- **Self-hosted:** o host vem de `CI_API_V4_URL`, automático no runner, ou de `DANGER_GITLAB_HOST`.
+- **Histórico:** `GIT_DEPTH: 0` (o padrão do runner é raso).
+- **Limitação atual do pacote:** `getPRTitle()`, `getPRDescription()` e o pr-validation só leem GitHub e Bitbucket Cloud.
+  - No GitLab a descrição chega vazia e o pr-validation reprova todo MR com "DESCRIÇÃO DO PR MUITO CURTA".
+  - O google-chat-notification sai sem link e com o título genérico.
+  - Desligue o pr-validation no GitLab até o suporte ser adicionado (`danger.gitlab.mr.title`, `.description` e `.web_url`).
+
+### Bitbucket Pipelines (Bitbucket Cloud)
+
+- **Disparo:** `pipelines: pull-requests:`. A chave filtra a branch de **origem**, não o destino. Para rodar só em PR para `develop`, saia do script quando `$BITBUCKET_PR_DESTINATION_BRANCH` for outro.
+- **Token:** `DANGER_BITBUCKETCLOUD_REPO_ACCESSTOKEN`, um **repository access token** (Repository settings → Access tokens; escopos Pull requests Read/Write e Repositories Read). Não é App password: App password vai no par `DANGER_BITBUCKETCLOUD_USERNAME`/`PASSWORD`.
+- **`DANGER_BITBUCKETCLOUD_UUID` é obrigatório com access token.** Sem ele o Danger consulta `/2.0/user`, que o access token não acessa, e falha. Basta um UUID entre chaves (ex.: o do workspace): os comentários antigos são achados pelo dangerID (`--id`), não pelo UUID.
+- **Precedência de credenciais:** OAuth (`DANGER_BITBUCKETCLOUD_OAUTH_KEY`/`SECRET`) → usuário (`DANGER_BITBUCKETCLOUD_USERNAME`/`PASSWORD`) → access token. Com `USERNAME` no ambiente, o token é ignorado.
+- **Histórico:** `clone: depth: full`.
+- **Variáveis:** as de repositório marcadas como Secured chegam nos pipelines de PR do próprio repositório, não nos de fork.
 
 ## Armadilhas conhecidas
 

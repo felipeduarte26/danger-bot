@@ -12,6 +12,13 @@ import { importModule } from "./native-import";
 import type { DangerPlugin } from "./types";
 
 export interface DangerBotConfig {
+  /** Nome e link que identificam o bot nos comentários do PR e no status do build */
+  branding?: {
+    /** Nome exibido (default: "Danger Bot") */
+    name?: string;
+    /** Link do nome nas assinaturas e no status do build (default: repositório do Danger Bot) */
+    url?: string;
+  };
   /** Caminhos para plugins locais do projeto (arquivos .ts/.js ou diretórios) */
   local_plugins?: string[];
   /** Arquivos que devem ser ignorados por todos os plugins */
@@ -44,9 +51,8 @@ export function loadConfig(): DangerBotConfig {
   if (!configPath) return {};
 
   try {
-    const raw = fs.readFileSync(configPath, "utf-8");
-    const parsed = yaml.load(raw) as DangerBotConfig | null;
-    if (!parsed || typeof parsed !== "object") return {};
+    const parsed = parseConfigFile(configPath);
+    if (!parsed) return {};
 
     console.log(`📄 Danger Bot config carregado: ${path.basename(configPath)}`);
     return parsed;
@@ -54,6 +60,30 @@ export function loadConfig(): DangerBotConfig {
     console.error(`⚠️ Erro ao ler config:`, err);
     return {};
   }
+}
+
+/**
+ * Lê o `danger-bot.yaml` sem logar nada e sem lançar erro.
+ *
+ * Para quem roda fora do fluxo dos plugins, como o branding que o
+ * `scripts/patch-danger.cjs` injeta no Danger JS. Retorna `{}` se o arquivo não
+ * existir ou for inválido.
+ */
+export function readConfig(): DangerBotConfig {
+  const configPath = findConfigFile();
+  if (!configPath) return {};
+
+  try {
+    return parseConfigFile(configPath) ?? {};
+  } catch {
+    return {};
+  }
+}
+
+function parseConfigFile(configPath: string): DangerBotConfig | null {
+  const raw = fs.readFileSync(configPath, "utf-8");
+  const parsed = yaml.load(raw) as DangerBotConfig | null;
+  return parsed && typeof parsed === "object" ? parsed : null;
 }
 
 export async function loadLocalPlugins(pluginPaths: string[]): Promise<DangerPlugin[]> {

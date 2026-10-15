@@ -13,6 +13,7 @@ danger-bot/
 │   ├── types.ts            # Interfaces, tipos e funcoes core
 │   ├── helpers.ts          # Funcoes auxiliares
 │   ├── config.ts           # Loader do danger-bot.yaml (plugins locais + ignore)
+│   ├── branding.ts         # Nome e link do bot (branding do danger-bot.yaml)
 │   ├── native-import.ts    # import() nativo (pacotes so-ESM e plugins locais no build CommonJS)
 │   └── plugins/
 │       ├── index.ts        # Barrel file de plataformas
@@ -193,11 +194,11 @@ O comando `init` (`bin/commands/init-config.js`) gera um `danger-bot.yaml` de ex
 
 Executado automaticamente no `postinstall`. Modifica o Danger JS para:
 - Remover mensagem "All green. Good on 'ya"
-- Customizar links e nomes de runtime
+- Exibir o nome e o link do `branding` do `danger-bot.yaml`
 - Traduzir mensagens para portugues
 - Corrigir inline comments no Bitbucket Cloud
 
-Usa um sistema de versionamento de patches (`.danger-bot-patched`) para evitar reaplicacao.
+O nome e o link nao ficam gravados no Danger: os arquivos alterados chamam `getBranding()` (`src/branding.ts`) ao serem carregados, entao mudar o YAML vale na proxima execucao. Cada arquivo e patcheado a partir do original do Danger (`<arquivo>.backup`), e um marcador versionado (`.danger-bot-patched`) evita reaplicar sem necessidade.
 
 ### extract_dart_identifiers.js e setup_spell_check.sh (legado)
 

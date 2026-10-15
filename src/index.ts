@@ -8,6 +8,7 @@
 export * from "./types";
 export * from "./helpers";
 export * from "./config";
+export * from "./branding";
 
 // Helpers para plugins que analisam classes escritas com primary constructors (Dart 3.13+)
 export {

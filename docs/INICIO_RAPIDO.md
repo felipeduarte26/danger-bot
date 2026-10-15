@@ -7,7 +7,7 @@ Comece a usar o Danger Bot em menos de 5 minutos.
 ## TL;DR
 
 ```bash
-npm install --save-dev danger @felipeduarte26/danger-bot
+npm install --save-dev danger typescript @felipeduarte26/danger-bot
 ```
 
 ```typescript
@@ -28,14 +28,14 @@ npx danger ci
 ### 1. Instalar dependencias
 
 ```bash
-npm install --save-dev danger @felipeduarte26/danger-bot
+npm install --save-dev danger typescript @felipeduarte26/danger-bot
 ```
 
 Se seu projeto Flutter nao tem `package.json`, crie um primeiro:
 
 ```bash
 npm init -y
-npm install --save-dev danger @felipeduarte26/danger-bot
+npm install --save-dev danger typescript @felipeduarte26/danger-bot
 ```
 
 > Para instalacao via Git (sem npm registry), veja [Instalacao](INSTALACAO.md).
@@ -110,45 +110,11 @@ npx danger local
 
 ### 5. Configurar no CI/CD
 
-#### GitHub Actions
+A pipeline precisa de Node 25.2.1+, Flutter, historico completo do git e o token da plataforma. Os exemplos prontos estao nos guias:
 
-Crie `.github/workflows/danger.yml`:
-
-```yaml
-name: Danger
-on: [pull_request]
-
-jobs:
-  danger:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "25"
-      - run: npm ci
-      - run: npx danger ci
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-```
-
-#### Bitbucket Pipelines
-
-Adicione ao `bitbucket-pipelines.yml`:
-
-```yaml
-pipelines:
-  pull-requests:
-    '**':
-      - step:
-          name: Danger Bot
-          image: node:25
-          script:
-            - npm ci
-            - npx danger ci
-```
-
-> Guias completos: [CI/CD](pipelines/README.md) | [Bitrise](pipelines/BITRISE.md) | [Bitbucket](pipelines/BITBUCKET_PIPELINES.md)
+- [GitHub Actions e GitLab CI](pipelines/README.md)
+- [Bitbucket Pipelines](pipelines/BITBUCKET_PIPELINES.md)
+- [Bitrise](pipelines/BITRISE.md)
 
 ---
 

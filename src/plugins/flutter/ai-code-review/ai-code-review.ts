@@ -8,6 +8,7 @@
  * Keys são lidas de: danger-bot.yaml (settings.gemini_api_keys) ou env vars.
  */
 import { createPlugin, getDanger, sendMarkdown, sendMessage, sendWarn } from "@types";
+import { getBranding } from "../../../branding";
 import { loadConfig } from "../../../config";
 import * as fs from "fs";
 
@@ -191,7 +192,7 @@ function buildReviewMarkdown(file: string, text: string): string {
   }
 
   lines.push("", "---", "");
-  lines.push(`*Análise gerada por **Danger Bot AI** — revise antes de aplicar.*`);
+  lines.push(`*Análise gerada por **${getBranding().name} AI** — revise antes de aplicar.*`);
 
   return lines.join("\n");
 }

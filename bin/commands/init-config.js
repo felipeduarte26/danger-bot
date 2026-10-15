@@ -16,6 +16,19 @@ const CONFIG_TEMPLATE = `# ============================================
 # para o seu projeto. Coloque-o na raiz do repositório.
 
 # ─────────────────────────────────────────────
+# Branding
+# ─────────────────────────────────────────────
+# Nome e link que identificam o bot nos comentários do PR
+# e no status do build. Sem configuração, usa o padrão:
+# "Danger Bot" e https://github.com/felipeduarte26/danger-bot
+#
+# Exemplo:
+#   branding:
+#     name: "Minha Empresa"
+#     url: "https://minhaempresa.com"
+branding: {}
+
+# ─────────────────────────────────────────────
 # Plugins Locais
 # ─────────────────────────────────────────────
 # Caminhos para plugins customizados do projeto.

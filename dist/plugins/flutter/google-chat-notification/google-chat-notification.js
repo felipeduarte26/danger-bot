@@ -14,6 +14,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 const _types_1 = require("../../../types.js");
+const branding_1 = require("../../../branding");
 const config_1 = require("../../../config");
 const helpers_1 = require("../../../helpers");
 const REQUEST_TIMEOUT_MS = 10000;
@@ -102,7 +103,7 @@ function buildChatMessage() {
         cardId: "danger-bot-review",
         card: {
           header: {
-            title: "Danger Bot — Code Review",
+            title: `${(0, branding_1.getBranding)().name} — Code Review`,
             subtitle: prTitle,
             imageUrl: "https://cdn-icons-png.flaticon.com/128/4712/4712109.png",
             imageType: "CIRCLE",

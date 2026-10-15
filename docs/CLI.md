@@ -304,7 +304,7 @@ DANGER BOT - PROJECT INFO
 ============================================================
 
 Name:        @felipeduarte26/danger-bot
-Version:     3.4.0
+Version:     3.5.0
 Description: Conjunto modular de plugins Danger JS
 
 Platforms:

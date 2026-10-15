@@ -7,7 +7,7 @@ Guia completo de instalacao do Danger Bot.
 ## Via npm (recomendado)
 
 ```bash
-npm install --save-dev danger @felipeduarte26/danger-bot
+npm install --save-dev danger typescript @felipeduarte26/danger-bot
 ```
 
 ## Via Git (direto do repositorio)
@@ -15,7 +15,7 @@ npm install --save-dev danger @felipeduarte26/danger-bot
 Util quando o pacote nao esta publicado no npm registry:
 
 ```bash
-npm install --save-dev danger @felipeduarte26/danger-bot@git+https://github.com/felipeduarte26/danger-bot.git#main
+npm install --save-dev danger typescript @felipeduarte26/danger-bot@git+https://github.com/felipeduarte26/danger-bot.git#main
 ```
 
 No `package.json`, ficara assim:
@@ -24,10 +24,14 @@ No `package.json`, ficara assim:
 {
   "devDependencies": {
     "danger": "^14.0.7",
-    "@felipeduarte26/danger-bot": "git+https://github.com/felipeduarte26/danger-bot.git#main"
+    "@felipeduarte26/danger-bot": "git+https://github.com/felipeduarte26/danger-bot.git#main",
+    "typescript": "^5.9.3"
   }
 }
 ```
+
+- O `danger` precisa estar na faixa do `peerDependencies` do Danger Bot (`^14.0.7`); fora dela o `npm install` falha com `ERESOLVE`.
+- O `typescript` e obrigatorio: o Danger nao traz transpilador e, sem ele, o `dangerfile.ts` quebra no `import`.
 
 ### Versao especifica via tag
 
@@ -59,7 +63,7 @@ Projetos Flutter normalmente nao tem `package.json`. Crie um na raiz:
 
 ```bash
 npm init -y
-npm install --save-dev danger @felipeduarte26/danger-bot
+npm install --save-dev danger typescript @felipeduarte26/danger-bot
 ```
 
 Adicione ao `.gitignore`:
@@ -137,7 +141,7 @@ npm list danger @felipeduarte26/danger-bot
 
 # Saida esperada
 # ├── danger@14.x.x
-# └── @felipeduarte26/danger-bot@3.4.0
+# └── @felipeduarte26/danger-bot@3.5.0
 
 # Testar localmente (sem tokens, sem CI)
 npx danger-bot dry-run --base develop

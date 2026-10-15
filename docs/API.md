@@ -423,6 +423,10 @@ Interface da configuracao carregada do `danger-bot.yaml`.
 
 ```typescript
 interface DangerBotConfig {
+  branding?: {
+    name?: string;
+    url?: string;
+  };
   local_plugins?: string[];
   ignore_files?: string[];
   settings?: {
@@ -440,6 +444,22 @@ Carrega o `danger-bot.yaml` (ou `.yml`) da raiz do projeto. Retorna `{}` se o ar
 
 ```typescript
 function loadConfig(): DangerBotConfig
+```
+
+### readConfig()
+
+Mesmo que `loadConfig()`, mas sem log e sem lancar erro: retorna `{}` para arquivo ausente ou invalido.
+
+```typescript
+function readConfig(): DangerBotConfig
+```
+
+### getBranding()
+
+Nome e link do bot (`branding` do `danger-bot.yaml`), lidos uma vez por processo. Campo ausente ou invalido usa o `DEFAULT_BRANDING` (`Danger Bot` e `https://github.com/felipeduarte26/danger-bot`). Detalhes em [Configuracao](CONFIGURACAO.md#branding).
+
+```typescript
+function getBranding(): { name: string; url: string }
 ```
 
 ### loadLocalPlugins(pluginPaths)

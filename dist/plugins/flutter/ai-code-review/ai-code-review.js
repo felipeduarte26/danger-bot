@@ -62,6 +62,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * Keys são lidas de: danger-bot.yaml (settings.gemini_api_keys) ou env vars.
  */
 const _types_1 = require("../../../types.js");
+const branding_1 = require("../../../branding");
 const config_1 = require("../../../config");
 const fs = __importStar(require("fs"));
 const GEMINI_MODEL = "gemini-2.5-flash-lite";
@@ -208,7 +209,9 @@ function buildReviewMarkdown(file, text) {
     }
   }
   lines.push("", "---", "");
-  lines.push(`*Análise gerada por **Danger Bot AI** — revise antes de aplicar.*`);
+  lines.push(
+    `*Análise gerada por **${(0, branding_1.getBranding)().name} AI** — revise antes de aplicar.*`
+  );
   return lines.join("\n");
 }
 function splitPoints(text) {

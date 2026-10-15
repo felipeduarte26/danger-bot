@@ -97,6 +97,7 @@ exports.testPlugins =
 __exportStar(require("./types"), exports);
 __exportStar(require("./helpers"), exports);
 __exportStar(require("./config"), exports);
+__exportStar(require("./branding"), exports);
 // Helpers para plugins que analisam classes escritas com primary constructors (Dart 3.13+)
 var primary_constructors_1 = require("./plugins/flutter/primary-constructors/primary-constructors");
 Object.defineProperty(exports, "findPrimaryConstructors", {

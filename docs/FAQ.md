@@ -9,7 +9,7 @@ Perguntas frequentes sobre o Danger Bot.
 ### Como instalar?
 
 ```bash
-npm install --save-dev danger @felipeduarte26/danger-bot
+npm install --save-dev danger typescript @felipeduarte26/danger-bot
 ```
 
 > Guia completo: [Instalacao](INSTALACAO.md)
@@ -20,7 +20,7 @@ Crie um na raiz do projeto:
 
 ```bash
 npm init -y
-npm install --save-dev danger @felipeduarte26/danger-bot
+npm install --save-dev danger typescript @felipeduarte26/danger-bot
 ```
 
 ### Posso instalar via Git?
@@ -28,7 +28,7 @@ npm install --save-dev danger @felipeduarte26/danger-bot
 Sim:
 
 ```bash
-npm install --save-dev danger @felipeduarte26/danger-bot@git+https://github.com/felipeduarte26/danger-bot.git#main
+npm install --save-dev danger typescript @felipeduarte26/danger-bot@git+https://github.com/felipeduarte26/danger-bot.git#main
 ```
 
 ---
@@ -76,13 +76,16 @@ sendMessage(`${files.length} arquivos Dart modificados`);
 
 ### Funciona com GitHub, Bitbucket e GitLab?
 
-Sim. O Danger Bot funciona com todas as plataformas suportadas pelo Danger JS:
-- GitHub
-- Bitbucket Cloud
-- Bitbucket Server
-- GitLab
+Sim, com uma limitacao no GitLab e no Bitbucket Server:
 
-Os helpers como `getDanger()`, `getPRTitle()` e `getPRDescription()` detectam a plataforma automaticamente.
+| Plataforma | Plugins | Titulo/descricao do PR (`getPRTitle`, `getPRDescription`, `pr-validation`) |
+|------------|---------|---------------------------------------------------------------------------|
+| GitHub | Todos | Sim |
+| Bitbucket Cloud | Todos | Sim |
+| GitLab | Todos | Ainda nao: chegam vazios e o `pr-validation` reprova todo MR |
+| Bitbucket Server | Todos | Ainda nao |
+
+No GitLab e no Bitbucket Server, desligue o `pr-validation` no `dangerfile.ts`. A configuracao de cada plataforma esta em [Pipelines](pipelines/README.md).
 
 ---
 
