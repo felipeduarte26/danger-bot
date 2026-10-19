@@ -212,6 +212,7 @@ Configuracoes gerais do Danger Bot.
 | Opcao                 | Tipo       | Default | Descricao |
 | --------------------- | ---------- | ------- | --------- |
 | `verbose`             | `boolean`  | `false` | Exibe logs detalhados durante a execucao |
+| `blame`               | `boolean`  | `true`  | Apenas no Bitbucket: adiciona aos comentarios inline quem alterou a linha por ultimo (`git blame`). `false` desliga |
 | `gemini_api_keys`     | `string[]` | `[]`    | API keys do Google Gemini para o plugin **ai-code-review** (rotacao automatica) |
 | `google_chat_webhook` | `string`   | —       | URL do webhook do Google Chat para o plugin **google-chat-notification** (opcional) |
 
@@ -221,6 +222,25 @@ settings:
   gemini_api_keys:
     - "AIzaSy..."
     - "AIzaSy..."
+```
+
+### `blame` (autoria nos comentarios inline)
+
+Quando o Danger roda num PR do Bitbucket, cada comentario inline termina com quem alterou a linha por ultimo:
+
+```text
+👤 Última alteração: **Fulano de Tal** · 17/10/2026 · `abc1234`
+```
+
+- O nome e o `user.name` do commit no git, nao a conta do Bitbucket.
+- A data e absoluta (no fuso do autor) para o corpo do comentario nao mudar entre execucoes: o Danger so edita um comentario inline quando o texto muda.
+- Precisa do historico completo (`clone: depth: full`). Num clone raso, linhas mais antigas que o limite ficam sem autoria.
+- Linha nao commitada ou erro do git (ex.: `detected dubious ownership`): o comentario sai sem a linha de autoria.
+- GitHub, GitLab e `dry-run` nao mostram a autoria.
+
+```yaml
+settings:
+  blame: false # desliga
 ```
 
 ### `gemini_api_keys` (plugin ai-code-review)

@@ -418,6 +418,15 @@ function executeDangerBot(plugins, callbacks) {
       const config = loadConfig();
       const verbose = config.settings?.verbose ?? false;
       setVerbose(verbose);
+      const { getDanger: getDangerDSL } = await Promise.resolve().then(() =>
+        __importStar(require("./helpers"))
+      );
+      const { setBlameEnabled } = await Promise.resolve().then(() =>
+        __importStar(require("./blame"))
+      );
+      const dangerDSL = getDangerDSL();
+      const onBitbucket = Boolean(dangerDSL?.bitbucket_cloud || dangerDSL?.bitbucket_server);
+      setBlameEnabled(onBitbucket && config.settings?.blame !== false);
       if (verbose) {
         console.log("[verbose] ═══════════════════════════════════════");
         console.log("[verbose] 🤖 Danger Bot — modo verbose ativo");
@@ -425,6 +434,9 @@ function executeDangerBot(plugins, callbacks) {
         verboseLog(`📦 ${plugins.length} plugin(s) do pacote`);
         verboseLog(`📂 local_plugins: ${config.local_plugins?.length ?? 0} caminho(s)`);
         verboseLog(`🚫 ignore_files: ${config.ignore_files?.length ?? 0} arquivo(s)`);
+        verboseLog(
+          `👤 blame: ${onBitbucket ? (config.settings?.blame !== false ? "ativo" : "desligado em settings.blame") : "inativo (fora do Bitbucket)"}`
+        );
       }
       if (config.ignore_files?.length) {
         setIgnoredFiles(config.ignore_files);

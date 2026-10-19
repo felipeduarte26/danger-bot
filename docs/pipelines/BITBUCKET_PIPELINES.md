@@ -164,6 +164,16 @@ O `danger` do `package.json` esta fora da faixa exigida pelo Danger Bot. Use `"d
 
 Falta o `typescript` no `package.json`.
 
+### Comentarios inline sem a linha de autoria (👤 Última alteração)
+
+1. Confira `clone: depth: full` no step: com o clone raso padrao (50 commits) as linhas antigas ficam sem autoria.
+2. Confira se `settings.blame` nao esta `false` no `danger-bot.yaml`.
+3. Rode `git blame -- <arquivo>` no step. Se aparecer `detected dubious ownership`, adicione antes do `npx danger ci`:
+
+```yaml
+- git config --global --add safe.directory "$BITBUCKET_CLONE_DIR"
+```
+
 ### Erro: Pipelines nao executa em PRs
 
 Verifique se o trigger esta correto:
