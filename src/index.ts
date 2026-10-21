@@ -9,6 +9,8 @@ export * from "./types";
 export * from "./helpers";
 export * from "./config";
 export * from "./branding";
+export { getLineAuthor, formatBlameLine, isBlameEnabled } from "./blame";
+export type { LineAuthor } from "./blame";
 
 // Helpers para plugins que analisam classes escritas com primary constructors (Dart 3.13+)
 export {

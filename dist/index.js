@@ -32,10 +32,7 @@ var __exportStar =
         __createBinding(exports, m, p);
   };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.primaryConstructorsPlugin =
-  exports.privateNamedParamsPlugin =
-  exports.folderNamingConventionPlugin =
-  exports.presentationEncapsulationPlugin =
+exports.presentationEncapsulationPlugin =
   exports.spellCheckerPtbrPlugin =
   exports.buildDocCheckerPlugin =
   exports.positionalBoolParamsPlugin =
@@ -82,6 +79,9 @@ exports.primaryConstructorsPlugin =
   exports.primaryConstructorFieldsByLine =
   exports.normalizePrimaryConstructorHeaders =
   exports.findPrimaryConstructors =
+  exports.isBlameEnabled =
+  exports.formatBlameLine =
+  exports.getLineAuthor =
     void 0;
 exports.testPlugins =
   exports.performancePlugins =
@@ -92,12 +92,34 @@ exports.testPlugins =
   exports.domainLayerPlugins =
   exports.allFlutterPlugins =
   exports.googleChatNotificationPlugin =
+  exports.primaryConstructorsPlugin =
+  exports.privateNamedParamsPlugin =
+  exports.folderNamingConventionPlugin =
     void 0;
 // Export tipos e helpers
 __exportStar(require("./types"), exports);
 __exportStar(require("./helpers"), exports);
 __exportStar(require("./config"), exports);
 __exportStar(require("./branding"), exports);
+var blame_1 = require("./blame");
+Object.defineProperty(exports, "getLineAuthor", {
+  enumerable: true,
+  get: function () {
+    return blame_1.getLineAuthor;
+  },
+});
+Object.defineProperty(exports, "formatBlameLine", {
+  enumerable: true,
+  get: function () {
+    return blame_1.formatBlameLine;
+  },
+});
+Object.defineProperty(exports, "isBlameEnabled", {
+  enumerable: true,
+  get: function () {
+    return blame_1.isBlameEnabled;
+  },
+});
 // Helpers para plugins que analisam classes escritas com primary constructors (Dart 3.13+)
 var primary_constructors_1 = require("./plugins/flutter/primary-constructors/primary-constructors");
 Object.defineProperty(exports, "findPrimaryConstructors", {
