@@ -8,10 +8,13 @@ As versões até a 4.0.0 foram reconstruídas a partir do histórico de commits 
 
 ## [Não publicado]
 
+## [4.1.0] - 2026-10-20
+
 ### Adicionado
 
 - No Bitbucket, os comentários inline terminam com quem alterou a linha por último, via `git blame`: `👤 Última alteração: **Nome** · dd/mm/aaaa · \`abc1234\``. Fica de fora quando a linha não está commitada, o git falha ou o clone é raso demais para chegar ao commit (use `clone: depth: full`). GitHub, GitLab e `dry-run` não mudam.
 - Chave `settings.blame` no `danger-bot.yaml` (default `true`); `false` remove a linha de autoria.
+- Exports `getLineAuthor`, `formatBlameLine`, `isBlameEnabled` e tipo `LineAuthor` para plugins locais.
 
 ## [4.0.1] - 2026-10-15
 
@@ -988,7 +991,8 @@ As versões até a 4.0.0 foram reconstruídas a partir do histórico de commits 
 - CLI `danger-bot` com os comandos `create-plugin` (`new`), `list` (`ls`), `generate-dangerfile` (`gen`), `validate` e `info`.
 - Guias de instalação, CLI, arquitetura e configuração de pipelines em `docs/`.
 
-[Não publicado]: https://github.com/felipeduarte26/danger-bot/compare/v4.0.1...HEAD
+[Não publicado]: https://github.com/felipeduarte26/danger-bot/compare/v4.1.0...HEAD
+[4.1.0]: https://github.com/felipeduarte26/danger-bot/compare/v4.0.1...v4.1.0
 [4.0.1]: https://github.com/felipeduarte26/danger-bot/compare/fc1c4ea50...v4.0.1
 [4.0.0]: https://github.com/felipeduarte26/danger-bot/compare/48760e7fe...fc1c4ea50
 [3.4.0]: https://github.com/felipeduarte26/danger-bot/compare/57205c031...48760e7fe

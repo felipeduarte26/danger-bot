@@ -25,6 +25,7 @@ node bin/cli.js dry-run --project <projeto-flutter> --base <branch|sha> [--plugi
 Não há suíte de testes. Para validar um plugin, use o **dry-run** num projeto real (ex.: uma cópia do esfera-web) ou o **harness** da seção [Testando](#testando-um-plugin). Antes de testar, rode `npm run build`: o CLI e o harness carregam o `dist/`, não o `src/`.
 
 **Git hooks (Husky):**
+
 - `pre-commit`: lint-staged (eslint+prettier nos `.ts`, prettier nos `.js` — inclusive `dist/`)
 - `commit-msg`: commitlint
 - `pre-push`: lint + type-check + build
@@ -77,15 +78,16 @@ O histórico fica no [CHANGELOG.md](CHANGELOG.md), no formato [Keep a Changelog 
 
 O dry-run monta um mock de `global.danger` a partir de `git diff <merge-base>...HEAD`. Diferenças que importam:
 
-| | Danger real (CI) | dry-run |
-|---|---|---|
-| `change.content` do `structuredDiffForFile` | mantém o prefixo `+`/`-`/espaço | sem prefixo |
-| linha de mudança `normal` | `ln2` | `ln` |
-| `git.insertions/deletions` | **não existem** — use `await getLineStats()` | existem |
-| `github.pr.body` / `bitbucket_cloud.pr.description` | descrição real | vazia (o pr-validation sempre reclama) |
-| plugins pulados por padrão | — | flutter-analyze, flutter-test-runner, test-coverage-summary, google-chat-notification, ai-code-review, spell-checker, pr-summary |
+|                                                     | Danger real (CI)                             | dry-run                                                                                                                          |
+| --------------------------------------------------- | -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `change.content` do `structuredDiffForFile`         | mantém o prefixo `+`/`-`/espaço              | sem prefixo                                                                                                                      |
+| linha de mudança `normal`                           | `ln2`                                        | `ln`                                                                                                                             |
+| `git.insertions/deletions`                          | **não existem** — use `await getLineStats()` | existem                                                                                                                          |
+| `github.pr.body` / `bitbucket_cloud.pr.description` | descrição real                               | vazia (o pr-validation sempre reclama)                                                                                           |
+| plugins pulados por padrão                          | —                                            | flutter-analyze, flutter-test-runner, test-coverage-summary, google-chat-notification, ai-code-review, spell-checker, pr-summary |
 
 Detalhes do filtro `--plugins`:
+
 - Ele usa **substring**: `spell-checker` também roda o `spell-checker-ptbr`.
 - Ele desliga a lista de pulados.
 - Sem rede, o `identifier-language` trava no Google Translate. Use `--plugins` sem ele, ou pré-carregue um `fetch` que rejeita: `node --import ./nofetch.mjs bin/cli.js dry-run ...`, com `globalThis.fetch = () => Promise.reject(new Error("offline"))`.
@@ -93,6 +95,7 @@ Detalhes do filtro `--plugins`:
 ### Patches no Danger ([scripts/patch-danger.cjs](scripts/patch-danger.cjs))
 
 O postinstall substitui strings exatas no `node_modules/danger/distribution`:
+
 - tradução pt-BR;
 - branding (nome e link) lido do `danger-bot.yaml` em tempo de execução (ver abaixo);
 - resumo em 3 cenários: fails → problemas; só warnings → "Aprovado!"; limpo → "Parabéns!";
@@ -101,6 +104,7 @@ O postinstall substitui strings exatas no `node_modules/danger/distribution`:
 - `DANGER_BITBUCKETCLOUD_REPO_ACCESSTOKEN` passa a usar o template inline do Bitbucket.
 
 Como funciona:
+
 - Cada substituição é `[rótulo, original, novo]` e parte sempre do **original do Danger**, guardado em `<arquivo>.backup` na primeira vez. Reaplicar é seguro, e os textos `original` são os do Danger sem patch.
 - **Branding:** entra só no rodapé (`Gerado por 🚀 <nome> no commit <hash>`), nos links invisíveis e no status do build; a frase de abertura com erros usa sempre o nome do produto (`PRODUCT_NAME`: "Danger Bot encontrou alguns problemas…"). Os textos novos usam `__dangerBotBranding.name`/`.url`. O script injeta no topo de cada arquivo que os usa uma declaração que chama `getBranding()` do `dist/branding.js` (caminho relativo ao arquivo do Danger), com fallback para o padrão. Por isso mudar o `branding` do YAML vale na próxima execução, sem reinstalar.
 - Ele grava `node_modules/danger/.danger-bot-patched` com `PATCH_VERSION`, que é o `version` do `package.json`. **Ao mudar os patches, suba a versão do pacote**, senão o marker impede a reaplicação nas instalações já patcheadas.
@@ -114,11 +118,11 @@ Como funciona:
 
 ### CLI ([bin/cli.js](bin/cli.js), alias `db`)
 
-| Comando | Para que serve |
-|---|---|
-| `dry-run`/`run`, `init`, `gen` | Para o projeto consumidor. `init` gera o `danger-bot.yaml` e `gen` gera o `dangerfile.example.ts` |
-| `list`/`ls`, `info`, `create-plugin`/`new`, `remove-plugin`/`rm` | Leem `src/plugins/` do cwd: rode na raiz deste repo |
-| `validate <arquivo>` | Confere o mínimo de um arquivo de plugin (import e `export default` do `createPlugin`, `name`, `description`, `enabled`) e sai com código 1 se faltar algo. Funciona em qualquer lugar; não verifica o padrão das mensagens |
+| Comando                                                          | Para que serve                                                                                                                                                                                                              |
+| ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dry-run`/`run`, `init`, `gen`                                   | Para o projeto consumidor. `init` gera o `danger-bot.yaml` e `gen` gera o `dangerfile.example.ts`                                                                                                                           |
+| `list`/`ls`, `info`, `create-plugin`/`new`, `remove-plugin`/`rm` | Leem `src/plugins/` do cwd: rode na raiz deste repo                                                                                                                                                                         |
+| `validate <arquivo>`                                             | Confere o mínimo de um arquivo de plugin (import e `export default` do `createPlugin`, `name`, `description`, `enabled`) e sai com código 1 se faltar algo. Funciona em qualquer lugar; não verifica o padrão das mensagens |
 
 `create-plugin` e `remove-plugin` são interativos (readline): stdin em pipe não funciona, porque o `rl.question` só lê a primeira linha. Para automatizar, use um script que escreve cada resposta quando aparece um prompt terminando em `: `.
 
@@ -192,7 +196,8 @@ export default createPlugin(
 
         sendFormattedFail({
           title: "TITULO FIXO EM CAPS", // chave do resumo: sem dados variáveis
-          description: "Por que `padraoProblematico()` é um problema (1-2 linhas, **negrito** no essencial).",
+          description:
+            "Por que `padraoProblematico()` é um problema (1-2 linhas, **negrito** no essencial).",
           problem: {
             wrong,
             correct: fixed,
@@ -228,12 +233,18 @@ for (const chunk of diff?.chunks ?? []) {
 
 ```typescript
 import { createPlugin, getDartFiles, sendFormattedWarn } from "@felipeduarte26/danger-bot";
-export default createPlugin({ name: "regra-local", description: "...", enabled: true }, async () => {
-  for (const file of await getDartFiles()) { /* ... */ }
-});
+export default createPlugin(
+  { name: "regra-local", description: "...", enabled: true },
+  async () => {
+    for (const file of await getDartFiles()) {
+      /* ... */
+    }
+  }
+);
 ```
 
 O Node carrega o `.ts` direto ([type stripping](https://nodejs.org/api/typescript.html)), sem compilar. Ao escrever o plugin:
+
 - só sintaxe apagável: tipos e interfaces; `enum`, `namespace` e parameter properties dão `ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX`;
 - import relativo **com extensão**: `import { x } from "../shared/util.ts"`; sem ela dá `ERR_MODULE_NOT_FOUND`.
 
@@ -243,24 +254,26 @@ As regras de carregamento estão em [Configuração no projeto consumidor](#conf
 
 **Todo problema apontado num arquivo/linha usa `sendFormattedFail` (regra) ou `sendFormattedWarn` (heurística).** Nunca use `sendFail`/`sendWarn` com template literal montado à mão. O exemplo de referência é o [mediaquery-modern.ts](src/plugins/flutter/mediaquery-modern/mediaquery-modern.ts) (veja o `sendFormattedFail` do `MediaQuery.of(...).<prop>`):
 
-| Campo | O que colocar | No mediaquery-modern |
-|---|---|---|
-| `title` | Problema em CAPS, sem emoji e **fixo** (é a chave do resumo) | `"MEDIAQUERY.OF() — USE API MODERNA"` |
-| `description` | Por que é problema, citando o trecho detectado | `` `MediaQuery.of(...).${property}` causa rebuilds desnecessários. `` |
-| `problem.wrong` | O **código real** do erro (linha ou trecho do arquivo) | `line.trim()` |
-| `problem.correct` | O **mesmo código já corrigido** | `line.trim().replace(MQ_OF_RE, alternative)` |
-| `wrongLabel` / `correctLabel` | O efeito de cada versão | `"Rebuild quando QUALQUER propriedade muda"` / `` `Rebuild apenas quando ${property} muda` `` |
-| `action` | `text`: o que fazer; `code`: a correção pronta para copiar | `` `Substitua por \`${alternative}\`:` `` + a linha corrigida |
-| `objective` | O benefício em uma frase | `"Melhor **performance** com rebuilds mais eficientes."` |
-| `reference` | Link oficial (dart.dev, docs.flutter.dev, api.flutter.dev, linter rules...) **sempre que existir** | `MediaQuery-class.html` na api.flutter.dev |
-| `file` / `line` | Para o comentário inline na linha do problema | `file`, `i + 1` |
+| Campo                         | O que colocar                                                                                      | No mediaquery-modern                                                                          |
+| ----------------------------- | -------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `title`                       | Problema em CAPS, sem emoji e **fixo** (é a chave do resumo)                                       | `"MEDIAQUERY.OF() — USE API MODERNA"`                                                         |
+| `description`                 | Por que é problema, citando o trecho detectado                                                     | `` `MediaQuery.of(...).${property}` causa rebuilds desnecessários. ``                         |
+| `problem.wrong`               | O **código real** do erro (linha ou trecho do arquivo)                                             | `line.trim()`                                                                                 |
+| `problem.correct`             | O **mesmo código já corrigido**                                                                    | `line.trim().replace(MQ_OF_RE, alternative)`                                                  |
+| `wrongLabel` / `correctLabel` | O efeito de cada versão                                                                            | `"Rebuild quando QUALQUER propriedade muda"` / `` `Rebuild apenas quando ${property} muda` `` |
+| `action`                      | `text`: o que fazer; `code`: a correção pronta para copiar                                         | `` `Substitua por \`${alternative}\`:` `` + a linha corrigida                                 |
+| `objective`                   | O benefício em uma frase                                                                           | `"Melhor **performance** com rebuilds mais eficientes."`                                      |
+| `reference`                   | Link oficial (dart.dev, docs.flutter.dev, api.flutter.dev, linter rules...) **sempre que existir** | `MediaQuery-class.html` na api.flutter.dev                                                    |
+| `file` / `line`               | Para o comentário inline na linha do problema                                                      | `file`, `i + 1`                                                                               |
 
 Quando não der para mostrar a linha real:
+
 - **Regra estrutural** (nome de arquivo, pasta, classe ou método ausente): use os nomes reais do arquivo (ex.: `wrong: fileName` e ``correct: `${fileName.replace(".dart", "")}_entity.dart` ``) ou um esqueleto com o nome real da classe (`class ${cls.name} { }`). Veja domain-entities e data-datasources.
 - **Dado sensível** (security-checker): não repita o segredo no PR; use um exemplo genérico.
 - **Sem documentação confiável:** só então omita `reference`.
 
 Os outros helpers ficam para mensagens **sem** linha de código associada:
+
 - `sendFail`/`sendWarn` sem arquivo — resumo de uma linha no formato `**TÍTULO** — detalhe`. Ex.: pr-size-checker, o total do flutter-analyze, flutter-test-runner, changelog-checker.
 - `sendMarkdown` — relatórios e tabelas (pr-summary, test-coverage-summary). Também serve para repassar a saída de uma ferramenta externa linha a linha, com o link da regra: é o que o flutter-analyze faz com cada diagnóstico, somando um `sendFail` de resumo.
 - `sendMessage` — informação neutra.
@@ -298,7 +311,7 @@ frase curta
 - **Duplicidade entre plugins:** use `isPluginActive("outro-plugin")` para não repetir checagem (ex.: o changelog-checker não roda quando o pr-validation está ativo).
 - **Logs de debug:** use `verboseLog(...)`, que só aparece com `settings.verbose: true` ou `dry-run -v`.
 - **README do plugin:**
-  - estrutura: título, parágrafo do que faz, `## O que verifica`, `## Severidade` (`- **Tipo:** \`fail\``), `## Exemplo` (❌ Errado / ✅ Correto em dart), `## Referências`;
+  - estrutura: título, parágrafo do que faz, `## O que verifica`, `## Severidade` (`- **Tipo:** \`fail\``), `## Exemplo`(❌ Errado / ✅ Correto em dart),`## Referências`;
   - confira se o exemplo "✅ Correto" passa nos **outros** plugins (ex.: `bool refresh` é reprovado pelo boolean-naming-convention).
 
 ### Checklist de entrega (plugin novo ou alterado)
@@ -317,32 +330,34 @@ frase curta
 
 Todos são exportados por `@felipeduarte26/danger-bot` (e por `"@types"` dentro do pacote). Referência completa em [docs/HELPERS.md](docs/HELPERS.md) e [docs/API.md](docs/API.md).
 
-| Helper | O que faz |
-|---|---|
-| `getDanger()` | Objeto `danger` global (tipado `ExtendedDangerDSLType`) |
-| `sendFail` / `sendWarn` / `sendMessage` (`msg, file?, line?`) | Publicam; com arquivo/linha viram inline + resumo |
-| `sendFormattedFail` / `sendFormattedWarn` (`FormattedMessageOptions`) | Layout padrão (título, problema, ação, objetivo, referência) |
-| `sendMarkdown(msg, file?, line?)` | Markdown livre (tabelas, relatórios) |
-| `scheduleTask(fn)` | Agenda tarefa no `schedule()` do Danger |
-| `getAllChangedFiles()` | Criados + modificados, respeitando `ignore_files` |
-| `getDartFiles()` **async** | `.dart` existentes no disco, **sem** `_test.dart` |
-| `getDartFilesInDirectory(dir)` / `getDomainDartFiles()` / `getDataDartFiles()` / `getPresentationDartFiles()` **async** | Subconjuntos do `getDartFiles()` |
-| `getFilesMatching(re)` / `getFilesByExtension(ext)` / `hasFilesMatching(re)` | Filtros sobre `getAllChangedFiles()` |
-| `getFileContent(file)` / `fileContainsPattern(file, re)` **async** | Conteúdo depois do PR (`diffForFile().after`, senão o disco) |
-| `isInLayer(file, "domain" \| "data" \| "presentation")` | `file.includes("/<camada>/")` |
-| `getPRTitle()` / `getPRDescription()` | GitHub ou Bitbucket Cloud |
-| `getLineStats()` **async** | `{ added, removed }` somando `diffForFile` (funciona no CI). `getLinesChanged()` é obsoleto |
-| `isPluginActive(name)` / `setActivePlugins(names)` | Plugins que rodam nesta execução |
-| `getPendingSummaryCounts()` | Fails/warns inline ainda não publicados |
-| `flushSummaries()` | Publica os resumos (o `executeDangerBot` já chama) |
-| `verboseLog(...)` / `isVerbose()` | Log condicional |
-| `setIgnoredFiles` / `getIgnoredFiles` / `isFileIgnored` | Regra de `ignore_files` (globs) |
-| `createPlugin(config, run)` / `runPlugins(plugins)` / `executeDangerBot(plugins, callbacks?)` | Núcleo |
-| `loadConfig()` / `loadLocalPlugins(paths)` | Leitura do `danger-bot.yaml` |
-| `normalizePrimaryConstructorHeaders` / `findPrimaryConstructors` / `primaryConstructorFieldsByLine` | Suporte a primary constructors (Dart 3.13+) |
-| `importModule(specifier)` (só dentro do pacote, `src/native-import.ts`) | `import()` nativo para pacotes só-ESM |
+| Helper                                                                                                                  | O que faz                                                                                   |
+| ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `getDanger()`                                                                                                           | Objeto `danger` global (tipado `ExtendedDangerDSLType`)                                     |
+| `sendFail` / `sendWarn` / `sendMessage` (`msg, file?, line?`)                                                           | Publicam; com arquivo/linha viram inline + resumo                                           |
+| `sendFormattedFail` / `sendFormattedWarn` (`FormattedMessageOptions`)                                                   | Layout padrão (título, problema, ação, objetivo, referência)                                |
+| `sendMarkdown(msg, file?, line?)`                                                                                       | Markdown livre (tabelas, relatórios)                                                        |
+| `scheduleTask(fn)`                                                                                                      | Agenda tarefa no `schedule()` do Danger                                                     |
+| `getAllChangedFiles()`                                                                                                  | Criados + modificados, respeitando `ignore_files`                                           |
+| `getDartFiles()` **async**                                                                                              | `.dart` existentes no disco, **sem** `_test.dart`                                           |
+| `getDartFilesInDirectory(dir)` / `getDomainDartFiles()` / `getDataDartFiles()` / `getPresentationDartFiles()` **async** | Subconjuntos do `getDartFiles()`                                                            |
+| `getFilesMatching(re)` / `getFilesByExtension(ext)` / `hasFilesMatching(re)`                                            | Filtros sobre `getAllChangedFiles()`                                                        |
+| `getFileContent(file)` / `fileContainsPattern(file, re)` **async**                                                      | Conteúdo depois do PR (`diffForFile().after`, senão o disco)                                |
+| `isInLayer(file, "domain" \| "data" \| "presentation")`                                                                 | `file.includes("/<camada>/")`                                                               |
+| `getPRTitle()` / `getPRDescription()`                                                                                   | GitHub ou Bitbucket Cloud                                                                   |
+| `getLineStats()` **async**                                                                                              | `{ added, removed }` somando `diffForFile` (funciona no CI). `getLinesChanged()` é obsoleto |
+| `isPluginActive(name)` / `setActivePlugins(names)`                                                                      | Plugins que rodam nesta execução                                                            |
+| `getPendingSummaryCounts()`                                                                                             | Fails/warns inline ainda não publicados                                                     |
+| `flushSummaries()`                                                                                                      | Publica os resumos (o `executeDangerBot` já chama)                                          |
+| `verboseLog(...)` / `isVerbose()`                                                                                       | Log condicional                                                                             |
+| `setIgnoredFiles` / `getIgnoredFiles` / `isFileIgnored`                                                                 | Regra de `ignore_files` (globs)                                                             |
+| `createPlugin(config, run)` / `runPlugins(plugins)` / `executeDangerBot(plugins, callbacks?)`                           | Núcleo                                                                                      |
+| `loadConfig()` / `loadLocalPlugins(paths)`                                                                              | Leitura do `danger-bot.yaml`                                                                |
+| `normalizePrimaryConstructorHeaders` / `findPrimaryConstructors` / `primaryConstructorFieldsByLine`                     | Suporte a primary constructors (Dart 3.13+)                                                 |
+| `importModule(specifier)` (só dentro do pacote, `src/native-import.ts`)                                                 | `import()` nativo para pacotes só-ESM                                                       |
+| `getLineAuthor(file, line)` / `formatBlameLine(file, line)` / `isBlameEnabled()`                                        | Autoria via `git blame` nos comentários inline (só Bitbucket)                               |
 
 Callbacks do `executeDangerBot`:
+
 - `onBeforeRun` — retornar `false` cancela;
 - `onSuccess`;
 - `onError(error)`;
@@ -380,16 +395,29 @@ const [dist, plugin, ...files] = process.argv.slice(2);
 const out = [];
 global.danger = {
   git: {
-    modified_files: [], created_files: files, deleted_files: [],
+    modified_files: [],
+    created_files: files,
+    deleted_files: [],
     // simula "arquivo inteiro adicionado", no formato do Danger real (prefixo "+")
-    structuredDiffForFile: async (f) => ({ chunks: [{ changes: fs.readFileSync(f, "utf8")
-      .split("\n").map((l, i) => ({ type: "add", content: "+" + l, ln: i + 1 })) }] }),
+    structuredDiffForFile: async (f) => ({
+      chunks: [
+        {
+          changes: fs
+            .readFileSync(f, "utf8")
+            .split("\n")
+            .map((l, i) => ({ type: "add", content: "+" + l, ln: i + 1 })),
+        },
+      ],
+    }),
     diffForFile: async (f) => ({ after: fs.readFileSync(f, "utf8") }),
   },
 };
-for (const k of ["fail", "warn", "message"]) global[k] = (m) => out.push(`${k}: ${m.split("\n")[0]}`);
+for (const k of ["fail", "warn", "message"])
+  global[k] = (m) => out.push(`${k}: ${m.split("\n")[0]}`);
 global.markdown = (m, f, l) => out.push(`inline ${f}:${l}: ${m.split("\n")[0]}`);
-require(`${dist}/plugins/flutter/${plugin}`).default.run().then(() => console.log(out));
+require(`${dist}/plugins/flutter/${plugin}`)
+  .default.run()
+  .then(() => console.log(out));
 ```
 
 Teste o caso que deve ser reportado **e** o que não deve. Para mudanças em parsers, compare o resultado antigo com o novo no mesmo diff: crie um `git worktree` do HEAD com `node_modules` linkado e rode o dry-run das duas versões num clone do esfera-web.
@@ -399,26 +427,28 @@ Teste o caso que deve ser reportado **e** o que não deve. Para mudanças em par
 `danger-bot.yaml` na raiz (gerado por `danger-bot init`; detalhes em [docs/CONFIGURACAO.md](docs/CONFIGURACAO.md)):
 
 ```yaml
-branding:               # nome e link nos comentários e no status (default: Danger Bot + repo do GitHub)
+branding: # nome e link nos comentários e no status (default: Danger Bot + repo do GitHub)
   name: "Minha Empresa"
   url: "https://minhaempresa.com"
-local_plugins:          # arquivos .ts/.js ou pastas (exceto index.*)
+local_plugins: # arquivos .ts/.js ou pastas (exceto index.*)
   - ./danger/plugins/
-ignore_files:           # caminho exato ou glob: lib/legacy/**, **/old_page.dart, lib/x/*.dart
+ignore_files: # caminho exato ou glob: lib/legacy/**, **/old_page.dart, lib/x/*.dart
   - lib/features/old_module/legacy_page.dart
 settings:
   verbose: false
-  gemini_api_keys: []   # ai-code-review (ou env GEMINI_API_KEYS / GEMINI_API_KEY)
-  google_chat_webhook: "https://chat.googleapis.com/v1/spaces/..."  # ou env GOOGLE_CHAT_WEBHOOK
+  gemini_api_keys: [] # ai-code-review (ou env GEMINI_API_KEYS / GEMINI_API_KEY)
+  google_chat_webhook: "https://chat.googleapis.com/v1/spaces/..." # ou env GOOGLE_CHAT_WEBHOOK
 ```
 
 **Leitura do arquivo** ([src/config.ts](src/config.ts)):
+
 - `danger-bot.yaml` ou `.yml` no **cwd** do processo (a raiz do projeto, onde roda o `danger ci` ou o dry-run).
 - YAML inválido não quebra a execução: vira `⚠️ Erro ao ler config` no log e a configuração **inteira** é ignorada (sem ignore, sem plugins locais, sem keys).
 - `loadConfig()` loga `📄 Danger Bot config carregado` a cada chamada (o executeDangerBot e plugins como ai-code-review e google-chat-notification chamam). `readConfig()` é a versão silenciosa.
 - Chave desconhecida é ignorada sem aviso.
 
 **Chaves:**
+
 - **`branding`** — nome e link nos comentários e no status do build ([src/branding.ts](src/branding.ts), lido pelo Danger via patch). Campo inválido cai no padrão. Detalhes em [Patches no Danger](#patches-no-danger-scriptspatch-dangercjs) e em [docs/CONFIGURACAO.md](docs/CONFIGURACAO.md#branding).
 - **`local_plugins`** — plugins do próprio projeto, sem publicar no pacote:
   - cada item é um arquivo ou uma pasta, relativo à raiz; pasta carrega só os `.ts`/`.js` do primeiro nível (não é recursiva; `.mjs`/`.cjs` ficam de fora) e pula `index.*`;
@@ -429,6 +459,7 @@ settings:
   - o import de `@felipeduarte26/danger-bot` é resolvido a partir do arquivo do plugin, então o pacote precisa estar no `node_modules` do projeto. No CI está; no dry-run com a CLI via `npm link` e sem `package.json` no projeto (TESTE_LOCAL, cenário A), o plugin falha com `Cannot find package '@felipeduarte26/danger-bot'`.
 - **`ignore_files`** — remove os arquivos de `danger.git.modified_files`/`created_files` antes de qualquer plugin (os `deleted_files` ficam). Caminho exato ou glob relativo à raiz: `*` não cruza `/`, exceto num `/*` final, que pega a pasta inteira com subpastas; `**` cruza pastas; `?` é um caractere.
 - **`settings.verbose`** — logs `[verbose]` (o mesmo que o `-v` do dry-run).
+- **`settings.blame`** — (default `true`) apenas no Bitbucket: adiciona aos comentários inline quem alterou a linha por último via `git blame` (`👤 Última alteração: **Nome** · dd/mm/aaaa · \`abc1234\``). `false`desliga. Precisa de`clone: depth: full`. Fora do Bitbucket (GitHub, GitLab, dry-run) não tem efeito.
 - **`settings.gemini_api_keys`** — keys do ai-code-review, somadas às env `GEMINI_API_KEYS`/`GEMINI_API_KEY`.
 - **`settings.google_chat_webhook`** — webhook do google-chat-notification (precisa começar com `https://`); alternativa: env `GOOGLE_CHAT_WEBHOOK`.
 - **`settings.fail_on_errors`** — existe no tipo `DangerBotConfig`, mas nenhum código o lê.
@@ -475,6 +506,7 @@ Exemplos completos por plataforma em [docs/pipelines/](docs/pipelines/README.md)
   - O Danger não traz transpilador (`typescript` e Babel são só `devDependencies` dele). Sem `typescript` no projeto, o `dangerfile.ts` é executado sem transpilar e quebra no `import`.
   - Sem `package-lock.json` commitado, use `npm install`; o `npm ci` exige o lock.
   - `--ignore-scripts` pula os patches do postinstall. Para reaplicar: `rm -f node_modules/danger/.danger-bot-patched && npm rebuild @felipeduarte26/danger-bot`.
+
 - **Imagem com Node 25 e Flutter.** Sem imagem pronta, parta da do Flutter (`ghcr.io/cirruslabs/flutter:<versão>`) e instale o Node com nvm no mesmo script. Sem Flutter no PATH, desligue esses plugins no `dangerfile.ts`, senão:
   - o flutter-analyze publica **"✅ Nenhum problema encontrado"** sem ter analisado nada;
   - o flutter-test-runner fica em silêncio;

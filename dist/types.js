@@ -418,6 +418,7 @@ function executeDangerBot(plugins, callbacks) {
       const config = loadConfig();
       const verbose = config.settings?.verbose ?? false;
       setVerbose(verbose);
+      // Autoria (git blame) nos comentários inline: só no Bitbucket
       const { getDanger: getDangerDSL } = await Promise.resolve().then(() =>
         __importStar(require("./helpers"))
       );
