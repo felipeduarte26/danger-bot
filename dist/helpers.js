@@ -145,6 +145,7 @@ exports.getPRDescription = getPRDescription;
 exports.getPRTitle = getPRTitle;
 exports.getLineStats = getLineStats;
 exports.getLinesChanged = getLinesChanged;
+const blame_1 = require("./blame");
 const _sentMessages = new Set();
 let _ignoredPatterns = [];
 let _ignoredRegexes = [];
@@ -272,7 +273,8 @@ function extractTitle(msg) {
 }
 function ensureTrailingBreak(msg, file, line) {
   if (!file || line === undefined) return msg;
-  return msg.trimEnd() + "\n\n&#8203;";
+  const blame = (0, blame_1.formatBlameLine)(file, line);
+  return msg.trimEnd() + (blame ? `\n\n${blame}` : "") + "\n\n&#8203;";
 }
 // ============================================================================
 // DANGER CORE

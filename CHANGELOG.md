@@ -8,6 +8,11 @@ As versões até a 4.0.0 foram reconstruídas a partir do histórico de commits 
 
 ## [Não publicado]
 
+### Adicionado
+
+- No Bitbucket, os comentários inline terminam com quem alterou a linha por último, via `git blame`: `👤 Última alteração: **Nome** · dd/mm/aaaa · \`abc1234\``. Fica de fora quando a linha não está commitada, o git falha ou o clone é raso demais para chegar ao commit (use `clone: depth: full`). GitHub, GitLab e `dry-run` não mudam.
+- Chave `settings.blame` no `danger-bot.yaml` (default `true`); `false` remove a linha de autoria.
+
 ## [4.0.1] - 2026-10-15
 
 ### Adicionado

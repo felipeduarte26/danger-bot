@@ -59,6 +59,7 @@
  */
 
 import type { DangerDSLType, GitDSL } from "danger";
+import { formatBlameLine } from "./blame";
 
 const _sentMessages = new Set<string>();
 let _ignoredPatterns: string[] = [];
@@ -207,7 +208,8 @@ function extractTitle(msg: string): string {
 
 function ensureTrailingBreak(msg: string, file?: string, line?: number): string {
   if (!file || line === undefined) return msg;
-  return msg.trimEnd() + "\n\n&#8203;";
+  const blame = formatBlameLine(file, line);
+  return msg.trimEnd() + (blame ? `\n\n${blame}` : "") + "\n\n&#8203;";
 }
 
 /**
