@@ -2,18 +2,53 @@
  * PR Summary Plugin
  * Gera um sumário rico da PR com métricas, camadas, risco e checklist.
  * Usa apenas Markdown puro (sem HTML) para compatibilidade com Bitbucket Cloud.
+ *
+ * Os arquivos são agrupados por `DartPath.category` (Dart, testes, gerados, config,
+ * assets, docs, outros); deletados entram na contagem. Gerados e `.lock` ficam fora
+ * dos arquivos em destaque.
  */
-import { createPlugin, getDanger, getLineStats, sendMarkdown } from "@types";
+import {
+  DartLayer,
+  DartPath,
+  FileCategory,
+  createPlugin,
+  getDanger,
+  getLineStats,
+  sendMarkdown,
+} from "@types";
 
-interface FileCategory {
+/** Rótulo de cada categoria, na ordem do breakdown. */
+const CATEGORY_LABELS: { category: FileCategory; label: string }[] = [
+  { category: FileCategory.Dart, label: "Dart" },
+  { category: FileCategory.Test, label: "Testes" },
+  { category: FileCategory.Generated, label: "Gerados" },
+  { category: FileCategory.Config, label: "Config" },
+  { category: FileCategory.Asset, label: "Assets" },
+  { category: FileCategory.Docs, label: "Docs" },
+  { category: FileCategory.Other, label: "Outros" },
+];
+
+/**
+ * Camadas do resumo, pela primeira pasta que aparece no caminho. Além das pastas
+ * da Clean Architecture, views/pages/screens contam como Presentation e
+ * shared/common como Core.
+ */
+const SUMMARY_LAYERS: { label: string; folders: string[] }[] = [
+  { label: "Domain", folders: [DartLayer.Domain] },
+  { label: "Data", folders: [DartLayer.Data] },
+  { label: "Presentation", folders: [DartLayer.Presentation, "views", "pages", "screens"] },
+  { label: "Core", folders: [DartLayer.Core, "shared", "common"] },
+];
+
+interface CategoryInfo {
+  category: FileCategory;
   label: string;
-  files: string[];
+  files: DartPath[];
 }
 
 interface LayerInfo {
   label: string;
-  pattern: RegExp;
-  files: string[];
+  files: DartPath[];
 }
 
 export default createPlugin(
@@ -28,7 +63,7 @@ export default createPlugin(
     const created: string[] = git.created_files ?? [];
     const modified: string[] = git.modified_files ?? [];
     const deleted: string[] = git.deleted_files ?? [];
-    const all = [...created, ...modified, ...deleted];
+    const all = [...created, ...modified, ...deleted].map((f) => DartPath.of(f));
 
     if (all.length === 0) {
       sendMarkdown("**PR vazia** — nenhum arquivo alterado.");
@@ -40,9 +75,11 @@ export default createPlugin(
     const lines = added + removed;
 
     const categories = categorizeFiles(all);
-    const dartSource = categories.find((c) => c.label === "Dart")?.files ?? [];
-    const testFiles = categories.find((c) => c.label === "Testes")?.files ?? [];
-    const generatedFiles = categories.find((c) => c.label === "Gerados")?.files ?? [];
+    const filesOf = (category: FileCategory): DartPath[] =>
+      categories.find((c) => c.category === category)?.files ?? [];
+    const dartSource = filesOf(FileCategory.Dart);
+    const testFiles = filesOf(FileCategory.Test);
+    const generatedFiles = filesOf(FileCategory.Generated);
     const layers = detectLayers(dartSource);
 
     const size = getSizeInfo(dartSource.length);
@@ -89,19 +126,18 @@ export default createPlugin(
     md += `| Risco | ${risk.emoji} **${risk.level}** |\n`;
 
     // ── Breakdown por tipo ──
-    const relevantCategories = categories.filter((c) => c.files.length > 0);
-    if (relevantCategories.length > 1) {
+    if (categories.length > 1) {
       md += "\n---\n\n";
       md += "**Breakdown por tipo**\n\n";
       md += "| Tipo | Qtd |\n";
       md += "| :-- | :--: |\n";
-      for (const cat of relevantCategories) {
+      for (const cat of categories) {
         md += `| ${cat.label} | ${cat.files.length} |\n`;
       }
     }
 
     // ── Arquivos em destaque ──
-    const topFiles = getTopFiles(created, modified, all);
+    const topFiles = getTopFiles(new Set(created), all);
     if (topFiles.length > 0) {
       md += "\n---\n\n";
       md += "**Arquivos em destaque**\n\n";
@@ -125,84 +161,44 @@ export default createPlugin(
   }
 );
 
+/** Até `limit` arquivos (sem gerados e `.lock`): novos primeiro, depois os Dart. */
 function getTopFiles(
-  created: string[],
-  modified: string[],
-  all: string[],
+  createdSet: Set<string>,
+  all: DartPath[],
   limit = 5
 ): { short: string; isNew: boolean }[] {
-  const createdSet = new Set(created);
-
   return all
-    .filter((f) => !f.match(/\.(g|freezed|mocks?)\.dart$/) && !f.match(/\.lock$/))
+    .filter((f) => f.category !== FileCategory.Generated && !f.fileName.endsWith(".lock"))
     .sort((a, b) => {
-      const aNew = createdSet.has(a) ? 1 : 0;
-      const bNew = createdSet.has(b) ? 1 : 0;
+      const aNew = createdSet.has(a.path) ? 1 : 0;
+      const bNew = createdSet.has(b.path) ? 1 : 0;
       if (aNew !== bNew) return bNew - aNew;
-      const aDart = a.endsWith(".dart") ? 1 : 0;
-      const bDart = b.endsWith(".dart") ? 1 : 0;
+      const aDart = a.isDart ? 1 : 0;
+      const bDart = b.isDart ? 1 : 0;
       return bDart - aDart;
     })
     .slice(0, limit)
     .map((f) => ({
-      short: f.split("/").slice(-2).join("/"),
-      isNew: createdSet.has(f),
+      short: f.folderName ? `${f.folderName}/${f.fileName}` : f.fileName,
+      isNew: createdSet.has(f.path),
     }));
 }
 
-function categorizeFiles(files: string[]): FileCategory[] {
-  const cats: FileCategory[] = [
-    { label: "Dart", files: [] },
-    { label: "Testes", files: [] },
-    { label: "Gerados", files: [] },
-    { label: "Config", files: [] },
-    { label: "Assets", files: [] },
-    { label: "Docs", files: [] },
-    { label: "Outros", files: [] },
-  ];
-
-  for (const f of files) {
-    if (f.match(/\.(g|freezed|mocks?)\.dart$/)) {
-      cats[2].files.push(f);
-    } else if (f.match(/_test\.dart$/)) {
-      cats[1].files.push(f);
-    } else if (f.endsWith(".dart")) {
-      cats[0].files.push(f);
-    } else if (
-      f.match(/pubspec\.(yaml|lock)$|\.gradle|Podfile|analysis_options|\.env|\.properties/)
-    ) {
-      cats[3].files.push(f);
-    } else if (f.match(/\.(png|jpg|jpeg|gif|svg|webp|ttf|otf|json)$/) || f.includes("/assets/")) {
-      cats[4].files.push(f);
-    } else if (f.match(/\.(md|txt)$/i) || f.match(/README|CHANGELOG|LICENSE/i)) {
-      cats[5].files.push(f);
-    } else {
-      cats[6].files.push(f);
-    }
-  }
-
-  return cats.filter((c) => c.files.length > 0);
+/** Categorias com pelo menos um arquivo, na ordem de CATEGORY_LABELS. */
+function categorizeFiles(files: DartPath[]): CategoryInfo[] {
+  return CATEGORY_LABELS.map(({ category, label }) => ({
+    category,
+    label,
+    files: files.filter((f) => f.category === category),
+  })).filter((c) => c.files.length > 0);
 }
 
-function detectLayers(dartFiles: string[]): LayerInfo[] {
-  const layers: LayerInfo[] = [
-    { label: "Domain", pattern: /\/domain\//, files: [] },
-    { label: "Data", pattern: /\/data\//, files: [] },
-    {
-      label: "Presentation",
-      pattern: /\/presentation\/|\/views\/|\/pages\/|\/screens\//,
-      files: [],
-    },
-    { label: "Core", pattern: /\/core\/|\/shared\/|\/common\//, files: [] },
-  ];
+function detectLayers(dartFiles: DartPath[]): LayerInfo[] {
+  const layers: LayerInfo[] = SUMMARY_LAYERS.map((l) => ({ label: l.label, files: [] }));
 
   for (const f of dartFiles) {
-    for (const layer of layers) {
-      if (layer.pattern.test(f)) {
-        layer.files.push(f);
-        break;
-      }
-    }
+    const index = SUMMARY_LAYERS.findIndex((l) => l.folders.some((folder) => f.inFolder(folder)));
+    if (index >= 0) layers[index].files.push(f);
   }
 
   return layers.filter((l) => l.files.length > 0);
@@ -217,10 +213,10 @@ function getSizeInfo(dartCount: number): { label: string; emoji: string } {
 }
 
 function assessRisk(
-  dartSource: string[],
-  testFiles: string[],
+  dartSource: DartPath[],
+  testFiles: DartPath[],
   layers: LayerInfo[],
-  categories: FileCategory[]
+  categories: CategoryInfo[]
 ): { level: string; emoji: string; factors: { label: string; detected: boolean }[] } {
   const factors = [
     {
@@ -229,7 +225,7 @@ function assessRisk(
     },
     {
       label: "Arquivos de configuração modificados",
-      detected: categories.some((c) => c.label === "Config"),
+      detected: categories.some((c) => c.category === FileCategory.Config),
     },
     {
       label: "Nenhum teste adicionado/modificado",

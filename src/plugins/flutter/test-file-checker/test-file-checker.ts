@@ -12,107 +12,33 @@
  *
  * Ignora:
  * - Barrel files (nome do arquivo = nome da pasta pai)
- * - Arquivos gerados (.g.dart, .freezed.dart)
- * - Arquivos de teste (_test.dart)
+ * - Arquivos gerados (.g.dart, .freezed.dart...) e de teste
  * - Interfaces de repository no domain (_repository_interface.dart)
  *
- * Mapeamento: lib/(...)/file.dart → test/(...)/file_test.dart
+ * Mapeamento: lib/(...)/file.dart → test/(...)/file_test.dart (também em monorepo);
+ * vale também um teste com o mesmo nome em qualquer subpasta de test/.
  */
-import { createPlugin, getDanger, sendWarn, sendMarkdown } from "@types";
-import * as fs from "fs";
-import * as path from "path";
+import {
+  DartLayer,
+  DartLayerFolder,
+  DartPath,
+  createPlugin,
+  getDanger,
+  sendMarkdown,
+  sendWarn,
+} from "@types";
 
-interface TargetLayer {
-  folder: string;
-  label: string;
-}
-
-const TARGET_LAYERS: TargetLayer[] = [
-  { folder: "/usecases/", label: "UseCase" },
-  { folder: "/datasources/", label: "Datasource" },
-  { folder: "/repositories/", label: "Repository" },
-  { folder: "/viewmodels/", label: "ViewModel" },
-  { folder: "/models/", label: "Model" },
-  { folder: "/entities/", label: "Entity" },
+const TARGET_FOLDERS = [
+  DartLayerFolder.UseCases,
+  DartLayerFolder.DataSources,
+  DartLayerFolder.Repositories,
+  DartLayerFolder.ViewModels,
+  DartLayerFolder.Models,
+  DartLayerFolder.Entities,
 ];
 
-function isBarrelFile(filePath: string): boolean {
-  const fileName = path.basename(filePath, ".dart");
-  const parentDir = path.basename(path.dirname(filePath));
-  return fileName === parentDir;
-}
-
-function isGeneratedFile(filePath: string): boolean {
-  return filePath.endsWith(".g.dart") || filePath.endsWith(".freezed.dart");
-}
-
-function isDomainRepositoryInterface(filePath: string): boolean {
-  const normalized = filePath.replace(/\\/g, "/");
-  return normalized.includes("/domain/") && normalized.endsWith("_repository_interface.dart");
-}
-
-function getTargetLayer(filePath: string): TargetLayer | null {
-  const normalized = filePath.replace(/\\/g, "/");
-  for (const layer of TARGET_LAYERS) {
-    if (normalized.includes(layer.folder)) return layer;
-  }
-  return null;
-}
-
-/**
- * Separa o caminho em raiz do pacote e caminho dentro de `lib/`. Aceita o
- * formato do Danger (relativo à raiz: `lib/x.dart`), monorepo
- * (`packages/app/lib/x.dart`) e caminho absoluto. Null se não estiver em `lib/`.
- */
-function splitLibPath(sourcePath: string): { root: string; relative: string } | null {
-  const normalized = sourcePath.replace(/\\/g, "/");
-  const match = /(^|\/)lib\//.exec(normalized);
-  if (!match) return null;
-  return {
-    root: normalized.slice(0, match.index),
-    relative: normalized.slice(match.index + match[0].length),
-  };
-}
-
-/** Caminho esperado do teste: `lib/(...)/file.dart` → `test/(...)/file_test.dart`. */
-function computeTestPath(sourcePath: string): string {
-  const parts = splitLibPath(sourcePath);
-  if (!parts) return sourcePath.replace(/\\/g, "/").replace(/\.dart$/, "_test.dart");
-  const testRoot = parts.root ? `${parts.root}/test` : "test";
-  return `${testRoot}/${parts.relative.replace(/\.dart$/, "_test.dart")}`;
-}
-
-/** Nomes de arquivos `_test.dart` sob cada pasta de testes (lida uma vez por execução). */
-const testNamesCache = new Map<string, Set<string>>();
-
-function testFileNames(testRoot: string): Set<string> {
-  const cached = testNamesCache.get(testRoot);
-  if (cached) return cached;
-  const names = new Set<string>();
-  const walk = (dir: string): void => {
-    let entries: fs.Dirent[];
-    try {
-      entries = fs.readdirSync(dir, { withFileTypes: true });
-    } catch {
-      return;
-    }
-    for (const entry of entries) {
-      if (entry.isDirectory()) walk(path.join(dir, entry.name));
-      else if (entry.name.endsWith("_test.dart")) names.add(entry.name);
-    }
-  };
-  walk(testRoot);
-  testNamesCache.set(testRoot, names);
-  return names;
-}
-
-/** Teste com o mesmo nome em qualquer subpasta de `test/` (estrutura diferente de `lib/`). */
-function findTestByName(sourcePath: string): boolean {
-  const parts = splitLibPath(sourcePath);
-  if (!parts) return false;
-  const testFileName = path.basename(parts.relative, ".dart") + "_test.dart";
-  const testRoot = parts.root ? `${parts.root}/test` : "test";
-  return testFileNames(testRoot).has(testFileName);
+function isDomainRepositoryInterface(file: DartPath): boolean {
+  return file.inLayer(DartLayer.Domain) && file.fileName.endsWith("_repository_interface.dart");
 }
 
 export default createPlugin(
@@ -124,31 +50,23 @@ export default createPlugin(
   async () => {
     const { git } = getDanger();
 
-    const allPRFiles = new Set([...git.created_files, ...git.modified_files]);
+    const prFiles = [...git.created_files, ...git.modified_files];
 
-    const sourceFiles = [...git.created_files, ...git.modified_files].filter((f: string) => {
-      if (!f.endsWith(".dart")) return false;
-      if (f.endsWith("_test.dart")) return false;
-      if (isGeneratedFile(f)) return false;
-      if (isBarrelFile(f)) return false;
-      if (isDomainRepositoryInterface(f)) return false;
-      if (!getTargetLayer(f)) return false;
-      return true;
-    });
+    const sourceFiles = prFiles
+      .map((f: string) => DartPath.of(f))
+      .filter(
+        (file) =>
+          file.isDart &&
+          !file.isTest &&
+          !file.isGenerated &&
+          !file.isBarrel &&
+          !isDomainRepositoryInterface(file) &&
+          TARGET_FOLDERS.some((folder) => file.inFolder(folder))
+      );
 
-    const missingTests: string[] = [];
-
-    for (const file of sourceFiles) {
-      const testPath = computeTestPath(file);
-
-      const testExistsOnDisk = fs.existsSync(testPath);
-      const testInPR = allPRFiles.has(testPath);
-      const testFoundElsewhere = !testExistsOnDisk && findTestByName(file);
-
-      if (!testExistsOnDisk && !testInPR && !testFoundElsewhere) {
-        missingTests.push(path.basename(file));
-      }
-    }
+    const missingTests = sourceFiles
+      .filter((file) => !file.hasTest(prFiles))
+      .map((file) => file.fileName);
 
     if (missingTests.length > 0) {
       sendWarn(`**Detectado ${missingTests.length} arquivo(s) sem testes**`);

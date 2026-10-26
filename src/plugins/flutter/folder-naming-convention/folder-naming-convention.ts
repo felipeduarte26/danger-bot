@@ -4,85 +4,34 @@
  *
  * Exemplo: domain/usecase/ deve ser domain/usecases/
  *
- * Analisa os caminhos dos arquivos alterados/criados no PR e verifica
- * se alguma pasta usa a forma singular quando o padrão é plural.
- * Reporta cada pasta incorreta apenas uma vez, independente de quantos
- * arquivos dentro dela foram alterados.
+ * Analisa os caminhos dos arquivos `.dart` alterados/criados no PR (exceto
+ * `_test.dart`) e verifica se alguma pasta usa a forma singular logo abaixo da
+ * camada (segmento exato: `usecases/` não casa `usecase/`). Reporta cada pasta
+ * incorreta apenas uma vez no PR, independente de quantos arquivos dentro dela
+ * foram alterados.
  */
-import { createPlugin, getDanger, sendFormattedFail } from "@types";
+import { DartLayer, DartPath, createPlugin, getDanger, sendFormattedFail } from "@types";
 
 interface FolderRule {
-  /** Padrão regex para detectar a pasta singular no caminho */
-  pattern: RegExp;
-  /** Nome singular (para mensagem de erro) */
+  /** Camada onde a regra se aplica (a pasta singular fica logo abaixo dela) */
+  layer: DartLayer;
+  /** Nome singular (pasta incorreta) */
   singular: string;
   /** Nome plural correto */
   plural: string;
-  /** Camada onde a regra se aplica */
-  layer: string;
 }
 
 const FOLDER_RULES: FolderRule[] = [
-  {
-    pattern: /\/domain\/usecase\//,
-    singular: "usecase",
-    plural: "usecases",
-    layer: "domain",
-  },
-  {
-    pattern: /\/domain\/entity\//,
-    singular: "entity",
-    plural: "entities",
-    layer: "domain",
-  },
-  {
-    pattern: /\/domain\/failure\//,
-    singular: "failure",
-    plural: "failures",
-    layer: "domain",
-  },
-  {
-    pattern: /\/domain\/repository\//,
-    singular: "repository",
-    plural: "repositories",
-    layer: "domain",
-  },
-  {
-    pattern: /\/data\/datasource\//,
-    singular: "datasource",
-    plural: "datasources",
-    layer: "data",
-  },
-  {
-    pattern: /\/data\/model\//,
-    singular: "model",
-    plural: "models",
-    layer: "data",
-  },
-  {
-    pattern: /\/data\/repository\//,
-    singular: "repository",
-    plural: "repositories",
-    layer: "data",
-  },
-  {
-    pattern: /\/presentation\/viewmodel\//,
-    singular: "viewmodel",
-    plural: "viewmodels",
-    layer: "presentation",
-  },
-  {
-    pattern: /\/presentation\/view\//,
-    singular: "view",
-    plural: "views",
-    layer: "presentation",
-  },
-  {
-    pattern: /\/presentation\/widget\//,
-    singular: "widget",
-    plural: "widgets",
-    layer: "presentation",
-  },
+  { layer: DartLayer.Domain, singular: "usecase", plural: "usecases" },
+  { layer: DartLayer.Domain, singular: "entity", plural: "entities" },
+  { layer: DartLayer.Domain, singular: "failure", plural: "failures" },
+  { layer: DartLayer.Domain, singular: "repository", plural: "repositories" },
+  { layer: DartLayer.Data, singular: "datasource", plural: "datasources" },
+  { layer: DartLayer.Data, singular: "model", plural: "models" },
+  { layer: DartLayer.Data, singular: "repository", plural: "repositories" },
+  { layer: DartLayer.Presentation, singular: "viewmodel", plural: "viewmodels" },
+  { layer: DartLayer.Presentation, singular: "view", plural: "views" },
+  { layer: DartLayer.Presentation, singular: "widget", plural: "widgets" },
 ];
 
 export default createPlugin(
@@ -94,9 +43,9 @@ export default createPlugin(
   async () => {
     const { git } = getDanger();
 
-    const dartFiles = [...git.created_files, ...git.modified_files].filter(
-      (f: string) => f.endsWith(".dart") && !f.endsWith("_test.dart")
-    );
+    const dartFiles = [...git.created_files, ...git.modified_files]
+      .map((f: string) => DartPath.of(f))
+      .filter((file) => file.isDart && !file.fileName.endsWith("_test.dart"));
 
     if (dartFiles.length === 0) return;
 
@@ -104,14 +53,14 @@ export default createPlugin(
 
     for (const file of dartFiles) {
       for (const rule of FOLDER_RULES) {
-        if (!rule.pattern.test(file)) continue;
+        // `/domain/usecase/` no caminho: a pasta singular logo abaixo da camada
+        const singularFolder = `${rule.layer}/${rule.singular}`;
+        if (!file.inFolder(singularFolder)) continue;
 
-        const key = `${rule.layer}/${rule.singular}`;
-        if (reported.has(key)) continue;
-        reported.add(key);
+        if (reported.has(singularFolder)) continue;
+        reported.add(singularFolder);
 
-        const featureMatch = file.match(/\/features\/([^/]+)\//);
-        const featureName = featureMatch ? featureMatch[1] : "feature";
+        const featureName = file.feature ?? "feature";
 
         const wrongTree =
           `features/${featureName}/\n` +
@@ -142,7 +91,7 @@ export default createPlugin(
             text: "Flutter Clean Architecture — Folder Structure",
             url: "https://resocoder.com/flutter-clean-architecture-tdd/",
           },
-          file,
+          file: file.path,
           line: 1,
         });
       }

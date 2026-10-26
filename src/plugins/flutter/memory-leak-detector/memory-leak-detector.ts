@@ -5,18 +5,23 @@
  *
  * Para cada disposable encontrado como campo da classe, verifica se existe
  * uma chamada .dispose(), .cancel() (Timer, StreamSubscription) ou .close()
- * (StreamController) com o mesmo nome no método dispose().
+ * (StreamController) com o mesmo nome no método dispose() da própria classe.
  */
-import { createPlugin, getDanger, sendFormattedFail } from "@types";
-import * as fs from "fs";
-import { normalizePrimaryConstructorHeaders } from "../primary-constructors/primary-constructors";
+import {
+  DartCall,
+  DartClass,
+  DartField,
+  DartFile,
+  DartMemberKind,
+  createPlugin,
+  sendFormattedFail,
+} from "@types";
 
 type CleanupMethod = "dispose" | "cancel" | "close";
 
 interface Disposable {
-  name: string;
+  field: DartField;
   type: string;
-  line: number;
   cleanup: CleanupMethod;
 }
 
@@ -42,7 +47,7 @@ const CANCEL_TYPES = ["Timer", "StreamSubscription"];
 
 const CLOSE_TYPES = ["StreamController"];
 
-const FIELD_RE = /^\s+(?:late\s+)?(?:final\s+)?(?:([\w<>,?\s]+?)\s+)?(_?\w+)\s*[=;]/;
+const CLEANUP_METHODS = new Set<string>(["dispose", "cancel", "close"]);
 
 export default createPlugin(
   {
@@ -51,154 +56,98 @@ export default createPlugin(
     enabled: true,
   },
   async () => {
-    const { git } = getDanger();
+    for (const file of DartFile.changed()) {
+      for (const state of file.classes.filter((c) => c.extendsAny("State", "ViewState"))) {
+        const disposables = findDisposables(state);
+        if (disposables.length === 0) continue;
 
-    const dartFiles = [...git.modified_files, ...git.created_files].filter(
-      (f: string) =>
-        f.endsWith(".dart") &&
-        !f.endsWith("_test.dart") &&
-        !f.endsWith(".g.dart") &&
-        !f.endsWith(".freezed.dart") &&
-        fs.existsSync(f)
-    );
+        const cleanupCalls = cleanupCallsOf(state);
 
-    for (const file of dartFiles) {
-      const content = fs.readFileSync(file, "utf-8");
+        for (const d of disposables) {
+          const action = d.cleanup;
+          const name = d.field.name;
+          const cleanupCall = action === "cancel" ? `${name}?.cancel()` : `${name}.${action}()`;
 
-      if (!content.includes("extends State<") && !content.includes("extends ViewState<")) continue;
+          if (cleanupCalls.some((call) => releases(call, name))) continue;
 
-      const lines = normalizePrimaryConstructorHeaders(content).split("\n");
-
-      const disposables = findDisposables(lines);
-      if (disposables.length === 0) continue;
-
-      const disposeBody = extractDisposeBody(lines);
-
-      for (const d of disposables) {
-        const action = d.cleanup;
-        const cleanupCall = action === "cancel" ? `${d.name}?.cancel()` : `${d.name}.${action}()`;
-
-        const hasCleanup = (["dispose", "cancel", "close"] as const).some(
-          (method) =>
-            disposeBody.includes(`${d.name}.${method}()`) ||
-            disposeBody.includes(`${d.name}?.${method}()`)
-        );
-
-        if (hasCleanup) continue;
-
-        sendFormattedFail({
-          title: `VAZAMENTO DE MEMÓRIA — ${d.type} SEM ${action.toUpperCase()}()`,
-          description: `\`${d.name}\` (${d.type}) não tem \`${action}()\` no método \`dispose()\`.`,
-          problem: {
-            wrong: `${d.type} ${d.name} = ...;\n// Sem ${action}() no dispose()`,
-            correct: `@override\nvoid dispose() {\n  ${cleanupCall};\n  super.dispose();\n}`,
-            wrongLabel: `Sem ${action}() — vazamento de memória`,
-            correctLabel: `Com ${action}() no dispose()`,
-          },
-          action: {
-            code: `@override\nvoid dispose() {\n  ${cleanupCall};\n  super.dispose();\n}`,
-          },
-          objective: `Todo **${d.type}** deve ter \`${action}()\` no método \`dispose()\`.`,
-          reference: {
-            text: "Flutter: State.dispose()",
-            url: "https://api.flutter.dev/flutter/widgets/State/dispose.html",
-          },
-          file,
-          line: d.line,
-        });
+          sendFormattedFail({
+            title: `VAZAMENTO DE MEMÓRIA — ${d.type} SEM ${action.toUpperCase()}()`,
+            description: `\`${name}\` (${d.type}) não tem \`${action}()\` no método \`dispose()\`.`,
+            problem: {
+              wrong: `${d.type} ${name} = ...;\n// Sem ${action}() no dispose()`,
+              correct: `@override\nvoid dispose() {\n  ${cleanupCall};\n  super.dispose();\n}`,
+              wrongLabel: `Sem ${action}() — vazamento de memória`,
+              correctLabel: `Com ${action}() no dispose()`,
+            },
+            action: {
+              code: `@override\nvoid dispose() {\n  ${cleanupCall};\n  super.dispose();\n}`,
+            },
+            objective: `Todo **${d.type}** deve ter \`${action}()\` no método \`dispose()\`.`,
+            reference: {
+              text: "Flutter: State.dispose()",
+              url: "https://api.flutter.dev/flutter/widgets/State/dispose.html",
+            },
+            file: file.path.path,
+            line: d.field.nameLine,
+          });
+        }
       }
     }
   }
 );
 
-function findDisposables(lines: string[]): Disposable[] {
+/** Campos do State cujo tipo (ou inicializador) é um disposable conhecido. */
+function findDisposables(state: DartClass): Disposable[] {
   const result: Disposable[] = [];
-  let insideStateClass = false;
-  let braceDepth = 0;
+  for (const field of state.fields) {
+    const explicitType = field.type?.text ?? "";
+    const initializer = field.initializer?.text ?? "";
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
+    const disposeType = DISPOSE_TYPES.find(
+      (t) => explicitType.includes(t) || initializer.includes(`${t}(`)
+    );
+    if (disposeType) result.push({ field, type: disposeType, cleanup: "dispose" });
 
-    const combinedLine = line + " " + (lines[i + 1]?.trimStart() || "");
-    if (combinedLine.match(/class\s+\w+\s+extends\s+(?:State|ViewState)</)) {
-      insideStateClass = true;
-      braceDepth = 0;
-    }
-
-    if (insideStateClass) {
-      for (const ch of line) {
-        if (ch === "{") braceDepth++;
-        if (ch === "}") braceDepth--;
-      }
-
-      if (braceDepth <= 0 && insideStateClass && line.includes("}")) {
-        insideStateClass = false;
-        continue;
-      }
-
-      if (braceDepth !== 1) continue;
-
-      const fieldMatch = line.match(FIELD_RE);
-      if (!fieldMatch) continue;
-
-      const explicitType = fieldMatch[1]?.trim() || "";
-      const varName = fieldMatch[2];
-
-      if (!varName || varName === "super" || varName === "const") continue;
-
-      const rightSide = line.split("=")[1] || "";
-
-      for (const type of DISPOSE_TYPES) {
-        if (explicitType.includes(type) || rightSide.includes(`${type}(`)) {
-          result.push({ name: varName, type, line: i + 1, cleanup: "dispose" });
-          break;
-        }
-      }
-
-      const streamOrTimerTypes: [string[], CleanupMethod][] = [
-        [CANCEL_TYPES, "cancel"],
-        [CLOSE_TYPES, "close"],
-      ];
-      for (const [types, cleanup] of streamOrTimerTypes) {
-        const type = types.find(
-          (t) =>
-            explicitType.includes(t) || rightSide.includes(`${t}(`) || rightSide.includes(`${t}.`)
-        );
-        if (type) {
-          result.push({ name: varName, type, line: i + 1, cleanup });
-          break;
-        }
+    const streamOrTimerTypes: [string[], CleanupMethod][] = [
+      [CANCEL_TYPES, "cancel"],
+      [CLOSE_TYPES, "close"],
+    ];
+    for (const [types, cleanup] of streamOrTimerTypes) {
+      const type = types.find(
+        (t) =>
+          explicitType.includes(t) || initializer.includes(`${t}(`) || initializer.includes(`${t}.`)
+      );
+      if (type) {
+        result.push({ field, type, cleanup });
+        break;
       }
     }
   }
-
   return result;
 }
 
-function extractDisposeBody(lines: string[]): string {
-  let inDispose = false;
-  let braceDepth = 0;
-  let body = "";
-
-  for (const line of lines) {
-    if (line.match(/void\s+dispose\s*\(\s*\)/)) {
-      inDispose = true;
-      braceDepth = 0;
+/**
+ * Chamadas `.dispose()`, `.cancel()` e `.close()` sem argumentos no `dispose()`
+ * da classe e nos métodos da própria classe que ele chama (`_unsubscribe()`).
+ */
+function cleanupCallsOf(state: DartClass): DartCall[] {
+  const calls: DartCall[] = [];
+  const visited = new Set<string>();
+  const visit = (methodName: string): void => {
+    if (visited.has(methodName)) return;
+    visited.add(methodName);
+    const method = state.findMethod(methodName, DartMemberKind.Method);
+    for (const call of method?.body?.calls ?? []) {
+      if (CLEANUP_METHODS.has(call.name) && call.arguments.length === 0) calls.push(call);
+      if (call.receiver === null || call.receiver === "this") visit(call.name);
     }
+  };
+  visit("dispose");
+  return calls;
+}
 
-    if (!inDispose) continue;
-
-    for (const ch of line) {
-      if (ch === "{") braceDepth++;
-      if (ch === "}") braceDepth--;
-    }
-
-    body += line + "\n";
-
-    if (inDispose && braceDepth <= 0 && line.includes("}")) {
-      break;
-    }
-  }
-
-  return body;
+/** A chamada libera o campo `name`: `name.dispose()`, `name?.cancel()`, `this.name.close()`, `name..dispose()`. */
+function releases(call: DartCall, name: string): boolean {
+  const target = (call.isCascade ? call.cascadeTarget : call.receiver)?.replace(/!$/, "");
+  return target?.endsWith(name) ?? false;
 }

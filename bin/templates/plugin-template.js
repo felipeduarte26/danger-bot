@@ -21,11 +21,12 @@ export function generatePluginTemplate(name, description, enabled) {
  * ${name}
  * ${headerDescription}
  */
-import { createPlugin, getDanger, sendFormattedFail } from "@types";
-import * as fs from "fs";
+import { DartFile, createPlugin, sendFormattedFail } from "@types";
 
-const PATTERN = /\\bpadraoProblematico\\(/;
-const REPLACEMENT = "padraoCorreto(";
+// Leia o código pelo modelo Dart (docs/MODELO_DART.md): classes, campos, métodos,
+// tipos, chamadas, strings e comentários já vêm prontos, sem regex sobre o texto.
+const WRONG_CALL = "padraoProblematico";
+const RIGHT_CALL = "padraoCorreto";
 
 export default createPlugin(
   {
@@ -34,25 +35,13 @@ export default createPlugin(
     enabled: ${enabled},
   },
   async () => {
-    const { git } = getDanger();
+    // .dart criados/modificados no PR, sem testes e sem arquivos gerados
+    for (const file of DartFile.changed()) {
+      for (const call of file.calls()) {
+        if (call.name !== WRONG_CALL) continue;
 
-    const dartFiles = [...git.modified_files, ...git.created_files].filter(
-      (f: string) =>
-        f.endsWith(".dart") &&
-        !f.endsWith("_test.dart") &&
-        !f.endsWith(".g.dart") &&
-        !f.endsWith(".freezed.dart") &&
-        fs.existsSync(f)
-    );
-
-    for (const file of dartFiles) {
-      const lines = fs.readFileSync(file, "utf-8").split("\\n");
-
-      for (let i = 0; i < lines.length; i++) {
-        if (!PATTERN.test(lines[i])) continue;
-
-        const wrong = lines[i].trim(); // código REAL do arquivo
-        const fixed = wrong.replace(PATTERN, REPLACEMENT); // a mesma linha, já corrigida
+        const wrong = call.lineText; // código REAL do arquivo (a linha da chamada)
+        const fixed = wrong.replace(\`\${WRONG_CALL}(\`, \`\${RIGHT_CALL}(\`); // a mesma linha, já corrigida
 
         sendFormattedFail({
           title: "TITULO FIXO EM CAPS", // chave do resumo: sem dados variáveis
@@ -67,8 +56,8 @@ export default createPlugin(
           action: { text: "Substitua por:", code: fixed },
           objective: "Benefício da correção em uma frase.",
           reference: { text: "Nome da doc oficial", url: "https://api.flutter.dev/" },
-          file,
-          line: i + 1,
+          file: file.path.path,
+          line: call.line,
         });
       }
     }

@@ -51,6 +51,10 @@ export type { FormattedMessageOptions } from "./helpers";
 export { loadConfig, loadLocalPlugins } from "./config";
 export type { DangerBotConfig } from "./config";
 
+// Modelo Dart (DartFile, DartClass, DartPath...): docs/MODELO_DART.md
+export * from "./dart";
+import { DartFile } from "./dart";
+
 export interface DangerPluginConfig {
   /** Nome do plugin para identificação em logs */
   name: string;
@@ -89,6 +93,7 @@ export function createPlugin(config: DangerPluginConfig, runFn: () => Promise<vo
 export async function runPlugins(plugins: DangerPlugin[]): Promise<void> {
   const { isVerbose, setActivePlugins } = await import("./helpers");
   const verbose = isVerbose();
+  DartFile.clearCache();
   setActivePlugins(plugins.filter((p) => p.config.enabled).map((p) => p.config.name));
   const totalStart = Date.now();
 
