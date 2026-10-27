@@ -21,4 +21,13 @@ npm run build || {
   exit 1
 }
 
+# 4. dist/ commitado = build do src/ commitado (quem instala via git usa o dist/).
+#    Só confere com o src/ sem alterações locais: com trabalho em andamento o
+#    build reflete o working tree, não o commit.
+if [ -z "$(git status --porcelain -- src)" ] && [ -n "$(git status --porcelain -- dist)" ]; then
+  echo "❌ O dist/ commitado não corresponde ao src/: o build acabou de atualizá-lo."
+  echo "   Commite o dist/ (git add dist && git commit) e faça o push de novo."
+  exit 1
+fi
+
 echo "✅ All pre-push checks passed!"

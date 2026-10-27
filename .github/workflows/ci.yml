@@ -1,0 +1,54 @@
+# CI do pacote: as mesmas verificações do pre-push, mais os testes e a conferência
+# do dist/ (quem instala via git usa o dist/ commitado, sem build).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Lint, tipos, build e testes
+    runs-on: ubuntu-latest
+    env:
+      HUSKY: 0 # sem git hooks no CI
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "25"
+
+      # Sem package-lock.json commitado: npm install (o npm ci exige o lock).
+      # O postinstall aplica os patches no Danger, como no projeto consumidor.
+      - name: Instalar dependências
+        run: npm install
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type-check
+        run: npm run type-check
+
+      - name: Build
+        run: npm run build
+
+      # O build formata o dist/ com o Prettier: sem mudança no src/, não pode sobrar diff.
+      - name: dist/ em dia com o src/
+        run: |
+          if [ -n "$(git status --porcelain -- dist)" ]; then
+            echo "::error::O dist/ commitado não corresponde ao build do src/. Rode npm run build e commite o dist/."
+            git status --short -- dist
+            exit 1
+          fi
+
+      - name: Testes do modelo Dart
+        run: npm test

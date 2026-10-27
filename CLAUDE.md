@@ -14,7 +14,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 npm install          # roda o postinstall scripts/patch-danger.cjs (patches no Danger)
-npm run build        # tsc + tsc-alias + dist/package.json {"type":"commonjs"}
+npm run build        # tsc + tsc-alias + prettier no dist/ + dist/package.json {"type":"commonjs"}
 npm run lint         # eslint . --max-warnings 0 (type-checked)
 npm run type-check   # tsc --noEmit
 npm test             # testes do modelo Dart (tests/*.test.cjs, sobre o dist/: rode o build antes)
@@ -29,7 +29,7 @@ Os testes automáticos cobrem o **modelo Dart** (`tests/dart-model.test.cjs`). P
 
 - `pre-commit`: lint-staged (eslint+prettier nos `.ts`, prettier nos `.js` — inclusive `dist/`)
 - `commit-msg`: commitlint
-- `pre-push`: lint + type-check + build
+- `pre-push`: lint + type-check + build e, com o `src/` sem alterações locais, confere se o build mudou o `dist/` (se mudou, o `dist/` commitado está desatualizado: commite-o e faça o push de novo)
 
 **Commits:** [Conventional Commits](https://www.conventionalcommits.org/) (`docs/COMMITS.md`): `type(scope): subject`, subject em minúsculas e sem ponto final, header ≤ 100. Tipos: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert. Scope é opcional (sem ele, só um aviso).
 
@@ -375,7 +375,7 @@ frase curta
    - se entrou num array de categoria, a lista desse array em `README.md` (`## Importacao por Categoria`), `docs/API.md` e `docs/FAQ.md`;
    - o total de plugins em `docs/API.md`, `docs/FAQ.md`, `docs/CLI.md` e em [Plugins existentes](#plugins-existentes-48) (título e lista).
 5. Item em `## [Não publicado]` no `CHANGELOG.md` (ver [Versões e releases](#versões-e-releases)).
-6. `npm run lint`, `npm run type-check` e `npm run build`, com o `dist/` limpo como manda a [armadilha do dist](#armadilhas-conhecidas).
+6. `npm run lint`, `npm run type-check`, `npm run build` e `npm test`, com o `dist/` no mesmo commit do `src/`.
 7. Teste no dry-run ou no harness, com o caso que deve ser reportado e o que não deve.
 
 ## Helpers disponíveis
@@ -619,7 +619,7 @@ Exemplos completos por plataforma em [docs/pipelines/](docs/pipelines/README.md)
 
 ## Armadilhas conhecidas
 
-- **`dist/` misto:** o commitado tem arquivos formatados pelo Prettier (via lint-staged) e outros crus do `tsc`. Depois do `npm run build`, formate o dist e restaure com `git checkout` cada arquivo cujo conteúdo formatado não mudou. Sem isso, uns 47 `index.js` intocados aparecem no diff.
+- **`dist/` formatado no build:** o `npm run build` passa o Prettier no `dist/`, então a saída é igual à que o lint-staged commita e um build sem mudança no `src/` não deixa diff. Não rode o `tsc` sozinho para gerar o `dist/`: a saída crua aparece como alteração em todos os arquivos.
 - **Prettier em lote:** `npx prettier --write "src/**/*.ts"` reformata arquivos que você não mexeu (alguns `index.ts`), e o `README.md` não está prettier-limpo. Formate só os arquivos alterados.
 - **eld e Hunspell desligados de propósito:**
   - eld no identifier-language e Hunspell (`HUNSPELL_ENABLED = false`) no spell-checker-ptbr;

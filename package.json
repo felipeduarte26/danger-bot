@@ -20,7 +20,7 @@
   ],
   "scripts": {
     "prepare": "husky",
-    "build": "tsc && tsc-alias && echo '{\"type\":\"commonjs\"}' > dist/package.json",
+    "build": "tsc && tsc-alias && prettier --write --log-level warn \"dist/**/*.{js,ts}\" && echo '{\"type\":\"commonjs\"}' > dist/package.json",
     "watch": "tsc --watch",
     "prepublishOnly": "npm run build",
     "postinstall": "node scripts/patch-danger.cjs",

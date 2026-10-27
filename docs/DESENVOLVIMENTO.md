@@ -34,7 +34,7 @@ npm run type-check
 
 | Script | Comando | Descricao |
 |--------|---------|-----------|
-| `build` | `tsc && tsc-alias` | Compila TypeScript para `dist/` |
+| `build` | `tsc && tsc-alias && prettier` | Compila TypeScript para `dist/`, já formatado (igual ao que o lint-staged commita) |
 | `watch` | `tsc --watch` | Compila em modo watch |
 | `lint` | `eslint . --max-warnings 0` | Verifica erros de lint |
 | `lint:fix` | `eslint . --fix` | Corrige erros automaticamente |
@@ -191,7 +191,9 @@ O `dist/` e commitado no repositorio para permitir instalacao via Git. Apos alte
 npm run build
 ```
 
-E inclua as mudancas do `dist/` no commit.
+E inclua as mudancas do `dist/` no mesmo commit do `src/`. O build ja formata o `dist/` com o Prettier, entao um build sem mudanca no `src/` nao deixa diff.
+
+O `pre-push` roda lint, type-check e build. Se o `src/` esta sem alteracoes locais e o build muda o `dist/`, o push para: o `dist/` commitado esta desatualizado. Commite o `dist/` e faca o push de novo.
 
 ---
 
