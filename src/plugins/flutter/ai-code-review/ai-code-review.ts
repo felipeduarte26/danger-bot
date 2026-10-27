@@ -6,11 +6,23 @@
  *
  * Suporta rotation de API keys para contornar rate limits do free tier.
  * Keys são lidas de: danger-bot.yaml (settings.gemini_api_keys) ou env vars.
+ *
+ * Envia o arquivo .dart inteiro (até 30.000 caracteres). Ignora testes, gerados
+ * (.g.dart, .freezed.dart), pastas generated/ e l10n/, arquivos com menos de 10 linhas
+ * e os com menos de 5 linhas adicionadas no PR. Os com mais linhas adicionadas vão
+ * primeiro (até 15 por key).
  */
-import { createPlugin, getDanger, sendMarkdown, sendMessage, sendWarn } from "@types";
+import {
+  DartFile,
+  DartPath,
+  createPlugin,
+  getDanger,
+  loadConfig,
+  sendMarkdown,
+  sendMessage,
+  sendWarn,
+} from "@types";
 import { getBranding } from "../../../branding";
-import { loadConfig } from "../../../config";
-import * as fs from "fs";
 
 const GEMINI_MODEL = "gemini-2.5-flash-lite";
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
@@ -222,22 +234,20 @@ function splitPoints(text: string): string[] {
   return points;
 }
 
-function shouldAnalyzeFile(filePath: string): boolean {
-  const lower = filePath.toLowerCase();
+/** Fim de caminho que a IA não revisa (sem diferenciar maiúsculas). */
+const SKIPPED_SUFFIXES = [".g.dart", ".freezed.dart", "_test.dart"];
+/** Pastas que a IA não revisa (sem diferenciar maiúsculas). */
+const SKIPPED_FOLDERS = ["/generated/", "/l10n/"];
+
+function shouldAnalyzeFile(file: DartPath): boolean {
+  const lower = file.path.toLowerCase();
   return (
-    !lower.endsWith(".g.dart") &&
-    !lower.endsWith(".freezed.dart") &&
-    !lower.endsWith("_test.dart") &&
-    !lower.includes("/generated/") &&
-    !lower.includes("/l10n/")
+    !SKIPPED_SUFFIXES.some((suffix) => lower.endsWith(suffix)) &&
+    !SKIPPED_FOLDERS.some((folder) => lower.includes(folder))
   );
 }
 
-function isFileWorthReviewing(content: string): boolean {
-  const lineCount = content.split("\n").length;
-  return lineCount >= MIN_LINES_FOR_REVIEW;
-}
-
+/** Linhas adicionadas no diff do arquivo; sem diff, 0; erro ao ler o diff, 999 (revisa). */
 async function countChangedLines(
   git: ReturnType<typeof getDanger>["git"],
   file: string
@@ -281,22 +291,22 @@ export default createPlugin(
 
     const { git } = getDanger();
 
-    const dartFiles = [...git.modified_files, ...git.created_files].filter(
-      (f: string) => f.endsWith(".dart") && shouldAnalyzeFile(f) && fs.existsSync(f)
+    const dartFiles = DartFile.changed({ includeTests: true, includeGenerated: true }).filter(
+      (file) => shouldAnalyzeFile(file.path)
     );
 
     if (dartFiles.length === 0) return;
 
-    const candidates: { file: string; changedLines: number }[] = [];
+    const candidates: { file: DartFile; changedLines: number }[] = [];
     for (const file of dartFiles) {
-      const content = fs.readFileSync(file, "utf-8");
-      if (!isFileWorthReviewing(content)) {
-        console.log(`  ⏭️ ${file} — ignorado (< ${MIN_LINES_FOR_REVIEW} linhas)`);
+      const filePath = file.path.path;
+      if (file.lineCount < MIN_LINES_FOR_REVIEW) {
+        console.log(`  ⏭️ ${filePath} — ignorado (< ${MIN_LINES_FOR_REVIEW} linhas)`);
         continue;
       }
-      const changed = await countChangedLines(git, file);
+      const changed = await countChangedLines(git, filePath);
       if (changed < MIN_CHANGED_LINES) {
-        console.log(`  ⏭️ ${file} — ignorado (${changed} linha(s) alterada(s))`);
+        console.log(`  ⏭️ ${filePath} — ignorado (${changed} linha(s) alterada(s))`);
         continue;
       }
       candidates.push({ file, changedLines: changed });
@@ -331,8 +341,8 @@ export default createPlugin(
     for (let i = 0; i < filesToAnalyze.length; i++) {
       if (aborted) break;
 
-      const file = filesToAnalyze[i];
-      const content = fs.readFileSync(file, "utf-8");
+      const dartFile = filesToAnalyze[i];
+      const file = dartFile.path.path;
 
       if (usedWithCurrentKey >= FILES_PER_KEY && keyIndex < apiKeys.length - 1) {
         keyIndex++;
@@ -343,7 +353,7 @@ export default createPlugin(
         );
       }
 
-      const trimmed = truncateContent(content);
+      const trimmed = truncateContent(dartFile.source);
       const prompt = `${SYSTEM_PROMPT}\n\nArquivo: ${file}\n\n\`\`\`dart\n${trimmed}\n\`\`\`\n\nLEMBRETE: Responda em PT-BR (português do Brasil).`;
 
       const result = await callGemini(prompt, apiKeys[keyIndex]);

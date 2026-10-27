@@ -9,6 +9,7 @@ import {
   isIdent,
   isPunct,
   joinTokens,
+  lineOf,
   matchClose,
   matchTypeArgs,
   splitTopLevelCommas,
@@ -23,11 +24,15 @@ export class DartRecordField {
   readonly type: DartType;
   /** `true` no campo nomeado (`{...}`). */
   readonly isNamed: boolean;
+  /** Linha do nome (ou do tipo, no campo sem nome). */
+  readonly nameLine: number;
 
-  constructor(name: string | null, type: DartType, isNamed: boolean) {
+  /** @internal */
+  constructor(name: string | null, type: DartType, isNamed: boolean, nameLine: number) {
     this.name = name;
     this.type = type;
     this.isNamed = isNamed;
+    this.nameLine = nameLine;
   }
 }
 
@@ -38,17 +43,22 @@ export class DartFunctionTypeParameter {
   readonly type: DartType | null;
   readonly kind: DartParameterKind;
   readonly isRequired: boolean;
+  /** Linha do nome (ou do tipo, no parâmetro sem nome). */
+  readonly nameLine: number;
 
+  /** @internal */
   constructor(
     name: string | null,
     type: DartType | null,
     kind: DartParameterKind,
-    isRequired: boolean
+    isRequired: boolean,
+    nameLine: number
   ) {
     this.name = name;
     this.type = type;
     this.kind = kind;
     this.isRequired = isRequired;
+    this.nameLine = nameLine;
   }
 }
 
@@ -62,6 +72,8 @@ export class DartType {
    * Duas grafias do mesmo tipo têm o mesmo `canonical` (é o que `equals` compara).
    */
   readonly canonical: string;
+  /** Linha onde o tipo começa. */
+  readonly line: number;
   /** `?` escrito no tipo. */
   readonly isNullable: boolean;
   /** `Nullable` também para `dynamic`/`Null`; `Unknown` para `void` e parâmetro de tipo (`T`). */
@@ -88,6 +100,7 @@ export class DartType {
     kind: DartTypeKind;
     text: string;
     canonical: string;
+    line: number;
     isNullable: boolean;
     nullability: Nullability;
     name?: string | null;
@@ -100,6 +113,7 @@ export class DartType {
     this.kind = init.kind;
     this.text = init.text;
     this.canonical = init.canonical;
+    this.line = init.line;
     this.isNullable = init.isNullable;
     this.nullability = init.nullability;
     this.name = init.name ?? null;
@@ -229,7 +243,7 @@ export function parseDartType(
   const isNullable = isPunct(tokens[to], "?");
   const coreTo = isNullable ? to - 1 : to;
   if (coreTo < from) return null;
-  const base = { text, canonical, isNullable };
+  const base = { text, canonical, isNullable, line: lineOf(lx, tokens[from].start) };
 
   // Tipo de função: o último `Function` no nível 0 cuja lista de parâmetros fecha no fim.
   for (let k = coreTo; k >= from; k--) {
@@ -293,6 +307,34 @@ export function parseDartType(
   });
 }
 
+/**
+ * Tipo de função de uma assinatura sem `Function` (typedef antigo
+ * `typedef void Cb(bool show);`): retorno em `[retFrom, retTo]` (vazio se
+ * `retTo < retFrom`) e parâmetros entre os parênteses `open`/`close`.
+ * @internal
+ */
+export function functionTypeFromSignature(
+  lx: Lexed,
+  retFrom: number,
+  retTo: number,
+  open: number,
+  close: number,
+  typeParams: ReadonlySet<string> = new Set()
+): DartType {
+  const { tokens } = lx;
+  const from = retTo >= retFrom ? retFrom : open;
+  return new DartType({
+    kind: DartTypeKind.Function,
+    text: lx.source.slice(tokens[from].start, tokens[close].end),
+    canonical: `${retTo >= retFrom ? `${joinTokens(lx, retFrom, retTo)} ` : ""}Function${joinTokens(lx, open, close)}`,
+    line: lineOf(lx, tokens[from].start),
+    isNullable: false,
+    nullability: Nullability.NonNullable,
+    returnType: retTo >= retFrom ? parseDartType(lx, retFrom, retTo, typeParams) : null,
+    parameters: parseFunctionTypeParams(lx, open, close, typeParams),
+  });
+}
+
 /** Parâmetros de `Function( ... )`: `open`/`close` são os parênteses. */
 function parseFunctionTypeParams(
   lx: Lexed,
@@ -330,7 +372,8 @@ function parseFunctionTypeParams(
         hasName ? last.value : null,
         parseDartType(lx, q, typeEnd, typeParams),
         kind,
-        isRequired
+        isRequired,
+        lineOf(lx, (hasName ? last : tokens[q]).start)
       )
     );
   };
@@ -365,7 +408,10 @@ function parseRecordFields(
     const last = tokens[b];
     const hasName = b > a && isIdent(last) && !isPunct(tokens[b - 1], ".");
     const type = parseDartType(lx, a, hasName ? b - 1 : b, typeParams);
-    if (type) fields.push(new DartRecordField(hasName ? last.value : null, type, isNamed));
+    if (type) {
+      const nameLine = lineOf(lx, (hasName ? last : tokens[a]).start);
+      fields.push(new DartRecordField(hasName ? last.value : null, type, isNamed, nameLine));
+    }
   };
   let q = open + 1;
   while (q < close) {

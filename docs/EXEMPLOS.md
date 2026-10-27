@@ -144,17 +144,15 @@ executeDangerBot([prValidationPlugin, ...cleanArchitecturePlugins], {
 import {
   allFlutterPlugins,
   executeDangerBot,
-  getDanger,
-  getDartFiles,
+  DartFile,
   getLineStats,
-  sendMessage,
   sendWarn,
   sendMarkdown,
 } from "@felipeduarte26/danger-bot";
 
 executeDangerBot(allFlutterPlugins, {
   onBeforeRun: async () => {
-    const dartFiles = await getDartFiles();
+    const dartFiles = DartFile.changed(); // .dart do PR, sem testes e sem gerados
     // git.insertions/deletions só existem no dry-run: no CI as linhas vêm do diff
     const { added, removed } = await getLineStats();
     const lines = added + removed;
@@ -188,8 +186,8 @@ import {
   allFlutterPlugins,
   executeDangerBot,
   createPlugin,
-  getDartFiles,
-  getFileContent,
+  DartFile,
+  DartCommentDirective,
   sendWarn,
 } from "@felipeduarte26/danger-bot";
 
@@ -200,11 +198,10 @@ const noTodoPlugin = createPlugin(
     enabled: true,
   },
   async () => {
-    const files = await getDartFiles();
-    for (const file of files) {
-      const content = await getFileContent(file);
-      if (content?.includes("// TODO")) {
-        sendWarn(`TODO encontrado em ${file}. Crie uma issue.`);
+    for (const file of DartFile.changed()) {
+      // comentarios de verdade: um "// TODO" dentro de uma string nao conta
+      if (file.comments.some((c) => c.directive === DartCommentDirective.Todo)) {
+        sendWarn(`TODO encontrado em ${file.path.path}. Crie uma issue.`);
       }
     }
   }
@@ -232,8 +229,7 @@ ignore_files:
 **danger/plugins/todo-checker.ts:**
 
 ```typescript
-import { createPlugin, getDartFiles, sendWarn } from "@felipeduarte26/danger-bot";
-import * as fs from "fs";
+import { createPlugin, DartFile, DartCommentDirective, sendWarn } from "@felipeduarte26/danger-bot";
 
 export default createPlugin(
   {
@@ -242,14 +238,11 @@ export default createPlugin(
     enabled: true,
   },
   async () => {
-    const files = await getDartFiles(); // so arquivos existentes, sem testes
-    for (const file of files) {
-      const content = fs.readFileSync(file, "utf-8");
-      const lines = content.split("\n");
-      for (let i = 0; i < lines.length; i++) {
-        if (lines[i].includes("// TODO")) {
-          sendWarn(`TODO encontrado: ${lines[i].trim()}`, file, i + 1);
-        }
+    // .dart do PR (sem testes e sem gerados), ja analisados pelo modelo Dart
+    for (const file of DartFile.changed()) {
+      for (const comment of file.comments) {
+        if (comment.directive !== DartCommentDirective.Todo) continue;
+        sendWarn(`TODO encontrado: ${comment.lineText}`, file.path.path, comment.line);
       }
     }
   },

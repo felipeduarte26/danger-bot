@@ -81,8 +81,12 @@ Os caminhos sao relativos a raiz do projeto, e os arquivos precisam estar no rep
 O plugin local deve seguir o mesmo padrao dos plugins do Danger Bot:
 
 ```typescript
-import { createPlugin, sendFail, getDartFiles } from "@felipeduarte26/danger-bot";
-import * as fs from "fs";
+import {
+  createPlugin,
+  sendFormattedFail,
+  DartFile,
+  DartCommentDirective,
+} from "@felipeduarte26/danger-bot";
 
 export default createPlugin(
   {
@@ -91,36 +95,20 @@ export default createPlugin(
     enabled: true,
   },
   async () => {
-    const dartFiles = await getDartFiles(); // ja vem sem testes e so com arquivos existentes
+    // .dart do PR (sem testes e sem gerados), já analisados pelo modelo Dart
+    for (const file of DartFile.changed()) {
+      for (const comment of file.comments) {
+        if (comment.directive !== DartCommentDirective.Todo) continue; // só comentário de verdade
 
-    for (const file of dartFiles) {
-      const content = fs.readFileSync(file, "utf-8");
-      const lines = content.split("\n");
-
-      for (let i = 0; i < lines.length; i++) {
-        if (lines[i].includes("TODO")) {
-          sendFail(
-            `TODO ENCONTRADO
-
-Comentario TODO detectado no codigo.
-
-### Problema Identificado
-
-\`\`\`dart
-${lines[i].trim()}
-\`\`\`
-
-### 🎯 ACAO NECESSARIA
-
-Resolva o TODO antes de mergear a PR.
-
-### 🚀 Objetivo
-
-Manter o codigo limpo e sem pendencias.`,
-            file,
-            i + 1
-          );
-        }
+        sendFormattedFail({
+          title: "TODO ENCONTRADO",
+          description: "Comentário TODO detectado no código.",
+          problem: { wrong: comment.lineText, correct: "// (TODO resolvido e removido)" },
+          action: { text: "Resolva o TODO antes de mergear a PR." },
+          objective: "Manter o código limpo e sem pendências.",
+          file: file.path.path,
+          line: comment.line,
+        });
       }
     }
   }
@@ -201,7 +189,7 @@ ignore_files:
   - lib/features/products/inverters/view/*
 ```
 
-O `executeDangerBot` (e o `dry-run`, com a mesma regra) remove esses arquivos de `danger.git.modified_files` e `danger.git.created_files` antes de rodar os plugins, entao eles nao aparecem para nenhum plugin nem nos helpers (`getAllChangedFiles()`, `getDartFiles()`, `getFilesMatching()`...).
+O `executeDangerBot` (e o `dry-run`, com a mesma regra) remove esses arquivos de `danger.git.modified_files` e `danger.git.created_files` antes de rodar os plugins, entao eles nao aparecem para nenhum plugin nem nos helpers (`DartFile.changed()`, `getAllChangedFiles()`, `getFilesMatching()`...).
 
 ---
 
@@ -342,17 +330,21 @@ import {
   sendFail,
   sendMarkdown,
 
+  // Modelo Dart: leitura do código (ver MODELO_DART.md)
+  DartFile,
+  DartPath,
+
   // Arquivos (ja respeita ignore_files automaticamente)
   getAllChangedFiles,
-  getDartFiles,
-  getDartFilesInDirectory,
   getFilesMatching,
   getFilesByExtension,
   hasFilesMatching,
   getFileContent,
   fileContainsPattern,
 
-  // Clean Architecture
+  // Legado (plugins antigos): use DartFile.changed() e DartPath
+  getDartFiles,
+  getDartFilesInDirectory,
   getDomainDartFiles,
   getDataDartFiles,
   getPresentationDartFiles,

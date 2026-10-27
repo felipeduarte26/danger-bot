@@ -9,8 +9,10 @@
  *   - Sem casts: não precisa de result[0] as Type
  *   - Mais legível: destructuring com nomes descritivos
  *
- * Só reporta quando o resultado é o valor de uma declaração
+ * Só reporta quando o resultado é o valor de uma declaração local
  * (`final x = await Future.wait([...]);`, também `final [a as A, _] = ...`).
+ * A atribuição a variável existente (`x = await Future.wait([...]);`) fica de
+ * fora: o modelo ainda não distingue atribuição de `await Future.wait([...]);`.
  * Não flageia Future.wait com variáveis ou expressões dinâmicas
  * (ex: Future.wait(listaDeFutures), Future.wait(items.map(...))),
  * pois nesses casos a tupla não é aplicável; nem `Future.wait<T>(...)`,

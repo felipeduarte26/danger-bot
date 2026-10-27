@@ -291,6 +291,7 @@ db ls                         # Equivalente a: danger-bot list
 | [Guia de Plugins](docs/GUIA_PLUGINS.md)    | Como usar, configurar e criar plugins |
 | [API Reference](docs/API.md)               | Referencia completa da API            |
 | [Helpers](docs/HELPERS.md)                 | Funcoes auxiliares disponiveis        |
+| [Modelo Dart](docs/MODELO_DART.md)         | Como os plugins leem o codigo Dart    |
 | [CLI](docs/CLI.md)                         | Comandos da CLI                       |
 | [Exemplos](docs/EXEMPLOS.md)               | Casos de uso praticos                 |
 | [Arquitetura](docs/ARQUITETURA.md)         | Estrutura interna do projeto          |
@@ -312,6 +313,7 @@ danger-bot/
 │   ├── types.ts              # Interfaces e tipos
 │   ├── helpers.ts            # Funcoes auxiliares
 │   ├── config.ts             # Loader do danger-bot.yaml
+│   ├── dart/                 # Modelo Dart (DartFile, DartClass...): leitura do codigo pelos plugins
 │   └── plugins/
 │       └── flutter/          # Plugins Flutter/Dart
 │           ├── pr-summary/
@@ -328,6 +330,8 @@ danger-bot/
 │   ├── patch-danger.cjs      # Patches no Danger JS (postinstall)
 │   ├── extract_dart_identifiers.js
 │   └── setup_spell_check.sh
+├── tests/                    # Testes do modelo Dart (npm test)
+├── tools/parity/             # Paridade antes × depois dos plugins (manutencao)
 ├── dist/                     # Build output (commitado para install via git)
 └── docs/                     # Documentacao completa
 ```

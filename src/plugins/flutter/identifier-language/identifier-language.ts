@@ -3,11 +3,24 @@
  * Detecta nomes de classes, métodos e variáveis que não estão em inglês.
  * O padrão do projeto é código 100% em inglês.
  *
+ * O que analisa nos `.dart` do PR (exceto `_test.dart`, `.g.dart` e `.freezed.dart`),
+ * pelo modelo Dart — strings e comentários nunca viram identificador:
+ * - comentários `//` e `///` em linha própria (os do fim da linha e os de bloco ficam
+ *   de fora), exceto `ignore:`, `coverage:`, TODO, FIXME, `{@...}`, `@...` e textos
+ *   com menos de 10 caracteres;
+ * - nomes declarados: classes, enums, métodos/funções com tipo de retorno simples e não
+ *   nullable, funções locais e variáveis declaradas com `final`/`const`/`var`/`late`,
+ *   sem tipo ou com tipo simples (campos, de topo, locais e parâmetros `final`).
+ *   Tipo simples: sem genérico aninhado, prefixo de import, tipo de função ou record — é a
+ *   cobertura que o plugin sempre teve. Variáveis de `for-in` e nomes de API comuns
+ *   (`build`, `toJson`, `value`...) ficam de fora. Palavras com até 2 letras e palavras
+ *   que existem em PT e EN (`data`, `total`...) não contam.
+ *
  * Detecção:
  * 1. Dicionário interno (~400 palavras PT comuns em código) — rápido e preciso
  * 2. cspell (dicionário EN) — valida se a palavra é inglês válido; se NÃO é
  *    inglês e está a até 1-2 letras de uma palavra PT conhecida → sinaliza
- *    (pega variantes como "filials")
+ *    (pega variantes como "filials"); sem cspell, esse passo não reporta nada
  *
  * O eld (detector de idioma) fica desligado: palavra por palavra ele reprovava
  * comentários e identificadores em inglês (`listener`, `internal`, "Converts this
@@ -18,7 +31,21 @@
  * - Identificadores: dicionário PT→EN interno
  * - Comentários/documentação: Google Translate (lib translate, sem API key)
  */
-import { createPlugin, getDanger, sendFormattedFail } from "@types";
+import {
+  DartBody,
+  DartCommentKind,
+  DartFile,
+  DartFunction,
+  DartMemberKind,
+  DartParameter,
+  DartParameterSource,
+  DartText,
+  DartType,
+  DartTypeKind,
+  DartVariable,
+  createPlugin,
+  sendFormattedFail,
+} from "@types";
 import { execSync } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
@@ -214,14 +241,6 @@ function getProjectCustomWords(): string[] {
 
 const NON_ENGLISH_LANGS = new Set(["pt", "es"]);
 
-function normalizeAccents(text: string): string {
-  return text
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/ç/g, "c")
-    .replace(/Ç/g, "C");
-}
-
 function isNonEnglish(text: string): boolean {
   if (!_eld || text.length < 8) return false;
   try {
@@ -265,30 +284,14 @@ function isLikelyNonEnglish(word: string): boolean {
     }
   }
 
-  const normalized = normalizeAccents(word);
+  const normalized = DartText.stripAccents(word);
   const maxDist = normalized.length <= 5 ? 1 : 2;
   for (const ptWord of PT_WORDS) {
     if (Math.abs(ptWord.length - normalized.length) > maxDist) continue;
-    if (levenshteinDistance(normalized, ptWord) <= maxDist) return true;
+    if (DartText.levenshtein(normalized, ptWord) <= maxDist) return true;
   }
 
   return false;
-}
-
-function levenshteinDistance(a: string, b: string): number {
-  const m = a.length;
-  const n = b.length;
-  const dp: number[][] = Array.from({ length: m + 1 }, (_, i) =>
-    Array.from({ length: n + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
-  );
-  for (let i = 1; i <= m; i++)
-    for (let j = 1; j <= n; j++)
-      dp[i][j] = Math.min(
-        dp[i - 1][j] + 1,
-        dp[i][j - 1] + 1,
-        dp[i - 1][j - 1] + (a[i - 1] !== b[j - 1] ? 1 : 0)
-      );
-  return dp[m][n];
 }
 
 function isNonEnglishComment(text: string): boolean {
@@ -837,7 +840,7 @@ function commentContainsPtWords(text: string): boolean {
     .filter((w) => w.length > 2);
 
   const ptFound = words.filter((w) => {
-    const normalized = normalizeAccents(w);
+    const normalized = DartText.stripAccents(w);
     return (
       (PT_WORDS.has(w) || PT_WORDS.has(normalized)) &&
       !AMBIGUOUS.has(w) &&
@@ -847,11 +850,24 @@ function commentContainsPtWords(text: string): boolean {
   return ptFound.length >= 1;
 }
 
+/** Texto de comentário que não é prosa: diretivas, marcadores, macros, anotações e textos curtos. */
+function isSkippedComment(text: string): boolean {
+  return (
+    text.startsWith("ignore:") ||
+    text.startsWith("coverage:") ||
+    text.startsWith("TODO") ||
+    text.startsWith("FIXME") ||
+    text.startsWith("{@") ||
+    text.startsWith("@") ||
+    text.length < 10
+  );
+}
+
 interface IdentifierMatch {
   file: string;
   line: number;
   identifier: string;
-  kind: string;
+  kind: IdentifierKind;
   ptWords: string[];
 }
 
@@ -862,17 +878,14 @@ export default createPlugin(
     enabled: true,
   },
   async () => {
-    const { git } = getDanger();
-
     await loadDependencies();
 
-    const dartFiles = [...git.modified_files, ...git.created_files].filter(
-      (f: string) =>
-        f.endsWith(".dart") &&
-        !f.endsWith("_test.dart") &&
-        !f.endsWith(".g.dart") &&
-        !f.endsWith(".freezed.dart") &&
-        fs.existsSync(f)
+    // Gerados que não são `.g`/`.freezed` (ex.: `.gen.dart`, `generated/`) e auxiliares de `test/` entram.
+    const dartFiles = DartFile.changed({ includeTests: true, includeGenerated: true }).filter(
+      (f) =>
+        !f.path.fileName.endsWith("_test.dart") &&
+        !f.path.fileName.endsWith(".g.dart") &&
+        !f.path.fileName.endsWith(".freezed.dart")
     );
 
     if (dartFiles.length === 0) return;
@@ -886,71 +899,51 @@ export default createPlugin(
       file: string;
       line: number;
       identifier: string;
-      kind: string;
+      kind: IdentifierKind;
     }
     const cspellCandidates: CspellCandidate[] = [];
     const candidateWords = new Set<string>();
 
-    for (const file of dartFiles) {
-      const content = fs.readFileSync(file, "utf-8");
-      const lines = content.split("\n");
+    for (const dartFile of dartFiles) {
+      const file = dartFile.path.path;
 
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        const trimmed = line.trim();
+      // Comentários e documentação que não estão em inglês (só `//` e `///` em linha própria)
+      for (const comment of dartFile.comments) {
+        if (comment.isTrailing) continue;
+        if (comment.kind !== DartCommentKind.Line && comment.kind !== DartCommentKind.Doc) continue;
 
-        // Detectar comentarios e documentacao que nao estao em ingles
-        const docMatch = trimmed.match(/^\/\/\/\s*(.+)/);
-        const commentMatch = !docMatch ? trimmed.match(/^\/\/\s*(.+)/) : null;
+        const text = comment.content;
+        if (isSkippedComment(text)) continue;
 
-        if (docMatch || commentMatch) {
-          const text = (docMatch || commentMatch)![1].trim();
-
-          if (
-            text.startsWith("ignore:") ||
-            text.startsWith("coverage:") ||
-            text.startsWith("TODO") ||
-            text.startsWith("FIXME") ||
-            text.startsWith("{@") ||
-            text.startsWith("@") ||
-            text.length < 10
-          ) {
-            continue;
-          }
-
-          if (isNonEnglishComment(text) || commentContainsPtWords(text)) {
-            commentMatches.push({
-              file,
-              line: i + 1,
-              text: text.slice(0, 80),
-              type: docMatch ? "documentação (///)" : "comentário (//)",
-            });
-          }
-        }
-
-        // Detectar identificadores que nao estao em ingles
-        const cleaned = stripCommentsAndStrings(line);
-        if (!cleaned.trim()) continue;
-
-        for (const { identifier, kind } of extractIdentifiers(cleaned)) {
-          const words = splitIdentifier(identifier);
-
-          const ptWords = words.filter((w) => {
-            if (AMBIGUOUS.has(w)) return false;
-            if (PT_WORDS.has(w)) return true;
-            if (w.length >= 6 && isNonEnglish(w)) return true;
-            return false;
+        if (isNonEnglishComment(text) || commentContainsPtWords(text)) {
+          commentMatches.push({
+            file,
+            line: comment.line,
+            text: text.slice(0, 80),
+            type: comment.kind === DartCommentKind.Doc ? "documentação (///)" : "comentário (//)",
           });
+        }
+      }
 
-          if (ptWords.length > 0) {
-            matches.push({ file, line: i + 1, identifier, kind, ptWords });
-          } else {
-            for (const w of words) {
-              if (w.length < 4) continue;
-              if (AMBIGUOUS.has(w)) continue;
-              candidateWords.add(w);
-              cspellCandidates.push({ word: w, file, line: i + 1, identifier, kind });
-            }
+      // Identificadores declarados que não estão em inglês
+      for (const { name: identifier, line, kind } of declaredNames(dartFile)) {
+        const words = splitIdentifier(identifier);
+
+        const ptWords = words.filter((w) => {
+          if (AMBIGUOUS.has(w)) return false;
+          if (PT_WORDS.has(w)) return true;
+          if (w.length >= 6 && isNonEnglish(w)) return true;
+          return false;
+        });
+
+        if (ptWords.length > 0) {
+          matches.push({ file, line, identifier, kind, ptWords });
+        } else {
+          for (const w of words) {
+            if (w.length < 4) continue;
+            if (AMBIGUOUS.has(w)) continue;
+            candidateWords.add(w);
+            cspellCandidates.push({ word: w, file, line, identifier, kind });
           }
         }
       }
@@ -989,12 +982,7 @@ export default createPlugin(
       }
     }
 
-    const commentSeen = new Set<string>();
     for (const c of commentMatches) {
-      const key = `${c.file}::${c.line}`;
-      if (commentSeen.has(key)) continue;
-      commentSeen.add(key);
-
       const snippet = `${c.text}${c.text.length >= 80 ? "..." : ""}`;
       const prefix = c.type === "documentação (///)" ? "///" : "//";
 
@@ -1027,15 +1015,8 @@ export default createPlugin(
       });
     }
 
-    if (matches.length === 0) return;
-
-    const seen = new Set<string>();
-
+    // `declaredNames` já devolve um nome por linha: cada match é um identificador
     for (const m of matches) {
-      const key = `${m.file}::${m.line}::${m.identifier}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-
       const currentDecl =
         m.kind === "classe"
           ? `class ${m.identifier}`
@@ -1210,99 +1191,170 @@ function suggestEnglish(identifier: string, ptWords: string[]): string {
   return result !== identifier ? result : `/* traduza para inglês */`;
 }
 
-function stripCommentsAndStrings(line: string): string {
-  return line
-    .replace(/\/\/.*$/, "")
-    .replace(/\/\*[\s\S]*?\*\//g, "")
-    .replace(/'(?:[^'\\]|\\.)*'/g, "''")
-    .replace(/"(?:[^"\\]|\\.)*"/g, '""')
-    .replace(/r'[^']*'/g, "''")
-    .replace(/r"[^"]*"/g, '""');
+type IdentifierKind = "classe" | "enum" | "método" | "variável";
+
+interface DeclaredName {
+  name: string;
+  line: number;
+  kind: IdentifierKind;
 }
 
-function extractIdentifiers(line: string): { identifier: string; kind: string }[] {
-  const results: { identifier: string; kind: string }[] = [];
+/** Nomes de API do Flutter/Dart que não precisam ser analisados (métodos e variáveis). */
+const RESERVED_NAMES = new Set([
+  "get",
+  "set",
+  "build",
+  "createState",
+  "initState",
+  "dispose",
+  "toString",
+  "hashCode",
+  "main",
+  "runApp",
+  "setState",
+  "mounted",
+  "context",
+  "widget",
+  "state",
+  "key",
+  "value",
+  "index",
+  "length",
+  "map",
+  "where",
+  "fold",
+  "reduce",
+  "forEach",
+  "add",
+  "remove",
+  "contains",
+  "isEmpty",
+  "isNotEmpty",
+  "first",
+  "last",
+  "toList",
+  "toMap",
+  "toSet",
+  "toJson",
+  "fromJson",
+  "fromMap",
+  "copyWith",
+  "of",
+  "then",
+  "catchError",
+  "whenComplete",
+]);
 
-  const classRe =
-    /(?:abstract\s+)?(?:final\s+|sealed\s+|base\s+|mixin\s+)?class\s+(?:const\s+)?([A-Za-z_]\w*)/g;
-  let m;
-  while ((m = classRe.exec(line)) !== null) {
-    results.push({ identifier: m[1], kind: "classe" });
-  }
+/** Na mesma linha, a ordem das mensagens é classe → enum → método → variável. */
+const KIND_ORDER: Record<IdentifierKind, number> = {
+  classe: 0,
+  enum: 1,
+  método: 2,
+  variável: 3,
+};
 
-  const enumRe = /enum\s+([A-Za-z_]\w*)/g;
-  while ((m = enumRe.exec(line)) !== null) {
-    results.push({ identifier: m[1], kind: "enum" });
-  }
-
-  const methodRe =
-    /(?:Future<[^>]*>|void|String|int|double|bool|num|dynamic|List<[^>]*>|Map<[^,>]*,[^>]*>|Set<[^>]*>|[A-Z]\w*(?:<[^>]*>)?)\s+([a-z_]\w*)\s*\(/g;
-  while ((m = methodRe.exec(line)) !== null) {
-    if (!isReserved(m[1])) results.push({ identifier: m[1], kind: "método" });
-  }
-
-  const varRe =
-    /(?:final|const|var|late\s+final|late)\s+(?:[A-Za-z_]\w*(?:<[^>]*>)?\??\s+)?([a-z_]\w*)\s*[=;,)]/g;
-  while ((m = varRe.exec(line)) !== null) {
-    if (!isReserved(m[1])) results.push({ identifier: m[1], kind: "variável" });
-  }
-
-  return results;
+/**
+ * Tipo "simples": nomeado, sem prefixo de import e sem genérico aninhado
+ * (`String`, `Foo?`, `Future<void>`, `Map<String, dynamic>`; não `Future<Either<F, X>>`,
+ * `p.Foo`, `void Function()` nem records). O plugin sempre analisou só as declarações
+ * com tipo simples (ou sem tipo); estender aos demais aumenta as reprovações.
+ */
+function isPlainType(type: DartType): boolean {
+  return (
+    type.kind === DartTypeKind.Named &&
+    type.prefix === null &&
+    type.typeArguments.every((arg) => arg.typeArguments.length === 0)
+  );
 }
 
-function isReserved(word: string): boolean {
-  const reserved = new Set([
-    "get",
-    "set",
-    "build",
-    "createState",
-    "initState",
-    "dispose",
-    "toString",
-    "hashCode",
-    "main",
-    "runApp",
-    "setState",
-    "mounted",
-    "context",
-    "widget",
-    "state",
-    "key",
-    "value",
-    "index",
-    "length",
-    "map",
-    "where",
-    "fold",
-    "reduce",
-    "forEach",
-    "add",
-    "remove",
-    "contains",
-    "isEmpty",
-    "isNotEmpty",
-    "first",
-    "last",
-    "toList",
-    "toMap",
-    "toSet",
-    "toJson",
-    "fromJson",
-    "fromMap",
-    "copyWith",
-    "of",
-    "then",
-    "catchError",
-    "whenComplete",
-  ]);
-  return reserved.has(word);
+/**
+ * Nomes declarados que o plugin analisa, na ordem das linhas (um por nome e linha):
+ * classes, enums, métodos/funções com tipo de retorno simples e não nullable, funções
+ * locais e variáveis com `final`/`const`/`var`/`late` sem tipo ou com tipo simples
+ * (campos, de topo, locais e parâmetros `final`).
+ */
+function declaredNames(file: DartFile): DeclaredName[] {
+  const found: (DeclaredName & { column: number })[] = [];
+
+  const add = (kind: IdentifierKind, name: string, line: number, column: number): void => {
+    if ((kind === "método" || kind === "variável") && RESERVED_NAMES.has(name)) return;
+    found.push({ name, line, kind, column });
+  };
+
+  const addVariable = (v: DartVariable): void => {
+    const declared = v.isFinal || v.isConst || v.isVar || v.isLate;
+    if (declared && (v.type === null || isPlainType(v.type))) {
+      add("variável", v.name, v.nameLine, v.column);
+    }
+  };
+
+  const addParameters = (params: readonly DartParameter[]): void => {
+    for (const p of params) {
+      // os `final` do primary constructor são campos (já entram por `fields`)
+      if (p.source === DartParameterSource.Declaring || !p.isFinal) continue;
+      if (p.type === null || isPlainType(p.type)) add("variável", p.name, p.nameLine, p.column);
+    }
+  };
+
+  const addBody = (body: DartBody | null): void => {
+    for (const v of body?.localVariables ?? []) {
+      // `for (final x in xs)` não é analisado; `for (var i = 0; ...)` é
+      if (v.isLoopVariable && v.initializer === null) continue;
+      addVariable(v);
+    }
+  };
+
+  const addFunction = (fn: DartFunction): void => {
+    const { returnType } = fn;
+    if (
+      fn.memberKind === DartMemberKind.Method &&
+      fn.typeParameters.length === 0 &&
+      returnType !== null &&
+      !returnType.isNullable &&
+      isPlainType(returnType)
+    ) {
+      add("método", fn.name, fn.nameLine, fn.column);
+    }
+    addParameters(fn.parameters);
+    addBody(fn.body);
+  };
+
+  for (const cls of file.classes) add("classe", cls.name, cls.nameLine, cls.column);
+  for (const e of file.enums) add("enum", e.name, e.nameLine, e.column);
+  for (const decl of file.declarations) {
+    for (const field of decl.fields) addVariable(field);
+    for (const method of decl.methods) addFunction(method);
+    for (const ctor of decl.constructors) {
+      addParameters(ctor.parameters);
+      addBody(ctor.body);
+    }
+  }
+  for (const v of file.variables) addVariable(v);
+  for (const fn of file.functions) addFunction(fn);
+  // closures e funções locais de todo o arquivo, inclusive em inicializadores de campos
+  // (o modelo não expõe o tipo de retorno da função local: ela entra sempre)
+  for (const closure of file.closures()) {
+    if (closure.name !== null) add("método", closure.name, closure.line, closure.column);
+    addParameters(closure.parameters);
+    addBody(closure.body);
+  }
+
+  found.sort(
+    (a, b) => a.line - b.line || KIND_ORDER[a.kind] - KIND_ORDER[b.kind] || a.column - b.column
+  );
+  // a mesma variável aparece no corpo do método e no da closure que a contém
+  const seen = new Set<string>();
+  return found.filter(({ name, line }) => {
+    const key = `${line}::${name}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
+/** Palavras do identificador com 3+ letras: `buscarPedidoHTTP` → `buscar`, `pedido`, `http`. */
 function splitIdentifier(identifier: string): string[] {
-  return identifier
-    .replace(/([a-z])([A-Z])/g, "$1_$2")
-    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2")
-    .toLowerCase()
+  return DartText.toSnakeCase(identifier)
     .split("_")
     .filter((w) => w.length > 2);
 }

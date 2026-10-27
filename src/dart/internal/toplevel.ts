@@ -345,10 +345,22 @@ export function scanTopLevel(lx: Lexed): TopLevel {
             aliasEndTok = end - 1;
           }
         } else {
-          // sintaxe antiga: typedef void Callback(int x);
+          // sintaxe antiga: typedef void Callback(int x); / typedef void Callback<T>(T x);
           const paren = findAtDepth0(tokens, k + 1, end, ["("]);
           nameTok = paren > k + 1 ? paren - 1 : k + 1;
-          if (isPunct(tokens[nameTok], ">")) nameTok = k + 1;
+          if (isPunct(tokens[nameTok], ">")) {
+            // nome antes dos parâmetros de tipo: volta até o `<` correspondente
+            let depth = 0;
+            let lt = -1;
+            for (let j = nameTok; j > k; j--) {
+              if (isPunct(tokens[j], ">")) depth++;
+              else if (isPunct(tokens[j], "<") && --depth === 0) {
+                lt = j;
+                break;
+              }
+            }
+            nameTok = lt > k + 1 ? lt - 1 : k + 1;
+          }
         }
         if (isIdent(tokens[nameTok])) {
           result.typedefs.push({

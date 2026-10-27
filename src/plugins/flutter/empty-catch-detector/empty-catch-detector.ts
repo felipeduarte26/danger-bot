@@ -6,157 +6,16 @@
  * difíceis de rastrear e mascarando problemas reais em produção.
  *
  * Não flageia catch com rethrow, return, throw, break, continue
- * ou qualquer statement real. Ignora arquivos de teste.
+ * ou qualquer statement real. Catch só com comentários (inclusive
+ * `// danger:ignore`) é reportado. Ignora arquivos de teste (inclusive
+ * qualquer pasta `test/` ou `testing/`) e gerados.
  *
  * @see {@link https://dart.dev/tools/linter-rules/empty_catches} Dart Linter: empty_catches
  * @see Clean Code — Robert C. Martin, Cap. 7: Error Handling
  */
-import { createPlugin, getDanger, sendFormattedFail } from "@types";
-import * as fs from "fs";
+import { DartCatch, DartFile, DartTry, createPlugin, sendFormattedFail } from "@types";
 
-const CATCH_RE = /(?:catch\s*\(|on\s+\w[\w.]*\s+catch\s*\(|on\s+\w[\w.]*\s*\{)/;
-
-/**
- * Constrói máscara de linhas a ignorar (comentários de bloco e multi-line strings).
- */
-function buildSkipMask(lines: string[]): boolean[] {
-  const skip = new Array<boolean>(lines.length).fill(false);
-  let inBlock = false;
-  let inMultiStr = false;
-  let strDelim = "";
-
-  for (let i = 0; i < lines.length; i++) {
-    const trimmed = lines[i].trim();
-
-    if (inBlock) {
-      skip[i] = true;
-      if (trimmed.includes("*/")) inBlock = false;
-      continue;
-    }
-
-    if (inMultiStr) {
-      skip[i] = true;
-      if (lines[i].includes(strDelim)) inMultiStr = false;
-      continue;
-    }
-
-    if (trimmed.startsWith("/*")) {
-      skip[i] = true;
-      inBlock = true;
-      if (trimmed.includes("*/") && trimmed.indexOf("*/") > trimmed.indexOf("/*") + 1) {
-        inBlock = false;
-      }
-      continue;
-    }
-
-    if (trimmed.includes("'''") || trimmed.includes('"""')) {
-      const delim = trimmed.includes("'''") ? "'''" : '"""';
-      const firstIdx = trimmed.indexOf(delim);
-      const secondIdx = trimmed.indexOf(delim, firstIdx + 3);
-      if (secondIdx === -1) {
-        inMultiStr = true;
-        strDelim = delim;
-      }
-    }
-  }
-
-  return skip;
-}
-
-/**
- * Verifica se o corpo de um bloco catch está efetivamente vazio
- * (apenas whitespace, comentários de linha ou comentários de bloco).
- */
-function isCatchBodyEmpty(
-  lines: string[],
-  openBraceLine: number
-): { empty: boolean; closeLine: number } {
-  let braces = 0;
-  let foundOpen = false;
-  let closeLine = openBraceLine;
-
-  for (let i = openBraceLine; i < lines.length; i++) {
-    for (const ch of lines[i]) {
-      if (ch === "{") {
-        braces++;
-        foundOpen = true;
-      }
-      if (ch === "}") {
-        braces--;
-        if (foundOpen && braces <= 0) {
-          closeLine = i;
-
-          const bodyLines = extractBodyLines(lines, openBraceLine, closeLine);
-          const empty = bodyLines.every((l) => {
-            const t = l.trim();
-            return (
-              t === "" ||
-              t.startsWith("//") ||
-              t.startsWith("///") ||
-              t.startsWith("*") ||
-              t.startsWith("/*") ||
-              t.endsWith("*/")
-            );
-          });
-
-          return { empty, closeLine };
-        }
-      }
-    }
-  }
-
-  return { empty: false, closeLine };
-}
-
-/**
- * Extrai as linhas internas do body (entre { e }).
- */
-function extractBodyLines(lines: string[], openLine: number, closeLine: number): string[] {
-  if (openLine === closeLine) {
-    const line = lines[openLine];
-    const openIdx = line.indexOf("{");
-    const closeIdx = line.lastIndexOf("}");
-    if (openIdx >= 0 && closeIdx > openIdx) {
-      const inner = line.substring(openIdx + 1, closeIdx);
-      return [inner];
-    }
-    return [];
-  }
-
-  const result: string[] = [];
-
-  const firstLine = lines[openLine];
-  const openIdx = firstLine.indexOf("{");
-  if (openIdx >= 0) {
-    result.push(firstLine.substring(openIdx + 1));
-  }
-
-  for (let i = openLine + 1; i < closeLine; i++) {
-    result.push(lines[i]);
-  }
-
-  const lastLine = lines[closeLine];
-  const closeIdx = lastLine.indexOf("}");
-  if (closeIdx > 0) {
-    result.push(lastLine.substring(0, closeIdx));
-  }
-
-  return result;
-}
-
-/**
- * Extrai um snippet do catch para exibir na mensagem.
- */
-function extractSnippet(lines: string[], start: number, end: number, maxLines = 6): string {
-  const snippet: string[] = [];
-  for (let i = start; i <= end && snippet.length < maxLines; i++) {
-    snippet.push(lines[i]);
-  }
-  if (end - start + 1 > maxLines) {
-    snippet.push("    // ...");
-  }
-  return snippet.map((l) => l.replace(/^\s{2}/, "")).join("\n");
-}
+const MAX_SNIPPET_LINES = 6;
 
 export default createPlugin(
   {
@@ -165,52 +24,22 @@ export default createPlugin(
     enabled: true,
   },
   async () => {
-    const { git } = getDanger();
-
-    const dartFiles = [...git.modified_files, ...git.created_files].filter(
-      (f: string) =>
-        f.endsWith(".dart") &&
-        !f.endsWith("_test.dart") &&
-        !f.endsWith(".g.dart") &&
-        !f.endsWith(".freezed.dart") &&
-        !f.endsWith(".mocks.dart") &&
-        !f.includes("/test/") &&
-        !f.includes("/testing/") &&
-        fs.existsSync(f)
+    const files = DartFile.changed().filter(
+      (f) => !f.path.inFolder("test") && !f.path.inFolder("testing")
     );
 
-    for (const file of dartFiles) {
-      const content = fs.readFileSync(file, "utf-8");
-      const lines = content.split("\n");
-      const skip = buildSkipMask(lines);
+    for (const file of files) {
+      const emptyCatches = tryStatementsOf(file)
+        .flatMap((t) => t.catches)
+        .filter((c) => c.isEmpty)
+        .sort((a, b) => a.startOffset - b.startOffset);
 
-      for (let i = 0; i < lines.length; i++) {
-        if (skip[i]) continue;
-
-        const trimmed = lines[i].trim();
-        if (!CATCH_RE.test(trimmed)) continue;
-
-        let braceLineIdx = i;
-        if (!trimmed.includes("{")) {
-          for (let j = i + 1; j < Math.min(i + 4, lines.length); j++) {
-            if (lines[j].includes("{")) {
-              braceLineIdx = j;
-              break;
-            }
-          }
-          if (braceLineIdx === i) continue;
-        }
-
-        const { empty, closeLine } = isCatchBodyEmpty(lines, braceLineIdx);
-        if (!empty) continue;
-
-        const snippet = extractSnippet(lines, i, closeLine);
-
+      for (const emptyCatch of emptyCatches) {
         sendFormattedFail({
           title: "CATCH VAZIO DETECTADO",
           description: `Bloco \`catch\` vazio ou com apenas comentários detectado. Erros engolidos silenciosamente mascaram bugs e tornam a depuração extremamente difícil.`,
           problem: {
-            wrong: snippet,
+            wrong: snippetOf(file, emptyCatch),
             correct: `} catch (e, stackTrace) {\n  logger.error('Operação falhou', error: e, stackTrace: stackTrace);\n  rethrow; // ou trate o erro adequadamente\n}`,
             wrongLabel: "Catch vazio — erro silenciado",
             correctLabel: "Catch com tratamento adequado",
@@ -225,10 +54,36 @@ export default createPlugin(
             text: "Dart Linter: empty_catches",
             url: "https://dart.dev/tools/linter-rules/empty_catches",
           },
-          file,
-          line: i + 1,
+          file: file.path.path,
+          line: emptyCatch.line,
         });
       }
     }
   }
 );
+
+/** Todos os try do arquivo: funções, métodos, construtores e closures (também em inicializadores). */
+function tryStatementsOf(file: DartFile): DartTry[] {
+  const bodies = [
+    ...file.functions.map((fn) => fn.body),
+    ...file.declarations.flatMap((declaration) => [
+      ...declaration.methods.map((method) => method.body),
+      ...declaration.constructors.map((ctor) => ctor.body),
+    ]),
+    ...file.closures().map((closure) => closure.body),
+  ];
+  // o try de uma closure aparece também no corpo que a contém
+  const tries = new Map<number, DartTry>();
+  for (const body of bodies) {
+    for (const t of body?.tryStatements ?? []) tries.set(t.startOffset, t);
+  }
+  return [...tries.values()];
+}
+
+/** Linhas do catch (até 6, sem 2 espaços de indentação), como no comentário inline. */
+function snippetOf(file: DartFile, emptyCatch: DartCatch): string {
+  const lastLine = Math.min(emptyCatch.endLine, emptyCatch.line + MAX_SNIPPET_LINES - 1);
+  const lines = file.snippet(emptyCatch.line, lastLine).split("\n");
+  if (emptyCatch.endLine - emptyCatch.line + 1 > MAX_SNIPPET_LINES) lines.push("    // ...");
+  return lines.map((l) => l.replace(/^\s{2}/, "")).join("\n");
+}

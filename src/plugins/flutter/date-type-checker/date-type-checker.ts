@@ -4,19 +4,29 @@
  * Detecta campos com nome de data/hora declarados como String
  * quando deveriam ser DateTime. Analisa entities e models.
  *
+ * Campos: `String`/`String?` (com ou sem `final`/`late`) do corpo da classe ou
+ * do primary constructor (Dart 3.13+); `static` e `const` ficam de fora.
+ * Variáveis locais e de nível superior não são campos.
+ *
  * Detecção por nome (camelCase):
  * - Sufixos: At, Date, Timestamp, Time, Dt
  * - Prefixos: date, timestamp, dt
  * - Nomes exatos: date, timestamp, datetime, deadline, birthday, dt
  *
  * Detecção por documentação (///):
- * - Se o doc comment acima do campo menciona "date", "time",
+ * - Se o doc comment do campo menciona "date", "time",
  *   "datetime", "timestamp" ou "data de", o campo é reportado
- *   mesmo que o nome não siga os padrões acima.
+ *   mesmo que o nome não siga os padrões acima. No primary
+ *   constructor vale a doc do próprio parâmetro.
  */
-import { createPlugin, getDanger, sendFormattedFail } from "@types";
-import * as fs from "fs";
-import { findPrimaryConstructors } from "../primary-constructors/primary-constructors";
+import {
+  DartCommentKind,
+  DartField,
+  DartFieldOrigin,
+  DartFile,
+  createPlugin,
+  sendFormattedFail,
+} from "@types";
 
 const DATE_SUFFIXES = ["At", "Date", "Timestamp", "Time", "Dt"];
 const DATE_PREFIXES = ["date", "timestamp", "dt"];
@@ -41,8 +51,6 @@ const DATE_PREFIX_EXCLUSIONS = new Set([
   "timestamputil",
 ]);
 
-const STRING_FIELD_RE = /^\s*(?:final\s+|late\s+(?:final\s+)?)?(?:String\??)\s+(\w+)\s*[;=]/;
-
 const DOC_DATE_KEYWORDS_RE = /\b(date|time|datetime|timestamp|data\s+de|fecha)\b/i;
 
 function looksLikeDateField(name: string): boolean {
@@ -65,17 +73,12 @@ function looksLikeDateField(name: string): boolean {
   return false;
 }
 
-function getDocComment(lines: string[], fieldLine: number): string {
-  const docs: string[] = [];
-  for (let j = fieldLine - 1; j >= 0; j--) {
-    const trimmed = lines[j].trim();
-    if (trimmed.startsWith("///")) {
-      docs.unshift(trimmed);
-    } else {
-      break;
-    }
-  }
-  return docs.join(" ");
+/** Linhas `///` da doc do campo, como escritas, unidas por espaço. */
+function docText(field: DartField): string {
+  return (field.doc?.comments ?? [])
+    .filter((c) => c.kind === DartCommentKind.Doc)
+    .map((c) => c.text.trim())
+    .join(" ");
 }
 
 function isEntityOrModelFile(filePath: string): boolean {
@@ -96,43 +99,22 @@ export default createPlugin(
     enabled: true,
   },
   async () => {
-    const { git } = getDanger();
+    const files = DartFile.changed().filter((file) => isEntityOrModelFile(file.path.path));
 
-    const dartFiles = [...git.modified_files, ...git.created_files].filter(
-      (f: string) =>
-        f.endsWith(".dart") &&
-        !f.endsWith(".g.dart") &&
-        !f.endsWith(".freezed.dart") &&
-        !f.endsWith("_test.dart") &&
-        isEntityOrModelFile(f) &&
-        fs.existsSync(f)
-    );
+    for (const file of files) {
+      for (const field of file.declarations.flatMap((d) => d.fields)) {
+        if (!field.type?.isString || field.isStatic || field.isConst) continue;
 
-    for (const file of dartFiles) {
-      const content = fs.readFileSync(file, "utf-8");
-      const lines = content.split("\n");
-
-      for (let i = 0; i < lines.length; i++) {
-        const match = lines[i].match(STRING_FIELD_RE);
-        if (!match) continue;
-        checkStringField(file, match[1], getDocComment(lines, i), lines[i].trim(), i + 1);
-      }
-
-      // Campos declarados no primary constructor (Dart 3.13+): `final String createdAt,`.
-      // A doc considerada é a do próprio parâmetro (nunca a da classe, acima do cabeçalho).
-      for (const decl of findPrimaryConstructors(content)) {
-        for (const field of decl.fields) {
-          if (!/^String\??$/.test(field.type)) continue;
-          const sameLine = lines[field.lineIndex]?.match(STRING_FIELD_RE);
-          if (sameLine?.[1] === field.name) continue; // já avaliado pelo laço acima
-          checkStringField(
-            file,
-            field.name,
-            field.docLines.join(" "),
-            field.text,
-            field.lineIndex + 1
-          );
-        }
+        // No primary constructor, o código mostrado é o parâmetro (`required final String createdAt`).
+        const param =
+          field.origin === DartFieldOrigin.PrimaryConstructor ? field.declaringParameter : null;
+        checkStringField(
+          file.path.path,
+          field.name,
+          docText(field),
+          param ? param.text : field.lineText,
+          field.nameLine
+        );
       }
     }
   }

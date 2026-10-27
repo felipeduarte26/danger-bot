@@ -3,17 +3,18 @@
  * Verifica ordem dos membros em classes de widgets/states seguindo
  * Vertical Ordering (Clean Code, Cap. 5):
  *
- * 1. Construtores
- * 2. Factory / named constructors
+ * 1. Construtores (inclusive os nomeados e `const`)
+ * 2. Factory constructors
  * 3. @override methods (lifecycle: initState, didChangeDependencies, build, dispose, etc.)
  * 4. Métodos públicos
  * 5. Métodos privados (_prefixo)
  *
- * Analisa o arquivo completo e trata cada classe separadamente.
+ * Analisa cada classe `extends State<X>` ou `extends StatelessWidget` separadamente.
+ * Não entram na ordem: campos (inclusive os de tipo função), getters, setters,
+ * operadores, métodos `static` e o primary constructor. Classes com menos de 2
+ * membros na lista são ignoradas.
  */
-import { createPlugin, getDanger, sendFormattedFail } from "@types";
-import * as fs from "fs";
-import { normalizePrimaryConstructorHeaders } from "../primary-constructors/primary-constructors";
+import { DartClass, DartFile, DartMemberKind, createPlugin, sendFormattedFail } from "@types";
 
 type MethodKind = "constructor" | "factory" | "override" | "public" | "private";
 
@@ -31,6 +32,16 @@ const KIND_ORDER: Record<MethodKind, number> = {
   private: 4,
 };
 
+/** `extends State<X>` (X sem argumentos de tipo) ou `extends StatelessWidget`, sem parâmetros de tipo na classe. */
+function isWidgetClass(cls: DartClass): boolean {
+  const superclass = cls.superclass;
+  if (superclass?.prefix !== null || cls.typeParameters.length > 0) return false;
+  if (superclass.name === "StatelessWidget") return superclass.typeArguments.length === 0;
+  if (superclass.name !== "State" || superclass.typeArguments.length !== 1) return false;
+  const widget = superclass.typeArguments[0];
+  return widget.prefix === null && widget.typeArguments.length === 0 && !widget.isNullable;
+}
+
 export default createPlugin(
   {
     name: "flutter-widgets",
@@ -38,29 +49,13 @@ export default createPlugin(
     enabled: true,
   },
   async () => {
-    const { git } = getDanger();
-
-    const dartFiles = [...git.modified_files, ...git.created_files].filter(
-      (f: string) =>
-        f.endsWith(".dart") &&
-        !f.endsWith("_test.dart") &&
-        !f.endsWith(".g.dart") &&
-        !f.endsWith(".freezed.dart") &&
-        fs.existsSync(f)
+    const dartFiles = DartFile.changed({ includeTests: true }).filter(
+      (f) => !f.path.fileName.endsWith("_test.dart")
     );
 
     for (const file of dartFiles) {
-      const content = fs.readFileSync(file, "utf-8");
-
-      if (!content.includes("extends State<") && !content.includes("extends StatelessWidget")) {
-        continue;
-      }
-
-      const lines = normalizePrimaryConstructorHeaders(content).replace(/\r/g, "").split("\n");
-      const classes = extractClasses(lines);
-
-      for (const cls of classes) {
-        const methods = extractMethods(lines, cls.startLine, cls.endLine, cls.name);
+      for (const cls of file.classes.filter(isWidgetClass)) {
+        const methods = extractMethods(cls);
         if (methods.length < 2) continue;
 
         const violators = findViolators(methods);
@@ -88,7 +83,7 @@ export default createPlugin(
               text: "Clean Code (Robert C. Martin) — Capítulo 5: Formatação › Vertical Ordering",
               url: "https://drive.google.com/file/d/0B9eZlIWAs3-sN3NRbktQNVFUN3l2cTBBcXN4Y3FaUQ/view?resourcekey=0-ZafqCRtyIP8Zw0CKviW5Gw",
             },
-            file,
+            file: file.path.path,
             line: violator.line,
           });
         }
@@ -97,309 +92,22 @@ export default createPlugin(
   }
 );
 
-interface ClassBlock {
-  name: string;
-  startLine: number;
-  endLine: number;
-}
-
-function extractClasses(lines: string[]): ClassBlock[] {
-  const classes: ClassBlock[] = [];
-
-  for (let i = 0; i < lines.length; i++) {
-    const combined = lines[i] + " " + (lines[i + 1]?.trimStart() || "");
-    const match = combined.match(/class\s+(\w+)\s+extends\s+(?:State<\w+>|StatelessWidget)/);
-    if (!match) continue;
-
-    let braceCount = 0;
-    let started = false;
-    let endLine = i;
-
-    for (let j = i; j < lines.length; j++) {
-      for (const ch of lines[j]) {
-        if (ch === "{") {
-          braceCount++;
-          started = true;
-        }
-        if (ch === "}") braceCount--;
-      }
-      if (started && braceCount <= 0) {
-        endLine = j;
-        break;
-      }
-    }
-
-    classes.push({ name: match[1], startLine: i, endLine });
-  }
-
-  return classes;
-}
-
-const WIDGET_METHOD_KEYWORDS = new Set([
-  "const",
-  "super",
-  "operator",
-  "static",
-  "abstract",
-  "external",
-  "new",
-  "return",
-  "if",
-  "for",
-  "while",
-  "switch",
-  "var",
-  "final",
-  "late",
-  "void",
-  "class",
-  "enum",
-  "mixin",
-  "extension",
-  "throw",
-  "try",
-  "catch",
-  "assert",
-  "await",
-  "async",
-  "get",
-  "set",
-  "required",
-  "covariant",
-  "yield",
-]);
-
-const DART_FUNCTION_TYPE_ALIASES = new Set([
-  "VoidCallback",
-  "AsyncCallback",
-  "ValueChanged",
-  "ValueSetter",
-  "ValueGetter",
-  "StateSetter",
-  "WidgetBuilder",
-  "TransitionBuilder",
-  "IndexedWidgetBuilder",
-  "NullableIndexedWidgetBuilder",
-  "FormFieldValidator",
-  "FormFieldSetter",
-  "FormFieldBuilder",
-  "ValueWidgetBuilder",
-  "GestureTapCallback",
-  "GestureTapDownCallback",
-  "GestureTapUpCallback",
-  "GestureTapCancelCallback",
-  "GestureLongPressCallback",
-  "GestureDragStartCallback",
-  "GestureDragUpdateCallback",
-  "GestureDragEndCallback",
-  "GestureScaleStartCallback",
-  "GestureScaleUpdateCallback",
-  "GestureScaleEndCallback",
-  "DismissDirectionCallback",
-  "ControllerCallback",
-  "ErrorCallback",
-  "NotifierCallback",
-  "Function",
-]);
-
-const WIDGET_METHOD_WITH_TYPE_RE =
-  /^\s+(?:static\s+)?(?:Future<[^>]*(?:<[^>]*>)*>|Stream<[^>]*(?:<[^>]*>)*>|void|bool|int|double|String|Widget|List<[^>]*>|Map<[^>]*>|Set<[^>]*>|[A-Za-z_][\w<>,? ]*)\s+([a-zA-Z_]\w*)\s*[(<]/;
-
-const WIDGET_METHOD_NAME_ONLY_RE = /^\s+([a-zA-Z_]\w*)\s*[(<]/;
-
-function hasOverrideAbove(lines: string[], idx: number): boolean {
-  for (let k = idx - 1; k >= Math.max(0, idx - 5); k--) {
-    const t = lines[k].trim();
-    if (t === "@override") return true;
-    if (
-      t === "" ||
-      t.startsWith("//") ||
-      t.startsWith("///") ||
-      t.startsWith("*") ||
-      t.startsWith("@")
-    )
-      continue;
-    if (!t.includes("=") && !t.endsWith(";") && !t.endsWith("{") && !t.endsWith("}")) continue;
-    break;
-  }
-  return false;
-}
-
-function extractMethods(
-  lines: string[],
-  startLine: number,
-  endLine: number,
-  className: string
-): MethodInfo[] {
+/** Construtores e métodos da classe, na ordem do arquivo, com o grupo de cada um. */
+function extractMethods(cls: DartClass): MethodInfo[] {
   const methods: MethodInfo[] = [];
-  let depth = 0;
-  let classBodyStarted = false;
-  let inArrowBody = false;
-  let openParens = 0;
-
-  const esc = className.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const factoryRe = new RegExp(`^\\s+factory\\s+${esc}(?:\\.(\\w+))?\\s*\\(`);
-  const constCtorRe = new RegExp(`^\\s+const\\s+${esc}(?:\\.(\\w+))?\\s*\\(`);
-  const ctorRe = new RegExp(`^\\s+${esc}(?:\\.(\\w+))?\\s*\\(`);
-
-  for (let i = startLine; i <= endLine; i++) {
-    const line = lines[i];
-    const trimmed = line.trim();
-    const depthBefore = depth;
-
-    for (const ch of line) {
-      if (ch === "{") {
-        depth++;
-        classBodyStarted = true;
-      }
-      if (ch === "}") depth--;
-    }
-
-    if (inArrowBody) {
-      if (depth <= 1 && trimmed.endsWith(";")) {
-        inArrowBody = false;
-      }
-      if (inArrowBody) continue;
-    }
-
-    // Skip lines inside unbalanced parentheses (multi-line signatures)
-    if (openParens > 0) {
-      const lineOpen = (line.match(/\(/g) || []).length;
-      const lineClose = (line.match(/\)/g) || []).length;
-      openParens += lineOpen - lineClose;
-      if (openParens <= 0) openParens = 0;
-      continue;
-    }
-
-    if (!classBodyStarted || depthBefore !== 1) continue;
-
-    // Skip comments, annotations, empty lines
-    if (
-      trimmed.startsWith("///") ||
-      trimmed.startsWith("//") ||
-      trimmed.startsWith("@") ||
-      trimmed.length === 0
-    )
-      continue;
-
-    // --- Constructor / Factory detection (before general skip logic) ---
-
-    const factoryMatch = line.match(factoryRe);
-    if (factoryMatch) {
-      const name = factoryMatch[1] ? `${className}.${factoryMatch[1]}` : className;
-      methods.push({ name, kind: "factory", line: i + 1 });
-      trackOpenParens(line);
-      if (line.includes("=>") && !trimmed.endsWith(";")) inArrowBody = true;
-      continue;
-    }
-
-    const constCtorMatch = line.match(constCtorRe);
-    if (constCtorMatch) {
-      const name = constCtorMatch[1] ? `${className}.${constCtorMatch[1]}` : className;
-      methods.push({ name, kind: "constructor", line: i + 1 });
-      trackOpenParens(line);
-      if (line.includes("=>") && !trimmed.endsWith(";")) inArrowBody = true;
-      continue;
-    }
-
-    const ctorMatch = line.match(ctorRe);
-    if (ctorMatch) {
-      const name = ctorMatch[1] ? `${className}.${ctorMatch[1]}` : className;
-      methods.push({ name, kind: "constructor", line: i + 1 });
-      trackOpenParens(line);
-      if (line.includes("=>") && !trimmed.endsWith(";")) inArrowBody = true;
-      continue;
-    }
-
-    // --- General skip logic for non-method lines ---
-    if (
-      trimmed.startsWith("with ") ||
-      trimmed.startsWith("extends ") ||
-      trimmed.startsWith("implements ") ||
-      trimmed.startsWith("final ") ||
-      trimmed.startsWith("late ") ||
-      trimmed.startsWith("var ") ||
-      trimmed.startsWith("const ") ||
-      trimmed.startsWith("set ")
-    ) {
-      if (depthBefore === 1 && line.includes("=>") && !trimmed.endsWith(";")) {
-        inArrowBody = true;
-      }
-      continue;
-    }
-
-    // --- Regular method detection ---
-    let methodMatch = line.match(WIDGET_METHOD_WITH_TYPE_RE);
-
-    if (!methodMatch) {
-      const simpleMatch = line.match(WIDGET_METHOD_NAME_ONLY_RE);
-      if (simpleMatch) methodMatch = simpleMatch;
-    }
-
-    if (!methodMatch) {
-      if (line.includes("=>") && !trimmed.endsWith(";")) {
-        inArrowBody = true;
-      }
-      continue;
-    }
-
-    const name = methodMatch[1];
-
-    if (WIDGET_METHOD_KEYWORDS.has(name)) {
-      trackOpenParens(line);
-      if (line.includes("=>") && !trimmed.endsWith(";")) inArrowBody = true;
-      continue;
-    }
-    if (DART_FUNCTION_TYPE_ALIASES.has(name)) {
-      trackOpenParens(line);
-      if (line.includes("=>") && !trimmed.endsWith(";")) inArrowBody = true;
-      continue;
-    }
-    if (line.includes("static ")) {
-      trackOpenParens(line);
-      if (line.includes("=>") && !trimmed.endsWith(";")) inArrowBody = true;
-      continue;
-    }
-
-    // Skip field declarations: " = " before first "("
-    const firstParen = line.indexOf("(");
-    const eqSign = line.indexOf(" = ");
-    if (eqSign !== -1 && (firstParen === -1 || eqSign < firstParen)) continue;
-
-    // No `(` on the line → can't be a method/constructor declaration
-    if (firstParen === -1) continue;
-
-    // Skip function-type fields: `Function(int) callback;` / `void Function(int)? onChanged;`
-    if (trimmed.endsWith(";") && /\)\??\s+\w+\s*;$/.test(trimmed)) continue;
-
-    const isOverride = hasOverrideAbove(lines, i);
-    const isPrivate = name.startsWith("_");
-
-    let kind: MethodKind;
-    if (isOverride) {
-      kind = "override";
-    } else if (isPrivate) {
-      kind = "private";
-    } else {
-      kind = "public";
-    }
-
-    methods.push({ name, kind, line: i + 1 });
-    trackOpenParens(line);
-
-    if (line.includes("=>") && !trimmed.endsWith(";")) {
-      inArrowBody = true;
+  for (const member of cls.members) {
+    if (member.memberKind === DartMemberKind.Constructor) {
+      methods.push({
+        name: member.name,
+        kind: member.isFactory ? "factory" : "constructor",
+        line: member.nameLine,
+      });
+    } else if (member.memberKind === DartMemberKind.Method && !member.isStatic) {
+      const kind = member.isOverride ? "override" : member.isPrivate ? "private" : "public";
+      methods.push({ name: member.name, kind, line: member.nameLine });
     }
   }
-
   return methods;
-
-  function trackOpenParens(line: string): void {
-    const lineOpen = (line.match(/\(/g) || []).length;
-    const lineClose = (line.match(/\)/g) || []).length;
-    const delta = lineOpen - lineClose;
-    if (delta > 0) openParens = delta;
-  }
 }
 
 /**

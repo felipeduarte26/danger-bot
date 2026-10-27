@@ -7,7 +7,9 @@ const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const path = require("node:path");
 
-const dist = process.env.DANGER_BOT_DIST || path.join(__dirname, "..", "dist");
+const dist = process.env.DANGER_BOT_DIST
+  ? path.resolve(process.env.DANGER_BOT_DIST)
+  : path.join(__dirname, "..", "dist");
 const {
   DartFile,
   DartPath,
@@ -36,9 +38,19 @@ const one = (source) => parse(source).declarations[0];
 
 test("todas as combinações de modificadores de classe", () => {
   const combos = [
-    "class", "base class", "interface class", "final class", "sealed class", "abstract class",
-    "abstract base class", "abstract interface class", "abstract final class", "mixin class",
-    "base mixin class", "abstract mixin class", "abstract base mixin class",
+    "class",
+    "base class",
+    "interface class",
+    "final class",
+    "sealed class",
+    "abstract class",
+    "abstract base class",
+    "abstract interface class",
+    "abstract final class",
+    "mixin class",
+    "base mixin class",
+    "abstract mixin class",
+    "abstract base mixin class",
   ];
   for (const mods of combos) {
     const expected = mods.split(" ").filter((m) => m !== "class");
@@ -55,7 +67,10 @@ test("todas as combinações de modificadores de classe", () => {
   const m = one("base mixin Logger<T> on Base<T> implements I {}");
   assert.equal(m.kind, DartDeclarationKind.Mixin);
   assert.ok(m.isBase);
-  assert.deepEqual(m.onTypes.map((t) => t.name), ["Base"]);
+  assert.deepEqual(
+    m.onTypes.map((t) => t.name),
+    ["Base"]
+  );
 });
 
 test("enum, extension, extension type, mixin application e typedef", () => {
@@ -68,19 +83,34 @@ class Pair = Base with Mixin;
 typedef Callback = void Function(int index);
 typedef void OldStyle(String x);
 `);
-  assert.deepEqual(f.declarations.map((d) => d.kind), ["enum", "extension", "extension", "extensionType", "mixinApplication"]);
+  assert.deepEqual(
+    f.declarations.map((d) => d.kind),
+    ["enum", "extension", "extension", "extensionType", "mixinApplication"]
+  );
   const status = f.enums[0];
-  assert.deepEqual(status.enumValues.map((v) => v.name), ["active", "legacy"]);
+  assert.deepEqual(
+    status.enumValues.map((v) => v.name),
+    ["active", "legacy"]
+  );
   assert.equal(status.enumValues[1].hasAnnotation("Deprecated"), true);
   assert.equal(status.enumValues[0].arguments[0].value.kind, DartExpressionKind.StringLiteral);
-  assert.deepEqual(status.fields.map((x) => x.name), ["code"]);
+  assert.deepEqual(
+    status.fields.map((x) => x.name),
+    ["code"]
+  );
   assert.equal(f.extensions[0].extendedType.name, "String");
   assert.equal(f.extensions[1].name, "");
   assert.equal(f.extensions[1].extendedType.canonical, "List<T>");
   assert.equal(f.extensionTypes[0].extendedType.name, "int");
   assert.equal(f.classes[0].superclass.name, "Base");
-  assert.deepEqual(f.classes[0].mixins.map((t) => t.name), ["Mixin"]);
-  assert.deepEqual(f.typedefs.map((t) => t.name), ["Callback", "OldStyle"]);
+  assert.deepEqual(
+    f.classes[0].mixins.map((t) => t.name),
+    ["Mixin"]
+  );
+  assert.deepEqual(
+    f.typedefs.map((t) => t.name),
+    ["Callback", "OldStyle"]
+  );
   assert.equal(f.typedefs[0].aliasedType.kind, DartTypeKind.Function);
 });
 
@@ -95,7 +125,10 @@ class NaMultilinha {}
 ''';
 class Real {}
 `);
-  assert.deepEqual(f.declarations.map((d) => d.name), ["Real"]);
+  assert.deepEqual(
+    f.declarations.map((d) => d.name),
+    ["Real"]
+  );
 });
 
 test("trecho estranho não derruba o resto (recuperação por membro)", () => {
@@ -110,7 +143,10 @@ class B {}
   const a = f.findClass("A");
   assert.equal(a.isComplete, false);
   assert.equal(a.unknownMembers.length, 1);
-  assert.deepEqual(a.methods.map((m) => m.name), ["depois"]);
+  assert.deepEqual(
+    a.methods.map((m) => m.name),
+    ["depois"]
+  );
   assert.equal(a.hasMember("dispose"), Presence.Unknown);
   assert.ok(f.findClass("B"));
   const b = f.findClass("B");
@@ -118,9 +154,23 @@ class B {}
 });
 
 test("arquivo truncado ou vazio não lança exceção", () => {
-  for (const src of ["", "class A {", "class A { void f() { if (x) {", "'''", "/* sem fim", "﻿class A {}\r\n"]) {
+  for (const src of [
+    "",
+    "class A {",
+    "class A { void f() { if (x) {",
+    "'''",
+    "/* sem fim",
+    "﻿class A {}\r\n",
+  ]) {
     const f = parse(src);
-    assert.doesNotThrow(() => [f.declarations, f.calls(), f.strings, f.comments, f.identifiers, f.isComplete]);
+    assert.doesNotThrow(() => [
+      f.declarations,
+      f.calls(),
+      f.strings,
+      f.comments,
+      f.identifiers,
+      f.isComplete,
+    ]);
   }
   assert.equal(parse("﻿class A {}\r\n").declarations[0].name, "A");
 });
@@ -141,7 +191,15 @@ class const Point(final int x, {required final String? label}) {
   }
 }`);
   const byName = Object.fromEntries(c.fields.map((f) => [f.name, f]));
-  assert.deepEqual(Object.keys(byName), ["x", "label", "zero", "_c", "data", "other", "dynamicOne"]);
+  assert.deepEqual(Object.keys(byName), [
+    "x",
+    "label",
+    "zero",
+    "_c",
+    "data",
+    "other",
+    "dynamicOne",
+  ]);
   assert.equal(byName.x.origin, DartFieldOrigin.PrimaryConstructor);
   assert.equal(byName.label.nullability, Nullability.Nullable);
   assert.equal(byName.zero.isStatic && byName.zero.isConst && byName.zero.type.isDouble, true);
@@ -164,7 +222,10 @@ test("bloco `this` do primary constructor não vira campo", () => {
   this : assert(id > 0);
   int get double => id * 2;
 }`);
-  assert.deepEqual(c.fields.map((f) => f.name), ["id"]);
+  assert.deepEqual(
+    c.fields.map((f) => f.name),
+    ["id"]
+  );
   assert.equal(c.primaryConstructor.initializers[0].isAssert, true);
   assert.equal(c.isComplete, true);
 });
@@ -190,7 +251,10 @@ test("tipos: genéricos aninhados, função, record, nullable e prefixo", () => 
   assert.equal(t.c.isNullable, true);
   assert.equal(t.c.parameters[0].name, "enabled");
   assert.equal(t.d.kind, DartTypeKind.Record);
-  assert.deepEqual(t.d.recordFields.map((r) => r.name), [null, "name"]);
+  assert.deepEqual(
+    t.d.recordFields.map((r) => r.name),
+    [null, "name"]
+  );
   assert.equal(t.e.prefix, "p");
   assert.equal(t.e.builtin, null);
   assert.equal(t.f.unwrapFuture().isVoid, true);
@@ -225,10 +289,13 @@ test("métodos: getter, setter, operador, genérico, async e assinatura em vári
   assert.equal(load.isOverride, true);
   assert.equal(load.isAsync, true);
   assert.equal(load.returnType.canonical, "Future<List<T>>");
-  assert.deepEqual(load.parameters.map((p) => [p.name, p.kind, p.isRequired]), [
-    ["id", DartParameterKind.RequiredPositional, true],
-    ["page", DartParameterKind.OptionalPositional, false],
-  ]);
+  assert.deepEqual(
+    load.parameters.map((p) => [p.name, p.kind, p.isRequired]),
+    [
+      ["id", DartParameterKind.RequiredPositional, true],
+      ["page", DartParameterKind.OptionalPositional, false],
+    ]
+  );
   assert.equal(load.parameters[1].defaultValue.numberValue, 1);
   assert.equal(m["method:watch"].asyncKind, "asyncStar");
   assert.equal(m["method:gen"].isGenerator, true);
@@ -252,12 +319,18 @@ test("construtores: nomeado, factory, redirecionante, initializer list e private
   const k = Object.fromEntries(c.constructors.map((x) => [x.name, x]));
   assert.deepEqual(Object.keys(k), ["User", "User.guest", "User.fromJson", "User.other"]);
   assert.equal(k.User.isConst, true);
-  assert.deepEqual(k.User.parameters.map((p) => [p.name, p.source, p.publicName]), [
-    ["id", DartParameterSource.This, "id"],
-    ["name", DartParameterSource.Plain, "name"],
-    ["_repo", DartParameterSource.This, "repo"],
-  ]);
-  assert.deepEqual(k.User.initializers.map((i) => i.fieldName ?? (i.isSuperCall ? "super" : "?")), ["_name", "super"]);
+  assert.deepEqual(
+    k.User.parameters.map((p) => [p.name, p.source, p.publicName]),
+    [
+      ["id", DartParameterSource.This, "id"],
+      ["name", DartParameterSource.Plain, "name"],
+      ["_repo", DartParameterSource.This, "repo"],
+    ]
+  );
+  assert.deepEqual(
+    k.User.initializers.map((i) => i.fieldName ?? (i.isSuperCall ? "super" : "?")),
+    ["_name", "super"]
+  );
   assert.equal(k["User.guest"].isRedirecting, true);
   assert.equal(k["User.fromJson"].isFactory && k["User.fromJson"].body.kind === "arrow", true);
   assert.equal(k["User.other"].redirectTarget, "OtherUser");
@@ -287,7 +360,10 @@ void f(BuildContext context) {
 }`);
   const calls = f.calls();
   const names = calls.map((c) => c.callee);
-  assert.deepEqual(names.filter((n) => n === "print"), ["print"]);
+  assert.deepEqual(
+    names.filter((n) => n === "print"),
+    ["print"]
+  );
   assert.ok(names.includes("logger.print"));
   assert.ok(!names.includes("helper") && !names.includes("other") && !names.includes("maybe"));
   assert.ok(names.includes("build"));
@@ -326,7 +402,10 @@ test("closures, awaits, returns e insideClosure", () => {
   assert.ok(setState && setState.insideClosure === null);
   const build = c.findMethod("build").body;
   assert.equal(build.firstTopLevelReturnLine, 14);
-  assert.deepEqual(build.statements.map((s) => s.kind), [DartStatementKind.VariableDeclaration, DartStatementKind.Return]);
+  assert.deepEqual(
+    build.statements.map((s) => s.kind),
+    [DartStatementKind.VariableDeclaration, DartStatementKind.Return]
+  );
   assert.ok(c.extendsAny("State"));
 });
 
@@ -349,7 +428,10 @@ void f() {
   assert.equal(tries.length, 3);
   assert.equal(tries[0].catches[0].isEmpty, true);
   assert.equal(tries[1].catches[0].onType.name, "FormatException");
-  assert.deepEqual([tries[1].catches[0].exceptionName, tries[1].catches[0].stackTraceName], ["e", "s"]);
+  assert.deepEqual(
+    [tries[1].catches[0].exceptionName, tries[1].catches[0].stackTraceName],
+    ["e", "s"]
+  );
   assert.equal(tries[1].catches[0].isEmpty, true);
   assert.equal(tries[1].catches[0].body.comments[0].directive, DartCommentDirective.DangerIgnore);
   assert.ok(tries[1].finallyBody);
@@ -358,11 +440,16 @@ void f() {
 });
 
 test("listas de widgets: elementos e argumentos", () => {
-  const f = parse(`Widget b() => Column(children: [Text('a'), const SizedBox(height: 8), Text('b'), SizedBox(height: 8), Text('c')]);`);
+  const f = parse(
+    `Widget b() => Column(children: [Text('a'), const SizedBox(height: 8), Text('b'), SizedBox(height: 8), Text('c')]);`
+  );
   const column = f.calls().find((c) => c.name === "Column");
   const children = column.argument("children").value;
   assert.equal(children.kind, DartExpressionKind.ListLiteral);
-  assert.deepEqual(children.elements.map((e) => e.call?.name), ["Text", "SizedBox", "Text", "SizedBox", "Text"]);
+  assert.deepEqual(
+    children.elements.map((e) => e.call?.name),
+    ["Text", "SizedBox", "Text", "SizedBox", "Text"]
+  );
   assert.equal(children.elements[1].call.isConst, true);
   assert.equal(children.elements[1].call.argument("height").value.numberValue, 8);
 });
@@ -409,7 +496,11 @@ class A {
   void load() {} // ignore: presentation-encapsulation
 }`);
   const d = f.comments.map((c) => c.directive);
-  assert.deepEqual(d.slice(0, 3), [DartCommentDirective.IgnoreForFile, DartCommentDirective.LanguageVersion, DartCommentDirective.Todo]);
+  assert.deepEqual(d.slice(0, 3), [
+    DartCommentDirective.IgnoreForFile,
+    DartCommentDirective.LanguageVersion,
+    DartCommentDirective.Todo,
+  ]);
   assert.deepEqual(f.comments[0].directiveArgs, ["lint_a", "lint_b"]);
   const load = f.findClass("A").findMethod("load");
   assert.equal(load.doc.isMacroOnly, true);
@@ -445,7 +536,10 @@ test("DartPath: camada, pasta, teste, gerado, barrel e caminho do teste", () => 
   assert.equal(p.layerFolder, DartLayerFolder.UseCases);
   assert.equal(p.inFolder(DartLayerFolder.UseCases), true);
   assert.equal(p.feature, "order");
-  assert.equal(p.expectedTestPath, "packages/app/test/features/order/domain/usecases/get_order_usecase_test.dart");
+  assert.equal(
+    p.expectedTestPath,
+    "packages/app/test/features/order/domain/usecases/get_order_usecase_test.dart"
+  );
   // sem sinônimos: `usecase` (singular) não é UseCases
   const singular = DartPath.of("lib/x/domain/usecase/a.dart");
   assert.equal(singular.inFolder(DartLayerFolder.UseCases), false);
@@ -455,7 +549,10 @@ test("DartPath: camada, pasta, teste, gerado, barrel e caminho do teste", () => 
   assert.equal(DartPath.of("test/a.dart").isTest, true);
   assert.equal(DartPath.of("packages/app/test/helpers/fake.dart").isTest, true);
   assert.equal(DartPath.of("lib/features/test/domain/entities/demo_entity.dart").isTest, false);
-  assert.equal(DartPath.of("lib/features/test/domain/entities/demo_entity.dart").inFolder("test"), true);
+  assert.equal(
+    DartPath.of("lib/features/test/domain/entities/demo_entity.dart").inFolder("test"),
+    true
+  );
   assert.equal(DartPath.of("lib/a_test.dart").isTest, true);
   assert.equal(DartPath.of("lib/a.freezed.dart").isGenerated, true);
   assert.equal(DartPath.of("lib/generated/l10n.dart").isGenerated, true);
@@ -499,7 +596,9 @@ test("quebras de linha não mudam os fatos", () => {
       sup: c.superclass.canonical,
       fields: c.fields.map((f) => f.type.canonical),
       params: c.methods[0].parameters.map((p) => `${p.kind}:${p.type.canonical}:${p.name}`),
-      calls: parse(src).calls().map((x) => `${x.callee}(${x.arguments.length})`),
+      calls: parse(src)
+        .calls()
+        .map((x) => `${x.callee}(${x.arguments.length})`),
       awaits: c.methods[0].body.awaits.length,
     });
   };
@@ -507,24 +606,96 @@ test("quebras de linha não mudam os fatos", () => {
 });
 
 test("identificadores declarados", () => {
-  const f = parse(`class Usuario { final String nome; void salvar(int quantidade) { final total = 1; } }`);
-  assert.deepEqual(f.identifiers.map((i) => `${i.kind}:${i.name}`), [
-    "class:Usuario",
-    "field:nome",
-    "method:salvar",
-    "parameter:quantidade",
-    "localVariable:total",
-  ]);
+  const f = parse(
+    `class Usuario { final String nome; void salvar(int quantidade) { final total = 1; } }`
+  );
+  assert.deepEqual(
+    f.identifiers.map((i) => `${i.kind}:${i.name}`),
+    ["class:Usuario", "field:nome", "method:salvar", "parameter:quantidade", "localVariable:total"]
+  );
 });
 
 test("DartMemberKind cobre todos os membros", () => {
-  const c = one(`class A { A(); int x = 0; int get y => 0; set y(int v) {} void f() {} int operator +(A o) => 0; }`);
-  assert.deepEqual(c.members.map((m) => m.memberKind), [
-    DartMemberKind.Constructor,
-    DartMemberKind.Field,
-    DartMemberKind.Getter,
-    DartMemberKind.Setter,
-    DartMemberKind.Method,
-    DartMemberKind.Operator,
-  ]);
+  const c = one(
+    `class A { A(); int x = 0; int get y => 0; set y(int v) {} void f() {} int operator +(A o) => 0; }`
+  );
+  assert.deepEqual(
+    c.members.map((m) => m.memberKind),
+    [
+      DartMemberKind.Constructor,
+      DartMemberKind.Field,
+      DartMemberKind.Getter,
+      DartMemberKind.Setter,
+      DartMemberKind.Method,
+      DartMemberKind.Operator,
+    ]
+  );
+});
+
+test("closures em inicializadores, typedef antigo e linhas de partes de tipo", () => {
+  const f = parse(`class B {
+  final onTap = (bool reload) {};
+  final void Function(
+    bool force,
+  ) callback;
+  final (bool reset, int n) pair;
+}
+typedef void Cb<T>(bool show, T value);`);
+  const b = f.classes[0];
+  const init = b.findField("onTap").initializer;
+  assert.deepEqual(
+    init.closures.map((c) => c.parameters.map((p) => `${p.type.canonical} ${p.name}`)),
+    [["bool reload"]]
+  );
+  assert.deepEqual(
+    f.closures().map((c) => c.line),
+    [2]
+  );
+  const cb = b.findField("callback").type;
+  assert.equal(cb.parameters[0].name, "force");
+  assert.equal(cb.parameters[0].nameLine, 4);
+  assert.equal(cb.line, 3);
+  assert.equal(b.findField("pair").type.recordFields[0].nameLine, 6);
+  const td = f.typedefs[0];
+  assert.equal(td.aliasedType.kind, DartTypeKind.Function);
+  assert.equal(td.aliasedType.returnType.isVoid, true);
+  assert.deepEqual(
+    td.aliasedType.parameters.map((p) => `${p.type.canonical} ${p.name}`),
+    ["bool show", "T value"]
+  );
+  assert.deepEqual(
+    td.typeParameters.map((t) => t.name),
+    ["T"]
+  );
+});
+
+test("compact: texto do nó em uma linha", () => {
+  const c = one(`final class const E({
+  @JsonKey(name: 'x')
+  required final String createdAt =
+      'a'
+      'b',
+  // comentário
+  final int? id,
+});`);
+  const p = c.primaryConstructor.parameters[0];
+  assert.equal(p.compact, "required final String createdAt = 'a' 'b'");
+  assert.equal(c.fields[1].compact, "final int? id");
+  assert.equal(
+    parse("void f() {\n  foo(\n    a,\n    b,\n  );\n}").calls()[0].compact,
+    "foo(a, b)"
+  );
+});
+
+test("references: uso do nome, com e sem acesso a membro", () => {
+  const body = parse(`class _S extends State<W> {
+  Future<void> f() async {
+    await load();
+    if (!context.mounted) return;
+    if (!mounted) return; // mounted
+    final s = 'mounted';
+  }
+}`).classes[0].findMethod("f").body;
+  assert.deepEqual(body.references("mounted"), [5]);
+  assert.deepEqual(body.references("mounted", { includeMemberAccess: true }), [4, 5]);
 });

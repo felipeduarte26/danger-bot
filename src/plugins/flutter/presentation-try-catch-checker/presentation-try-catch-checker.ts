@@ -4,120 +4,49 @@
  * Erros devem ser tratados em Repositories (Either/Result) ou UseCases,
  * nunca em ViewModels/Controllers/Pages.
  *
- * Ignora ocorrências dentro de block comments e multi-line strings.
+ * Analisa todo `try` de métodos, construtores, funções e closures (inclusive as de
+ * inicializadores). Comentários e strings nunca contam; `try` sem `catch`/`on` nem
+ * `finally` não é reportado. Exclui `_test.dart` e arquivos gerados.
  */
-import { createPlugin, getDanger, sendFormattedFail } from "@types";
-import * as fs from "fs";
+import { DartFile, DartLayer, DartTry, createPlugin, sendFormattedFail } from "@types";
 
-const TRY_RE = /^\s*try\s*\{/;
-const CATCH_RE = /^\}\s*(?:catch\s*[\s(]|on\s+)/;
-const FINALLY_RE = /^\}\s*finally\s*\{/;
+/** Linhas do trecho mostrado na mensagem (a partir da linha do `try`). */
+const SNIPPET_MAX_LINES = 6;
 
-function buildSkipMask(lines: string[]): boolean[] {
-  const skip = new Array<boolean>(lines.length).fill(false);
-  let inBlockComment = false;
-  let inMultiLineString = false;
-  let stringDelimiter = "";
-
-  for (let i = 0; i < lines.length; i++) {
-    const trimmed = lines[i].trim();
-
-    if (inBlockComment) {
-      skip[i] = true;
-      if (trimmed.includes("*/")) inBlockComment = false;
-      continue;
-    }
-
-    if (inMultiLineString) {
-      skip[i] = true;
-      if (lines[i].includes(stringDelimiter)) inMultiLineString = false;
-      continue;
-    }
-
-    if (trimmed.startsWith("//") || trimmed.startsWith("///") || trimmed.startsWith("*")) {
-      skip[i] = true;
-      continue;
-    }
-
-    if (trimmed.startsWith("/*")) {
-      skip[i] = true;
-      inBlockComment = true;
-      if (trimmed.includes("*/") && trimmed.indexOf("*/") > trimmed.indexOf("/*") + 1) {
-        inBlockComment = false;
-      }
-      continue;
-    }
-
-    if (trimmed.includes("'''") || trimmed.includes('"""')) {
-      const delim = trimmed.includes("'''") ? "'''" : '"""';
-      const firstIdx = trimmed.indexOf(delim);
-      const secondIdx = trimmed.indexOf(delim, firstIdx + 3);
-      if (secondIdx === -1) {
-        inMultiLineString = true;
-        stringDelimiter = delim;
-      }
-    }
+/** Todos os `try` do arquivo, uma vez cada, na ordem do arquivo. */
+function tryStatementsOf(file: DartFile): DartTry[] {
+  const bodies = [
+    ...file.declarations.flatMap((cls) => [
+      ...cls.methods.map((m) => m.body),
+      ...cls.constructors.map((c) => c.body),
+    ]),
+    ...file.functions.map((f) => f.body),
+    // closures de inicializadores (`final onTap = () { try ... }`); as dos corpos repetem e são descartadas
+    ...file.closures().map((c) => c.body),
+  ];
+  const byOffset = new Map<number, DartTry>();
+  for (const body of bodies) {
+    for (const t of body?.tryStatements ?? []) byOffset.set(t.startOffset, t);
   }
-
-  return skip;
+  return [...byOffset.values()].sort((a, b) => a.startOffset - b.startOffset);
 }
 
-function extractTrySnippet(lines: string[], start: number, maxLines = 6): string {
-  const snippet: string[] = [];
-  let braces = 0;
-  let opened = false;
-
-  for (let i = start; i < lines.length && snippet.length < maxLines; i++) {
-    snippet.push(lines[i]);
-
-    for (const ch of lines[i]) {
-      if (ch === "{") {
-        braces++;
-        opened = true;
-      }
-      if (ch === "}") braces--;
-    }
-
-    if (opened && braces <= 0) break;
-  }
-
-  if (snippet.length >= maxLines) {
-    snippet.push("    // ...");
-  }
-
-  return snippet.map((l) => l.replace(/^\s{2}/, "")).join("\n");
-}
-
-function classifyTry(lines: string[], start: number): string | null {
-  let braces = 0;
-  let opened = false;
-  let hasCatch = false;
-  let hasFinally = false;
-
-  for (let i = start; i < lines.length; i++) {
-    const line = lines[i];
-
-    for (const ch of line) {
-      if (ch === "{") {
-        braces++;
-        opened = true;
-      }
-      if (ch === "}") braces--;
-    }
-
-    if (i > start && opened) {
-      const trimmed = line.trim();
-      if (CATCH_RE.test(trimmed)) hasCatch = true;
-      if (FINALLY_RE.test(trimmed)) hasFinally = true;
-    }
-
-    if (opened && braces <= 0) break;
-  }
-
+function tryKind(t: DartTry): string | null {
+  const hasCatch = t.catches.length > 0;
+  const hasFinally = t.finallyBody !== null;
   if (hasCatch && hasFinally) return "try-catch-finally";
   if (hasCatch) return "try-catch";
   if (hasFinally) return "try-finally";
   return null;
+}
+
+/** Até 6 linhas do `try` (com `// ...` quando passa disso), sem 2 espaços de indentação. */
+function trySnippet(file: DartFile, t: DartTry): string {
+  const lastLine = Math.min(t.endLine, t.line + SNIPPET_MAX_LINES - 1);
+  const snippet: string[] = [];
+  for (let line = t.line; line <= lastLine; line++) snippet.push(file.lineAt(line));
+  if (snippet.length >= SNIPPET_MAX_LINES) snippet.push("    // ...");
+  return snippet.map((l) => l.replace(/^\s{2}/, "")).join("\n");
 }
 
 export default createPlugin(
@@ -127,37 +56,20 @@ export default createPlugin(
     enabled: true,
   },
   async () => {
-    const { git } = getDanger();
-
-    const dartFiles = [...git.modified_files, ...git.created_files].filter(
-      (f: string) =>
-        f.endsWith(".dart") &&
-        !f.endsWith(".g.dart") &&
-        !f.endsWith(".freezed.dart") &&
-        !f.endsWith("_test.dart") &&
-        f.includes("/presentation/") &&
-        fs.existsSync(f)
+    const dartFiles = DartFile.changed({ includeTests: true }).filter(
+      (f) => f.path.inLayer(DartLayer.Presentation) && !f.path.fileName.endsWith("_test.dart")
     );
 
     for (const file of dartFiles) {
-      const content = fs.readFileSync(file, "utf-8");
-      const lines = content.split("\n");
-      const skip = buildSkipMask(lines);
-
-      for (let i = 0; i < lines.length; i++) {
-        if (skip[i]) continue;
-        if (!TRY_RE.test(lines[i])) continue;
-
-        const kind = classifyTry(lines, i);
+      for (const t of tryStatementsOf(file)) {
+        const kind = tryKind(t);
         if (!kind) continue;
-
-        const detectedSnippet = extractTrySnippet(lines, i);
 
         sendFormattedFail({
           title: "TRY-CATCH NA CAMADA PRESENTATION",
           description: `Uso de \`${kind}\` detectado na **camada Presentation**. Erros devem ser tratados nos **Repositories** ou **UseCases**, não na Presentation.`,
           problem: {
-            wrong: detectedSnippet,
+            wrong: trySnippet(file, t),
             correct: `final result = await useCase.execute();\nresult.fold(\n  (failure) => state = ErrorState(failure.message),\n  (data) => state = SuccessState(data),\n);`,
             wrongLabel: `${kind} na Presentation`,
             correctLabel: "ViewModel consome resultado já tratado",
@@ -172,8 +84,8 @@ export default createPlugin(
             text: "Clean Architecture",
             url: "https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html",
           },
-          file,
-          line: i + 1,
+          file: file.path.path,
+          line: t.line,
         });
       }
     }

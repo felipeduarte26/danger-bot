@@ -16,7 +16,7 @@ import {
   DartUriKind,
   Presence,
 } from "./enums";
-import { DartType, parseDartType } from "./type";
+import { DartType, functionTypeFromSignature, parseDartType } from "./type";
 import {
   DartAnnotation,
   DartArgument,
@@ -1145,16 +1145,32 @@ export class DartTypedef extends DartNodeBase implements DartDeclaration {
     this.annotations = raw.annotations.map((a) => new DartAnnotation(file, a));
     this.doc = docOf(file, raw.firstTok, raw.headTok);
     this.startLine = this.doc?.line ?? file.lineAtOffset(tokens[raw.firstTok].start);
-    this.typeParameters = buildTypeParameters(file, raw.typeParamsOpenTok, new Set());
-    this.aliasedType =
-      raw.aliasStartTok >= 0
-        ? parseDartType(
-            file.lexed,
-            raw.aliasStartTok,
-            raw.aliasEndTok,
-            new Set(this.typeParameters.map((t) => t.name))
-          )
-        : null;
+    if (raw.aliasStartTok >= 0) {
+      this.typeParameters = buildTypeParameters(file, raw.typeParamsOpenTok, new Set());
+      const typeParams = new Set(this.typeParameters.map((t) => t.name));
+      this.aliasedType = parseDartType(file.lexed, raw.aliasStartTok, raw.aliasEndTok, typeParams);
+    } else {
+      // sintaxe antiga: `typedef void Callback<T>(T value);`
+      let open = raw.nameTok + 1;
+      const typeParamsOpen = isPunct(tokens[open], "<") ? open : -1;
+      if (typeParamsOpen >= 0) open = matchTypeArgs(tokens, open, raw.endTok) + 1;
+      this.typeParameters = buildTypeParameters(file, typeParamsOpen, new Set());
+      const typeParams = new Set(this.typeParameters.map((t) => t.name));
+      const close = isPunct(tokens[open], "(") ? matchClose(tokens, open, raw.endTok) : -1;
+      let typedefTok = raw.headTok;
+      while (typedefTok < raw.nameTok && !isIdent(tokens[typedefTok], "typedef")) typedefTok++;
+      this.aliasedType =
+        close > 0
+          ? functionTypeFromSignature(
+              file.lexed,
+              typedefTok + 1,
+              raw.nameTok - 1,
+              open,
+              close,
+              typeParams
+            )
+          : null;
+    }
   }
 
   hasAnnotation(name: string): boolean {

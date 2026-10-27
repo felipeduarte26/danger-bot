@@ -291,19 +291,19 @@ As regras de carregamento estão em [Configuração no projeto consumidor](#conf
 
 ### Padrão obrigatório das mensagens
 
-**Todo problema apontado num arquivo/linha usa `sendFormattedFail` (regra) ou `sendFormattedWarn` (heurística).** Nunca use `sendFail`/`sendWarn` com template literal montado à mão. O exemplo de referência é o [mediaquery-modern.ts](src/plugins/flutter/mediaquery-modern/mediaquery-modern.ts) (veja o `sendFormattedFail` do `MediaQuery.of(...).<prop>`):
+**Todo problema apontado num arquivo/linha usa `sendFormattedFail` (regra) ou `sendFormattedWarn` (heurística).** Nunca use `sendFail`/`sendWarn` com template literal montado à mão. O exemplo de referência é o [mediaquery-modern.ts](src/plugins/flutter/mediaquery-modern/mediaquery-modern.ts) (veja o `sendFormattedFail` do `MediaQuery.of(...).<prop>`, que acha a chamada pelo modelo Dart: `file.calls()` e `call.postfixMember`):
 
 | Campo                         | O que colocar                                                                                      | No mediaquery-modern                                                                          |
 | ----------------------------- | -------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
 | `title`                       | Problema em CAPS, sem emoji e **fixo** (é a chave do resumo)                                       | `"MEDIAQUERY.OF() — USE API MODERNA"`                                                         |
 | `description`                 | Por que é problema, citando o trecho detectado                                                     | `` `MediaQuery.of(...).${property}` causa rebuilds desnecessários. ``                         |
-| `problem.wrong`               | O **código real** do erro (linha ou trecho do arquivo)                                             | `line.trim()`                                                                                 |
-| `problem.correct`             | O **mesmo código já corrigido**                                                                    | `line.trim().replace(MQ_OF_RE, alternative)`                                                  |
+| `problem.wrong`               | O **código real** do erro (linha ou trecho do arquivo)                                             | `direct.lineText` (a linha real; `direct.compact` se a chamada quebra linha)                  |
+| `problem.correct`             | O **mesmo código já corrigido**                                                                    | `wrong.replace(access, alternative)` (a mesma linha, com a API específica)                    |
 | `wrongLabel` / `correctLabel` | O efeito de cada versão                                                                            | `"Rebuild quando QUALQUER propriedade muda"` / `` `Rebuild apenas quando ${property} muda` `` |
 | `action`                      | `text`: o que fazer; `code`: a correção pronta para copiar                                         | `` `Substitua por \`${alternative}\`:` `` + a linha corrigida                                 |
 | `objective`                   | O benefício em uma frase                                                                           | `"Melhor **performance** com rebuilds mais eficientes."`                                      |
 | `reference`                   | Link oficial (dart.dev, docs.flutter.dev, api.flutter.dev, linter rules...) **sempre que existir** | `MediaQuery-class.html` na api.flutter.dev                                                    |
-| `file` / `line`               | Para o comentário inline na linha do problema                                                      | `file`, `i + 1`                                                                               |
+| `file` / `line`               | Para o comentário inline na linha do problema                                                      | `file.path.path`, `direct.line`                                                               |
 
 Quando não der para mostrar a linha real:
 
@@ -461,11 +461,18 @@ require(`${dist}/plugins/flutter/${plugin}`)
 
 Teste o caso que deve ser reportado **e** o que não deve. Para mudanças em parsers, compare o resultado antigo com o novo no mesmo diff: crie um `git worktree` do HEAD com `node_modules` linkado e rode o dry-run das duas versões num clone do esfera-web.
 
-**Mudanças no modelo Dart** (`src/dart/`) afetam todos os plugins:
+**Mudanças no modelo Dart** (`src/dart/`) ou refatoração de plugin: use a ferramenta de paridade em [tools/parity/](tools/parity/README.md), que roda os plugins de duas versões sobre o mesmo esfera e compara tudo o que publicam (dados em `.parity/`, ignorada pelo git):
+
+```bash
+tools/parity/setup.sh <ref-de-referência>      # uma vez: clone do esfera, cenários e baseline (~5 min)
+tools/parity/build.sh novo && tools/parity/ab.sh novo [plugin...]
+tools/parity/cmp-all.sh novo --only <plugin> --detail <plugin>
+node tools/parity/self-consistency.cjs novo <plugin>
+```
 
 1. caso novo em `tests/dart-model.test.cjs` e `npm run build && npm test`;
-2. antes/depois de **todos** os plugins no mesmo código (um clone do esfera com todos os arquivos como criados e alguns PRs reais): as mensagens e as linhas têm de ser iguais, salvo correção explicada;
-3. autoconsistência: o mesmo esfera passado no `dart format --page-width 40` e `160` tem de dar os mesmos achados — o resultado não pode depender de quebra de linha.
+2. cenários reais (o esfera inteiro e PRs reais) com saída idêntica — mensagem e linha —, salvo correção explicada;
+3. autoconsistência: o esfera passado no `dart format` com 40 e 160 colunas tem de dar os mesmos achados — o resultado não pode depender de quebra de linha.
 
 ## Configuração no projeto consumidor
 

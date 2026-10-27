@@ -12,6 +12,9 @@ export default tseslint.config(
       "scripts/**/*.js",
       "scripts/**/*.cjs",
       "bin/**/*.js",
+      "tests/**/*.cjs", // testes em node:test (CommonJS, fora do projeto TypeScript)
+      ".parity/**", // dados da paridade (tools/parity)
+      "tools/**", // scripts de manutenção (paridade), fora do pacote
       "**/*.d.ts",
       "eslint.config.js", // Ignorar o próprio arquivo de config
       "commitlint.config.js", // Ignorar config do commitlint

@@ -5,8 +5,10 @@ Referencia completa de todas as funcoes auxiliares do Danger Bot.
 Todos os helpers sao importados de `@felipeduarte26/danger-bot`:
 
 ```typescript
-import { getDanger, sendMessage, getDartFiles /* ... */ } from "@felipeduarte26/danger-bot";
+import { getDanger, sendMessage, DartFile /* ... */ } from "@felipeduarte26/danger-bot";
 ```
+
+> **Para ler código Dart, use o modelo Dart** (`DartFile`, `DartPath`, `DartClass`...): ver [MODELO_DART.md](MODELO_DART.md). Os helpers de arquivos `.dart` desta página (`getDartFiles`, `getDomainDartFiles`, `isInLayer`...) e os de primary constructor ficam como **legado**, exportados para plugins locais antigos.
 
 ---
 
@@ -204,7 +206,9 @@ const yamlFiles = files.filter(f => f.endsWith(".yaml"));
 const testFiles = files.filter(f => f.includes("_test."));
 ```
 
-### getDartFiles()
+### getDartFiles() — legado
+
+> Em código novo use `DartFile.changed()` (modelo Dart: já analisa cada arquivo; ver [MODELO_DART.md](MODELO_DART.md)).
 
 Retorna os arquivos `.dart` modificados ou criados que existem no disco, **exceto testes** (`_test.dart`). E assincrona.
 
@@ -304,7 +308,9 @@ if (hasEval) {
 
 ---
 
-## Clean Architecture
+## Clean Architecture (legado)
+
+> Em código novo: `DartFile.changed().filter((f) => f.path.inLayer(DartLayer.Domain))` e `DartPath.of(caminho).inLayer(...)`.
 
 ### getDomainDartFiles()
 
@@ -466,7 +472,9 @@ function getPendingSummaryCounts(): { fails: number; warnings: number }
 
 ---
 
-## Primary constructors (Dart 3.13+)
+## Primary constructors (Dart 3.13+) — legado
+
+> O modelo Dart já resolve primary constructors: `cls.fields` (parâmetros declarantes com `origin === DartFieldOrigin.PrimaryConstructor`), `cls.primaryConstructor` e `cls.header`. Os helpers abaixo ficam para plugins locais antigos.
 
 Para plugins que analisam a estrutura das classes (nome, `extends`/`implements`, campos). Com primary constructor o cabecalho tem `const` e a lista de parametros entre o nome e as clausulas, e os campos viram parametros declarantes. Detalhes e exemplo no [Guia de Plugins](GUIA_PLUGINS.md#classes-com-primary-constructor-dart-313).
 
@@ -480,28 +488,27 @@ Para plugins que analisam a estrutura das classes (nome, `extends`/`implements`,
 
 ## Usando helpers em plugins customizados
 
-Exemplo completo de um plugin que usa varios helpers:
+Exemplo completo de um plugin que lê o código pelo modelo Dart e usa os helpers de mensagem e de PR:
 
 ```typescript
 import {
   createPlugin,
-  getDartFiles,
-  getFileContent,
+  DartFile,
+  DartLayer,
   sendMessage,
   sendWarn,
   sendFail,
   getLineStats,
-  isInLayer,
 } from "@felipeduarte26/danger-bot";
 
 export default createPlugin(
   {
     name: "meu-plugin-customizado",
-    description: "Exemplo de plugin usando helpers",
+    description: "Exemplo de plugin usando o modelo Dart e helpers",
     enabled: true,
   },
   async () => {
-    const dartFiles = await getDartFiles();
+    const dartFiles = DartFile.changed(); // .dart do PR, sem testes e sem gerados
     if (dartFiles.length === 0) return;
 
     // Verificar tamanho do PR
@@ -511,19 +518,21 @@ export default createPlugin(
       sendWarn(`PR muito grande: ${lines} linhas. Considere dividir.`);
     }
 
-    // Verificar cada arquivo
     for (const file of dartFiles) {
-      const content = await getFileContent(file);
-      if (!content) continue;
-
-      // Verificar print() em codigo de producao (getDartFiles ja exclui testes)
-      if (content.includes("print(")) {
-        sendWarn(`print() encontrado em ${file}. Use um logger.`);
+      // print() de verdade: chamadas, nunca texto em comentário ou string
+      for (const call of file.calls()) {
+        if (call.name === "print" && call.receiver === null) {
+          sendWarn("print() em código de produção. Use um logger.", file.path.path, call.line);
+        }
       }
 
-      // Verificar violacao de arquitetura
-      if (isInLayer(file, "domain") && content.includes("/data/")) {
-        sendFail(`Domain importando Data em ${file}`);
+      // Domain importando Data
+      if (file.path.inLayer(DartLayer.Domain)) {
+        for (const imp of file.imports) {
+          if (imp.uri.includes("/data/")) {
+            sendFail(`Domain importando Data: ${imp.uri}`, file.path.path, imp.line);
+          }
+        }
       }
     }
 

@@ -15,6 +15,10 @@ danger-bot/
 │   ├── config.ts           # Loader do danger-bot.yaml (plugins locais + ignore)
 │   ├── branding.ts         # Nome e link do bot (branding do danger-bot.yaml)
 │   ├── native-import.ts    # import() nativo (pacotes so-ESM e plugins locais no build CommonJS)
+│   ├── dart/               # Modelo Dart: leitura do codigo pelos plugins (DartFile, DartClass...)
+│   │   ├── internal/       # lexer, parser de declaracoes, nivel superior, pubspec
+│   │   ├── enums.ts, path.ts, type.ts, nodes.ts, declarations.ts, file.ts, text.ts
+│   │   └── index.ts        # exportacoes publicas (re-exportadas por types.ts)
 │   └── plugins/
 │       ├── index.ts        # Barrel file de plataformas
 │       └── flutter/        # Plugins Flutter/Dart
@@ -48,6 +52,8 @@ danger-bot/
 │   ├── patch-danger.cjs    # Patches no Danger JS (postinstall)
 │   ├── extract_dart_identifiers.js
 │   └── setup_spell_check.sh
+├── tests/                  # Testes do modelo Dart (node:test, sobre o dist/)
+├── tools/parity/           # Paridade antes × depois dos plugins sobre o esfera (fora do pacote)
 ├── dist/                   # Build output (commitado)
 └── docs/                   # Documentacao
 ```
@@ -72,7 +78,8 @@ danger-bot/
    ├── runPlugins([...plugins, ...localPlugins])
    │   └── Para cada plugin habilitado:
    │       └── plugin.run()
-   │           └── Usa helpers (getDartFiles, sendWarn, etc.)
+   │           └── Le o codigo pelo modelo Dart (DartFile.changed(), file.classes...)
+   │               e publica com sendFormattedFail/sendWarn
    ├── callbacks.onSuccess() ou callbacks.onError()
    ├── flushSummaries() → fails/warns agrupados (sempre, mesmo se um plugin falhar)
    └── callbacks.onFinally()
@@ -107,14 +114,23 @@ Define as interfaces core do sistema de plugins:
 Funcoes auxiliares organizadas em categorias:
 - **Danger Core**: `getDanger()`
 - **Mensagens**: `sendMessage`, `sendWarn`, `sendFail`, `sendMarkdown`, `scheduleTask`
-- **Filtros de arquivos**: `getAllChangedFiles`, `getDartFiles`, `getFilesMatching`, etc.
-- **Clean Architecture**: `getDomainDartFiles`, `getDataDartFiles`, `isInLayer`, etc.
+- **Filtros de arquivos**: `getAllChangedFiles`, `getFilesMatching`, etc. (para `.dart`, os plugins usam `DartFile.changed()`)
+- **Legado**: `getDartFiles`, `getDomainDartFiles`, `getDataDartFiles`, `isInLayer` (mantidos para plugins locais antigos)
 - **Info do PR**: `getPRDescription`, `getPRTitle`, `getLineStats` (`getLinesChanged` obsoleto)
 - **Execucao**: `isPluginActive` / `setActivePlugins` (plugins habilitados na execucao)
-- **Primary constructors**: `normalizePrimaryConstructorHeaders`, `findPrimaryConstructors`, `primaryConstructorFieldsByLine`
+- **Primary constructors (legado)**: `normalizePrimaryConstructorHeaders`, `findPrimaryConstructors`, `primaryConstructorFieldsByLine`
 - **Configuracao**: `setIgnoredFiles`, `getIgnoredFiles` (usados internamente pelo config loader)
 
 > `getAllChangedFiles()` filtra automaticamente os arquivos listados em `ignore_files` do `danger-bot.yaml`.
+
+### src/dart/ (modelo Dart)
+
+Le e analisa cada arquivo `.dart` uma vez por execucao (cache limpo no `runPlugins`) e entrega o codigo como objetos: `DartFile` (classes, funcoes, diretivas, comentarios, strings, chamadas), `DartPath` (camada, pasta, teste, gerado), `DartClass`, `DartField`, `DartMethod`, `DartConstructor`, `DartType`, `DartBody` (statements, chamadas, closures, try/catch)... Trabalha sobre tokens, nao sobre linhas: comentarios e strings nunca viram codigo, e quebras de linha nao mudam o resultado. Nunca lanca excecao; o que nao reconhece vira `DartUnknownMember`/`parseErrors`. Guia completo em [MODELO_DART.md](MODELO_DART.md).
+
+- `internal/lexer.ts`: tokens, strings com interpolacao, comentarios aninhados, CRLF/BOM.
+- `internal/syntax.ts`: classes/enums, membros, parametros, construtores (tambem usado pelo primary-constructors).
+- `internal/toplevel.ts`: diretivas, mixin, extension, extension type, typedef, funcoes e variaveis de nivel superior.
+- `path.ts`, `type.ts`, `nodes.ts`, `declarations.ts`, `file.ts`: as classes publicas; `enums.ts`: os enums.
 
 ### src/config.ts
 

@@ -67,11 +67,26 @@ executeDangerBot(plugins);
 ### Como usar helpers no meu dangerfile?
 
 ```typescript
-import { getDanger, sendMessage, getDartFiles } from "@felipeduarte26/danger-bot";
+import { DartFile, sendMessage } from "@felipeduarte26/danger-bot";
 
-const d = getDanger();
-const files = await getDartFiles(); // assincrono; nao inclui testes
+const files = DartFile.changed(); // .dart do PR, sem testes e sem gerados
 sendMessage(`${files.length} arquivos Dart modificados`);
+```
+
+### Como um plugin lê o código Dart?
+
+Pelo **modelo Dart** ([MODELO_DART.md](MODELO_DART.md)): `DartFile.changed()` entrega cada arquivo já analisado (classes, campos, métodos, tipos, chamadas, comentários, strings). O plugin trabalha com essas propriedades, sem regex sobre o texto — comentários, strings, genéricos aninhados, quebras de linha e primary constructors já vêm tratados.
+
+```typescript
+for (const file of DartFile.changed()) {
+  for (const cls of file.classes) {
+    for (const field of cls.fields) {
+      if (field.type?.isString && /date$/i.test(field.name)) {
+        // field.lineText = código real; field.nameLine = linha do comentário inline
+      }
+    }
+  }
+}
 ```
 
 ### Funciona com GitHub, Bitbucket e GitLab?

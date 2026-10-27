@@ -1,40 +1,47 @@
 /**
  * Data Models Plugin
- * Valida arquivos dentro de /models/:
- * - Nome do arquivo deve terminar com _model.dart
+ * Valida arquivos dentro de /models/ (sem barrel e sem `*models.dart`):
+ * - Nome do arquivo deve terminar com _model.dart (senão o arquivo para aqui)
  * - Classe deve ter sufixo Model
- * - Campos devem ser final (imutabilidade)
  * - Somente uma classe Model por arquivo
+ * - Campos devem ser final (imutabilidade): reporta só o primeiro campo mutável
+ * Classes abstratas são ignoradas; campos são lidos a partir da 1ª classe concreta.
  */
-import { createPlugin, getDanger, sendFormattedFail } from "@types";
-import * as fs from "fs";
-import * as path from "path";
 import {
-  findPrimaryConstructors,
-  normalizePrimaryConstructorHeaders,
-} from "../primary-constructors/primary-constructors";
-
-function isBarrelFile(filePath: string): boolean {
-  const fileName = path.basename(filePath, ".dart");
-  const parentDir = path.basename(path.dirname(filePath));
-  return fileName === parentDir;
-}
+  DartField,
+  DartFieldOrigin,
+  DartFile,
+  DartLayerFolder,
+  DartText,
+  createPlugin,
+  sendFormattedFail,
+} from "@types";
 
 /**
- * Campos mutáveis (`var Tipo nome`) declarados no primary constructor (Dart 3.13+),
- * indexados pela linha: o equivalente de `Tipo nome;` no corpo da classe.
+ * Campo mutável: sem `final`, `static`, `const`, `late` e `@override`, sem inicializador e com
+ * tipo `int`/`double`/`bool`/`num` ou com nome em maiúscula (`String`, `List<...>`, `UserModel`).
+ * No primary constructor, o parâmetro `var Tipo nome`. No corpo da classe a regra sempre pegou só
+ * tipos nullable ou genéricos (`String? nome;`, `List<int> nome;`); `String nome;` fica de fora
+ * para não mudar o que já reprovava.
  */
-function mutableHeaderFieldsByLine(content: string): Map<number, string> {
-  const result = new Map<number, string>();
-  for (const decl of findPrimaryConstructors(content)) {
-    for (const f of decl.fields) {
-      const typed = /^(?:int|double|bool|num|[A-Z])/.test(f.type);
-      if (!f.isFinal && typed && !f.text.startsWith("@override") && !result.has(f.lineIndex)) {
-        result.set(f.lineIndex, f.name);
-      }
-    }
+function isMutableField(field: DartField): boolean {
+  const { type } = field;
+  if (field.isFinal || field.isStatic || field.isConst || field.isLate || field.isOverride) {
+    return false;
   }
-  return result;
+  if (field.initializer !== null || type === null) return false;
+
+  // `p.Tipo` (com prefixo de import) nunca contou
+  const typed =
+    type.prefix === null &&
+    (type.isInt || type.isDouble || type.isBool || type.isNum || /^[A-Z]/.test(type.name ?? ""));
+  if (!typed) return false;
+
+  return (
+    field.origin === DartFieldOrigin.PrimaryConstructor ||
+    type.isNullable ||
+    type.typeArguments.length > 0
+  );
 }
 
 export default createPlugin(
@@ -44,20 +51,16 @@ export default createPlugin(
     enabled: true,
   },
   async () => {
-    const { git } = getDanger();
-
-    const files = [...git.created_files, ...git.modified_files].filter(
-      (f: string) =>
-        f.includes("/models/") &&
-        f.endsWith(".dart") &&
-        !f.endsWith("_test.dart") &&
-        !f.endsWith("models.dart") &&
-        !isBarrelFile(f) &&
-        fs.existsSync(f)
+    const files = DartFile.changed({ createdFirst: true }).filter(
+      (file) =>
+        file.path.inFolder(DartLayerFolder.Models) &&
+        !file.path.fileName.endsWith("models.dart") &&
+        !file.path.isBarrel
     );
 
     for (const file of files) {
-      const fileName = file.split("/").pop() || "";
+      const filePath = file.path.path;
+      const fileName = file.path.fileName;
 
       if (!fileName.endsWith("_model.dart")) {
         sendFormattedFail({
@@ -72,81 +75,23 @@ export default createPlugin(
             code: `${fileName.replace(".dart", "")}_model.dart`,
           },
           objective: "Manter **consistência** na nomenclatura da camada Data.",
-          file,
+          file: filePath,
           line: 1,
         });
         continue;
       }
 
-      const content = fs.readFileSync(file, "utf-8");
-      const lines = normalizePrimaryConstructorHeaders(content).split("\n");
-      const mutableHeaderFields = mutableHeaderFieldsByLine(content);
+      const classes = file.classes.filter((c) => !c.isAbstract);
 
-      const classes: { name: string; line: number }[] = [];
-      let hasNonFinalField = false;
-      let nonFinalFieldLine = 0;
-      let nonFinalFieldName = "";
-      let inBlockComment = false;
-
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        const trimmed = line.trimStart();
-
-        // ── Ignorar comentários ──────────────────────────────
-        if (inBlockComment) {
-          if (trimmed.includes("*/")) {
-            inBlockComment = false;
-          }
-          continue;
-        }
-
-        if (trimmed.startsWith("/*")) {
-          inBlockComment = true;
-          if (trimmed.includes("*/")) {
-            inBlockComment = false;
-          }
-          continue;
-        }
-
-        if (trimmed.startsWith("//") || trimmed.startsWith("///")) {
-          continue;
-        }
-
-        // ── Ignorar strings que contêm "class" ──────────────
-        if (
-          !trimmed.match(
-            /^\s*(?:abstract\s+|final\s+|sealed\s+|base\s+|interface\s+|mixin\s+)*class\s/
-          )
-        ) {
-          // Se a linha não começa com uma declaração de classe real, pula detecção de classe
-        } else {
-          // ── Detectar declarações de classe reais ───────────
-          // Suporta modificadores Dart 3: final, sealed, base, interface, mixin
-          const classMatch = trimmed.match(
-            /^(?:abstract\s+|final\s+|sealed\s+|base\s+|interface\s+|mixin\s+)*class\s+([A-Za-z_]\w*)/
-          );
-          if (classMatch && !trimmed.startsWith("abstract")) {
-            classes.push({ name: classMatch[1], line: i + 1 });
-          }
-        }
-
-        // ── Detectar campos não-final ────────────────────────
-        if (classes.length > 0 && !hasNonFinalField) {
-          const fieldMatch = line.match(
-            /^\s+(?!final\s|static\s|const\s|late\s|@override)((?:String|int|double|bool|num|List|Map|Set|DateTime|[A-Z]\w*)[?<\s][\w<>,?\s]*)\s+(\w+)\s*;/
-          );
-          const headerField = mutableHeaderFields.get(i);
-          if (fieldMatch) {
-            hasNonFinalField = true;
-            nonFinalFieldLine = i + 1;
-            nonFinalFieldName = fieldMatch[2];
-          } else if (headerField) {
-            hasNonFinalField = true;
-            nonFinalFieldLine = i + 1;
-            nonFinalFieldName = headerField;
-          }
-        }
-      }
+      // Primeiro campo mutável, da 1ª classe concreta em diante.
+      const fromIndex = classes.length > 0 ? file.declarations.indexOf(classes[0]) : -1;
+      const nonFinalField =
+        fromIndex < 0
+          ? undefined
+          : file.declarations
+              .slice(fromIndex)
+              .flatMap((d) => d.fields)
+              .find(isMutableField);
 
       if (classes.length > 1) {
         sendFormattedFail({
@@ -155,17 +100,19 @@ export default createPlugin(
           problem: {
             wrong: classes.map((c) => `class ${c.name} { }`).join("\n"),
             correct: classes
-              .map((c) => `// ${toSnakeCase(c.name)}.dart\nclass ${c.name} { }`)
+              .map((c) => `// ${DartText.toSnakeCase(c.name)}.dart\nclass ${c.name} { }`)
               .join("\n\n"),
             wrongLabel: `${classes.length} classes no mesmo arquivo`,
             correctLabel: "Uma classe por arquivo",
           },
           action: {
             text: "Separe cada classe em um arquivo individual:",
-            code: classes.map((c) => `${toSnakeCase(c.name)}.dart → class ${c.name}`).join("\n"),
+            code: classes
+              .map((c) => `${DartText.toSnakeCase(c.name)}.dart → class ${c.name}`)
+              .join("\n"),
           },
           objective: "**Uma classe por arquivo** — facilita navegação e reduz conflitos de merge.",
-          file,
+          file: filePath,
           line: classes[1].line,
         });
       }
@@ -184,38 +131,32 @@ export default createPlugin(
               code: `class ${cls.name}Model { }`,
             },
             objective: "Manter **consistência** na nomenclatura de Models.",
-            file,
+            file: filePath,
             line: cls.line,
           });
         }
       }
 
-      if (hasNonFinalField) {
+      if (nonFinalField) {
+        const name = nonFinalField.name;
         sendFormattedFail({
           title: "MODEL COM CAMPO MUTÁVEL",
-          description: `Campo \`${nonFinalFieldName}\` não é \`final\`. Models devem ser **imutáveis**.`,
+          description: `Campo \`${name}\` não é \`final\`. Models devem ser **imutáveis**.`,
           problem: {
-            wrong: `String ${nonFinalFieldName};`,
-            correct: `final String ${nonFinalFieldName};`,
+            wrong: `String ${name};`,
+            correct: `final String ${name};`,
             wrongLabel: "Campo mutável",
             correctLabel: "Campo imutável (final)",
           },
           action: {
             text: "Adicione `final` ao campo:",
-            code: `final String ${nonFinalFieldName};`,
+            code: `final String ${name};`,
           },
           objective: "Models imutáveis são **thread-safe** e mais previsíveis.",
-          file,
-          line: nonFinalFieldLine,
+          file: filePath,
+          line: nonFinalField.nameLine,
         });
       }
     }
   }
 );
-
-function toSnakeCase(name: string): string {
-  return name
-    .replace(/([a-z])([A-Z])/g, "$1_$2")
-    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2")
-    .toLowerCase();
-}

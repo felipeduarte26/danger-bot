@@ -2,9 +2,14 @@
  * Spell Checker PT-BR Plugin
  * Verifica ortografia em strings literais de arquivos Dart (português brasileiro).
  *
- * Analisa apenas linhas adicionadas no diff (não o arquivo inteiro).
- * Extrai conteúdo de strings (entre aspas) usando um parser stateful
- * que lida corretamente com aspas aninhadas, escapadas e triple-quoted.
+ * Analisa apenas as strings das linhas adicionadas no PR (o texto sem as
+ * interpolações e com os escapes resolvidos). Ficam de fora:
+ *   - raw strings (`r'...'`), strings com menos de 3 caracteres e as que não são
+ *     texto (`NON_TEXT_PATTERNS`: caminhos, URLs, chaves, datas, cores...);
+ *   - URIs de diretivas, argumentos de anotação, rótulos de `case`, chaves de map
+ *     (`{'k': v}`), índices (`json['k']`) e argumentos de `print`, `debugPrint`,
+ *     `log.d/i/w/e/v`, `RegExp` e `Key`/`ValueKey`/`GlobalKey`...;
+ *   - testes, gerados, `l10n/` e qualquer pasta `test/` no caminho.
  *
  * Detecta erros de acentuação e cedilha com uma lista de palavras que
  * precisam de acento (`HUNSPELL_BLIND_SPOTS`) e padrões de sufixo
@@ -16,8 +21,15 @@
  * 5 → 78 falhas com ele ligado. O loader continua pronto para quando as
  * regras forem recalibradas.
  */
-import { createPlugin, getDanger, sendFormattedFail, sendMessage } from "@types";
-import * as fs from "fs";
+import {
+  DartFile,
+  DartString,
+  DartStringRole,
+  DartText,
+  createPlugin,
+  sendFormattedFail,
+  sendMessage,
+} from "@types";
 import { importModule } from "../../../native-import";
 
 // ---------------------------------------------------------------------------
@@ -217,129 +229,29 @@ const HUNSPELL_BLIND_SPOTS: Record<string, string> = {
 // Accent helpers
 // ---------------------------------------------------------------------------
 
-function stripAccents(str: string): string {
-  return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-}
-
 function hasAccent(word: string): boolean {
   return /[àáâãçéêíóôõúüÀÁÂÃÇÉÊÍÓÔÕÚÜ]/.test(word);
 }
 
 function isAccentOnlyDifference(original: string, suggestion: string): boolean {
-  return stripAccents(suggestion.toLowerCase()) === stripAccents(original.toLowerCase());
+  return (
+    DartText.stripAccents(suggestion.toLowerCase()) ===
+    DartText.stripAccents(original.toLowerCase())
+  );
 }
 
 // ---------------------------------------------------------------------------
-// Stateful string parser
+// Texto da string
 // ---------------------------------------------------------------------------
 
-function resolveEscape(char: string): string {
-  switch (char) {
-    case "n":
-    case "t":
-    case "r":
-      return " ";
-    case "'":
-    case '"':
-      return char;
-    case "$":
-      return "";
-    default:
-      return " ";
-  }
-}
-
-function extractStringLiterals(line: string): string[] {
-  const results: string[] = [];
-  let i = 0;
-  const len = line.length;
-
-  while (i < len) {
-    if (line[i] === "/" && i + 1 < len && line[i + 1] === "/") break;
-
-    if (line[i] === "/" && i + 1 < len && line[i + 1] === "*") {
-      i += 2;
-      while (i + 1 < len && !(line[i] === "*" && line[i + 1] === "/")) i++;
-      i += 2;
-      continue;
-    }
-
-    if (
-      line[i] === "r" &&
-      i + 1 < len &&
-      (line[i + 1] === "'" || line[i + 1] === '"') &&
-      (i === 0 || !/[a-zA-Z0-9_]/.test(line[i - 1]))
-    ) {
-      const q = line[i + 1];
-      i += 2;
-      if (i + 1 < len && line[i] === q && line[i + 1] === q) {
-        i += 2;
-        while (i + 2 < len && !(line[i] === q && line[i + 1] === q && line[i + 2] === q)) i++;
-        i += 3;
-      } else {
-        while (i < len && line[i] !== q) i++;
-        if (i < len) i++;
-      }
-      continue;
-    }
-
-    if (line[i] === "'" || line[i] === '"') {
-      const q = line[i];
-
-      if (i + 2 < len && line[i + 1] === q && line[i + 2] === q) {
-        i += 3;
-        let content = "";
-        let closed = false;
-        while (i < len) {
-          if (i + 2 < len && line[i] === q && line[i + 1] === q && line[i + 2] === q) {
-            i += 3;
-            closed = true;
-            break;
-          }
-          if (line[i] === "\\") {
-            content += resolveEscape(line[i + 1] ?? "");
-            i += 2;
-            continue;
-          }
-          content += line[i];
-          i++;
-        }
-        if (closed && content.trim().length >= 3) {
-          results.push(cleanInterpolation(content));
-        }
-        continue;
-      }
-
-      i++;
-      let content = "";
-      let closed = false;
-      while (i < len && line[i] !== q) {
-        if (line[i] === "\\") {
-          content += resolveEscape(line[i + 1] ?? "");
-          i += 2;
-          continue;
-        }
-        content += line[i];
-        i++;
-      }
-      if (i < len) {
-        closed = true;
-        i++;
-      }
-      if (closed && content.trim().length >= 3) {
-        results.push(cleanInterpolation(content));
-      }
-      continue;
-    }
-
-    i++;
-  }
-
-  return results;
-}
-
-function cleanInterpolation(content: string): string {
-  return content.replace(/\$\{[^}]*\}/g, " ").replace(/\$[a-zA-Z_]\w*/g, " ");
+/**
+ * Resolve os escapes do conteúdo como o usuário lê o texto: `\'`/`\"` viram a
+ * aspa, `\$` some e os outros (`\n`, `\t`, `\u`...) viram um espaço.
+ */
+function resolveEscapes(value: string): string {
+  return value.replace(/\\([\s\S]?)/g, (_, char: string) =>
+    char === "'" || char === '"' ? char : char === "$" ? "" : " "
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -389,17 +301,37 @@ function isNonTextString(str: string): boolean {
   return NON_TEXT_PATTERNS.some((p) => p.test(str.trim()));
 }
 
-function isNonTextContext(line: string, str: string): boolean {
-  const escaped = str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const q = `['"]${escaped}['"]`;
+/** Papéis em que a string é código, e não texto: URI, anotação, `case`, chave de map, índice. */
+const NON_TEXT_ROLES = new Set([
+  DartStringRole.DirectiveUri,
+  DartStringRole.AnnotationArgument,
+  DartStringRole.CaseLabel,
+  DartStringRole.MapKey,
+  DartStringRole.IndexKey,
+]);
 
-  if (new RegExp(`${q}\\s*:`).test(line)) return true;
+/** Chamadas cujos argumentos não são texto para o usuário: logs, regex e keys de widget. */
+const NON_TEXT_CALLEES = new Set([
+  "print",
+  "debugPrint",
+  "log.d",
+  "log.i",
+  "log.w",
+  "log.e",
+  "log.v",
+  "RegExp",
+  "Key",
+  "ValueKey",
+  "GlobalKey",
+  "ObjectKey",
+  "PageStorageKey",
+]);
 
-  if (new RegExp(`\\[\\s*${q}\\s*]`).test(line)) return true;
-
-  if (/\b(?:Key|ValueKey|GlobalKey|ObjectKey|PageStorageKey)\s*\(/.test(line)) return true;
-
-  return false;
+function isNonTextContext(s: DartString): boolean {
+  return (
+    NON_TEXT_ROLES.has(s.role) ||
+    (s.enclosingCallee !== null && NON_TEXT_CALLEES.has(s.enclosingCallee))
+  );
 }
 
 const SKIP_WORDS = new Set([
@@ -626,28 +558,6 @@ function isSkippableWord(word: string): boolean {
   return false;
 }
 
-function isSkippableLine(line: string): boolean {
-  const trimmed = line.trim();
-  if (
-    trimmed.startsWith("///") ||
-    trimmed.startsWith("//") ||
-    trimmed.startsWith("*") ||
-    trimmed.startsWith("/*") ||
-    trimmed.startsWith("import ") ||
-    trimmed.startsWith("export ") ||
-    trimmed.startsWith("part ")
-  ) {
-    return true;
-  }
-  if (/^\s*@\w+/.test(trimmed)) return true;
-  if (/\bassert\s*\(/.test(trimmed)) return true;
-  if (/\b(?:debugPrint|print|log\.(?:d|i|w|e|v))\s*\(/.test(trimmed)) return true;
-  if (/\bRegExp\s*\(/.test(trimmed)) return true;
-  if (/\bcase\s+'[^']*'\s*:/.test(trimmed)) return true;
-  if (/\bcase\s+"[^"]*"\s*:/.test(trimmed)) return true;
-  return false;
-}
-
 // ---------------------------------------------------------------------------
 // Word checking
 // ---------------------------------------------------------------------------
@@ -655,22 +565,6 @@ function isSkippableLine(line: string): boolean {
 interface CheckResult {
   suggestions: string[];
   isAccentError: boolean;
-}
-
-function levenshtein(a: string, b: string): number {
-  const m = a.length;
-  const n = b.length;
-  const dp: number[][] = Array.from({ length: m + 1 }, (_, i) =>
-    Array.from({ length: n + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
-  );
-  for (let i = 1; i <= m; i++)
-    for (let j = 1; j <= n; j++)
-      dp[i][j] = Math.min(
-        dp[i - 1][j] + 1,
-        dp[i][j - 1] + 1,
-        dp[i - 1][j - 1] + (a[i - 1] !== b[j - 1] ? 1 : 0)
-      );
-  return dp[m][n];
 }
 
 async function checkWordWithNodehun(
@@ -692,7 +586,7 @@ async function checkWordWithNodehun(
 
   const maxDist = Math.max(2, Math.floor(lower.length * 0.4));
   const closeSuggestions = suggestions.filter(
-    (s) => levenshtein(lower, s.toLowerCase()) <= maxDist
+    (s) => DartText.levenshtein(lower, s.toLowerCase()) <= maxDist
   );
   if (closeSuggestions.length === 0) return null;
 
@@ -721,12 +615,37 @@ function checkSuffixRules(word: string): CheckResult | null {
 // Plugin
 // ---------------------------------------------------------------------------
 
+const EXCLUDED_SUFFIXES = [
+  "_test.dart",
+  ".g.dart",
+  ".freezed.dart",
+  ".mocks.dart",
+  ".gr.dart",
+  ".gen.dart",
+  ".chopper.dart",
+  ".graphql.dart",
+  ".mapper.dart",
+  ".module.dart",
+  ".config.dart",
+  ".reflectable.dart",
+  ".tailor.dart",
+];
+
+const EXCLUDED_FOLDERS = [
+  "generated",
+  "l10n",
+  ".dart_tool",
+  "build",
+  "test",
+  "test_driver",
+  "integration_test",
+];
+
 interface SpellingError {
   word: string;
   suggestions: string[];
   isAccentError: boolean;
   line: number;
-  context: string;
 }
 
 function formatSuggestions(suggestions: string[]): string {
@@ -742,40 +661,15 @@ export default createPlugin(
     enabled: true,
   },
   async () => {
-    const danger = getDanger();
-
-    const GENERATED_SUFFIXES = [
-      "_test.dart",
-      ".g.dart",
-      ".freezed.dart",
-      ".mocks.dart",
-      ".gr.dart",
-      ".gen.dart",
-      ".chopper.dart",
-      ".graphql.dart",
-      ".mapper.dart",
-      ".module.dart",
-      ".config.dart",
-      ".reflectable.dart",
-      ".tailor.dart",
-    ];
-
-    const EXCLUDED_DIRS = [
-      "/generated/",
-      "/l10n/",
-      "/.dart_tool/",
-      "/build/",
-      "/test/",
-      "/test_driver/",
-      "/integration_test/",
-    ];
-
-    const dartFiles = [...danger.git.created_files, ...danger.git.modified_files].filter(
-      (f: string) =>
-        f.endsWith(".dart") &&
-        !GENERATED_SUFFIXES.some((s) => f.endsWith(s)) &&
-        !EXCLUDED_DIRS.some((d) => f.includes(d)) &&
-        fs.existsSync(f)
+    // Fora: testes, gerados, `l10n/` e qualquer pasta `test/` no caminho (inclusive `lib/features/test/`)
+    const dartFiles = DartFile.changed({
+      createdFirst: true,
+      includeTests: true,
+      includeGenerated: true,
+    }).filter(
+      ({ path: p }) =>
+        !EXCLUDED_SUFFIXES.some((s) => p.fileName.endsWith(s)) &&
+        !EXCLUDED_FOLDERS.some((folder) => p.inFolder(folder))
     );
 
     if (dartFiles.length === 0) return;
@@ -783,61 +677,49 @@ export default createPlugin(
     const spell = await loadSpell();
     const errorsByFile = new Map<string, SpellingError[]>();
 
-    for (const file of dartFiles) {
-      const diff = await danger.git.structuredDiffForFile(file);
-      if (!diff) continue;
+    for (const { path: p } of dartFiles) {
+      const file = await DartFile.readWithDiff(p.path);
 
-      for (const chunk of diff.chunks) {
-        for (const change of chunk.changes) {
-          if ((change as any).type !== "add") continue;
+      for (const s of file.strings) {
+        if (!file.isAdded(s.line) || s.isRaw || isNonTextContext(s)) continue;
+        // string em várias linhas (aspas triplas): o texto longo fica de fora
+        if (s.endLine !== s.line) continue;
+        if (resolveEscapes(s.value).trim().length < 3) continue;
 
-          const lineContent = (change as any).content?.replace(/^\+/, "") ?? "";
-          const lineNum = (change as any).ln ?? 1;
+        const str = resolveEscapes(s.valueWithoutInterpolation);
+        if (isNonTextString(str)) continue;
 
-          if (isSkippableLine(lineContent)) continue;
+        const words = str
+          .split(/[\s.,;:!?()[\]{}<>/\\|@#$%^&*+=~`"'0-9]+/)
+          .filter((w) => w.length >= 2);
 
-          const strings = extractStringLiterals(lineContent);
+        for (const word of words) {
+          if (isSkippableWord(word)) continue;
 
-          for (const str of strings) {
-            if (isNonTextString(str)) continue;
-            if (isNonTextContext(lineContent, str)) continue;
+          let result: CheckResult | null = null;
 
-            const words = str
-              .split(/[\s.,;:!?()[\]{}<>/\\|@#$%^&*+=~`"'0-9]+/)
-              .filter((w) => w.length >= 2);
+          result = checkBlindSpots(word);
 
-            for (const word of words) {
-              if (isSkippableWord(word)) continue;
+          if (!result && spell) {
+            result = await checkWordWithNodehun(word, spell);
+          }
 
-              let result: CheckResult | null = null;
+          if (!result && !spell) {
+            result = checkSuffixRules(word);
+          }
 
-              result = checkBlindSpots(word);
+          if (!result) continue;
 
-              if (!result && spell) {
-                result = await checkWordWithNodehun(word, spell);
-              }
-
-              if (!result && !spell) {
-                result = checkSuffixRules(word);
-              }
-
-              if (!result) continue;
-
-              const existing = errorsByFile.get(file) ?? [];
-              const isDup = existing.some(
-                (e) => e.word === word.toLowerCase() && e.line === lineNum
-              );
-              if (!isDup) {
-                existing.push({
-                  word: word.toLowerCase(),
-                  suggestions: result.suggestions,
-                  isAccentError: result.isAccentError,
-                  line: lineNum,
-                  context: lineContent.trim(),
-                });
-                errorsByFile.set(file, existing);
-              }
-            }
+          const existing = errorsByFile.get(p.path) ?? [];
+          const isDup = existing.some((e) => e.word === word.toLowerCase() && e.line === s.line);
+          if (!isDup) {
+            existing.push({
+              word: word.toLowerCase(),
+              suggestions: result.suggestions,
+              isAccentError: result.isAccentError,
+              line: s.line,
+            });
+            errorsByFile.set(p.path, existing);
           }
         }
       }

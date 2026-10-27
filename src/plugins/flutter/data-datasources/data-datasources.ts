@@ -1,21 +1,25 @@
 /**
  * Data Datasources Plugin
  * Valida arquivos dentro de /datasources/:
- * - Nome do arquivo deve terminar com _datasource.dart
+ * - Nome do arquivo deve terminar com _datasource.dart (o resto do arquivo é validado mesmo assim)
  * - Deve ter abstract interface class com prefixo I e sufixo Datasource
  * - Deve ter implementação final class com sufixo Datasource e implements
  * - Métodos não devem repetir o contexto da classe — "Don't Add Gratuitous Context" (Clean Code, Cap. 2, p. 29)
+ * - Doc `///` acima do `@override` não repete a de um método documentado na interface
+ *
+ * Ignora barrel files e `datasources.dart`. Implementação é a classe concreta (sem `abstract`)
+ * com `implements`; "sem implementação" só é apontado quando o arquivo tem a interface.
  */
-import { createPlugin, getDanger, sendFormattedFail } from "@types";
-import * as fs from "fs";
-import * as path from "path";
-import { normalizePrimaryConstructorHeaders } from "../primary-constructors/primary-constructors";
-
-function isBarrelFile(filePath: string): boolean {
-  const fileName = path.basename(filePath, ".dart");
-  const parentDir = path.basename(path.dirname(filePath));
-  return fileName === parentDir;
-}
+import {
+  DartClass,
+  DartDoc,
+  DartFile,
+  DartLayerFolder,
+  DartMemberKind,
+  DartMethod,
+  createPlugin,
+  sendFormattedFail,
+} from "@types";
 
 const DATASOURCE_VARIANTS = [
   "datasource",
@@ -56,20 +60,16 @@ export default createPlugin(
     enabled: true,
   },
   async () => {
-    const { git } = getDanger();
-
-    const files = [...git.created_files, ...git.modified_files].filter(
-      (f: string) =>
-        f.includes("/datasources/") &&
-        f.endsWith(".dart") &&
-        !f.endsWith("_test.dart") &&
-        !f.endsWith("datasources.dart") &&
-        !isBarrelFile(f) &&
-        fs.existsSync(f)
+    const files = DartFile.changed({ createdFirst: true }).filter(
+      (file) =>
+        file.path.inFolder(DartLayerFolder.DataSources) &&
+        !file.path.fileName.endsWith("datasources.dart") &&
+        !file.path.isBarrel
     );
 
     for (const file of files) {
-      const fileName = file.split("/").pop() || "";
+      const filePath = file.path.path;
+      const fileName = file.path.fileName;
 
       if (!fileName.endsWith("_datasource.dart")) {
         const suggested = suggestDatasourceFileName(fileName);
@@ -85,60 +85,16 @@ export default createPlugin(
             code: suggested,
           },
           objective: "Manter **consistência** na nomenclatura da camada Data.",
-          file,
+          file: filePath,
           line: 1,
         });
       }
 
-      const content = fs.readFileSync(file, "utf-8");
-      const lines = normalizePrimaryConstructorHeaders(content).split("\n");
+      const interfaces = file.classes.filter((c) => c.isAbstract && c.isInterface);
+      const implementations = file.classes.filter((c) => !c.isAbstract && c.interfaces.length > 0);
 
-      const interfaces: { name: string; line: number }[] = [];
-      const implementations: { name: string; line: number }[] = [];
-
-      let inBlockComment = false;
-      for (let i = 0; i < lines.length; i++) {
-        const trimmed = lines[i].trimStart();
-
-        if (inBlockComment) {
-          if (trimmed.includes("*/")) inBlockComment = false;
-          continue;
-        }
-        if (trimmed.startsWith("/*")) {
-          inBlockComment = true;
-          if (trimmed.includes("*/")) inBlockComment = false;
-          continue;
-        }
-        if (trimmed.startsWith("//") || trimmed.startsWith("///")) continue;
-
-        const interfaceMatch = lines[i].match(/abstract\s+interface\s+class\s+([A-Za-z_]\w*)/);
-        if (interfaceMatch) {
-          interfaces.push({ name: interfaceMatch[1], line: i + 1 });
-        }
-
-        const implMatch = lines[i].match(
-          /(?:final\s+)?class\s+([A-Za-z_]\w*)\s+implements\s+([A-Za-z_]\w*)/
-        );
-        if (implMatch && !lines[i].includes("abstract")) {
-          implementations.push({ name: implMatch[1], line: i + 1 });
-        } else if (!lines[i].includes("abstract")) {
-          const classOnly = lines[i].match(/(?:final\s+)?class\s+([A-Za-z_]\w*)\s*$/);
-          if (classOnly) {
-            const nextLine = (lines[i + 1] || "").trimStart();
-            const implNext = nextLine.match(/implements\s+([A-Za-z_]\w*)/);
-            if (implNext) {
-              implementations.push({ name: classOnly[1], line: i + 1 });
-            }
-          }
-        }
-      }
-
-      const hasInterface = interfaces.length > 0;
-      const hasImplementation = implementations.length > 0;
-      const interfaceName = interfaces[0]?.name || "";
-      const interfaceLine = interfaces[0]?.line || 0;
-      const implementationName = implementations[0]?.name || "";
-      const implementationLine = implementations[0]?.line || 0;
+      const iface = interfaces.length > 0 ? interfaces[0] : null;
+      const implementation = implementations.length > 0 ? implementations[0] : null;
 
       if (interfaces.length > 1) {
         sendFormattedFail({
@@ -155,7 +111,7 @@ export default createPlugin(
               .join("\n"),
           },
           objective: "**Um Datasource por arquivo** — facilita navegação e manutenção.",
-          file,
+          file: filePath,
           line: interfaces[1].line,
         });
       }
@@ -173,12 +129,12 @@ export default createPlugin(
             code: implementations.map((i) => `${i.name.toLowerCase()}_datasource.dart`).join("\n"),
           },
           objective: "**Um Datasource por arquivo** — facilita navegação e manutenção.",
-          file,
+          file: filePath,
           line: implementations[1].line,
         });
       }
 
-      if (!hasInterface) {
+      if (!iface) {
         sendFormattedFail({
           title: "DATASOURCE SEM INTERFACE",
           description: `Arquivo \`${fileName}\` não possui \`abstract interface class\`.`,
@@ -199,97 +155,90 @@ export default createPlugin(
             text: "Dependency Inversion Principle",
             url: "https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html",
           },
-          file,
+          file: filePath,
           line: 1,
         });
       }
 
-      if (hasInterface) {
-        if (!interfaceName.startsWith("I")) {
+      if (iface) {
+        if (!iface.name.startsWith("I")) {
           sendFormattedFail({
             title: "INTERFACE DE DATASOURCE SEM PREFIXO I",
-            description: `A interface \`${interfaceName}\` deve começar com \`I\`.`,
+            description: `A interface \`${iface.name}\` deve começar com \`I\`.`,
             problem: {
-              wrong: `abstract interface class ${interfaceName} { }`,
-              correct: `abstract interface class I${interfaceName} { }`,
+              wrong: `abstract interface class ${iface.name} { }`,
+              correct: `abstract interface class I${iface.name} { }`,
             },
             action: {
               text: "Adicione o prefixo `I`:",
-              code: `abstract interface class I${interfaceName} { }`,
+              code: `abstract interface class I${iface.name} { }`,
             },
             objective: "Manter **padrão de nomenclatura** para interfaces.",
-            file,
-            line: interfaceLine,
+            file: filePath,
+            line: iface.line,
           });
         }
 
-        if (!interfaceName.endsWith("Datasource")) {
+        if (!iface.name.endsWith("Datasource")) {
           sendFormattedFail({
             title: "INTERFACE DE DATASOURCE SEM SUFIXO",
-            description: `A interface \`${interfaceName}\` deve terminar com \`Datasource\`.`,
+            description: `A interface \`${iface.name}\` deve terminar com \`Datasource\`.`,
             problem: {
-              wrong: `abstract interface class ${interfaceName} { }`,
-              correct: `abstract interface class ${interfaceName}Datasource { }`,
+              wrong: `abstract interface class ${iface.name} { }`,
+              correct: `abstract interface class ${iface.name}Datasource { }`,
             },
             action: {
               text: "Adicione o sufixo `Datasource`:",
-              code: `abstract interface class ${interfaceName}Datasource { }`,
+              code: `abstract interface class ${iface.name}Datasource { }`,
             },
             objective: "Manter **consistência** na nomenclatura de Datasources.",
-            file,
-            line: interfaceLine,
+            file: filePath,
+            line: iface.line,
           });
         }
 
-        validateRedundantMethodNames(file, lines, interfaceName, interfaceLine - 1, "Datasource");
+        validateRedundantMethodNames(filePath, iface, "Datasource");
       }
 
-      if (!hasImplementation && hasInterface) {
+      if (!implementation && iface) {
         sendFormattedFail({
           title: "DATASOURCE SEM IMPLEMENTAÇÃO",
-          description: `Arquivo tem interface \`${interfaceName}\` mas não tem a implementação.`,
+          description: `Arquivo tem interface \`${iface.name}\` mas não tem a implementação.`,
           problem: {
-            wrong: `abstract interface class ${interfaceName} { }\n// Sem implementação`,
-            correct: `abstract interface class ${interfaceName} { }\n\nfinal class ${interfaceName.replace(/^I/, "")} implements ${interfaceName} { }`,
+            wrong: `abstract interface class ${iface.name} { }\n// Sem implementação`,
+            correct: `abstract interface class ${iface.name} { }\n\nfinal class ${iface.name.replace(/^I/, "")} implements ${iface.name} { }`,
           },
           action: {
             text: "Adicione a classe que implementa a interface:",
-            code: `final class ${interfaceName.replace(/^I/, "")} implements ${interfaceName} {\n  // implementação dos métodos\n}`,
+            code: `final class ${iface.name.replace(/^I/, "")} implements ${iface.name} {\n  // implementação dos métodos\n}`,
           },
           objective: "Completar o **contrato** definido pela interface.",
-          file,
-          line: interfaceLine,
+          file: filePath,
+          line: iface.line,
         });
       }
 
-      if (hasImplementation) {
-        if (!implementationName.endsWith("Datasource")) {
+      if (implementation) {
+        if (!implementation.name.endsWith("Datasource")) {
           sendFormattedFail({
             title: "IMPLEMENTAÇÃO DE DATASOURCE SEM SUFIXO",
-            description: `A classe \`${implementationName}\` deve terminar com \`Datasource\`.`,
+            description: `A classe \`${implementation.name}\` deve terminar com \`Datasource\`.`,
             problem: {
-              wrong: `class ${implementationName} implements ... { }`,
-              correct: `class ${implementationName}Datasource implements ... { }`,
+              wrong: `class ${implementation.name} implements ... { }`,
+              correct: `class ${implementation.name}Datasource implements ... { }`,
             },
             action: {
               text: "Adicione o sufixo `Datasource`:",
-              code: `class ${implementationName}Datasource implements ... { }`,
+              code: `class ${implementation.name}Datasource implements ... { }`,
             },
             objective: "Manter **consistência** na nomenclatura de Datasources.",
-            file,
-            line: implementationLine,
+            file: filePath,
+            line: implementation.line,
           });
         }
 
-        if (hasInterface) {
-          const documentedMethods = extractInterfaceDocumentedMethods(lines, interfaceLine - 1);
-          validateRedundantOverrideDocs(
-            file,
-            lines,
-            implementationLine - 1,
-            implementationName,
-            documentedMethods
-          );
+        if (iface) {
+          validateRedundantOverrideDocs(filePath, implementation, documentedMethodNames(iface));
         }
       }
     }
@@ -303,40 +252,11 @@ function extractContextFromClassName(className: string, suffix: string): string 
   return name.length >= 2 ? name : null;
 }
 
-function extractMethodNames(lines: string[], startLine: number): { name: string; line: number }[] {
-  const methods: { name: string; line: number }[] = [];
-  let braceDepth = 0;
-  let foundOpen = false;
-
-  for (let i = startLine; i < lines.length; i++) {
-    const line = lines[i];
-    const trimmed = line.trim();
-
-    if (foundOpen && braceDepth === 1) {
-      if (!trimmed.startsWith("//") && !trimmed.startsWith("*") && !trimmed.startsWith("/*")) {
-        const methodMatch = trimmed.match(/\b([a-z][a-zA-Z0-9_]*)\s*\(/);
-        if (methodMatch) {
-          methods.push({ name: methodMatch[1], line: i + 1 });
-        }
-        const getterMatch = trimmed.match(/\bget\s+([a-z][a-zA-Z0-9_]*)/);
-        if (getterMatch) {
-          methods.push({ name: getterMatch[1], line: i + 1 });
-        }
-      }
-    }
-
-    for (const ch of line) {
-      if (ch === "{") {
-        braceDepth++;
-        foundOpen = true;
-      }
-      if (ch === "}") braceDepth--;
-    }
-
-    if (foundOpen && braceDepth <= 0) break;
-  }
-
-  return methods;
+/** Métodos, getters e setters da classe com nome em lowerCamelCase (sem privados e operadores). */
+function namedMethods(cls: DartClass): DartMethod[] {
+  return cls.methods.filter(
+    (m) => m.memberKind !== DartMemberKind.Operator && /^[a-z]/.test(m.name)
+  );
 }
 
 function toCamelCaseStart(name: string): string {
@@ -381,25 +301,17 @@ function getSuggestedMethodName(methodName: string, context: string): string {
   return methodName;
 }
 
-function validateRedundantMethodNames(
-  file: string,
-  lines: string[],
-  interfaceName: string,
-  interfaceStartLine: number,
-  suffix: string
-): void {
-  const context = extractContextFromClassName(interfaceName, suffix);
+function validateRedundantMethodNames(filePath: string, iface: DartClass, suffix: string): void {
+  const context = extractContextFromClassName(iface.name, suffix);
   if (!context) return;
 
-  const methods = extractMethodNames(lines, interfaceStartLine);
-
-  for (const method of methods) {
+  for (const method of namedMethods(iface)) {
     if (isMethodNameRedundant(method.name, context)) {
       const suggested = getSuggestedMethodName(method.name, context);
 
       sendFormattedFail({
         title: "NOME DE MÉTODO REDUNDANTE",
-        description: `O método \`${method.name}\` repete o contexto \`${context}\` que já está no nome da classe \`${interfaceName}\`.`,
+        description: `O método \`${method.name}\` repete o contexto \`${context}\` que já está no nome da classe \`${iface.name}\`.`,
         problem: {
           wrong: `${method.name}(...)`,
           correct: `${suggested}(...)`,
@@ -408,149 +320,66 @@ function validateRedundantMethodNames(
         },
         action: {
           text: `Remova "${context}" do nome do método:`,
-          code: `// Em ${interfaceName}\n\n// Antes\n${method.name}(...)\n\n// Depois\n${suggested}(...)`,
+          code: `// Em ${iface.name}\n\n// Antes\n${method.name}(...)\n\n// Depois\n${suggested}(...)`,
         },
         objective: "Evitar **redundância** nos nomes — o contexto da classe já comunica o domínio.",
         reference: {
           text: "Clean Code — Cap. 2: Don't Add Gratuitous Context (Robert C. Martin)",
           url: "https://medium.com/@sardorjs/clean-code-chapter-2-meaningful-names-baa554f93f17",
         },
-        file,
-        line: method.line,
+        file: filePath,
+        line: method.nameLine,
       });
     }
   }
 }
 
-function extractInterfaceDocumentedMethods(lines: string[], classStartLine: number): Set<string> {
-  const documented = new Set<string>();
-  let braceDepth = 0;
-  let foundOpen = false;
-
-  for (let i = classStartLine; i < lines.length; i++) {
-    const line = lines[i];
-
-    for (const ch of line) {
-      if (ch === "{") {
-        braceDepth++;
-        foundOpen = true;
-      }
-      if (ch === "}") braceDepth--;
-    }
-
-    if (foundOpen && braceDepth <= 0) break;
-    if (!foundOpen || braceDepth !== 1) continue;
-
-    const trimmed = line.trim();
-    if (trimmed.startsWith("//") || trimmed.startsWith("*") || trimmed === "") continue;
-
-    const methodMatch = trimmed.match(/\b([a-z][a-zA-Z0-9_]*)\s*\(/);
-    const getterMatch = trimmed.match(/\bget\s+([a-z][a-zA-Z0-9_]*)/);
-    const name = methodMatch?.[1] || getterMatch?.[1];
-
-    if (name) {
-      let scanLine = i - 1;
-      while (scanLine >= 0) {
-        const t = lines[scanLine].trim();
-        if (t.startsWith("@") || t === "") {
-          scanLine--;
-        } else {
-          break;
-        }
-      }
-      if (scanLine >= 0 && lines[scanLine].trim().startsWith("///")) {
-        documented.add(name);
-      }
-    }
-  }
-
-  return documented;
+/** Nomes dos métodos da interface que têm documentação `///`. */
+function documentedMethodNames(iface: DartClass): Set<string> {
+  return new Set(
+    namedMethods(iface)
+      .filter((m) => m.doc !== null)
+      .map((m) => m.name)
+  );
 }
 
+/** Documentação escrita acima do `@override` (doc entre a anotação e a assinatura não conta). */
+function docAboveOverride(method: DartMethod): DartDoc | null {
+  const override = method.annotations.find((a) => a.name === "override");
+  const doc = method.doc;
+  return override && doc && doc.startOffset < override.startOffset ? doc : null;
+}
+
+/** Documentação em método `@override` cuja doc já está na interface. */
 function validateRedundantOverrideDocs(
-  file: string,
-  lines: string[],
-  classStartLine: number,
-  className: string,
+  filePath: string,
+  cls: DartClass,
   interfaceDocumentedMethods: Set<string>
 ): void {
-  let braceDepth = 0;
-  let foundOpen = false;
+  for (const method of namedMethods(cls)) {
+    const doc = docAboveOverride(method);
+    if (doc === null || !interfaceDocumentedMethods.has(method.name)) continue;
 
-  for (let i = classStartLine; i < lines.length; i++) {
-    const line = lines[i];
-    const trimmed = line.trim();
+    const methodName = method.name;
+    const docText = doc.comments.map((c) => c.text.trim()).join("\n");
 
-    for (const ch of line) {
-      if (ch === "{") {
-        braceDepth++;
-        foundOpen = true;
-      }
-      if (ch === "}") braceDepth--;
-    }
-
-    if (foundOpen && braceDepth <= 0) break;
-    if (!foundOpen || braceDepth !== 1) continue;
-
-    if (trimmed === "@override") {
-      let scanLine = i - 1;
-      while (scanLine >= 0) {
-        const t = lines[scanLine].trim();
-        if (t.startsWith("@") || t === "") {
-          scanLine--;
-        } else {
-          break;
-        }
-      }
-
-      const docEnd = scanLine;
-      while (scanLine >= 0 && lines[scanLine].trim().startsWith("///")) {
-        scanLine--;
-      }
-      const docStart = scanLine + 1;
-
-      if (docStart <= docEnd && lines[docStart].trim().startsWith("///")) {
-        let methodName = "";
-        for (let j = i + 1; j < lines.length && j <= i + 5; j++) {
-          const t = lines[j].trim();
-          const methodMatch = t.match(/\b([a-z][a-zA-Z0-9_]*)\s*\(/);
-          if (methodMatch) {
-            methodName = methodMatch[1];
-            break;
-          }
-          const getterMatch = t.match(/\bget\s+([a-z][a-zA-Z0-9_]*)/);
-          if (getterMatch) {
-            methodName = getterMatch[1];
-            break;
-          }
-        }
-
-        if (methodName && interfaceDocumentedMethods.has(methodName)) {
-          const docText = lines
-            .slice(docStart, docEnd + 1)
-            .map((l) => l.trim())
-            .join("\n");
-
-          sendFormattedFail({
-            title: "DOCUMENTAÇÃO REDUNDANTE EM @override",
-            description: `O método \`${methodName}\` em \`${className}\` possui documentação que já está definida na interface.`,
-            problem: {
-              wrong: `${docText}\n@override\n... ${methodName}(...)`,
-              correct: `@override\n... ${methodName}(...)`,
-              wrongLabel: "Documentação duplicada",
-              correctLabel: "Herda doc da interface automaticamente",
-            },
-            action: {
-              text: "Remova a documentação — em Dart, `@override` herda a doc da interface:",
-              code: `@override\n... ${methodName}(...)`,
-            },
-            objective:
-              "Evitar **documentação duplicada** — Dart herda doc da interface automaticamente via `@override`.",
-            file,
-            line: docStart + 1,
-          });
-        }
-      }
-    }
+    sendFormattedFail({
+      title: "DOCUMENTAÇÃO REDUNDANTE EM @override",
+      description: `O método \`${methodName}\` em \`${cls.name}\` possui documentação que já está definida na interface.`,
+      problem: {
+        wrong: `${docText}\n@override\n... ${methodName}(...)`,
+        correct: `@override\n... ${methodName}(...)`,
+        wrongLabel: "Documentação duplicada",
+        correctLabel: "Herda doc da interface automaticamente",
+      },
+      action: {
+        text: "Remova a documentação — em Dart, `@override` herda a doc da interface:",
+        code: `@override\n... ${methodName}(...)`,
+      },
+      objective:
+        "Evitar **documentação duplicada** — Dart herda doc da interface automaticamente via `@override`.",
+      file: filePath,
+      line: doc.line,
+    });
   }
 }

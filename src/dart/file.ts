@@ -18,6 +18,7 @@ import { DartPath, clearDartPathCaches } from "./path";
 import {
   DartBody,
   DartCall,
+  DartClosure,
   DartComment,
   DartNodeBase,
   DartParameter,
@@ -516,6 +517,19 @@ export class DartFile {
 
   // ─── Chamadas e identificadores ─────────────────────────────────────────
 
+  /** Faixas de tokens com expressões: corpos, inicializadores, parâmetros, initializer lists, argumentos de enum. */
+  private expressionRanges(): [number, number][] {
+    const ranges: [number, number][] = [];
+    for (const cls of this.declarations) {
+      for (const m of cls.members) ranges.push(...m.expressionRanges());
+      for (const v of cls.enumValues) ranges.push(...v.expressionRanges());
+      if (cls.primaryConstructor) ranges.push(...cls.primaryConstructor.expressionRanges());
+    }
+    for (const f of this.functions) ranges.push(...f.expressionRanges());
+    for (const v of this.variables) ranges.push(...v.expressionRanges());
+    return ranges.filter(([a, b]) => a >= 0 && b >= a);
+  }
+
   private callsCache: DartCall[] | null = null;
   /**
    * Todas as chamadas do arquivo: corpos de métodos/funções/construtores,
@@ -524,23 +538,27 @@ export class DartFile {
    */
   calls(): readonly DartCall[] {
     if (this.callsCache === null) {
-      const ranges: [number, number][] = [];
-      for (const cls of this.declarations) {
-        for (const m of cls.members) ranges.push(...m.expressionRanges());
-        for (const v of cls.enumValues) ranges.push(...v.expressionRanges());
-        if (cls.primaryConstructor) ranges.push(...cls.primaryConstructor.expressionRanges());
-      }
-      for (const f of this.functions) ranges.push(...f.expressionRanges());
-      for (const v of this.variables) ranges.push(...v.expressionRanges());
       const calls: DartCall[] = [];
-      for (const [a, b] of ranges) {
-        if (a < 0 || b < a) continue;
-        const closures = scanClosures(this, a, b);
-        calls.push(...scanCalls(this, a, b, closures));
+      for (const [a, b] of this.expressionRanges()) {
+        calls.push(...scanCalls(this, a, b, scanClosures(this, a, b)));
       }
       this.callsCache = calls.sort((x, y) => x.startOffset - y.startOffset);
     }
     return this.callsCache;
+  }
+
+  private closuresCache: DartClosure[] | null = null;
+  /**
+   * Todas as closures e funções locais do arquivo (nos mesmos lugares que
+   * `calls()`), inclusive as de inicializadores: `final onTap = (bool reload) {};`.
+   */
+  closures(): readonly DartClosure[] {
+    if (this.closuresCache === null) {
+      const closures: DartClosure[] = [];
+      for (const [a, b] of this.expressionRanges()) closures.push(...scanClosures(this, a, b));
+      this.closuresCache = closures.sort((x, y) => x.startOffset - y.startOffset);
+    }
+    return this.closuresCache;
   }
 
   /** Identificadores DECLARADOS no arquivo (não os usos), na ordem do arquivo. */

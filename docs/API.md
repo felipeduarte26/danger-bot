@@ -14,11 +14,17 @@ export { executeDangerBot } from "@felipeduarte26/danger-bot";
 export { getDanger, sendMessage, sendWarn, sendFail, sendFormattedFail, sendFormattedWarn, sendMarkdown, scheduleTask };
 export type { FormattedMessageOptions };
 
+// Modelo Dart: leitura do código pelos plugins (ver MODELO_DART.md)
+export {
+  DartFile, DartPath, DartPackage, DartText,
+  DartClass, DartField, DartMethod, DartFunction, DartConstructor, DartParameter, DartType,
+  DartBody, DartCall, DartExpression, DartString, DartComment, DartDirective, DartIdentifier,
+  // ...e os demais nós e enums (DartLayer, DartLayerFolder, Presence, Nullability, DartMemberKind...)
+};
+
 // Helpers de arquivos
 export {
   getAllChangedFiles,
-  getDartFiles,
-  getDartFilesInDirectory,
   getFilesMatching,
   getFilesByExtension,
   hasFilesMatching,
@@ -26,8 +32,8 @@ export {
   fileContainsPattern,
 };
 
-// Helpers de Clean Architecture
-export { getDomainDartFiles, getDataDartFiles, getPresentationDartFiles, isInLayer };
+// Legado (plugins locais antigos): use DartFile.changed() e DartPath
+export { getDartFiles, getDartFilesInDirectory, getDomainDartFiles, getDataDartFiles, getPresentationDartFiles, isInLayer };
 
 // Helpers de PR
 export { getPRDescription, getPRTitle, getLineStats, getLinesChanged /* obsoleto */ };
@@ -35,7 +41,7 @@ export { getPRDescription, getPRTitle, getLineStats, getLinesChanged /* obsoleto
 // Plugins ativos na execução
 export { isPluginActive, setActivePlugins };
 
-// Primary constructors (Dart 3.13+)
+// Legado: primary constructors em texto (o modelo já resolve: cls.fields, cls.header)
 export { normalizePrimaryConstructorHeaders, findPrimaryConstructors, primaryConstructorFieldsByLine };
 
 // Tipos
@@ -232,7 +238,9 @@ Retorna todos os arquivos modificados e criados no PR (exclui deletados).
 const files = getAllChangedFiles();
 ```
 
-### getDartFiles()
+### getDartFiles() — legado
+
+> Em código novo use `DartFile.changed()` (modelo Dart: já analisa cada arquivo; ver [MODELO_DART.md](MODELO_DART.md)).
 
 Retorna (assincrono) os arquivos `.dart` modificados ou criados que existem no disco, **exceto testes** (`_test.dart`).
 
@@ -379,7 +387,7 @@ interface DangerPlugin {
 Factory para criar plugins customizados.
 
 ```typescript
-import { createPlugin, getDartFiles, sendWarn } from "@felipeduarte26/danger-bot";
+import { createPlugin, DartFile, sendWarn } from "@felipeduarte26/danger-bot";
 
 export default createPlugin(
   {
@@ -388,7 +396,7 @@ export default createPlugin(
     enabled: true,
   },
   async () => {
-    const files = await getDartFiles();
+    const files = DartFile.changed(); // .dart do PR, sem testes e sem gerados
     if (files.length > 20) {
       sendWarn("Muitos arquivos Dart modificados!");
     }

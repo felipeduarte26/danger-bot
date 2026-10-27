@@ -7,12 +7,27 @@
  * - Nomes imperativos (verbos de ação) são flagrados: showPopup, deleteItem
  * - Adjetivos são aceitos: visible, enabled, active
  *
- * Usa wordpos (WordNet) para detecção gramatical, minimizando falsos positivos.
+ * Analisa todo nome declarado com tipo `bool`/`bool?`: campos, variáveis (de topo e
+ * locais), parâmetros (de métodos, funções, construtores, closures e de tipos de
+ * função) e getters `bool get`. Comentários e strings nunca contam. Nomes com menos
+ * de 3 letras são ignorados. Exclui `_test.dart` e arquivos gerados (`.g`, `.freezed`, `.gen`, `generated/`...).
+ *
+ * Usa wordpos (WordNet) para detecção gramatical, minimizando falsos positivos;
+ * sem wordpos, o plugin não roda.
  *
  * @see https://dart.dev/effective-dart/design#prefer-a-non-imperative-verb-phrase-for-a-boolean-property-or-variable
  */
-import { createPlugin, getDanger, sendFormattedFail } from "@types";
-import * as fs from "fs";
+import {
+  DartBody,
+  DartFile,
+  DartFunction,
+  DartMemberKind,
+  DartParameter,
+  DartParameterSource,
+  DartType,
+  createPlugin,
+  sendFormattedFail,
+} from "@types";
 
 const GOOD_PREFIXES = new Set([
   "is",
@@ -214,10 +229,6 @@ const IMPERATIVE_VERBS = new Set([
   "compress",
 ]);
 
-const BOOL_FIELD_REGEX = /(?:final\s+)?bool(?:\?)?\s+(?!Function)(\w+)\s*[=;,)]/;
-
-const BOOL_GETTER_REGEX = /bool\s+get\s+(\w+)/;
-
 function splitCamelCase(name: string): string[] {
   return name
     .replace(/^_+/, "")
@@ -279,36 +290,87 @@ function suggestName(name: string, firstWord: string): string {
   return suggestions[firstWord] ?? rest;
 }
 
-function findCommentStart(line: string): number {
-  let inString = false;
-  let stringChar = "";
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (inString) {
-      if (ch === "\\" && i + 1 < line.length) {
-        i++;
-        continue;
-      }
-      if (ch === stringChar) inString = false;
-      continue;
-    }
-    if (ch === "'" || ch === '"') {
-      inString = true;
-      stringChar = ch;
-      continue;
-    }
-    if (ch === "/" && i + 1 < line.length && line[i + 1] === "/") return i;
-  }
-  return -1;
+/** Nome declarado com tipo `bool`, na linha do nome. */
+interface BoolDeclaration {
+  name: string;
+  line: number;
+  kind: "field" | "getter";
 }
 
-function isInsideString(line: string): boolean {
-  const trimmed = line.trim();
-  const tripleQuotes = ["'''", '"""', "r'''", 'r"""'];
-  for (const q of tripleQuotes) {
-    if (trimmed.startsWith(q)) return true;
+/**
+ * Todos os nomes `bool` declarados no arquivo, na ordem das linhas: campos,
+ * variáveis, parâmetros (inclusive de closures e de tipos de função) e getters.
+ */
+function boolDeclarations(file: DartFile): BoolDeclaration[] {
+  const found: BoolDeclaration[] = [];
+
+  /**
+   * Nomes `bool` dentro de um tipo: parâmetros de tipo de função
+   * (`void Function(bool show)`) e campos nomeados de record (`({bool reset})`).
+   */
+  const addTypeNames = (type: DartType | null): void => {
+    if (type === null) return;
+    for (const param of type.parameters) {
+      if (param.name !== null && param.type?.isBool) {
+        found.push({ name: param.name, line: param.nameLine, kind: "field" });
+      }
+      addTypeNames(param.type);
+    }
+    addTypeNames(type.returnType);
+    for (const arg of type.typeArguments) addTypeNames(arg);
+    for (const field of type.recordFields) {
+      if (field.name !== null && field.type.isBool) {
+        found.push({ name: field.name, line: field.nameLine, kind: "field" });
+      }
+      addTypeNames(field.type);
+    }
+  };
+
+  const addVariable = (v: { name: string; nameLine: number; type: DartType | null }): void => {
+    if (v.type?.isBool) found.push({ name: v.name, line: v.nameLine, kind: "field" });
+    addTypeNames(v.type);
+  };
+
+  const addParameters = (params: readonly DartParameter[]): void => {
+    for (const p of params) addVariable(p);
+  };
+
+  const addBody = (body: DartBody | null): void => {
+    if (body === null) return;
+    for (const v of body.localVariables) addVariable(v);
+  };
+
+  const addFunction = (fn: DartFunction): void => {
+    // `bool get x` (o `bool?` nunca contou como getter bool)
+    if (
+      fn.memberKind === DartMemberKind.Getter &&
+      fn.returnType?.isBool &&
+      !fn.returnType.isNullable
+    ) {
+      found.push({ name: fn.name, line: fn.nameLine, kind: "getter" });
+    }
+    addTypeNames(fn.returnType);
+    addParameters(fn.parameters);
+    addBody(fn.body);
+  };
+
+  for (const decl of file.declarations) {
+    for (const field of decl.fields) addVariable(field);
+    for (const method of decl.methods) addFunction(method);
+    for (const ctor of decl.constructors) {
+      // os parâmetros `final`/`var` do primary constructor já estão em `fields`
+      addParameters(ctor.parameters.filter((p) => p.source !== DartParameterSource.Declaring));
+      addBody(ctor.body);
+    }
   }
-  return false;
+  for (const v of file.variables) addVariable(v);
+  for (const fn of file.functions) addFunction(fn);
+  for (const t of file.typedefs) addTypeNames(t.aliasedType);
+  // closures e funções locais de todo o arquivo, inclusive em inicializadores
+  // (`final onTap = (bool reload) {}`) e valores padrão
+  for (const closure of file.closures()) addParameters(closure.parameters);
+
+  return found.sort((a, b) => a.line - b.line);
 }
 
 export default createPlugin(
@@ -324,79 +386,19 @@ export default createPlugin(
       return;
     }
 
-    const { git } = getDanger();
-    const allFiles = [...git.created_files, ...git.modified_files];
-
-    const dartFiles = allFiles.filter(
-      (f: string) =>
-        f.endsWith(".dart") &&
-        !f.endsWith("_test.dart") &&
-        !f.endsWith(".g.dart") &&
-        !f.endsWith(".freezed.dart") &&
-        !f.includes("/generated/") &&
-        fs.existsSync(f)
+    // Gerados ficam fora (`.g`, `.freezed`, `.gen`, `generated/`...); auxiliares de `test/` entram.
+    const dartFiles = DartFile.changed({ createdFirst: true, includeTests: true }).filter(
+      (file) => !file.path.fileName.endsWith("_test.dart")
     );
 
     if (dartFiles.length === 0) return;
 
     const violations: BoolNamingViolation[] = [];
 
-    for (const file of dartFiles) {
-      const content = fs.readFileSync(file, "utf-8");
-      const lines = content.split("\n");
+    for (const dartFile of dartFiles) {
+      const file = dartFile.path.path;
 
-      let inBlockComment = false;
-
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim();
-
-        if (inBlockComment) {
-          if (line.includes("*/")) inBlockComment = false;
-          continue;
-        }
-
-        if (line.startsWith("/*")) {
-          if (!line.includes("*/")) inBlockComment = true;
-          continue;
-        }
-
-        if (
-          line.startsWith("//") ||
-          line.startsWith("///") ||
-          line.startsWith("*") ||
-          line.startsWith("'") ||
-          line.startsWith('"') ||
-          line.startsWith("r'") ||
-          line.startsWith('r"')
-        )
-          continue;
-
-        const rawLine = lines[i];
-        const commentIdx = findCommentStart(rawLine);
-        const codePart = commentIdx >= 0 ? rawLine.substring(0, commentIdx).trim() : line;
-        if (codePart.length === 0) continue;
-
-        if (isInsideString(rawLine)) continue;
-
-        let name: string | null = null;
-        let kind: "field" | "getter" = "field";
-
-        const getterMatch = codePart.match(BOOL_GETTER_REGEX);
-        if (getterMatch) {
-          name = getterMatch[1];
-          kind = "getter";
-        }
-
-        if (!name) {
-          const fieldMatch = codePart.match(BOOL_FIELD_REGEX);
-          if (fieldMatch) {
-            name = fieldMatch[1];
-            kind = "field";
-          }
-        }
-
-        if (!name) continue;
-
+      for (const { name, line, kind } of boolDeclarations(dartFile)) {
         const cleanName = name.replace(/^_+/, "");
         if (cleanName.length < 3) continue;
 
@@ -411,7 +413,7 @@ export default createPlugin(
         if (GOOD_ADJECTIVES.has(firstWord)) continue;
 
         if (IMPERATIVE_VERBS.has(firstWord)) {
-          violations.push({ file, name, line: i + 1, firstWord, kind });
+          violations.push({ file, name, line, firstWord, kind });
           continue;
         }
 
@@ -425,7 +427,7 @@ export default createPlugin(
           const isNoun = await wp.isNoun(firstWord);
           if (isNoun) continue;
 
-          violations.push({ file, name, line: i + 1, firstWord, kind });
+          violations.push({ file, name, line, firstWord, kind });
         } catch {
           continue;
         }

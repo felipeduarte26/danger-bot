@@ -7,48 +7,76 @@
  * `Task(true)` ou `Button(false)` são ilegíveis no call site.
  * Deve-se usar named parameters: `Task(repeating: true)`, `Button(isEnabled: false)`.
  *
+ * Verifica funções de nível superior, métodos, construtores (inclusive o primary
+ * constructor) e funções locais. `[bool x]` (posicional opcional) também conta.
+ *
  * Exceções:
  * - Setters (o nome já deixa claro)
  * - Overrides (@override)
  * - Parâmetros já nomeados ({bool x})
  * - Operadores (operator ==)
+ * - Tipos que só contêm bool: `bool Function(int)`, `void Function(bool)`, `List<bool>`
+ * - Closures passadas como argumento (`onChanged: (bool value) {...}`)
+ * - Funções genéricas (`foo<T>(bool x)`), por compatibilidade com o código antigo
  *
  * @see https://dart.dev/effective-dart/design#avoid-positional-boolean-parameters
  */
-import { createPlugin, getDanger, sendFormattedFail } from "@types";
-import * as fs from "fs";
+import {
+  DartBody,
+  DartFile,
+  DartMemberKind,
+  DartParameter,
+  DartParameterKind,
+  createPlugin,
+  sendFormattedFail,
+} from "@types";
+
+/** Função, método, construtor ou função local com a lista de parâmetros. */
+interface Callable {
+  name: string;
+  line: number;
+  parameters: readonly DartParameter[];
+}
 
 /**
- * Checks if a bool param is inside named parameters (after `{`).
- * Counts unmatched `{` before the bool param position.
+ * Callables do arquivo, na ordem das linhas (a ordem das mensagens).
+ * Compatibilidade: funções e métodos genéricos (`void _sort<T>(...)`) ficam de fora,
+ * porque o código antigo não os via; incluí-los passa a reportar 1 caso no esfera.
  */
-function isInsideNamedParams(signature: string, boolIndex: number): boolean {
-  let depth = 0;
-  for (let i = 0; i < boolIndex; i++) {
-    if (signature[i] === "{") depth++;
-    if (signature[i] === "}") depth--;
+function callablesOf(file: DartFile): Callable[] {
+  const callables: Callable[] = [];
+  const add = (name: string, line: number, parameters: readonly DartParameter[]): void => {
+    callables.push({ name, line, parameters });
+  };
+  // funções locais (`void onTap(bool v) { }`), também dentro de overrides
+  const addLocalFunctions = (body: DartBody | null): void => {
+    for (const closure of body?.closures ?? []) {
+      if (closure.name !== null) add(closure.name, closure.line, closure.parameters);
+    }
+  };
+
+  for (const fn of file.functions) {
+    if (fn.memberKind !== DartMemberKind.Setter && fn.typeParameters.length === 0)
+      add(fn.name, fn.nameLine, fn.parameters);
+    addLocalFunctions(fn.body);
   }
-  return depth > 0;
-}
-
-function isInsideOptionalPositional(signature: string, boolIndex: number): boolean {
-  let depth = 0;
-  for (let i = 0; i < boolIndex; i++) {
-    if (signature[i] === "[") depth++;
-    if (signature[i] === "]") depth--;
+  for (const declaration of file.declarations) {
+    for (const ctor of declaration.constructors) {
+      add(ctor.constructorName ?? declaration.name, ctor.nameLine, ctor.parameters);
+      addLocalFunctions(ctor.body);
+    }
+    for (const method of declaration.methods) {
+      const skipped =
+        method.isOverride ||
+        method.memberKind === DartMemberKind.Setter ||
+        method.memberKind === DartMemberKind.Operator ||
+        method.typeParameters.length > 0;
+      if (!skipped) add(method.name, method.nameLine, method.parameters);
+      addLocalFunctions(method.body);
+    }
   }
-  return depth > 0;
+  return callables.sort((a, b) => a.line - b.line);
 }
-
-interface PositionalBoolViolation {
-  file: string;
-  line: number;
-  paramName: string;
-  functionName: string;
-  signatureTrimmed: string;
-}
-
-const SKIP_PATTERNS = [/^\s*set\s+/, /operator\s*[=!<>+\-*/~%&|^]+/, /^\s*@override/];
 
 export default createPlugin(
   {
@@ -57,203 +85,47 @@ export default createPlugin(
     enabled: true,
   },
   async () => {
-    const { git } = getDanger();
-    const allFiles = [...git.created_files, ...git.modified_files];
+    for (const file of DartFile.changed({ createdFirst: true })) {
+      for (const callable of callablesOf(file)) {
+        // `..., ` no exemplo quando a assinatura escrita até o último parâmetro tem vírgula
+        // (outro parâmetro, vírgula final do dart format ou vírgula no tipo de retorno), como antes.
+        const lastParam = callable.parameters[callable.parameters.length - 1];
+        const lastParamLine = lastParam?.endLine ?? callable.line;
+        const hasOthers = file.snippet(callable.line, lastParamLine).includes(",");
 
-    const dartFiles = allFiles.filter(
-      (f: string) =>
-        f.endsWith(".dart") &&
-        !f.endsWith("_test.dart") &&
-        !f.endsWith(".g.dart") &&
-        !f.endsWith(".freezed.dart") &&
-        !f.includes("/generated/") &&
-        fs.existsSync(f)
-    );
+        for (const param of callable.parameters) {
+          if (param.kind === DartParameterKind.Named || !param.type?.isBool) continue;
 
-    if (dartFiles.length === 0) return;
+          const functionName = callable.name;
+          const paramName = param.name;
+          const suggestedNamed = paramName.startsWith("is")
+            ? `{required bool ${paramName}}`
+            : `{bool ${paramName} = false}`;
 
-    const violations: PositionalBoolViolation[] = [];
-
-    for (const file of dartFiles) {
-      const content = fs.readFileSync(file, "utf-8");
-      const lines = content.split("\n");
-
-      let isOverride = false;
-      let signatureBuffer = "";
-      let signatureStartLine = -1;
-      let parenDepth = 0;
-      let inSignature = false;
-      let inBlockComment = false;
-
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        const trimmed = line.trim();
-
-        if (inBlockComment) {
-          if (trimmed.includes("*/")) inBlockComment = false;
-          continue;
-        }
-
-        if (trimmed.startsWith("/*")) {
-          if (!trimmed.includes("*/")) inBlockComment = true;
-          continue;
-        }
-
-        // Dentro de uma assinatura (ex.: primary constructor com `@override final bool x`),
-        // `@override` anota o parâmetro e a linha faz parte da assinatura.
-        if (!inSignature && (trimmed === "@override" || trimmed.startsWith("@override"))) {
-          isOverride = true;
-          continue;
-        }
-
-        if (!inSignature) {
-          if (
-            trimmed.startsWith("//") ||
-            trimmed.startsWith("///") ||
-            trimmed.startsWith("*") ||
-            trimmed.startsWith("@") ||
-            trimmed.startsWith("'") ||
-            trimmed.startsWith('"') ||
-            trimmed.startsWith("r'") ||
-            trimmed.startsWith('r"')
-          )
-            continue;
-
-          const funcStart = trimmed.match(
-            /(?:(?:static|abstract|external|factory)\s+)*(?:(?:Future|FutureOr|Stream|void|bool|int|double|String|num|dynamic|[\w<>,?]+)\s+)?(\w+)\s*\(/
-          );
-
-          if (!funcStart) {
-            if (!trimmed.startsWith("@") && trimmed.length > 0 && !trimmed.startsWith("//")) {
-              isOverride = false;
-            }
-            continue;
-          }
-
-          if (isOverride) {
-            isOverride = false;
-            continue;
-          }
-
-          if (SKIP_PATTERNS.some((p) => p.test(trimmed))) {
-            isOverride = false;
-            continue;
-          }
-
-          signatureBuffer = trimmed;
-          signatureStartLine = i;
-          parenDepth = 0;
-          inSignature = true;
-
-          for (const ch of trimmed) {
-            if (ch === "(") parenDepth++;
-            if (ch === ")") parenDepth--;
-          }
-
-          if (parenDepth <= 0) {
-            inSignature = false;
-            analyzeSignature(signatureBuffer, file, signatureStartLine, funcStart[1], violations);
-            signatureBuffer = "";
-          }
-        } else {
-          signatureBuffer += " " + trimmed;
-          for (const ch of trimmed) {
-            if (ch === "(") parenDepth++;
-            if (ch === ")") parenDepth--;
-          }
-
-          if (parenDepth <= 0) {
-            inSignature = false;
-            const funcMatch = signatureBuffer.match(
-              /(?:(?:static|abstract|external|factory)\s+)*(?:(?:Future|FutureOr|Stream|void|bool|int|double|String|num|dynamic|[\w<>,?]+)\s+)?(\w+)\s*\(/
-            );
-            const funcName = funcMatch?.[1] ?? "unknown";
-            analyzeSignature(signatureBuffer, file, signatureStartLine, funcName, violations);
-            signatureBuffer = "";
-          }
-        }
-
-        if (!inSignature && !trimmed.startsWith("@")) {
-          isOverride = false;
+          sendFormattedFail({
+            title: "PARÂMETRO BOOL POSICIONAL",
+            description: `O parâmetro \`bool ${paramName}\` em \`${functionName}()\` é **posicional**. No call site, \`true\`/\`false\` aparecem sem contexto, dificultando a leitura — ex: \`${functionName}(..., true, ...)\`. Com **named parameter**, fica auto-documentado: \`${paramName}: true\`.`,
+            problem: {
+              wrong: `${functionName}(${hasOthers ? "..., " : ""}bool ${paramName})`,
+              correct: `${functionName}(${hasOthers ? "..., " : ""}${suggestedNamed})`,
+              wrongLabel: `Posicional — quem lê ${functionName}(..., true) não sabe o que "true" significa`,
+              correctLabel: `Named — ${functionName}(..., ${paramName}: true) é auto-explicativo`,
+            },
+            action: {
+              text: "Envolva o parâmetro bool com `{}` para torná-lo named:",
+              code: `${functionName}(${suggestedNamed})`,
+            },
+            objective:
+              "Seguir **Effective Dart** — parâmetros bool devem ser **named** para que o valor (`true`/`false`) tenha significado claro no call site.",
+            reference: {
+              text: "Effective Dart: AVOID positional boolean parameters",
+              url: "https://dart.dev/effective-dart/design#avoid-positional-boolean-parameters",
+            },
+            file: file.path.path,
+            line: callable.line,
+          });
         }
       }
     }
-
-    if (violations.length === 0) return;
-
-    for (const v of violations) {
-      const suggestedNamed = v.paramName.startsWith("is")
-        ? `{required bool ${v.paramName}}`
-        : `{bool ${v.paramName} = false}`;
-
-      sendFormattedFail({
-        title: "PARÂMETRO BOOL POSICIONAL",
-        description: `O parâmetro \`bool ${v.paramName}\` em \`${v.functionName}()\` é **posicional**. No call site, \`true\`/\`false\` aparecem sem contexto, dificultando a leitura — ex: \`${v.functionName}(..., true, ...)\`. Com **named parameter**, fica auto-documentado: \`${v.paramName}: true\`.`,
-        problem: {
-          wrong: `${v.functionName}(${v.signatureTrimmed.includes(",") ? "..., " : ""}bool ${v.paramName})`,
-          correct: `${v.functionName}(${v.signatureTrimmed.includes(",") ? "..., " : ""}${suggestedNamed})`,
-          wrongLabel: `Posicional — quem lê ${v.functionName}(..., true) não sabe o que "true" significa`,
-          correctLabel: `Named — ${v.functionName}(..., ${v.paramName}: true) é auto-explicativo`,
-        },
-        action: {
-          text: "Envolva o parâmetro bool com `{}` para torná-lo named:",
-          code: `${v.functionName}(${suggestedNamed})`,
-        },
-        objective:
-          "Seguir **Effective Dart** — parâmetros bool devem ser **named** para que o valor (`true`/`false`) tenha significado claro no call site.",
-        reference: {
-          text: "Effective Dart: AVOID positional boolean parameters",
-          url: "https://dart.dev/effective-dart/design#avoid-positional-boolean-parameters",
-        },
-        file: v.file,
-        line: v.line + 1,
-      });
-    }
   }
 );
-
-function analyzeSignature(
-  signature: string,
-  file: string,
-  startLine: number,
-  functionName: string,
-  violations: PositionalBoolViolation[]
-): void {
-  const openParen = signature.indexOf("(");
-  if (openParen === -1) return;
-
-  const closeParen = signature.lastIndexOf(")");
-  if (closeParen === -1) return;
-
-  const paramsStr = signature.substring(openParen + 1, closeParen);
-  if (!paramsStr.includes("bool")) return;
-
-  const boolParamRegex = /(?:(?:required\s+)?(?:this\.|super\.)?)(bool(?:\?)?)\s+(\w+)/g;
-  let match;
-
-  while ((match = boolParamRegex.exec(paramsStr)) !== null) {
-    const paramIndex = match.index;
-    const paramName = match[2];
-
-    if (isInsideNamedParams(paramsStr, paramIndex)) continue;
-
-    if (isInsideOptionalPositional(paramsStr, paramIndex)) {
-      violations.push({
-        file,
-        line: startLine,
-        paramName,
-        functionName,
-        signatureTrimmed: signature.trim(),
-      });
-      continue;
-    }
-
-    violations.push({
-      file,
-      line: startLine,
-      paramName,
-      functionName,
-      signatureTrimmed: signature.trim(),
-    });
-  }
-}

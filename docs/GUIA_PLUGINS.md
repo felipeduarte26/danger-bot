@@ -337,6 +337,8 @@ executeDangerBot(allFlutterPlugins);
 
 ## Criando um plugin customizado
 
+Todo plugin Flutter lê o código pelo **modelo Dart** ([MODELO_DART.md](MODELO_DART.md)): `DartFile.changed()` entrega os arquivos `.dart` do PR já analisados, e o plugin trabalha com propriedades — `file.classes`, `cls.fields`, `cls.methods`, `method.body.calls`, `file.imports`, `file.comments`, `file.strings`... Não use regex nem contagem de chaves para achar classes, campos, métodos, chamadas, comentários ou strings: o modelo já trata comentários, strings, genéricos aninhados, quebras de linha e primary constructors (Dart 3.13).
+
 ### Usando a CLI (recomendado) — para plugins do pacote
 
 ```bash
@@ -344,7 +346,7 @@ danger-bot create-plugin
 ```
 
 A CLI pergunta nome e descricao, e gera automaticamente:
-- Arquivo do plugin com `createPlugin` e um `sendFormattedFail` de exemplo, no [padrao de mensagens](#padrao-de-mensagens-dos-plugins)
+- Arquivo do plugin com `createPlugin`, já lendo o código pelo modelo Dart (`DartFile.changed()` + `file.calls()`), e um `sendFormattedFail` de exemplo, no [padrao de mensagens](#padrao-de-mensagens-dos-plugins)
 - `index.ts` com export
 - `README.md` na estrutura padrao (`O que verifica`, `Severidade`, `Exemplo`, `Referencias`)
 - Atualiza o barrel da plataforma (`src/plugins/flutter/index.ts`)
@@ -368,8 +370,11 @@ Crie uma pasta em `src/plugins/flutter/meu-plugin/`:
 **`meu-plugin.ts`:**
 
 ```typescript
-import { createPlugin, getDanger, sendFormattedFail } from "@types";
-import * as fs from "fs";
+/**
+ * Meu Plugin
+ * O que verifica e por quê. Exceções que evitam falso positivo.
+ */
+import { DartFile, DartLayerFolder, createPlugin, sendFormattedFail } from "@types";
 
 export default createPlugin(
   {
@@ -378,41 +383,28 @@ export default createPlugin(
     enabled: true,
   },
   async () => {
-    const { git } = getDanger();
+    // .dart criados/modificados no PR, sem testes e sem arquivos gerados
+    for (const file of DartFile.changed()) {
+      if (!file.path.inFolder(DartLayerFolder.Entities)) continue;
 
-    const dartFiles = [...git.modified_files, ...git.created_files].filter(
-      (f: string) =>
-        f.endsWith(".dart") &&
-        !f.endsWith(".g.dart") &&
-        !f.endsWith(".freezed.dart") &&
-        fs.existsSync(f)
-    );
+      for (const cls of file.classes) {
+        for (const field of cls.fields) {
+          if (field.isFinal) continue; // sua regra aqui, sobre as propriedades do modelo
 
-    for (const file of dartFiles) {
-      const content = fs.readFileSync(file, "utf-8");
-      const lines = content.split("\n");
-
-      for (let i = 0; i < lines.length; i++) {
-        // sua logica de deteccao aqui
-
-        sendFormattedFail({
-          title: "TITULO DO PROBLEMA",
-          description: "Descricao curta do que foi detectado.",
-          problem: {
-            wrong: "codigo_errado();",
-            correct: "codigo_correto();",
-          },
-          action: {
-            code: "codigo_correto();",
-          },
-          objective: "Frase curta sobre o beneficio.",
-          reference: {
-            text: "Referencia",
-            url: "https://link.com",
-          },
-          file,
-          line: i + 1,
-        });
+          sendFormattedFail({
+            title: "TITULO DO PROBLEMA",
+            description: `O campo \`${field.name}\` de \`${cls.name}\` deveria ser final.`,
+            problem: {
+              wrong: field.lineText, // codigo REAL do arquivo
+              correct: `final ${field.compact}`, // o mesmo codigo, corrigido
+            },
+            action: { code: `final ${field.compact}` },
+            objective: "Frase curta sobre o beneficio.",
+            reference: { text: "Referencia", url: "https://link.com" },
+            file: file.path.path,
+            line: field.nameLine,
+          });
+        }
       }
     }
   }
@@ -496,23 +488,27 @@ O validador verifica:
 
 ## Helpers disponiveis para plugins
 
-Todos os helpers podem ser importados de `@felipeduarte26/danger-bot`:
+Todos os helpers podem ser importados de `@felipeduarte26/danger-bot` (ou de `"@types"` dentro do pacote):
 
 ```typescript
 import {
+  // Modelo Dart: leitura do código (ver MODELO_DART.md)
+  DartFile, DartPath, DartPackage, DartText,
+  DartLayer, DartLayerFolder, DartMemberKind, Presence, Nullability, // ...e os demais enums
+
   // Danger core
   getDanger,
 
   // Mensagens
   sendMessage, sendWarn, sendFail, sendFormattedFail, sendFormattedWarn, sendMarkdown, scheduleTask,
 
-  // Arquivos
-  getAllChangedFiles, getDartFiles, getDartFilesInDirectory,
-  getFilesMatching, getFilesByExtension, hasFilesMatching,
+  // Arquivos (para .dart, prefira DartFile.changed() e file.path)
+  getAllChangedFiles, getFilesMatching, getFilesByExtension, hasFilesMatching,
   getFileContent, fileContainsPattern,
 
-  // Clean Architecture
-  getDomainDartFiles, getDataDartFiles, getPresentationDartFiles, isInLayer,
+  // Legado (compatibilidade com plugins locais antigos): use DartFile/DartPath
+  getDartFiles, getDartFilesInDirectory, getDomainDartFiles, getDataDartFiles,
+  getPresentationDartFiles, isInLayer,
 
   // PR info
   getPRDescription, getPRTitle, getLineStats,
@@ -520,7 +516,7 @@ import {
   // Plugins ativos na execucao (evitar checagens duplicadas entre plugins)
   isPluginActive,
 
-  // Primary constructors (Dart 3.13+)
+  // Legado: primary constructors em texto (o modelo já resolve: cls.fields, cls.header)
   normalizePrimaryConstructorHeaders, findPrimaryConstructors, primaryConstructorFieldsByLine,
 } from "@felipeduarte26/danger-bot";
 ```
@@ -541,21 +537,6 @@ const { added, removed } = await getLineStats();
 
 ### Classes com primary constructor (Dart 3.13+)
 
-Com primary constructor, o cabeçalho da classe passa a ter `const` e a lista de parâmetros entre o nome e as cláusulas (`class const Foo({required final Bar bar}) extends Base {`), e os campos passam a ser **parâmetros declarantes**. Regex como `class\s+(\w+)\s+extends` ou "juntar linhas até o primeiro `{`" deixam de funcionar. Plugins que analisam a estrutura da classe devem usar:
-
-| Helper | O que faz |
-| ------ | --------- |
-| `normalizePrimaryConstructorHeaders(content)` | Reescreve cada cabeçalho com primary constructor como o cabeçalho clássico equivalente (`final class Foo extends Base {`) na mesma linha e deixa em branco as demais linhas do cabeçalho — a numeração das linhas do corpo não muda. Em código clássico devolve o texto original |
-| `findPrimaryConstructors(content)` | Lista as classes/enums com primary constructor e os campos declarados no cabeçalho (`name`, `type`, `isFinal`, `lineIndex`, `text`, `docLines`) |
-| `primaryConstructorFieldsByLine(content)` | Os mesmos campos, indexados pela linha (base 0) em que o cabeçalho começa |
-
-```typescript
-const content = fs.readFileSync(file, "utf-8");
-const lines = normalizePrimaryConstructorHeaders(content).split("\n");
-const headerFields = primaryConstructorFieldsByLine(content);
-// ... ao achar a classe na linha i, some os campos do corpo com headerFields.get(i)
-```
-
-Plugins que conferem identificadores do arquivo inteiro (ex.: nomes de parâmetros) devem continuar lendo o conteúdo original.
+O modelo Dart já trata primary constructors: os parâmetros `final`/`var` do cabeçalho aparecem em `cls.fields` (com `origin === DartFieldOrigin.PrimaryConstructor`), `cls.primaryConstructor` é o construtor do cabeçalho e `cls.header` é o cabeçalho clássico equivalente (`final class Foo extends Base {`). Os helpers de texto `normalizePrimaryConstructorHeaders`, `findPrimaryConstructors` e `primaryConstructorFieldsByLine` continuam exportados só para plugins locais antigos.
 
 > Referencia completa: [Helpers](HELPERS.md) | [API](API.md)

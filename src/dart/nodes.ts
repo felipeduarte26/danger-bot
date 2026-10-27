@@ -24,6 +24,7 @@ import {
   CommentRange,
   Token,
   findAtDepth0,
+  isExpressionEnd,
   isIdent,
   isPunct,
   isRemovableTrailingComma,
@@ -31,6 +32,7 @@ import {
   matchOpenBackward,
   matchTypeArgs,
   splitTopLevelCommas,
+  startsTypeArgs,
 } from "./internal/lexer";
 import { Annotation, ParamInfo, parseField, parseParams } from "./internal/syntax";
 
@@ -96,6 +98,26 @@ export abstract class DartNodeBase implements DartNode {
   get lineText(): string {
     return (this.file.lines[this.line - 1] ?? "").trim();
   }
+
+  /**
+   * Texto do nó em uma linha, sem comentários nem a vírgula final do formato
+   * "tall": `required final String createdAt = 'a' 'b'` mesmo quando o código
+   * quebra a declaração em várias linhas. Nó sem tokens (comentário): `text`.
+   */
+  get compact(): string {
+    const { tokens } = this.file.lexed;
+    let lo = 0;
+    let hi = tokens.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (tokens[mid].start < this.startOffset) lo = mid + 1;
+      else hi = mid;
+    }
+    if (lo >= tokens.length || tokens[lo].start >= this.endOffset) return this.text.trim();
+    let last = lo;
+    while (last + 1 < tokens.length && tokens[last + 1].end <= this.endOffset) last++;
+    return oneLineText(this.file, lo, last);
+  }
 }
 
 /** Offsets `[início, fim)` dos tokens `[from, to]`. */
@@ -122,6 +144,62 @@ export function compactText(file: DartFile, from: number, to: number): string {
     }
     out += t.value;
     prev = t;
+  }
+  return out;
+}
+
+const NO_SPACE_BEFORE = new Set([")", "]", "}", ",", ";"]);
+const NO_SPACE_AFTER = new Set(["(", "[", "{", "@"]);
+const MEMBER_DOTS = new Set([".", "?.", "..", "?.."]);
+
+/**
+ * Texto dos tokens `[from, to]` em uma linha, sem comentários: mantém um
+ * espaço onde a linha tinha espaço; numa quebra de linha, põe um espaço, exceto
+ * depois de `(`/`[`/`{`/`.` e antes de fechamento, `,`, `;`, `.` e `!`.
+ * Remove a vírgula final do formato "tall". Usado em `node.compact`.
+ */
+export function oneLineText(file: DartFile, from: number, to: number): string {
+  const { tokens } = file.lexed;
+  const { source } = file;
+  // `<`/`>` de argumentos de tipo (não comparação): sem espaço por dentro
+  const typeArgBrackets = new Set<number>();
+  for (let k = from; k <= to; k++) {
+    if (isPunct(tokens[k], "<") && k > 0 && startsTypeArgs(tokens[k - 1])) {
+      const close = matchTypeArgs(tokens, k, to + 1);
+      if (close > 0) {
+        typeArgBrackets.add(k);
+        typeArgBrackets.add(close);
+      }
+    }
+  }
+  let out = "";
+  let prev: Token | null = null;
+  let prevIndex = -1;
+  for (let k = from; k <= to; k++) {
+    const t = tokens[k];
+    if (k < to && isTrailingComma(tokens, k, from)) continue;
+    if (isPunct(t, ",") && typeArgBrackets.has(k + 1)) continue; // `Map<String, int,>`
+    if (prev !== null) {
+      const gap = source.slice(prev.end, t.start);
+      // acesso a membro (`a.b`, `a?.b`, `a..b`): nunca tem espaço; o ponto do
+      // dot shorthand (`borderRadius: .circular(8)`) vem depois de `:`/`(`/`,` e mantém
+      const memberAccess =
+        (prev.kind === "punct" && MEMBER_DOTS.has(prev.value)) ||
+        (t.kind === "punct" && MEMBER_DOTS.has(t.value) && isExpressionEnd(prev));
+      if (gap.length > 0 && !memberAccess) {
+        const lineBreak = gap.includes("\n") || gap.trim().length > 0;
+        const glued =
+          (prev.kind === "punct" && NO_SPACE_AFTER.has(prev.value)) ||
+          (t.kind === "punct" && NO_SPACE_BEFORE.has(t.value)) ||
+          (typeArgBrackets.has(prevIndex) && isPunct(prev, "<")) ||
+          (typeArgBrackets.has(k) && isPunct(t, ">")) ||
+          (isPunct(t, "!") && isExpressionEnd(prev)); // `x!` (pós-fixo), não `!x`
+        if (!lineBreak || !glued) out += " ";
+      }
+    }
+    out += t.value;
+    prev = t;
+    prevIndex = k;
   }
   return out;
 }
@@ -799,14 +877,19 @@ export class DartExpression extends DartNodeBase {
     return false;
   }
 
-  /** Texto em uma linha (sem quebras). */
+  /** Texto em uma linha (ver `DartNodeBase.compact`). */
   get compact(): string {
-    return compactText(this.file, this.fromTok, this.toTok);
+    return oneLineText(this.file, this.fromTok, this.toTok);
   }
 
   /** Chamadas dentro da expressão (inclusive aninhadas e em closures). */
   get calls(): readonly DartCall[] {
     return scanCalls(this.file, this.fromTok, this.toTok, []);
+  }
+
+  /** Closures dentro da expressão (`final onTap = (bool reload) {}`), inclusive aninhadas. */
+  get closures(): readonly DartClosure[] {
+    return scanClosures(this.file, this.fromTok, this.toTok);
   }
 }
 
@@ -1966,14 +2049,19 @@ export class DartBody extends DartNodeBase {
     return this.returns.find((r) => r.insideClosure === null)?.line ?? null;
   }
 
-  /** Linhas onde `name` é usado como identificador (fora de strings e comentários; `x.name` não conta). */
-  references(name: string): readonly number[] {
+  /**
+   * Linhas onde `name` é usado como identificador (fora de strings e comentários).
+   * Por padrão `x.name` não conta; com `includeMemberAccess` conta também
+   * (`context.mounted`, `this.mounted`).
+   */
+  references(name: string, options: { includeMemberAccess?: boolean } = {}): readonly number[] {
     const { tokens } = this.file.lexed;
     const [from, to] = this.inner;
     const lines: number[] = [];
     for (let k = from; k <= to; k++) {
       if (!isIdent(tokens[k], name)) continue;
-      if (MEMBER_ACCESS.has(tokens[k - 1]?.value ?? "") && tokens[k - 1].kind === "punct") continue;
+      const afterDot = tokens[k - 1]?.kind === "punct" && MEMBER_ACCESS.has(tokens[k - 1].value);
+      if (afterDot && !options.includeMemberAccess) continue;
       lines.push(this.file.lineAtOffset(tokens[k].start));
     }
     return lines;
