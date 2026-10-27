@@ -175,15 +175,22 @@ export class DartPath {
    * pasta `test/` do pacote.
    */
   hasTest(prFiles: Iterable<string> = []): boolean {
-    if (fs.existsSync(this.expectedTestPath)) return true;
+    return this.findTest(prFiles) !== null;
+  }
+
+  /**
+   * Caminho do teste do arquivo, pela mesma regra do `hasTest`: o `expectedTestPath` (no disco ou
+   * no PR) ou o primeiro `x_test.dart` em alguma subpasta de `test/` do pacote. `null` se não houver.
+   */
+  findTest(prFiles: Iterable<string> = []): string | null {
+    if (fs.existsSync(this.expectedTestPath)) return this.expectedTestPath;
     for (const f of prFiles) {
-      if (f === this.expectedTestPath) return true;
+      if (f === this.expectedTestPath) return f;
     }
-    if (this.libRelativePath === null) return false;
+    if (this.libRelativePath === null) return null;
     const testRoot = this.packageRootPath ? `${this.packageRootPath}/test` : "test";
-    return testFileNames(testRoot).has(
-      `${path.posix.basename(this.libRelativePath, ".dart")}_test.dart`
-    );
+    const name = `${path.posix.basename(this.libRelativePath, ".dart")}_test.dart`;
+    return testFiles(testRoot).get(name) ?? null;
   }
 }
 
@@ -202,12 +209,13 @@ function categorize(file: string): FileCategory {
 }
 
 /** Nomes de arquivos `_test.dart` sob uma pasta de testes (lida uma vez por execução). */
-const testNamesCache = new Map<string, Set<string>>();
+const testNamesCache = new Map<string, Map<string, string>>();
 
-function testFileNames(testRoot: string): Set<string> {
+/** `x_test.dart` → primeiro caminho com esse nome em `testRoot` (com cache). */
+function testFiles(testRoot: string): Map<string, string> {
   const cached = testNamesCache.get(testRoot);
   if (cached) return cached;
-  const names = new Set<string>();
+  const names = new Map<string, string>();
   const walk = (dir: string): void => {
     let entries: fs.Dirent[];
     try {
@@ -216,8 +224,10 @@ function testFileNames(testRoot: string): Set<string> {
       return;
     }
     for (const entry of entries) {
-      if (entry.isDirectory()) walk(path.join(dir, entry.name));
-      else if (entry.name.endsWith("_test.dart")) names.add(entry.name);
+      if (entry.isDirectory()) walk(path.posix.join(dir, entry.name));
+      else if (entry.name.endsWith("_test.dart") && !names.has(entry.name)) {
+        names.set(entry.name, path.posix.join(dir, entry.name));
+      }
     }
   };
   walk(testRoot);

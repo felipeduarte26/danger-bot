@@ -11,16 +11,15 @@
  * Ou via env var: GOOGLE_CHAT_WEBHOOK
  *
  * IMPORTANTE: este plugin deve ser o ÚLTIMO a rodar para capturar todos os resultados.
+ * Não lê arquivos do PR: só conta os fails/warnings da execução.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 const _types_1 = require("../../../types.js");
 const branding_1 = require("../../../branding");
-const config_1 = require("../../../config");
-const helpers_1 = require("../../../helpers");
 const REQUEST_TIMEOUT_MS = 10000;
 function getWebhookUrl() {
   try {
-    const cfg = (0, config_1.loadConfig)();
+    const cfg = (0, _types_1.loadConfig)();
     const url = cfg.settings?.google_chat_webhook;
     if (url && typeof url === "string" && url.startsWith("https://")) return url;
   } catch {
@@ -37,7 +36,7 @@ function getWebhookUrl() {
  */
 function getDangerResults() {
   const results = global.results ?? globalThis.results;
-  const pending = (0, helpers_1.getPendingSummaryCounts)();
+  const pending = (0, _types_1.getPendingSummaryCounts)();
   const count = (list) => (Array.isArray(list) ? list.length : 0);
   return {
     fails: count(results?.fails) + pending.fails,
@@ -56,7 +55,7 @@ function getPRUrl() {
 function buildChatMessage() {
   const { fails, warnings } = getDangerResults();
   const prUrl = getPRUrl();
-  const prTitle = (0, helpers_1.getPRTitle)() || "Pull Request";
+  const prTitle = (0, _types_1.getPRTitle)() || "Pull Request";
   let statusEmoji;
   let statusText;
   if (fails > 0) {

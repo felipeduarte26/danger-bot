@@ -381,7 +381,10 @@ export function scanTopLevel(lx: Lexed): TopLevel {
     } else {
       // Função ou variável de nível superior
       const member: Member | null = parseMember(lx, start, n, "\0");
-      if (member !== null && (member.kind === "field" || member.kind === "method")) {
+      // `Foo.bar() {}` fora de uma classe não é função: vira trecho não reconhecido
+      const qualified =
+        member !== null && member.kind === "method" && isPunct(tokens[member.nameTok - 1], ".");
+      if (member !== null && !qualified && (member.kind === "field" || member.kind === "method")) {
         if (member.kind === "field") result.variables.push(member);
         else result.functions.push(member);
         i = member.endTok + 1;

@@ -188,7 +188,7 @@ import {
   createPlugin,
   DartFile,
   DartCommentDirective,
-  sendWarn,
+  sendFormattedWarn,
 } from "@felipeduarte26/danger-bot";
 
 const noTodoPlugin = createPlugin(
@@ -200,8 +200,24 @@ const noTodoPlugin = createPlugin(
   async () => {
     for (const file of DartFile.changed()) {
       // comentarios de verdade: um "// TODO" dentro de uma string nao conta
-      if (file.comments.some((c) => c.directive === DartCommentDirective.Todo)) {
-        sendWarn(`TODO encontrado em ${file.path.path}. Crie uma issue.`);
+      for (const comment of file.comments) {
+        if (comment.directive !== DartCommentDirective.Todo) continue;
+
+        sendFormattedWarn({
+          title: "TODO NO CODIGO",
+          description: "Pendencia deixada no codigo: registre numa issue para nao se perder.",
+          problem: {
+            wrong: comment.lineText,
+            correct: "// (pendencia registrada na issue e comentario removido)",
+          },
+          action: {
+            text: "Crie uma issue com a pendencia e remova o comentario.",
+            code: "// (comentario removido)",
+          },
+          objective: "Pendencias rastreadas no backlog, nao escondidas no codigo.",
+          file: file.path.path,
+          line: comment.line,
+        });
       }
     }
   }

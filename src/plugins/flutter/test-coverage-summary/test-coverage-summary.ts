@@ -217,6 +217,7 @@ function reportCoverage(git: { created_files: string[]; modified_files: string[]
     }
   }
 
+  // eslint-disable-next-line no-restricted-syntax -- lcov.info, não é código Dart
   const lcovContent = fs.readFileSync(lcovPath, "utf-8");
   const allCoverage = parseLcov(lcovContent);
 

@@ -1,60 +1,8 @@
 "use strict";
-var __createBinding =
-  (this && this.__createBinding) ||
-  (Object.create
-    ? function (o, m, k, k2) {
-        if (k2 === undefined) k2 = k;
-        var desc = Object.getOwnPropertyDescriptor(m, k);
-        if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-          desc = {
-            enumerable: true,
-            get: function () {
-              return m[k];
-            },
-          };
-        }
-        Object.defineProperty(o, k2, desc);
-      }
-    : function (o, m, k, k2) {
-        if (k2 === undefined) k2 = k;
-        o[k2] = m[k];
-      });
-var __setModuleDefault =
-  (this && this.__setModuleDefault) ||
-  (Object.create
-    ? function (o, v) {
-        Object.defineProperty(o, "default", { enumerable: true, value: v });
-      }
-    : function (o, v) {
-        o["default"] = v;
-      });
-var __importStar =
-  (this && this.__importStar) ||
-  (function () {
-    var ownKeys = function (o) {
-      ownKeys =
-        Object.getOwnPropertyNames ||
-        function (o) {
-          var ar = [];
-          for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-          return ar;
-        };
-      return ownKeys(o);
-    };
-    return function (mod) {
-      if (mod && mod.__esModule) return mod;
-      var result = {};
-      if (mod != null)
-        for (var k = ownKeys(mod), i = 0; i < k.length; i++)
-          if (k[i] !== "default") __createBinding(result, mod, k[i]);
-      __setModuleDefault(result, mod);
-      return result;
-    };
-  })();
 Object.defineProperty(exports, "__esModule", { value: true });
 /**
  * Domain UseCases Plugin
- * Valida arquivos dentro de /usecases/:
+ * Valida arquivos dentro de /usecases/ (ou /usecase/):
  * - Nome do arquivo deve terminar com _usecase.dart
  * - Deve ter abstract interface class com prefixo I e sufixo UseCase
  * - Deve ter final class com sufixo UseCase e implements
@@ -63,119 +11,23 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * - Interface do UseCase deve ter somente um método (responsabilidade única)
  * - O método da interface deve se chamar "call" (callable class)
  * - O método call não pode ter mais de 3 parâmetros (usar classe de params)
+ * - Doc `///` acima do `@override` não repete a de um método documentado na interface
+ *
+ * Ignora barrel files, `usecases.dart` e o `usecase.dart` base. Nome de arquivo incorreto
+ * encerra a análise do arquivo. Métodos da interface: os de instância com tipo de retorno
+ * e nome em lowerCamelCase (getters, setters e operadores não contam).
  */
 const _types_1 = require("../../../types.js");
-const fs = __importStar(require("fs"));
-const path = __importStar(require("path"));
-const primary_constructors_1 = require("../primary-constructors/primary-constructors");
-function isBarrelFile(filePath) {
-  const fileName = path.basename(filePath, ".dart");
-  const parentDir = path.basename(path.dirname(filePath));
-  return fileName === parentDir;
-}
 const MAX_CALL_PARAMS = 3;
-function countMethodParams(lines, methodLine) {
-  let paramStr = "";
-  let parenDepth = 0;
-  let foundOpen = false;
-  outer: for (let j = methodLine; j < lines.length; j++) {
-    for (const ch of lines[j]) {
-      if (ch === "(" && !foundOpen) {
-        foundOpen = true;
-        parenDepth = 1;
-        continue;
-      }
-      if (!foundOpen) continue;
-      if (ch === "(") parenDepth++;
-      if (ch === ")") {
-        parenDepth--;
-        if (parenDepth === 0) break outer;
-      }
-      paramStr += ch;
-    }
-    if (foundOpen) paramStr += " ";
-  }
-  const cleaned = paramStr.replace(/[{}[\]]/g, " ").trim();
-  if (!cleaned) return 0;
-  let depth = 0;
-  let count = 0;
-  let hasContent = false;
-  for (const ch of cleaned) {
-    if (ch === "<" || ch === "(") depth++;
-    if (ch === ">" || ch === ")") depth--;
-    if (ch === "," && depth === 0) {
-      if (hasContent) count++;
-      hasContent = false;
-    } else if (ch.trim()) {
-      hasContent = true;
-    }
-  }
-  if (hasContent) count++;
-  return count;
-}
-function parseClasses(lines) {
-  const interfaces = [];
-  const implementations = [];
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const ifaceMatch = line.match(/abstract\s+interface\s+class\s+([A-Za-z_]\w*)/);
-    if (ifaceMatch) {
-      const methods = [];
-      let braceDepth = 0;
-      let foundOpen = false;
-      let endIndex = i;
-      for (let j = i; j < lines.length; j++) {
-        const cl = lines[j];
-        if (foundOpen && braceDepth === 1) {
-          const trimmed = cl.trim();
-          if (!trimmed.startsWith("//") && !trimmed.startsWith("///") && !trimmed.startsWith("*")) {
-            // Detecta somente declarações de método com tipo de retorno Dart na mesma linha:
-            // Ex: "Future<...> call(" | "void download(" | "Stream<...> watch("
-            const methodMatch = trimmed.match(
-              /^(?:Future<[^>]*(?:<[^>]*>)*>|Stream<[^>]*(?:<[^>]*>)*>|void|bool|int|double|String|List<[^>]*>|Map<[^>]*>|Set<[^>]*>|[A-Z]\w*(?:<[^>]*>)?)\s+([a-z]\w*)\s*[(<]/
-            );
-            if (methodMatch) {
-              methods.push({
-                name: methodMatch[1],
-                line: j + 1,
-                paramCount: countMethodParams(lines, j),
-              });
-            }
-          }
-        }
-        for (const ch of cl) {
-          if (ch === "{") {
-            braceDepth++;
-            foundOpen = true;
-          }
-          if (ch === "}") braceDepth--;
-        }
-        if (foundOpen && braceDepth <= 0) {
-          endIndex = j;
-          break;
-        }
-      }
-      interfaces.push({ name: ifaceMatch[1], line: i + 1, methods });
-      i = endIndex;
-      continue;
-    }
-    const trimmedLine = line.trim();
-    if (
-      trimmedLine.startsWith("//") ||
-      trimmedLine.startsWith("*") ||
-      trimmedLine.startsWith("///")
-    )
-      continue;
-    const classMatch = line.match(/(?:final\s+)?class\s+([A-Za-z_]\w*)/);
-    if (classMatch && !line.includes("abstract")) {
-      let declaration = line;
-      for (let j = i + 1; j < lines.length && !declaration.includes("{"); j++) {
-        declaration += " " + lines[j].trim();
-      }
-      implementations.push({ name: classMatch[1], line: i + 1, declaration });
-    }
-  }
-  return { interfaces, implementations };
+/** Métodos que o UseCase expõe na interface. */
+function interfaceMethods(iface) {
+  return iface.methods.filter(
+    (m) =>
+      m.memberKind === _types_1.DartMemberKind.Method &&
+      !m.isStatic &&
+      m.returnType !== null &&
+      /^[a-z]/.test(m.name)
+  );
 }
 exports.default = (0, _types_1.createPlugin)(
   {
@@ -184,19 +36,16 @@ exports.default = (0, _types_1.createPlugin)(
     enabled: true,
   },
   async () => {
-    const { git } = (0, _types_1.getDanger)();
-    const files = [...git.created_files, ...git.modified_files].filter(
-      (f) =>
-        (f.includes("/usecases/") || f.includes("/usecase/")) &&
-        f.endsWith(".dart") &&
-        !f.endsWith("_test.dart") &&
-        !f.endsWith("usecases.dart") &&
-        path.basename(f) !== "usecase.dart" &&
-        !isBarrelFile(f) &&
-        fs.existsSync(f)
+    const files = _types_1.DartFile.changed({ createdFirst: true }).filter(
+      (file) =>
+        (file.path.inFolder(_types_1.DartLayerFolder.UseCases) || file.path.inFolder("usecase")) &&
+        !file.path.fileName.endsWith("usecases.dart") &&
+        file.path.fileName !== "usecase.dart" &&
+        !file.path.isBarrel
     );
     for (const file of files) {
-      const fileName = file.split("/").pop() || "";
+      const filePath = file.path.path;
+      const fileName = file.path.fileName;
       if (!fileName.endsWith("_usecase.dart")) {
         (0, _types_1.sendFormattedFail)({
           title: "NOMENCLATURA DE USECASE INCORRETA",
@@ -211,16 +60,13 @@ exports.default = (0, _types_1.createPlugin)(
             code: `// Renomeie o arquivo:\n// ${fileName} → ${fileName.replace(".dart", "")}_usecase.dart`,
           },
           objective: "Manter **consistência** na nomenclatura da Domain Layer.",
-          file,
+          file: filePath,
           line: 1,
         });
         continue;
       }
-      const content = fs.readFileSync(file, "utf-8");
-      const lines = (0, primary_constructors_1.normalizePrimaryConstructorHeaders)(content).split(
-        "\n"
-      );
-      const { interfaces, implementations } = parseClasses(lines);
+      const interfaces = file.classes.filter((c) => c.isAbstract && c.isInterface);
+      const implementations = file.classes.filter((c) => !c.isAbstract);
       if (interfaces.length > 1) {
         (0, _types_1.sendFormattedFail)({
           title: "MÚLTIPLAS INTERFACES EM UM ARQUIVO USECASE",
@@ -245,7 +91,7 @@ exports.default = (0, _types_1.createPlugin)(
             language: "text",
           },
           objective: "**Um UseCase por arquivo** — facilita navegação e manutenção.",
-          file,
+          file: filePath,
           line: interfaces[1].line,
         });
       }
@@ -264,11 +110,12 @@ exports.default = (0, _types_1.createPlugin)(
             code: `abstract interface class IGetUserUseCase {\n  Future<Result<Failure, UserEntity>> call(String id);\n}\n\nfinal class GetUserUseCase implements IGetUserUseCase {\n  // implementação\n}`,
           },
           objective: "Permitir **injeção de dependência** e facilitar **testes**.",
-          file,
+          file: filePath,
           line: 1,
         });
       }
       for (const iface of interfaces) {
+        const methods = interfaceMethods(iface);
         if (!iface.name.startsWith("I")) {
           (0, _types_1.sendFormattedFail)({
             title: "INTERFACE DE USECASE SEM PREFIXO I",
@@ -281,7 +128,7 @@ exports.default = (0, _types_1.createPlugin)(
               code: `abstract interface class I${iface.name} { }`,
             },
             objective: "Manter **consistência** na nomenclatura de interfaces.",
-            file,
+            file: filePath,
             line: iface.line,
           });
         }
@@ -307,7 +154,7 @@ exports.default = (0, _types_1.createPlugin)(
                 text: "Effective Dart: Style — Classes",
                 url: "https://dart.dev/effective-dart/style#do-name-types-using-uppercamelcase",
               },
-              file,
+              file: filePath,
               line: iface.line,
             });
           } else {
@@ -322,13 +169,13 @@ exports.default = (0, _types_1.createPlugin)(
                 code: `abstract interface class ${iface.name}UseCase { }`,
               },
               objective: "Manter **consistência** na nomenclatura de UseCases.",
-              file,
+              file: filePath,
               line: iface.line,
             });
           }
         }
-        if (iface.methods.length === 1 && iface.methods[0].name !== "call") {
-          const method = iface.methods[0];
+        if (methods.length === 1 && methods[0].name !== "call") {
+          const method = methods[0];
           (0, _types_1.sendFormattedFail)({
             title: "MÉTODO DO USECASE DEVE SE CHAMAR call",
             description: `A interface \`${iface.name}\` tem o método \`${method.name}\` — o método do UseCase deve se chamar \`call\`.`,
@@ -347,24 +194,24 @@ exports.default = (0, _types_1.createPlugin)(
               text: "Dart Callable Classes",
               url: "https://dart.dev/language/callable-objects",
             },
-            file,
-            line: method.line,
+            file: filePath,
+            line: method.nameLine,
           });
         }
-        if (iface.methods.length > 1) {
+        if (methods.length > 1) {
           (0, _types_1.sendFormattedFail)({
             title: "USECASE COM MÚLTIPLOS MÉTODOS",
-            description: `A interface \`${iface.name}\` tem **${iface.methods.length} métodos** (${iface.methods.map((m) => `\`${m.name}\``).join(", ")}). Um UseCase deve ter **apenas um método**.`,
+            description: `A interface \`${iface.name}\` tem **${methods.length} métodos** (${methods.map((m) => `\`${m.name}\``).join(", ")}). Um UseCase deve ter **apenas um método**.`,
             problem: {
-              wrong: iface.methods.map((m) => `  Future<...> ${m.name}(...);`).join("\n"),
+              wrong: methods.map((m) => `  Future<...> ${m.name}(...);`).join("\n"),
               correct: `  Future<Result<Failure, Entity>> call(Params params);`,
-              wrongLabel: `${iface.methods.length} métodos no UseCase`,
+              wrongLabel: `${methods.length} métodos no UseCase`,
               correctLabel: "Método único (call)",
             },
             action: {
               text: "Separe cada responsabilidade em seu próprio UseCase:",
               code:
-                iface.methods
+                methods
                   .filter((m) => m.name !== "call")
                   .map((m) => {
                     const pascalName = m.name.charAt(0).toUpperCase() + m.name.slice(1);
@@ -378,21 +225,22 @@ exports.default = (0, _types_1.createPlugin)(
               text: "Clean Architecture: Use Cases",
               url: "https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html",
             },
-            file,
+            file: filePath,
             line: iface.line,
           });
         }
-        const callMethod = iface.methods.find((m) => m.name === "call");
-        if (callMethod && callMethod.paramCount > MAX_CALL_PARAMS) {
+        const callMethod = methods.find((m) => m.name === "call");
+        const paramCount = callMethod?.parameters.length ?? 0;
+        if (callMethod && paramCount > MAX_CALL_PARAMS) {
           const baseName = iface.name.replace(/^I/, "").replace(/[Uu]se[Cc]ase$/, "");
           const paramsClassName = `${baseName}Params`;
           (0, _types_1.sendFormattedFail)({
             title: "USECASE COM MUITOS PARÂMETROS",
-            description: `O método \`call\` da interface \`${iface.name}\` tem **${callMethod.paramCount} parâmetros**. Máximo recomendado: **${MAX_CALL_PARAMS}**. Crie uma classe de parâmetros para agrupar os dados.`,
+            description: `O método \`call\` da interface \`${iface.name}\` tem **${paramCount} parâmetros**. Máximo recomendado: **${MAX_CALL_PARAMS}**. Crie uma classe de parâmetros para agrupar os dados.`,
             problem: {
-              wrong: `Future<...> call(param1, param2, ..., param${callMethod.paramCount});`,
+              wrong: `Future<...> call(param1, param2, ..., param${paramCount});`,
               correct: `Future<...> call(${paramsClassName} params);`,
-              wrongLabel: `${callMethod.paramCount} parâmetros soltos`,
+              wrongLabel: `${paramCount} parâmetros soltos`,
               correctLabel: "Classe de parâmetros",
             },
             action: {
@@ -405,8 +253,8 @@ exports.default = (0, _types_1.createPlugin)(
               text: "Clean Code: 7 dicas para escrever funções limpas",
               url: "https://craftbettersoftware.com/p/clean-code-7-tips-to-write-clean",
             },
-            file,
-            line: callMethod.line,
+            file: filePath,
+            line: callMethod.nameLine,
           });
         }
       }
@@ -426,18 +274,15 @@ exports.default = (0, _types_1.createPlugin)(
             code: `final class ${implName} implements ${ifaceName} {\n  // implementação\n}`,
           },
           objective: "Cada UseCase deve ter **interface + implementação** no mesmo arquivo.",
-          file,
+          file: filePath,
           line: interfaces[0].line,
         });
       }
       if (interfaces.length > 0 && implementations.length > 0) {
-        const documentedMethods = extractInterfaceDocumentedMethods(lines, interfaces[0].line - 1);
         validateRedundantOverrideDocs(
-          file,
-          lines,
-          implementations[0].line - 1,
-          implementations[0].name,
-          documentedMethods
+          filePath,
+          implementations[0],
+          documentedMethodNames(interfaces[0])
         );
       }
       for (const impl of implementations) {
@@ -463,7 +308,7 @@ exports.default = (0, _types_1.createPlugin)(
                 text: "Effective Dart: Style — Classes",
                 url: "https://dart.dev/effective-dart/style#do-name-types-using-uppercamelcase",
               },
-              file,
+              file: filePath,
               line: impl.line,
             });
           } else {
@@ -478,12 +323,13 @@ exports.default = (0, _types_1.createPlugin)(
                 code: `final class ${impl.name}UseCase implements I${impl.name}UseCase { }`,
               },
               objective: "Manter **consistência** na nomenclatura de UseCases.",
-              file,
+              file: filePath,
               line: impl.line,
             });
           }
         }
-        if (impl.declaration.match(/extends\s+I\w+/)) {
+        // `extends IXxx`: herda da interface em vez de implementá-la
+        if (/^I\w/.test(impl.superclass?.name ?? "")) {
           const ifaceName = interfaces[0]?.name || "IXxxUseCase";
           (0, _types_1.sendFormattedFail)({
             title: "USECASE COM EXTENDS INCORRETO",
@@ -498,7 +344,7 @@ exports.default = (0, _types_1.createPlugin)(
               code: `final class ${impl.name} implements ${ifaceName} { }`,
             },
             objective: "Interfaces devem ser **implementadas**, não estendidas.",
-            file,
+            file: filePath,
             line: impl.line,
           });
         }
@@ -506,119 +352,42 @@ exports.default = (0, _types_1.createPlugin)(
     }
   }
 );
-function extractInterfaceDocumentedMethods(lines, classStartLine) {
-  const documented = new Set();
-  let braceDepth = 0;
-  let foundOpen = false;
-  for (let i = classStartLine; i < lines.length; i++) {
-    const line = lines[i];
-    for (const ch of line) {
-      if (ch === "{") {
-        braceDepth++;
-        foundOpen = true;
-      }
-      if (ch === "}") braceDepth--;
-    }
-    if (foundOpen && braceDepth <= 0) break;
-    if (!foundOpen || braceDepth !== 1) continue;
-    const trimmed = line.trim();
-    if (trimmed.startsWith("//") || trimmed.startsWith("*") || trimmed === "") continue;
-    const methodMatch = trimmed.match(/\b([a-z][a-zA-Z0-9_]*)\s*\(/);
-    const getterMatch = trimmed.match(/\bget\s+([a-z][a-zA-Z0-9_]*)/);
-    const name = methodMatch?.[1] || getterMatch?.[1];
-    if (name) {
-      let scanLine = i - 1;
-      while (scanLine >= 0) {
-        const t = lines[scanLine].trim();
-        if (t.startsWith("@") || t === "") {
-          scanLine--;
-        } else {
-          break;
-        }
-      }
-      if (scanLine >= 0 && lines[scanLine].trim().startsWith("///")) {
-        documented.add(name);
-      }
-    }
-  }
-  return documented;
+/** Nomes dos métodos, getters e setters públicos da interface que têm documentação `///`. */
+function documentedMethodNames(iface) {
+  return new Set(
+    iface.methods.filter((m) => /^[a-z]/.test(m.name) && m.doc !== null).map((m) => m.name)
+  );
 }
-function validateRedundantOverrideDocs(
-  file,
-  lines,
-  classStartLine,
-  className,
-  interfaceDocumentedMethods
-) {
-  let braceDepth = 0;
-  let foundOpen = false;
-  for (let i = classStartLine; i < lines.length; i++) {
-    const line = lines[i];
-    const trimmed = line.trim();
-    for (const ch of line) {
-      if (ch === "{") {
-        braceDepth++;
-        foundOpen = true;
-      }
-      if (ch === "}") braceDepth--;
-    }
-    if (foundOpen && braceDepth <= 0) break;
-    if (!foundOpen || braceDepth !== 1) continue;
-    if (trimmed === "@override") {
-      let scanLine = i - 1;
-      while (scanLine >= 0) {
-        const t = lines[scanLine].trim();
-        if (t.startsWith("@") || t === "") {
-          scanLine--;
-        } else {
-          break;
-        }
-      }
-      const docEnd = scanLine;
-      while (scanLine >= 0 && lines[scanLine].trim().startsWith("///")) {
-        scanLine--;
-      }
-      const docStart = scanLine + 1;
-      if (docStart <= docEnd && lines[docStart].trim().startsWith("///")) {
-        let methodName = "";
-        for (let j = i + 1; j < lines.length && j <= i + 5; j++) {
-          const t = lines[j].trim();
-          const methodMatch = t.match(/\b([a-z][a-zA-Z0-9_]*)\s*\(/);
-          if (methodMatch) {
-            methodName = methodMatch[1];
-            break;
-          }
-          const getterMatch = t.match(/\bget\s+([a-z][a-zA-Z0-9_]*)/);
-          if (getterMatch) {
-            methodName = getterMatch[1];
-            break;
-          }
-        }
-        if (methodName && interfaceDocumentedMethods.has(methodName)) {
-          const docText = lines
-            .slice(docStart, docEnd + 1)
-            .map((l) => l.trim())
-            .join("\n");
-          (0, _types_1.sendFormattedFail)({
-            title: "DOCUMENTAÇÃO REDUNDANTE EM @override",
-            description: `O método \`${methodName}\` em \`${className}\` possui documentação que já está definida na interface.`,
-            problem: {
-              wrong: `${docText}\n@override\n... ${methodName}(...)`,
-              correct: `@override\n... ${methodName}(...)`,
-              wrongLabel: "Documentação duplicada",
-              correctLabel: "Herda doc da interface automaticamente",
-            },
-            action: {
-              text: "Remova a documentação — em Dart, `@override` herda a doc da interface:",
-              code: `@override\n... ${methodName}(...)`,
-            },
-            objective:
-              "Evitar **documentação duplicada** — Dart herda doc da interface automaticamente via `@override`.",
-            file,
-            line: docStart + 1,
-          });
-        }
-      }
-    }
+/** Documentação escrita acima do `@override` (doc entre a anotação e a assinatura não conta). */
+function docAboveOverride(method) {
+  const override = method.annotations.find((a) => a.name === "override");
+  const doc = method.doc;
+  return override && doc && doc.startOffset < override.startOffset ? doc : null;
+}
+/** Documentação em método `@override` cuja doc já está na interface. */
+function validateRedundantOverrideDocs(filePath, cls, interfaceDocumentedMethods) {
+  for (const method of cls.methods) {
+    const doc = docAboveOverride(method);
+    if (doc === null || !interfaceDocumentedMethods.has(method.name)) continue;
+    const methodName = method.name;
+    const docText = doc.comments.map((c) => c.text.trim()).join("\n");
+    (0, _types_1.sendFormattedFail)({
+      title: "DOCUMENTAÇÃO REDUNDANTE EM @override",
+      description: `O método \`${methodName}\` em \`${cls.name}\` possui documentação que já está definida na interface.`,
+      problem: {
+        wrong: `${docText}\n@override\n... ${methodName}(...)`,
+        correct: `@override\n... ${methodName}(...)`,
+        wrongLabel: "Documentação duplicada",
+        correctLabel: "Herda doc da interface automaticamente",
+      },
+      action: {
+        text: "Remova a documentação — em Dart, `@override` herda a doc da interface:",
+        code: `@override\n... ${methodName}(...)`,
+      },
+      objective:
+        "Evitar **documentação duplicada** — Dart herda doc da interface automaticamente via `@override`.",
+      file: filePath,
+      line: doc.line,
+    });
   }
 }

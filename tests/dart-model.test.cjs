@@ -699,3 +699,184 @@ test("references: uso do nome, com e sem acesso a membro", () => {
   assert.deepEqual(body.references("mounted"), [5]);
   assert.deepEqual(body.references("mounted", { includeMemberAccess: true }), [4, 5]);
 });
+
+test("variáveis de pattern, rótulos case e for de coleção", () => {
+  const f = parse(`class S {
+  void run(Object o, List<(String, int)> pares, Map<String, int> m) {
+    final (nome, idade) = ('a', 1);
+    var [primeiro, ...resto] = [1, 2, 3];
+    final Point(:x, y: py) = Point(1, 2);
+    final (int, String) registro = (1, 'x');
+    for (final (rotulo, total) in pares) {}
+    if (o case final String casado) {}
+    if (o case [kConstante, var lista]) {}
+    switch (o) {
+      case Point(:final px) when px > 0:
+        final noCase = px;
+      case Status.ativo:
+        break;
+      default:
+        final noDefault = 1;
+    }
+    final r = switch (o) {
+      Sucesso(:final dado) => dado,
+      int n => n,
+      _ => null,
+    };
+    final itens = [for (final item in pares) item];
+  }
+}`);
+  const locals = f.classes[0].findMethod("run").body.localVariables;
+  const byName = (n) => locals.find((v) => v.name === n);
+  assert.deepEqual(
+    locals.filter((v) => v.isPatternVariable).map((v) => v.name),
+    [
+      "nome",
+      "idade",
+      "primeiro",
+      "resto",
+      "x",
+      "py",
+      "rotulo",
+      "total",
+      "casado",
+      "lista",
+      "px",
+      "dado",
+      "n",
+    ]
+  );
+  // nome solto em `case` é constante, não declara
+  assert.equal(byName("kConstante"), undefined);
+  assert.equal(byName("ativo"), undefined);
+  assert.equal(byName("registro").isPatternVariable, false);
+  assert.equal(byName("registro").type.canonical, "(int, String)");
+  assert.equal(byName("nome").isFinal, true);
+  assert.equal(byName("primeiro").isFinal, false);
+  assert.equal(byName("casado").type.canonical, "String");
+  assert.equal(byName("casado").isFinal, true);
+  assert.equal(byName("n").type.canonical, "int");
+  assert.equal(byName("rotulo").isLoopVariable, true);
+  assert.equal(byName("noCase").nameLine, 12);
+  assert.equal(byName("noDefault").nameLine, 16);
+  assert.equal(byName("item").isLoopVariable, true);
+  assert.equal(byName("item").isPatternVariable, false);
+  assert.ok(f.identifiers.some((i) => i.name === "dado"));
+  assert.deepEqual(
+    f.localVariables().map((v) => v.name),
+    locals.map((v) => v.name).sort((a, b) => byName(a).startOffset - byName(b).startOffset)
+  );
+});
+
+test("closures e funções locais genéricas", () => {
+  const body = parse(`void f() {
+  final cb = <T>(T valor) => valor;
+  T primeiro<T>(List<T> xs) => xs.first;
+  Future<int> buscar() async => 1;
+  final v = lista.map<int>((e) => e.id);
+}`).functions[0].body;
+  const desc = body.closures.map(
+    (c) =>
+      `${c.line} ${c.name} <${c.typeParameters.map((t) => t.name)}> ${c.returnType?.canonical ?? "-"} (${c.parameters.map((p) => `${p.type?.canonical} ${p.name}`)})`
+  );
+  assert.deepEqual(desc, [
+    "2 null <T> - (T valor)",
+    "3 primeiro <T> T (List<T> xs)",
+    "4 buscar <> Future<int> ()",
+    "5 null <> - (undefined e)",
+  ]);
+  assert.deepEqual(
+    body.statements.map((s) => s.kind),
+    [
+      DartStatementKind.VariableDeclaration,
+      DartStatementKind.LocalFunction,
+      DartStatementKind.LocalFunction,
+      DartStatementKind.VariableDeclaration,
+    ]
+  );
+});
+
+test("strings: índice null-aware, chave após if/for de coleção e assert", () => {
+  const f = parse(`void g(Map? json) {
+  final a = json?['nulo'];
+  final b = ok ? ['ternario'] : [];
+  final m = {if (ok) 'seIf': 1, for (final k in ks) 'seFor': k, if (x) 'a': 1 else 'seElse': 2};
+  assert(json != null, 'mensagem');
+}`);
+  const role = (v) => f.strings.find((s) => s.value === v);
+  assert.equal(role("nulo").role, DartStringRole.IndexKey);
+  assert.equal(role("ternario").role, DartStringRole.Value);
+  assert.equal(role("seIf").role, DartStringRole.MapKey);
+  assert.equal(role("seFor").role, DartStringRole.MapKey);
+  assert.equal(role("seElse").role, DartStringRole.MapKey);
+  assert.equal(role("mensagem").role, DartStringRole.CallArgument);
+  assert.equal(role("mensagem").enclosingCallee, "assert");
+  const cast = parse("final id = (json['id'] as num?)?.toInt();").calls()[0];
+  assert.equal(cast.receiver, "(json['id'] as num?)");
+});
+
+test("conveniências: tryStatements, contains, calls da classe, memberAccesses", () => {
+  const f = parse(`class A {
+  final onTap = () { try { a(); } catch (_) {} };
+  Future<void> f() async {
+    try { await b(); } finally {}
+    if (!context.mounted) return;
+    this.context.read<X>();
+    other.context.pop();
+  }
+}
+class B { void g() => c(); }
+void h() { try {} catch (e) {} }`);
+  const [a, b] = f.classes;
+  assert.deepEqual(
+    f.tryStatements().map((t) => t.line),
+    [2, 4, 11]
+  );
+  assert.deepEqual(
+    a.calls().map((c) => c.name),
+    ["a", "b", "read", "pop"]
+  );
+  assert.deepEqual(
+    b.calls().map((c) => c.name),
+    ["c"]
+  );
+  assert.equal(a.contains(a.findMethod("f")), true);
+  assert.equal(b.contains(a.findMethod("f")), false);
+  assert.deepEqual(a.findMethod("f").body.memberAccesses("context"), [
+    { member: "mounted", line: 5 },
+    { member: "read", line: 6 },
+  ]);
+});
+
+test("trecho de topo inválido vira parseError; DartPath.findTest", () => {
+  const f = parse(`Foo.bar() {}
+void ok() {}`);
+  assert.deepEqual(
+    f.functions.map((fn) => fn.name),
+    ["ok"]
+  );
+  assert.equal(f.parseErrors.length, 1);
+  assert.equal(
+    DartPath.of("lib/features/a/domain/x.dart").findTest(["test/features/a/domain/x_test.dart"]),
+    "test/features/a/domain/x_test.dart"
+  );
+  assert.equal(DartPath.of("lib/features/a/domain/x.dart").findTest([]), null);
+});
+
+test("lista de parâmetros de método/construtor com corpo => não é closure", () => {
+  const f = parse(`class M {
+  M(this.a);
+  factory M.fromEntity(E entity) => M(entity.a);
+  int sum(int a) => add(a, 1);
+  final onTap = (bool x) => go(x);
+}
+int top(int a) => add(a, 2);`);
+  assert.deepEqual(
+    f.closures().map((c) => c.line),
+    [5]
+  );
+  assert.deepEqual(
+    f.calls().map((c) => `${c.name} ${c.insideClosure === null ? "-" : c.insideClosure.line}`),
+    ["M -", "add -", "go 5", "add -"]
+  );
+});

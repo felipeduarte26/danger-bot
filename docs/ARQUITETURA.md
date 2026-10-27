@@ -33,6 +33,7 @@ danger-bot/
 │   ├── cli.js              # Entry point da CLI (Commander)
 │   ├── commands/           # Implementacao dos comandos
 │   │   ├── dry-run.js
+│   │   ├── inspect.js
 │   │   ├── create-plugin.js
 │   │   ├── remove-plugin.js
 │   │   ├── list-plugins.js
@@ -42,6 +43,7 @@ danger-bot/
 │   │   └── info.js
 │   ├── templates/          # Templates para geracao de codigo
 │   │   ├── plugin-template.js
+│   │   ├── plugins/        # Um template por tipo de regra (call, class, diff, path)
 │   │   ├── dangerfile-template.js
 │   │   └── readme-template.js
 │   └── utils/              # Utilitarios da CLI
@@ -198,7 +200,9 @@ A CLI usa [Commander](https://github.com/tj/commander.js) e esta em `bin/cli.js`
 
 Cada comando e um modulo separado em `bin/commands/`. Os comandos manipulam o filesystem para criar/remover plugins e atualizar barrel files automaticamente.
 
-Templates em `bin/templates/` geram codigo para novos plugins, dangerfiles e READMEs.
+Templates em `bin/templates/` geram codigo para novos plugins, dangerfiles e READMEs. O `create-plugin` pergunta o tipo de regra e usa o template de `bin/templates/plugins/<tipo>.ts.tpl` (`call`, `class`, `diff`, `path`), todos sobre o modelo Dart.
+
+O comando `inspect` (`bin/commands/inspect.js`) carrega o `dist/dart` e mostra o modelo de um arquivo `.dart`, com o nome de cada propriedade, para quem escreve plugins.
 
 O comando `init` (`bin/commands/init-config.js`) gera um `danger-bot.yaml` de exemplo na raiz do projeto do usuario.
 

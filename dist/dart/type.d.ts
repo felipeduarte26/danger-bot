@@ -11,7 +11,10 @@ export declare class DartRecordField {
   readonly type: DartType;
   /** `true` no campo nomeado (`{...}`). */
   readonly isNamed: boolean;
-  constructor(name: string | null, type: DartType, isNamed: boolean);
+  /** Linha do nome (ou do tipo, no campo sem nome). */
+  readonly nameLine: number;
+  /** @internal */
+  constructor(name: string | null, type: DartType, isNamed: boolean, nameLine: number);
 }
 /** Parâmetro de um tipo de função: `void Function(int index, {bool force})`. */
 export declare class DartFunctionTypeParameter {
@@ -20,11 +23,15 @@ export declare class DartFunctionTypeParameter {
   readonly type: DartType | null;
   readonly kind: DartParameterKind;
   readonly isRequired: boolean;
+  /** Linha do nome (ou do tipo, no parâmetro sem nome). */
+  readonly nameLine: number;
+  /** @internal */
   constructor(
     name: string | null,
     type: DartType | null,
     kind: DartParameterKind,
-    isRequired: boolean
+    isRequired: boolean,
+    nameLine: number
   );
 }
 /** Um tipo escrito no código. Criado pelo modelo (campos, parâmetros, retornos...). */
@@ -37,6 +44,8 @@ export declare class DartType {
    * Duas grafias do mesmo tipo têm o mesmo `canonical` (é o que `equals` compara).
    */
   readonly canonical: string;
+  /** Linha onde o tipo começa. */
+  readonly line: number;
   /** `?` escrito no tipo. */
   readonly isNullable: boolean;
   /** `Nullable` também para `dynamic`/`Null`; `Unknown` para `void` e parâmetro de tipo (`T`). */
@@ -60,6 +69,7 @@ export declare class DartType {
     kind: DartTypeKind;
     text: string;
     canonical: string;
+    line: number;
     isNullable: boolean;
     nullability: Nullability;
     name?: string | null;
@@ -111,3 +121,17 @@ export declare function parseDartType(
   to: number,
   typeParams?: ReadonlySet<string>
 ): DartType | null;
+/**
+ * Tipo de função de uma assinatura sem `Function` (typedef antigo
+ * `typedef void Cb(bool show);`): retorno em `[retFrom, retTo]` (vazio se
+ * `retTo < retFrom`) e parâmetros entre os parênteses `open`/`close`.
+ * @internal
+ */
+export declare function functionTypeFromSignature(
+  lx: Lexed,
+  retFrom: number,
+  retTo: number,
+  open: number,
+  close: number,
+  typeParams?: ReadonlySet<string>
+): DartType;

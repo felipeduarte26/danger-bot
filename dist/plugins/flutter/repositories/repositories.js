@@ -1,56 +1,4 @@
 "use strict";
-var __createBinding =
-  (this && this.__createBinding) ||
-  (Object.create
-    ? function (o, m, k, k2) {
-        if (k2 === undefined) k2 = k;
-        var desc = Object.getOwnPropertyDescriptor(m, k);
-        if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-          desc = {
-            enumerable: true,
-            get: function () {
-              return m[k];
-            },
-          };
-        }
-        Object.defineProperty(o, k2, desc);
-      }
-    : function (o, m, k, k2) {
-        if (k2 === undefined) k2 = k;
-        o[k2] = m[k];
-      });
-var __setModuleDefault =
-  (this && this.__setModuleDefault) ||
-  (Object.create
-    ? function (o, v) {
-        Object.defineProperty(o, "default", { enumerable: true, value: v });
-      }
-    : function (o, v) {
-        o["default"] = v;
-      });
-var __importStar =
-  (this && this.__importStar) ||
-  (function () {
-    var ownKeys = function (o) {
-      ownKeys =
-        Object.getOwnPropertyNames ||
-        function (o) {
-          var ar = [];
-          for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-          return ar;
-        };
-      return ownKeys(o);
-    };
-    return function (mod) {
-      if (mod && mod.__esModule) return mod;
-      var result = {};
-      if (mod != null)
-        for (var k = ownKeys(mod), i = 0; i < k.length; i++)
-          if (k[i] !== "default") __createBinding(result, mod, k[i]);
-      __setModuleDefault(result, mod);
-      return result;
-    };
-  })();
 Object.defineProperty(exports, "__esModule", { value: true });
 /**
  * Repositories Plugin
@@ -68,16 +16,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * - Deve implementar interface (implements IXxxRepository)
  * - Deve estender BaseRepository
  * - Somente uma classe por arquivo
+ * - Doc `///` acima do `@override` é redundante, a da interface é herdada (exceto `{@macro}`)
+ *
+ * Ignora barrel files, `repositories.dart` e arquivos fora de /domain/ e /data/.
+ * Nome de arquivo incorreto encerra a análise do arquivo.
  */
 const _types_1 = require("../../../types.js");
-const fs = __importStar(require("fs"));
-const path = __importStar(require("path"));
-const primary_constructors_1 = require("../primary-constructors/primary-constructors");
-function isBarrelFile(filePath) {
-  const fileName = path.basename(filePath, ".dart");
-  const parentDir = path.basename(path.dirname(filePath));
-  return fileName === parentDir;
-}
 exports.default = (0, _types_1.createPlugin)(
   {
     name: "repositories",
@@ -85,27 +29,24 @@ exports.default = (0, _types_1.createPlugin)(
     enabled: true,
   },
   async () => {
-    const { git } = (0, _types_1.getDanger)();
-    const files = [...git.created_files, ...git.modified_files].filter(
-      (f) =>
-        f.includes("/repositories/") &&
-        f.endsWith(".dart") &&
-        !f.endsWith("_test.dart") &&
-        !f.endsWith("repositories.dart") &&
-        !isBarrelFile(f) &&
-        fs.existsSync(f)
+    const files = _types_1.DartFile.changed({ createdFirst: true }).filter(
+      (file) =>
+        file.path.inFolder(_types_1.DartLayerFolder.Repositories) &&
+        !file.path.fileName.endsWith("repositories.dart") &&
+        !file.path.isBarrel
     );
     for (const file of files) {
-      if (file.includes("/domain/")) {
+      if (file.path.inLayer(_types_1.DartLayer.Domain)) {
         validateDomainRepository(file);
-      } else if (file.includes("/data/")) {
+      } else if (file.path.inLayer(_types_1.DartLayer.Data)) {
         validateDataRepository(file);
       }
     }
   }
 );
 function validateDomainRepository(file) {
-  const fileName = file.split("/").pop() || "";
+  const filePath = file.path.path;
+  const fileName = file.path.fileName;
   if (!fileName.endsWith("_repository_interface.dart")) {
     (0, _types_1.sendFormattedFail)({
       title: "NOMENCLATURA DE REPOSITORY INTERFACE INCORRETA",
@@ -119,32 +60,12 @@ function validateDomainRepository(file) {
         code: `${fileName.replace(".dart", "")}_repository_interface.dart`,
       },
       objective: "Manter **consistência** na nomenclatura de interfaces.",
-      file,
+      file: filePath,
       line: 1,
     });
     return;
   }
-  const content = fs.readFileSync(file, "utf-8");
-  const lines = (0, primary_constructors_1.normalizePrimaryConstructorHeaders)(content).split("\n");
-  const interfaces = [];
-  let inBlockComment = false;
-  for (let i = 0; i < lines.length; i++) {
-    const trimmed = lines[i].trimStart();
-    if (inBlockComment) {
-      if (trimmed.includes("*/")) inBlockComment = false;
-      continue;
-    }
-    if (trimmed.startsWith("/*")) {
-      inBlockComment = true;
-      if (trimmed.includes("*/")) inBlockComment = false;
-      continue;
-    }
-    if (trimmed.startsWith("//") || trimmed.startsWith("///")) continue;
-    const match = lines[i].match(/abstract\s+interface\s+class\s+([A-Za-z_]\w*)/);
-    if (match) {
-      interfaces.push({ name: match[1], line: i + 1 });
-    }
-  }
+  const interfaces = file.classes.filter((c) => c.isAbstract && c.isInterface);
   if (interfaces.length === 0) {
     (0, _types_1.sendFormattedFail)({
       title: "REPOSITORY SEM ABSTRACT INTERFACE CLASS",
@@ -158,7 +79,7 @@ function validateDomainRepository(file) {
         code: `abstract interface class IUserRepository {\n  Future<Result<Failure, UserEntity>> getUser(String id);\n}`,
       },
       objective: "Definir o **contrato** do Repository na camada Domain.",
-      file,
+      file: filePath,
       line: 1,
     });
     return;
@@ -176,7 +97,7 @@ function validateDomainRepository(file) {
         code: interfaces.map((i) => `${i.name.toLowerCase()}_repository_interface.dart`).join("\n"),
       },
       objective: "**Uma interface por arquivo** — facilita navegação e manutenção.",
-      file,
+      file: filePath,
       line: interfaces[1].line,
     });
   }
@@ -194,7 +115,7 @@ function validateDomainRepository(file) {
           code: `abstract interface class I${iface.name} { }`,
         },
         objective: "Manter **padrão de nomenclatura** para interfaces.",
-        file,
+        file: filePath,
         line: iface.line,
       });
     }
@@ -211,15 +132,16 @@ function validateDomainRepository(file) {
           code: `abstract interface class ${iface.name}Repository { }`,
         },
         objective: "Manter **consistência** na nomenclatura de Repositories.",
-        file,
+        file: filePath,
         line: iface.line,
       });
     }
-    validateRedundantMethodNames(file, lines, iface.name, iface.line - 1, "Repository");
+    validateRedundantMethodNames(filePath, iface, "Repository");
   }
 }
 function validateDataRepository(file) {
-  const fileName = file.split("/").pop() || "";
+  const filePath = file.path.path;
+  const fileName = file.path.fileName;
   if (!fileName.endsWith("_repository.dart")) {
     (0, _types_1.sendFormattedFail)({
       title: "NOMENCLATURA DE REPOSITORY INCORRETA",
@@ -233,36 +155,13 @@ function validateDataRepository(file) {
         code: `${fileName.replace(".dart", "")}_repository.dart`,
       },
       objective: "Manter **consistência** na nomenclatura de Repositories.",
-      file,
+      file: filePath,
       line: 1,
     });
     return;
   }
-  const content = fs.readFileSync(file, "utf-8");
-  const lines = (0, primary_constructors_1.normalizePrimaryConstructorHeaders)(content).split("\n");
-  const classes = [];
-  let inBlockComment = false;
-  for (let i = 0; i < lines.length; i++) {
-    const trimmed = lines[i].trimStart();
-    if (inBlockComment) {
-      if (trimmed.includes("*/")) inBlockComment = false;
-      continue;
-    }
-    if (trimmed.startsWith("/*")) {
-      inBlockComment = true;
-      if (trimmed.includes("*/")) inBlockComment = false;
-      continue;
-    }
-    if (trimmed.startsWith("//") || trimmed.startsWith("///")) continue;
-    const match = lines[i].match(/(?:final\s+)?class\s+([A-Za-z_]\w*)/);
-    if (match && !lines[i].includes("abstract")) {
-      let declaration = lines[i];
-      for (let j = i + 1; j < lines.length && !declaration.includes("{"); j++) {
-        declaration += " " + lines[j].trim();
-      }
-      classes.push({ name: match[1], line: i + 1, declaration });
-    }
-  }
+  // Implementações: as classes concretas do arquivo (sem nenhuma, não há o que validar)
+  const classes = file.classes.filter((c) => !c.isAbstract);
   if (classes.length === 0) return;
   if (classes.length > 1) {
     (0, _types_1.sendFormattedFail)({
@@ -277,11 +176,12 @@ function validateDataRepository(file) {
         code: classes.map((c) => `${c.name.toLowerCase()}_repository.dart`).join("\n"),
       },
       objective: "**Uma classe por arquivo** — facilita navegação e reduz conflitos de merge.",
-      file,
+      file: filePath,
       line: classes[1].line,
     });
   }
   for (const cls of classes) {
+    const implementsInterface = cls.interfaces.length > 0;
     if (!cls.name.endsWith("Repository")) {
       (0, _types_1.sendFormattedFail)({
         title: "REPOSITORY SEM SUFIXO",
@@ -295,11 +195,11 @@ function validateDataRepository(file) {
           code: `class ${cls.name}Repository { }`,
         },
         objective: "Manter **consistência** na nomenclatura de Repositories.",
-        file,
+        file: filePath,
         line: cls.line,
       });
     }
-    if (!cls.declaration.includes("implements")) {
+    if (!implementsInterface) {
       (0, _types_1.sendFormattedFail)({
         title: "REPOSITORY SEM INTERFACE",
         description: `A classe \`${cls.name}\` deve implementar uma interface de Repository.`,
@@ -313,11 +213,11 @@ function validateDataRepository(file) {
         },
         objective:
           "Garantir **inversão de dependência** — Domain define o contrato, Data implementa.",
-        file,
+        file: filePath,
         line: cls.line,
       });
     }
-    if (!cls.declaration.includes("extends BaseRepository")) {
+    if (!cls.extendsAny("BaseRepository")) {
       (0, _types_1.sendFormattedFail)({
         title: "REPOSITORY SEM BASEREPOSITORY",
         description: `A classe \`${cls.name}\` deve estender \`BaseRepository\` para tratamento padronizado de erros.`,
@@ -330,12 +230,12 @@ function validateDataRepository(file) {
           code: `class ${cls.name} extends BaseRepository<XxxFailure>\n    implements I${cls.name} { }`,
         },
         objective: "Tratamento de **erros padronizado** em todos os Repositories.",
-        file,
+        file: filePath,
         line: cls.line,
       });
     }
-    if (cls.declaration.includes("implements")) {
-      validateRedundantOverrideDocs(file, lines, cls.line - 1, cls.name);
+    if (implementsInterface) {
+      validateRedundantOverrideDocs(filePath, cls);
     }
   }
 }
@@ -345,35 +245,11 @@ function extractContextFromClassName(className, suffix) {
   if (name.endsWith(suffix)) name = name.slice(0, -suffix.length);
   return name.length >= 2 ? name : null;
 }
-function extractMethodNames(lines, startLine) {
-  const methods = [];
-  let braceDepth = 0;
-  let foundOpen = false;
-  for (let i = startLine; i < lines.length; i++) {
-    const line = lines[i];
-    const trimmed = line.trim();
-    if (foundOpen && braceDepth === 1) {
-      if (!trimmed.startsWith("//") && !trimmed.startsWith("*") && !trimmed.startsWith("/*")) {
-        const methodMatch = trimmed.match(/\b([a-z][a-zA-Z0-9_]*)\s*\(/);
-        if (methodMatch) {
-          methods.push({ name: methodMatch[1], line: i + 1 });
-        }
-        const getterMatch = trimmed.match(/\bget\s+([a-z][a-zA-Z0-9_]*)/);
-        if (getterMatch) {
-          methods.push({ name: getterMatch[1], line: i + 1 });
-        }
-      }
-    }
-    for (const ch of line) {
-      if (ch === "{") {
-        braceDepth++;
-        foundOpen = true;
-      }
-      if (ch === "}") braceDepth--;
-    }
-    if (foundOpen && braceDepth <= 0) break;
-  }
-  return methods;
+/** Métodos, getters e setters da classe com nome em lowerCamelCase (sem privados e operadores). */
+function namedMethods(cls) {
+  return cls.methods.filter(
+    (m) => m.memberKind !== _types_1.DartMemberKind.Operator && /^[a-z]/.test(m.name)
+  );
 }
 function toCamelCaseStart(name) {
   if (name === name.toUpperCase()) return name.toLowerCase();
@@ -407,16 +283,15 @@ function getSuggestedMethodName(methodName, context) {
   }
   return methodName;
 }
-function validateRedundantMethodNames(file, lines, interfaceName, interfaceStartLine, suffix) {
-  const context = extractContextFromClassName(interfaceName, suffix);
+function validateRedundantMethodNames(filePath, iface, suffix) {
+  const context = extractContextFromClassName(iface.name, suffix);
   if (!context) return;
-  const methods = extractMethodNames(lines, interfaceStartLine);
-  for (const method of methods) {
+  for (const method of namedMethods(iface)) {
     if (isMethodNameRedundant(method.name, context)) {
       const suggested = getSuggestedMethodName(method.name, context);
       (0, _types_1.sendFormattedFail)({
         title: "NOME DE MÉTODO REDUNDANTE",
-        description: `O método \`${method.name}\` repete o contexto \`${context}\` que já está no nome da classe \`${interfaceName}\`.`,
+        description: `O método \`${method.name}\` repete o contexto \`${context}\` que já está no nome da classe \`${iface.name}\`.`,
         problem: {
           wrong: `${method.name}(...)`,
           correct: `${suggested}(...)`,
@@ -425,91 +300,49 @@ function validateRedundantMethodNames(file, lines, interfaceName, interfaceStart
         },
         action: {
           text: `Remova "${context}" do nome do método:`,
-          code: `// Em ${interfaceName}\n\n// Antes\n${method.name}(...)\n\n// Depois\n${suggested}(...)`,
+          code: `// Em ${iface.name}\n\n// Antes\n${method.name}(...)\n\n// Depois\n${suggested}(...)`,
         },
         objective: "Evitar **redundância** nos nomes — o contexto da classe já comunica o domínio.",
         reference: {
           text: "Clean Code — Cap. 2: Don't Add Gratuitous Context (Robert C. Martin)",
           url: "https://medium.com/@sardorjs/clean-code-chapter-2-meaningful-names-baa554f93f17",
         },
-        file,
-        line: method.line,
+        file: filePath,
+        line: method.nameLine,
       });
     }
   }
 }
-function validateRedundantOverrideDocs(file, lines, classStartLine, className) {
-  let braceDepth = 0;
-  let foundOpen = false;
-  for (let i = classStartLine; i < lines.length; i++) {
-    const line = lines[i];
-    const trimmed = line.trim();
-    for (const ch of line) {
-      if (ch === "{") {
-        braceDepth++;
-        foundOpen = true;
-      }
-      if (ch === "}") braceDepth--;
-    }
-    if (foundOpen && braceDepth <= 0) break;
-    if (!foundOpen || braceDepth !== 1) continue;
-    if (trimmed === "@override") {
-      let scanLine = i - 1;
-      while (scanLine >= 0) {
-        const t = lines[scanLine].trim();
-        if (t.startsWith("@") || t === "") {
-          scanLine--;
-        } else {
-          break;
-        }
-      }
-      const docEnd = scanLine;
-      while (scanLine >= 0 && lines[scanLine].trim().startsWith("///")) {
-        scanLine--;
-      }
-      const docStart = scanLine + 1;
-      if (docStart <= docEnd && lines[docStart].trim().startsWith("///")) {
-        const docLines = lines.slice(docStart, docEnd + 1).map((l) => l.trim());
-        const isMacroRef = docLines.every(
-          (l) => /^\/\/\/\s*\{@macro\s+\S+\}$/.test(l) || l === "///"
-        );
-        if (isMacroRef) continue;
-        let methodName = "";
-        for (let j = i + 1; j < lines.length && j <= i + 5; j++) {
-          const t = lines[j].trim();
-          const methodMatch = t.match(/\b([a-z][a-zA-Z0-9_]*)\s*\(/);
-          if (methodMatch) {
-            methodName = methodMatch[1];
-            break;
-          }
-          const getterMatch = t.match(/\bget\s+([a-z][a-zA-Z0-9_]*)/);
-          if (getterMatch) {
-            methodName = getterMatch[1];
-            break;
-          }
-        }
-        if (methodName) {
-          const docText = docLines.join("\n");
-          (0, _types_1.sendFormattedFail)({
-            title: "DOCUMENTAÇÃO REDUNDANTE EM @override",
-            description: `O método \`${methodName}\` em \`${className}\` possui documentação redundante — \`@override\` herda a doc da interface automaticamente.`,
-            problem: {
-              wrong: `${docText}\n@override\n... ${methodName}(...)`,
-              correct: `@override\n... ${methodName}(...)`,
-              wrongLabel: "Documentação duplicada",
-              correctLabel: "Herda doc da interface automaticamente",
-            },
-            action: {
-              text: "Remova a documentação — em Dart, `@override` herda a doc da interface:",
-              code: `@override\n... ${methodName}(...)`,
-            },
-            objective:
-              "Evitar **documentação duplicada** — Dart herda doc da interface automaticamente via `@override`.",
-            file,
-            line: docStart + 1,
-          });
-        }
-      }
-    }
+/** Documentação escrita acima do `@override` (doc entre a anotação e a assinatura não conta). */
+function docAboveOverride(method) {
+  const override = method.annotations.find((a) => a.name === "override");
+  const doc = method.doc;
+  return override && doc && doc.startOffset < override.startOffset ? doc : null;
+}
+/** Documentação `///` em método `@override`: a doc da interface já é herdada (`{@macro}` é aceito). */
+function validateRedundantOverrideDocs(filePath, cls) {
+  for (const method of namedMethods(cls)) {
+    const doc = docAboveOverride(method);
+    if (doc === null || doc.isMacroOnly) continue;
+    const methodName = method.name;
+    const docText = doc.comments.map((c) => c.text.trim()).join("\n");
+    (0, _types_1.sendFormattedFail)({
+      title: "DOCUMENTAÇÃO REDUNDANTE EM @override",
+      description: `O método \`${methodName}\` em \`${cls.name}\` possui documentação redundante — \`@override\` herda a doc da interface automaticamente.`,
+      problem: {
+        wrong: `${docText}\n@override\n... ${methodName}(...)`,
+        correct: `@override\n... ${methodName}(...)`,
+        wrongLabel: "Documentação duplicada",
+        correctLabel: "Herda doc da interface automaticamente",
+      },
+      action: {
+        text: "Remova a documentação — em Dart, `@override` herda a doc da interface:",
+        code: `@override\n... ${methodName}(...)`,
+      },
+      objective:
+        "Evitar **documentação duplicada** — Dart herda doc da interface automaticamente via `@override`.",
+      file: filePath,
+      line: doc.line,
+    });
   }
 }

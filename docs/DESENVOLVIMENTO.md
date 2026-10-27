@@ -41,6 +41,7 @@ npm run type-check
 | `format` | `prettier --write "src/**/*.ts" "bin/**/*.js"` | Formata codigo |
 | `format:check` | `prettier --check "src/**/*.ts" "bin/**/*.js"` | Verifica formatacao |
 | `type-check` | `tsc --noEmit` | Verifica tipos sem gerar arquivos |
+| `test` | `node --test tests/*.test.cjs` | Testes do modelo Dart (sobre o `dist/`: rode o build antes) |
 | `prepare` | `husky` | Configura git hooks |
 
 ---
@@ -64,10 +65,13 @@ npx danger-bot create-plugin
 ### 3. Verificar
 
 ```bash
-npm run lint
+npm run lint        # inclui as regras que barram regex e parser próprio nos plugins
 npm run type-check
 npm run build
+npm test            # testes do modelo Dart
 ```
+
+Mudou o modelo Dart (`src/dart/`) ou um plugin existente? Rode também a paridade ([tools/parity/](../tools/parity/README.md)).
 
 ### 4. Commit
 
@@ -114,6 +118,8 @@ Abra um PR no GitHub.
 
 ## Criando um plugin
 
+> Guia completo: [CRIANDO_PLUGINS.md](CRIANDO_PLUGINS.md) (passo a passo, receitas, exemplos e checklist de revisão).
+
 ### Via CLI (recomendado)
 
 ```bash
@@ -137,9 +143,11 @@ npx danger-bot create-plugin
 
 ## Estrutura de um plugin
 
+O plugin lê o código pelo [modelo Dart](MODELO_DART.md): nada de `fs`, `split("\n")` ou regex para achar
+classes, campos, chamadas, strings ou comentários.
+
 ```typescript
-import { createPlugin, getDanger, sendFail } from "@types";
-import * as fs from "fs";
+import { DartFile, createPlugin, sendFormattedFail } from "@types";
 
 export default createPlugin(
   {
@@ -148,14 +156,11 @@ export default createPlugin(
     enabled: true,
   },
   async () => {
-    const { git } = getDanger();
-
-    const dartFiles = [...git.modified_files, ...git.created_files].filter(
-      (f: string) => f.endsWith(".dart") && fs.existsSync(f)
-    );
-
-    for (const file of dartFiles) {
-      // logica do plugin
+    // .dart criados/modificados no PR, já analisados (sem testes e sem gerados)
+    for (const file of DartFile.changed()) {
+      for (const call of file.calls()) {
+        // a regra, sobre as propriedades do modelo; a mensagem com sendFormattedFail
+      }
     }
   }
 );

@@ -184,15 +184,21 @@ class DartPath {
    * pasta `test/` do pacote.
    */
   hasTest(prFiles = []) {
-    if (fs.existsSync(this.expectedTestPath)) return true;
+    return this.findTest(prFiles) !== null;
+  }
+  /**
+   * Caminho do teste do arquivo, pela mesma regra do `hasTest`: o `expectedTestPath` (no disco ou
+   * no PR) ou o primeiro `x_test.dart` em alguma subpasta de `test/` do pacote. `null` se não houver.
+   */
+  findTest(prFiles = []) {
+    if (fs.existsSync(this.expectedTestPath)) return this.expectedTestPath;
     for (const f of prFiles) {
-      if (f === this.expectedTestPath) return true;
+      if (f === this.expectedTestPath) return f;
     }
-    if (this.libRelativePath === null) return false;
+    if (this.libRelativePath === null) return null;
     const testRoot = this.packageRootPath ? `${this.packageRootPath}/test` : "test";
-    return testFileNames(testRoot).has(
-      `${path.posix.basename(this.libRelativePath, ".dart")}_test.dart`
-    );
+    const name = `${path.posix.basename(this.libRelativePath, ".dart")}_test.dart`;
+    return testFiles(testRoot).get(name) ?? null;
   }
 }
 exports.DartPath = DartPath;
@@ -212,10 +218,11 @@ function categorize(file) {
 }
 /** Nomes de arquivos `_test.dart` sob uma pasta de testes (lida uma vez por execução). */
 const testNamesCache = new Map();
-function testFileNames(testRoot) {
+/** `x_test.dart` → primeiro caminho com esse nome em `testRoot` (com cache). */
+function testFiles(testRoot) {
   const cached = testNamesCache.get(testRoot);
   if (cached) return cached;
-  const names = new Set();
+  const names = new Map();
   const walk = (dir) => {
     let entries;
     try {
@@ -224,8 +231,10 @@ function testFileNames(testRoot) {
       return;
     }
     for (const entry of entries) {
-      if (entry.isDirectory()) walk(path.join(dir, entry.name));
-      else if (entry.name.endsWith("_test.dart")) names.add(entry.name);
+      if (entry.isDirectory()) walk(path.posix.join(dir, entry.name));
+      else if (entry.name.endsWith("_test.dart") && !names.has(entry.name)) {
+        names.set(entry.name, path.posix.join(dir, entry.name));
+      }
     }
   };
   walk(testRoot);

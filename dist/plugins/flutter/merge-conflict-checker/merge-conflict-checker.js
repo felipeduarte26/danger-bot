@@ -4,11 +4,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * Merge Conflict Checker Plugin
  * Detecta conflitos de merge entre o branch atual e o branch de destino
  * usando `git merge-tree` para simular o merge sem alterar o working directory.
+ * Não lê código Dart: os arquivos e linhas vêm da saída do `git merge-tree`.
+ * Sem branch de destino (GitHub, Bitbucket Cloud ou GitLab) ou sem `git fetch`, não roda.
  */
 const _types_1 = require("../../../types.js");
 const child_process_1 = require("child_process");
 function getTargetBranch() {
-  const d = global.danger || globalThis.danger;
+  const d = (0, _types_1.getDanger)();
   const ghBase = d?.github?.pr?.base?.ref;
   if (ghBase) return `origin/${ghBase}`;
   const bbBase = d?.bitbucket_cloud?.pr?.destination?.branch?.name;

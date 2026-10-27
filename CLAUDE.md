@@ -63,18 +63,18 @@ O histórico fica no [CHANGELOG.md](CHANGELOG.md), no formato [Keep a Changelog 
 
 ### Modelo Dart ([src/dart/](src/dart/)) — obrigatório nos plugins Flutter
 
-Os plugins **não leem Dart com regex**. Eles usam o modelo compartilhado: o arquivo é lido e analisado uma vez (tokens, não linhas) e o plugin trabalha só com propriedades. Guia completo: [docs/MODELO_DART.md](docs/MODELO_DART.md).
+Os plugins **não leem Dart com regex**. Eles usam o modelo compartilhado: o arquivo é lido e analisado uma vez (tokens, não linhas) e o plugin trabalha só com propriedades. Referência da API: [docs/MODELO_DART.md](docs/MODELO_DART.md). Como montar um plugin com ele (passo a passo, "preciso de... → use", o que não fazer, exemplos, checklist de revisão): [docs/CRIANDO_PLUGINS.md](docs/CRIANDO_PLUGINS.md).
 
-| Classe                                                              | O que dá                                                                                                                                                                                                                                                                                                        |
-| ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DartFile`                                                          | Ponto de entrada: `DartFile.changed()` (arquivos `.dart` do PR, sem testes/gerados), `read(caminho)`, `readWithDiff(caminho)` (linhas adicionadas); `classes`, `enums`, `mixins`, `extensions`, `functions`, `variables`, `imports`/`exports`, `comments`, `strings`, `identifiers`, `calls()`, `isCode(linha)` |
-| `DartPath`                                                          | Só o caminho: `layer`/`inLayer()`, `layerFolder`/`inFolder()`, `isTest`, `isGenerated`, `isBarrel`, `category`, `feature`, `expectedTestPath`/`hasTest()`, `package` (`DartPackage`)                                                                                                                            |
-| `DartClass`                                                         | class, enum, mixin, extension, extension type, mixin application: modificadores (`isAbstract`, `isSealed`, `isFinal`, `isBase`, `isInterface`, `isMixinClass`), `superclass`/`interfaces`/`mixins`, `fields`, `methods`, `constructors`, `primaryConstructor`, `enumValues`, `hasMember()`, `isComplete`        |
-| `DartField` / `DartLocalVariable` / `DartTopLevelVariable`          | `type`, `nullability`, `isFinal`/`isLate`/`isStatic`/`isConst`, `initializer`, `origin` (corpo ou primary constructor)                                                                                                                                                                                          |
-| `DartMethod` / `DartFunction` / `DartConstructor` / `DartParameter` | assinatura, `returnType`, `parameters`, `isAsync`, `isOverride`, `body`                                                                                                                                                                                                                                         |
-| `DartType`                                                          | `canonical`, `name`, `typeArguments`, `isString`/`isBool`/`isNumeric`/`isFuture`..., `unwrapFuture()`, `equals()`                                                                                                                                                                                               |
-| `DartBody`                                                          | `statements`, `calls`, `awaits`, `returns`, `closures`, `tryStatements`, `localVariables`, `references()`                                                                                                                                                                                                       |
-| `DartCall` / `DartExpression` / `DartString` / `DartComment`        | callee, receptor, cascata, argumentos; tipo da expressão, itens de lista; papel da string; diretiva do comentário                                                                                                                                                                                               |
+| Classe                                                              | O que dá                                                                                                                                                                                                                                                                                                                                                                              |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DartFile`                                                          | Ponto de entrada: `DartFile.changed()` (arquivos `.dart` do PR, sem testes/gerados), `read(caminho)`, `readWithDiff(caminho)` (linhas adicionadas); `classes`, `enums`, `mixins`, `extensions`, `functions`, `variables`, `imports`/`exports`, `comments`, `strings`, `identifiers`, `calls()`/`closures()`/`tryStatements()`/`localVariables()` (o arquivo inteiro), `isCode(linha)` |
+| `DartPath`                                                          | Só o caminho: `layer`/`inLayer()`, `layerFolder`/`inFolder()`, `isTest`, `isGenerated`, `isBarrel`, `category`, `feature`, `expectedTestPath`/`hasTest()`/`findTest()`, `package` (`DartPackage`)                                                                                                                                                                                     |
+| `DartClass`                                                         | class, enum, mixin, extension, extension type, mixin application: modificadores (`isAbstract`, `isSealed`, `isFinal`, `isBase`, `isInterface`, `isMixinClass`), `superclass`/`interfaces`/`mixins`, `fields`, `methods`, `constructors`, `primaryConstructor`, `enumValues`, `hasMember()`, `isComplete`                                                                              |
+| `DartField` / `DartLocalVariable` / `DartTopLevelVariable`          | `type`, `nullability`, `isFinal`/`isLate`/`isStatic`/`isConst`, `initializer`, `origin` (corpo ou primary constructor); locais: `isLoopVariable`, `isPatternVariable`, `insideClosure`                                                                                                                                                                                                |
+| `DartMethod` / `DartFunction` / `DartConstructor` / `DartParameter` | assinatura, `returnType`, `parameters`, `isAsync`, `isOverride`, `body`                                                                                                                                                                                                                                                                                                               |
+| `DartType`                                                          | `canonical`, `name`, `typeArguments`, `isString`/`isBool`/`isNumeric`/`isFuture`..., `unwrapFuture()`, `equals()`                                                                                                                                                                                                                                                                     |
+| `DartBody`                                                          | `statements`, `calls`, `awaits`, `returns`, `closures`, `tryStatements`, `localVariables`, `references()`, `memberAccesses()`                                                                                                                                                                                                                                                         |
+| `DartCall` / `DartExpression` / `DartString` / `DartComment`        | callee, receptor, cascata, argumentos; tipo da expressão, itens de lista; papel da string; diretiva do comentário                                                                                                                                                                                                                                                                     |
 
 Enums (string): `DartLayer`, `DartLayerFolder`, `FileCategory`, `Presence`, `Nullability`, `DartMemberKind`, `DartTypeKind`... O valor é o texto do código/caminho (`DartLayer.Domain === "domain"`).
 
@@ -88,6 +88,8 @@ Regras que o modelo garante (e que o plugin não pode desfazer):
 - **Fatos, não decisões:** o modelo diz o que o código é; allowlists, limites e severidade ficam no plugin.
 
 No plugin é **proibido**: contar `{`/`}`, pular comentário ou string à mão, regex para achar classe/campo/método/import/chamada, `split("\n")` para varrer código, e usar membros `@internal` (`file.lexed`, `rawMember`...). Regex só para o **conteúdo da regra**, aplicada a fatos do modelo (o formato de `field.name`, o padrão de um segredo em `string.value`). Se faltar algo no modelo, acrescente nele (com teste em `tests/dart-model.test.cjs`), não no plugin.
+
+O `npm run lint` barra esses padrões em `src/plugins/` (`no-restricted-syntax` e `no-restricted-imports` no `eslint.config.js`): `split("\n")` sobre `source`/`text`, `readFileSync` com caminho variável, regex em `source`/`text`/`lineText`, comparação com `"{"`/`"}"`, membros `@internal`, imports de `dart/internal` e os helpers legados. O primary-constructors fica de fora, porque reescreve o código e trabalha com os tokens. Uso legítimo (saída de ferramenta, arquivo que não é Dart, regex no texto de um comentário) leva `// eslint-disable-next-line no-restricted-syntax` com o motivo.
 
 Internos: `src/dart/internal/` tem o lexer e o parser (também usados pelo primary-constructors). Os helpers antigos `normalizePrimaryConstructorHeaders`, `findPrimaryConstructors`, `primaryConstructorFieldsByLine`, `getDartFiles`, `isInLayer` continuam exportados para plugins locais antigos, mas código novo usa o modelo.
 
@@ -149,19 +151,29 @@ Como funciona:
 
 ### CLI ([bin/cli.js](bin/cli.js), alias `db`)
 
-| Comando                                                          | Para que serve                                                                                                                                                                                                              |
-| ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `dry-run`/`run`, `init`, `gen`                                   | Para o projeto consumidor. `init` gera o `danger-bot.yaml` e `gen` gera o `dangerfile.example.ts`                                                                                                                           |
-| `list`/`ls`, `info`, `create-plugin`/`new`, `remove-plugin`/`rm` | Leem `src/plugins/` do cwd: rode na raiz deste repo                                                                                                                                                                         |
-| `validate <arquivo>`                                             | Confere o mínimo de um arquivo de plugin (import e `export default` do `createPlugin`, `name`, `description`, `enabled`) e sai com código 1 se faltar algo. Funciona em qualquer lugar; não verifica o padrão das mensagens |
+| Comando                                                          | Para que serve                                                                                                                                                                                                                                                                                |
+| ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dry-run`/`run`, `init`, `gen`                                   | Para o projeto consumidor. `init` gera o `danger-bot.yaml` e `gen` gera o `dangerfile.example.ts`                                                                                                                                                                                             |
+| `list`/`ls`, `info`, `create-plugin`/`new`, `remove-plugin`/`rm` | Leem `src/plugins/` do cwd: rode na raiz deste repo                                                                                                                                                                                                                                           |
+| `inspect <arquivo.dart>`                                         | Mostra o que o modelo Dart vê num arquivo, com os nomes das propriedades: `file.path`, diretivas, classes e membros, `calls()`, `strings`, `comments`, `localVariables()`, erros. `--only <seções>`, `--line N` (só o que está na linha), `--json`. Roda no projeto consumidor (lê o `dist/`) |
+| `validate <arquivo>`                                             | Confere o mínimo de um arquivo de plugin (import e `export default` do `createPlugin`, `name`, `description`, `enabled`) e sai com código 1 se faltar algo. Funciona em qualquer lugar; não verifica o padrão das mensagens                                                                   |
 
 `create-plugin` e `remove-plugin` são interativos (readline): stdin em pipe não funciona, porque o `rl.question` só lê a primeira linha. Para automatizar, use um script que escreve cada resposta quando aparece um prompt terminando em `: `.
 
-O `.ts` que o `create-plugin` gera é o [template](#template-arquivo-inteiro), já sobre o modelo Dart (`DartFile.changed()` + `file.calls()`), com `WRONG_CALL`, `RIGHT_CALL` e textos de exemplo no `sendFormattedFail`, e o README já sai na estrutura de [README do plugin](#convenções-dos-plugins-existentes). Troque os exemplos pela regra real; o que ficar do exemplo vai para o PR.
+O `create-plugin` pergunta o tipo de regra e gera o `.ts` do template correspondente (`bin/templates/plugins/<tipo>.ts.tpl`), sempre sobre o modelo Dart e no padrão das mensagens:
+
+- `call` (Call): `file.calls()`, `WRONG_CALL`/`RIGHT_CALL` — é o [template](#template-arquivo-inteiro) abaixo;
+- `class` (Class/structure): `file.classes` + `cls.hasMember(...) !== Presence.Absent`, `TARGET_FOLDER`/`REQUIRED_MEMBER`;
+- `diff` (Text added in the PR): `readWithDiff` + `file.strings` + `isAdded`, `sendFormattedWarn`, `TARGET_CALLEE`;
+- `path` (Path/file): só `file.path`, `TARGET_FOLDER`/`REQUIRED_SUFFIX`.
+
+O README sai na estrutura de [README do plugin](#convenções-dos-plugins-existentes), com a severidade e o exemplo do tipo. Troque os exemplos pela regra real; o que ficar do exemplo vai para o PR.
 
 No resumo do dry-run, `erro(s)` conta os `fail` que reprovariam o build. Os comentários inline (de `fail` e de `warn`) aparecem numa seção à parte e não reprovam nada sozinhos: o que reprova é o resumo que o `flushSummaries()` gera.
 
 ## Criando um plugin
+
+Guia do desenvolvedor: [docs/CRIANDO_PLUGINS.md](docs/CRIANDO_PLUGINS.md). Siga-o ao criar ou revisar um plugin: o plugin só filtra arquivos, aplica a regra sobre fatos do modelo e manda a mensagem padrão. Nada de função de parse ou regex própria por plugin: o que faltar vai para o `src/dart/`, com teste.
 
 Toda mensagem de plugin segue o [padrão obrigatório das mensagens](#padrão-obrigatório-das-mensagens): helpers `sendFormatted*`, código real do erro, a correção, a ação, o objetivo e o link de referência.
 
@@ -207,10 +219,11 @@ export default createPlugin(
     // .dart criados/modificados no PR, sem testes e sem arquivos gerados
     for (const file of DartFile.changed()) {
       for (const call of file.calls()) {
-        if (call.name !== WRONG_CALL) continue;
+        // `call.receiver === null`: só a chamada solta, não `obj.padraoProblematico()`
+        if (call.name !== WRONG_CALL || call.receiver !== null) continue;
 
-        const wrong = call.lineText; // código REAL do arquivo (a linha da chamada)
-        const fixed = wrong.replace(`${WRONG_CALL}(`, `${RIGHT_CALL}(`); // a mesma linha, já corrigida
+        const wrong = call.compact; // a chamada REAL, em uma linha (igual com quebra de linha)
+        const fixed = wrong.replace(`${WRONG_CALL}(`, `${RIGHT_CALL}(`); // a mesma chamada, corrigida
 
         sendFormattedFail({
           title: "TITULO FIXO EM CAPS", // chave do resumo: sem dados variáveis
@@ -234,7 +247,7 @@ export default createPlugin(
 );
 ```
 
-Outras entradas comuns (receitas completas em [docs/MODELO_DART.md](docs/MODELO_DART.md#receitas)):
+Outras entradas comuns (tabela "preciso de... → use" em [docs/CRIANDO_PLUGINS.md](docs/CRIANDO_PLUGINS.md#preciso-de--use)):
 
 ```typescript
 for (const file of DartFile.changed()) {
@@ -417,6 +430,8 @@ Antes de criar um plugin, veja se a regra já existe. Arrays em [src/index.ts](s
 - **Notificação:** google-chat-notification (sempre o último)
 
 ## Testando um plugin
+
+**Antes de escrever a regra**, veja o que o modelo dá para um arquivo real: `node bin/cli.js inspect <arquivo.dart>` (`--line N` para uma linha, `--only calls,strings` para filtrar).
 
 **No dry-run** (precisa estar numa branch diferente da base):
 

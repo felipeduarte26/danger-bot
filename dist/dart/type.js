@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DartType = exports.DartFunctionTypeParameter = exports.DartRecordField = void 0;
 exports.parseDartType = parseDartType;
+exports.functionTypeFromSignature = functionTypeFromSignature;
 /**
  * DartType: um tipo escrito no código (`List<int>?`, `bool Function(int)`,
  * `(int, String)`), com a forma canônica e atalhos (`isString`, `isBool`...).
@@ -11,20 +12,24 @@ const lexer_1 = require("./internal/lexer");
 const BUILTINS = new Set(Object.values(enums_1.DartBuiltinType));
 /** Campo de um record: `(int, {String name})`. */
 class DartRecordField {
-  constructor(name, type, isNamed) {
+  /** @internal */
+  constructor(name, type, isNamed, nameLine) {
     this.name = name;
     this.type = type;
     this.isNamed = isNamed;
+    this.nameLine = nameLine;
   }
 }
 exports.DartRecordField = DartRecordField;
 /** Parâmetro de um tipo de função: `void Function(int index, {bool force})`. */
 class DartFunctionTypeParameter {
-  constructor(name, type, kind, isRequired) {
+  /** @internal */
+  constructor(name, type, kind, isRequired, nameLine) {
     this.name = name;
     this.type = type;
     this.kind = kind;
     this.isRequired = isRequired;
+    this.nameLine = nameLine;
   }
 }
 exports.DartFunctionTypeParameter = DartFunctionTypeParameter;
@@ -35,6 +40,7 @@ class DartType {
     this.kind = init.kind;
     this.text = init.text;
     this.canonical = init.canonical;
+    this.line = init.line;
     this.isNullable = init.isNullable;
     this.nullability = init.nullability;
     this.name = init.name ?? null;
@@ -153,7 +159,7 @@ function parseDartType(lx, from, to, typeParams = new Set()) {
   const isNullable = (0, lexer_1.isPunct)(tokens[to], "?");
   const coreTo = isNullable ? to - 1 : to;
   if (coreTo < from) return null;
-  const base = { text, canonical, isNullable };
+  const base = { text, canonical, isNullable, line: (0, lexer_1.lineOf)(lx, tokens[from].start) };
   // Tipo de função: o último `Function` no nível 0 cuja lista de parâmetros fecha no fim.
   for (let k = coreTo; k >= from; k--) {
     if (!(0, lexer_1.isIdent)(tokens[k], "Function") || (0, lexer_1.isPunct)(tokens[k - 1], "."))
@@ -226,6 +232,26 @@ function parseDartType(lx, from, to, typeParams = new Set()) {
     typeArguments,
   });
 }
+/**
+ * Tipo de função de uma assinatura sem `Function` (typedef antigo
+ * `typedef void Cb(bool show);`): retorno em `[retFrom, retTo]` (vazio se
+ * `retTo < retFrom`) e parâmetros entre os parênteses `open`/`close`.
+ * @internal
+ */
+function functionTypeFromSignature(lx, retFrom, retTo, open, close, typeParams = new Set()) {
+  const { tokens } = lx;
+  const from = retTo >= retFrom ? retFrom : open;
+  return new DartType({
+    kind: enums_1.DartTypeKind.Function,
+    text: lx.source.slice(tokens[from].start, tokens[close].end),
+    canonical: `${retTo >= retFrom ? `${(0, lexer_1.joinTokens)(lx, retFrom, retTo)} ` : ""}Function${(0, lexer_1.joinTokens)(lx, open, close)}`,
+    line: (0, lexer_1.lineOf)(lx, tokens[from].start),
+    isNullable: false,
+    nullability: enums_1.Nullability.NonNullable,
+    returnType: retTo >= retFrom ? parseDartType(lx, retFrom, retTo, typeParams) : null,
+    parameters: parseFunctionTypeParams(lx, open, close, typeParams),
+  });
+}
 /** Parâmetros de `Function( ... )`: `open`/`close` são os parênteses. */
 function parseFunctionTypeParams(lx, open, close, typeParams) {
   const { tokens } = lx;
@@ -262,7 +288,8 @@ function parseFunctionTypeParams(lx, open, close, typeParams) {
         hasName ? last.value : null,
         parseDartType(lx, q, typeEnd, typeParams),
         kind,
-        isRequired
+        isRequired,
+        (0, lexer_1.lineOf)(lx, (hasName ? last : tokens[q]).start)
       )
     );
   };
@@ -295,7 +322,10 @@ function parseRecordFields(lx, open, close, typeParams) {
     const hasName =
       b > a && (0, lexer_1.isIdent)(last) && !(0, lexer_1.isPunct)(tokens[b - 1], ".");
     const type = parseDartType(lx, a, hasName ? b - 1 : b, typeParams);
-    if (type) fields.push(new DartRecordField(hasName ? last.value : null, type, isNamed));
+    if (type) {
+      const nameLine = (0, lexer_1.lineOf)(lx, (hasName ? last : tokens[a]).start);
+      fields.push(new DartRecordField(hasName ? last.value : null, type, isNamed, nameLine));
+    }
   };
   let q = open + 1;
   while (q < close) {

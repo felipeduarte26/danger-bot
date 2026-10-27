@@ -1,56 +1,4 @@
 "use strict";
-var __createBinding =
-  (this && this.__createBinding) ||
-  (Object.create
-    ? function (o, m, k, k2) {
-        if (k2 === undefined) k2 = k;
-        var desc = Object.getOwnPropertyDescriptor(m, k);
-        if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-          desc = {
-            enumerable: true,
-            get: function () {
-              return m[k];
-            },
-          };
-        }
-        Object.defineProperty(o, k2, desc);
-      }
-    : function (o, m, k, k2) {
-        if (k2 === undefined) k2 = k;
-        o[k2] = m[k];
-      });
-var __setModuleDefault =
-  (this && this.__setModuleDefault) ||
-  (Object.create
-    ? function (o, v) {
-        Object.defineProperty(o, "default", { enumerable: true, value: v });
-      }
-    : function (o, v) {
-        o["default"] = v;
-      });
-var __importStar =
-  (this && this.__importStar) ||
-  (function () {
-    var ownKeys = function (o) {
-      ownKeys =
-        Object.getOwnPropertyNames ||
-        function (o) {
-          var ar = [];
-          for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-          return ar;
-        };
-      return ownKeys(o);
-    };
-    return function (mod) {
-      if (mod && mod.__esModule) return mod;
-      var result = {};
-      if (mod != null)
-        for (var k = ownKeys(mod), i = 0; i < k.length; i++)
-          if (k[i] !== "default") __createBinding(result, mod, k[i]);
-      __setModuleDefault(result, mod);
-      return result;
-    };
-  })();
 Object.defineProperty(exports, "__esModule", { value: true });
 /**
  * Column/Row Spacing Plugin
@@ -58,139 +6,60 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * quando SizedBox de tamanho uniforme são usados entre os filhos.
  *
  * Só reporta quando:
+ * - `children:` é uma lista literal com pelo menos 3 filhos
  * - Todos os SizedBox entre filhos têm o mesmo valor numérico literal
  * - O padrão é consistente: filho, SizedBox, filho, SizedBox, ..., filho
- * - Não há SizedBox com valores variáveis ou expressões
- * - O valor é um número literal (não uma variável ou constante)
+ *   (sem SizedBox nas pontas nem dois seguidos)
+ * - O SizedBox só tem `height` (Column) ou `width` (Row): sem key, child ou outro argumento
+ * - O valor é um número literal (não uma variável, constante ou expressão)
  *
+ * `TableRow`, `DataRow` etc. não contam (só `Column(` e `Row(`).
  * Abordagem conservadora: na dúvida, não reporta.
  */
 const _types_1 = require("../../../types.js");
-const fs = __importStar(require("fs"));
-const SIZED_BOX_HEIGHT_RE = /^\s*(?:const\s+)?SizedBox\(\s*height:\s*(\d+(?:\.\d+)?)\s*,?\s*\)/s;
-const SIZED_BOX_WIDTH_RE = /^\s*(?:const\s+)?SizedBox\(\s*width:\s*(\d+(?:\.\d+)?)\s*,?\s*\)/s;
-function findChildrenBlocks(content, lines) {
-  const blocks = [];
-  for (let i = 0; i < lines.length; i++) {
-    const trimmed = lines[i].trim();
-    const widgetMatch = trimmed.match(/\b(Column|Row)\s*\(/);
-    if (!widgetMatch) continue;
-    const widgetType = widgetMatch[1];
-    const widgetLine = i + 1;
-    const childrenIdx = findChildrenStart(lines, i);
-    if (childrenIdx === -1) continue;
-    const children = extractChildren(lines, childrenIdx);
-    if (children === null) continue;
-    blocks.push({ widgetType, widgetLine, children });
-  }
-  return blocks;
-}
-function findChildrenStart(lines, fromLine) {
-  let depth = 0;
-  for (let i = fromLine; i < Math.min(fromLine + 20, lines.length); i++) {
-    const line = lines[i];
-    for (const ch of line) {
-      if (ch === "(") depth++;
-      if (ch === ")") depth--;
-    }
-    if (lines[i].includes("children:") && lines[i].includes("[")) {
-      return i;
-    }
-    if (i > fromLine && lines[i].trim().startsWith("children:")) {
-      return i;
-    }
-    if (depth <= 0) break;
-  }
-  return -1;
-}
+/** Número literal sem sinal: `8`, `8.0` (não `-8`, `1e3`, `0x10`). */
+const PLAIN_NUMBER_RE = /^\d+(?:\.\d+)?$/;
 /**
- * Extrai os filhos de um `children: [...]` respeitando profundidade de
- * parênteses, colchetes e chaves. Cada "filho" é um widget de nível 0.
- * Retorna null se a estrutura for ambígua ou muito complexa.
+ * Valor de `SizedBox(height: 8)` (Column) / `SizedBox(width: 8)` (Row), com ou sem
+ * `const`; `null` se o filho não é exatamente isso.
  */
-function extractChildren(lines, startLine) {
-  let bracketStart = -1;
-  for (let c = 0; c < lines[startLine].length; c++) {
-    if (lines[startLine][c] === "[") {
-      bracketStart = c;
-      break;
-    }
-  }
-  if (bracketStart === -1) return null;
-  const children = [];
-  let current = "";
-  let currentStartLine = startLine;
-  let depth = 0;
-  let started = false;
-  for (let i = startLine; i < lines.length; i++) {
-    const line = lines[i];
-    const startCol = i === startLine ? bracketStart : 0;
-    for (let c = startCol; c < line.length; c++) {
-      const ch = line[c];
-      if (ch === "[" || ch === "(" || ch === "{") {
-        if (!started && ch === "[") {
-          started = true;
-          continue;
-        }
-        depth++;
-      }
-      if (ch === "]" || ch === ")" || ch === "}") {
-        if (ch === "]" && depth === 0 && started) {
-          const trimmed = current.trim();
-          if (trimmed) {
-            children.push({ text: trimmed, line: currentStartLine + 1 });
-          }
-          return children;
-        }
-        depth--;
-      }
-      if (!started) continue;
-      if (ch === "," && depth === 0) {
-        const trimmed = current.trim();
-        if (trimmed) {
-          children.push({ text: trimmed, line: currentStartLine + 1 });
-        }
-        current = "";
-        currentStartLine = i;
-        continue;
-      }
-      current += ch;
-    }
-    current += "\n";
-  }
-  return null;
+function sizedBoxValue(child, widgetType) {
+  const call = child.call;
+  if (call?.name !== "SizedBox" || call.receiver !== null) return null;
+  // o filho é a própria chamada (não `if (x) SizedBox(...)`)
+  if (child.compact !== call.compact && child.compact !== `const ${call.compact}`) return null;
+  const [arg, ...others] = call.arguments;
+  const prop = widgetType === "Column" ? "height" : "width";
+  if (!arg || others.length > 0 || arg.label !== prop) return null;
+  if (!PLAIN_NUMBER_RE.test(arg.value.compact)) return null;
+  return arg.value.numberValue;
 }
-function analyzeBlock(block) {
-  const { children, widgetType } = block;
+function analyzeBlock(widget, widgetType) {
+  const list = widget.argument("children")?.value;
+  if (list?.kind !== _types_1.DartExpressionKind.ListLiteral) return null;
+  const children = list.elements;
   if (children.length < 3) return null;
-  const sizedBoxRe = widgetType === "Column" ? SIZED_BOX_HEIGHT_RE : SIZED_BOX_WIDTH_RE;
   const sizedBoxValues = [];
   const sizedBoxIndices = [];
   for (let i = 0; i < children.length; i++) {
-    const match = children[i].text.match(sizedBoxRe);
-    if (match) {
-      sizedBoxValues.push(parseFloat(match[1]));
+    const value = sizedBoxValue(children[i], widgetType);
+    if (value !== null) {
+      sizedBoxValues.push(value);
       sizedBoxIndices.push(i);
     }
   }
-  if (sizedBoxValues.length === 0) return null;
   const allSameValue = sizedBoxValues.every((v) => v === sizedBoxValues[0]);
   if (!allSameValue) return null;
-  for (const idx of sizedBoxIndices) {
-    if (idx === 0 || idx === children.length - 1) return null;
-  }
-  for (let i = 0; i < sizedBoxIndices.length - 1; i++) {
-    if (sizedBoxIndices[i + 1] - sizedBoxIndices[i] < 2) return null;
-  }
-  const nonSizedBoxChildren = children.filter((_, i) => !sizedBoxIndices.includes(i));
-  const expectedSizedBoxCount = nonSizedBoxChildren.length - 1;
-  if (sizedBoxValues.length !== expectedSizedBoxCount) return null;
+  // filho, SizedBox, filho, ..., filho: SizedBox só nos índices ímpares, nunca no último
+  if (children.length % 2 === 0) return null;
   for (let i = 0; i < children.length; i++) {
     const isSizedBox = sizedBoxIndices.includes(i);
     const shouldBeSizedBox = i % 2 === 1;
     if (isSizedBox !== shouldBeSizedBox) return null;
   }
-  const sizedBoxLines = sizedBoxIndices.map((idx) => children[idx].line);
+  // Compatibilidade: a linha mostrada de cada SizedBox é a da vírgula que o antecede
+  // (onde termina o filho anterior), como no código antigo.
+  const sizedBoxLines = sizedBoxIndices.map((idx) => children[idx - 1].endLine);
   return { spacingValue: sizedBoxValues[0], count: sizedBoxValues.length, sizedBoxLines };
 }
 exports.default = (0, _types_1.createPlugin)(
@@ -201,45 +70,34 @@ exports.default = (0, _types_1.createPlugin)(
     enabled: true,
   },
   async () => {
-    const { git } = (0, _types_1.getDanger)();
-    const dartFiles = [...git.modified_files, ...git.created_files].filter(
-      (f) =>
-        f.endsWith(".dart") &&
-        !f.endsWith(".g.dart") &&
-        !f.endsWith(".freezed.dart") &&
-        !f.endsWith("_test.dart") &&
-        fs.existsSync(f)
-    );
-    for (const file of dartFiles) {
-      const content = fs.readFileSync(file, "utf-8");
-      if (!content.includes("SizedBox")) continue;
-      if (!content.includes("Column") && !content.includes("Row")) continue;
-      const lines = content.split("\n");
-      const blocks = findChildrenBlocks(content, lines);
-      for (const block of blocks) {
-        const result = analyzeBlock(block);
+    for (const dartFile of _types_1.DartFile.changed()) {
+      const file = dartFile.path.path;
+      const widgets = dartFile.calls().filter((c) => c.name === "Column" || c.name === "Row");
+      for (const widget of widgets) {
+        const widgetType = widget.name;
+        const result = analyzeBlock(widget, widgetType);
         if (!result) continue;
-        const prop = block.widgetType === "Column" ? "height" : "width";
+        const prop = widgetType === "Column" ? "height" : "width";
         const isSingle = result.count === 1;
         (0, _types_1.sendFormattedFail)({
           title: isSingle
-            ? `${block.widgetType.toUpperCase()} — SUBSTITUA SIZEDBOX POR SPACING`
-            : `${block.widgetType.toUpperCase()} COM SIZEDBOX REPETITIVO`,
+            ? `${widgetType.toUpperCase()} — SUBSTITUA SIZEDBOX POR SPACING`
+            : `${widgetType.toUpperCase()} COM SIZEDBOX REPETITIVO`,
           description: isSingle
             ? `**SizedBox(${prop}: ${result.spacingValue})** na linha **${result.sizedBoxLines[0]}** pode ser substituído por \`spacing: ${result.spacingValue}\`.`
             : `**${result.count} SizedBox(${prop}: ${result.spacingValue})** nas linhas **${result.sizedBoxLines.join(", ")}** podem ser substituídos por \`spacing: ${result.spacingValue}\`.`,
           problem: {
             wrong: isSingle
-              ? `${block.widgetType}(\n  children: [\n    WidgetA(),\n    SizedBox(${prop}: ${result.spacingValue}),\n    WidgetB(),\n  ],\n)`
-              : `${block.widgetType}(\n  children: [\n    WidgetA(),\n    SizedBox(${prop}: ${result.spacingValue}),\n    WidgetB(),\n    SizedBox(${prop}: ${result.spacingValue}),\n    WidgetC(),\n  ],\n)`,
-            correct: `${block.widgetType}(\n  spacing: ${result.spacingValue},\n  children: [\n    WidgetA(),\n    WidgetB(),${isSingle ? "" : "\n    WidgetC(),"}\n  ],\n)`,
+              ? `${widgetType}(\n  children: [\n    WidgetA(),\n    SizedBox(${prop}: ${result.spacingValue}),\n    WidgetB(),\n  ],\n)`
+              : `${widgetType}(\n  children: [\n    WidgetA(),\n    SizedBox(${prop}: ${result.spacingValue}),\n    WidgetB(),\n    SizedBox(${prop}: ${result.spacingValue}),\n    WidgetC(),\n  ],\n)`,
+            correct: `${widgetType}(\n  spacing: ${result.spacingValue},\n  children: [\n    WidgetA(),\n    WidgetB(),${isSingle ? "" : "\n    WidgetC(),"}\n  ],\n)`,
             wrongLabel: isSingle
               ? "SizedBox para espaçamento"
               : `${result.count} SizedBox intercalados`,
             correctLabel: "Com spacing (Flutter 3.27+)",
           },
           action: {
-            code: `${block.widgetType}(\n  spacing: ${result.spacingValue},\n  children: [\n    // remova ${isSingle ? "o SizedBox" : "os SizedBox"}\n  ],\n)`,
+            code: `${widgetType}(\n  spacing: ${result.spacingValue},\n  children: [\n    // remova ${isSingle ? "o SizedBox" : "os SizedBox"}\n  ],\n)`,
           },
           objective:
             "Usar a propriedade **spacing** do Flutter 3.27+ para código mais limpo e menos widgets na árvore.",
@@ -248,7 +106,7 @@ exports.default = (0, _types_1.createPlugin)(
             url: "https://codewithandrea.com/tips/spacing-row-column/",
           },
           file,
-          line: block.widgetLine,
+          line: widget.nameLine,
         });
       }
     }

@@ -62,6 +62,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * - Reporta testes que falharam como warnings (NÃO quebra a pipeline)
  * - Mostra sumário de resultados (passou/falhou/erro/skip)
  *
+ * Source files com teste: .dart de usecases/, datasources/, repositories/, viewmodels/,
+ * models/ e entities/, exceto barrel files e .g.dart/.freezed.dart. O teste é
+ * `test/(...)/x_test.dart` (a partir do `lib/`) ou, se não existir, o primeiro
+ * `x_test.dart` encontrado em qualquer subpasta de test/.
+ *
  * Gera coverage se `flutter test --coverage` estiver disponível,
  * para ser consumido pelo plugin test-coverage-summary.
  */
@@ -69,28 +74,37 @@ const child_process_1 = require("child_process");
 const _types_1 = require("../../../types.js");
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
-function isBarrelFile(filePath) {
-  const fileName = path.basename(filePath, ".dart");
-  const parentDir = path.basename(path.dirname(filePath));
-  return fileName === parentDir;
-}
 const TESTABLE_FOLDERS = [
-  "/usecases/",
-  "/datasources/",
-  "/repositories/",
-  "/viewmodels/",
-  "/models/",
-  "/entities/",
+  _types_1.DartLayerFolder.UseCases,
+  _types_1.DartLayerFolder.DataSources,
+  _types_1.DartLayerFolder.Repositories,
+  _types_1.DartLayerFolder.ViewModels,
+  _types_1.DartLayerFolder.Models,
+  _types_1.DartLayerFolder.Entities,
 ];
-function isTestableSource(filePath) {
-  const normalized = filePath.replace(/\\/g, "/");
-  return TESTABLE_FOLDERS.some((f) => normalized.includes(f));
+/** Gerados sem teste próprio (lista do plugin, menor que `DartPath.isGenerated`). */
+const GENERATED_SUFFIXES = [".g.dart", ".freezed.dart"];
+function isTestFile(file) {
+  return file.fileName.endsWith("_test.dart");
 }
-function computeTestPath(sourcePath) {
-  const normalized = sourcePath.replace(/\\/g, "/");
-  const libIdx = normalized.indexOf("lib/");
+/** Arquivo de produção que deve ter teste: .dart das pastas-alvo, sem barrel e sem gerados. */
+function isTestableSource(file) {
+  return (
+    file.isDart &&
+    !isTestFile(file) &&
+    !GENERATED_SUFFIXES.includes(file.compoundSuffix ?? "") &&
+    !file.isBarrel &&
+    TESTABLE_FOLDERS.some((folder) => file.inFolder(folder))
+  );
+}
+/**
+ * `.../lib/(...)/x.dart` → `test/(...)/x_test.dart`, sempre no test/ da raiz, onde o
+ * `flutter test` roda (o `DartPath.expectedTestPath` aponta para o test/ do pacote em monorepo).
+ */
+function computeTestPath(file) {
+  const libIdx = file.path.indexOf("lib/");
   if (libIdx === -1) return null;
-  const relative = normalized.substring(libIdx + "lib/".length);
+  const relative = file.path.substring(libIdx + "lib/".length);
   return "test/" + relative.replace(/\.dart$/, "_test.dart");
 }
 function findTestByName(projectRoot, testFileName) {
@@ -186,29 +200,23 @@ function parseJsonTestOutput(output) {
 }
 function collectTestFiles(git) {
   const testFiles = new Set();
-  const allChanged = [...git.created_files, ...git.modified_files];
+  const allChanged = [...git.created_files, ...git.modified_files].map((f) =>
+    _types_1.DartPath.of(f)
+  );
+  // testes alterados na PR
   for (const file of allChanged) {
-    if (file.endsWith("_test.dart") && fs.existsSync(file)) {
-      testFiles.add(file);
+    if (isTestFile(file) && fs.existsSync(file.path)) {
+      testFiles.add(file.path);
     }
   }
-  for (const file of allChanged) {
-    if (
-      !file.endsWith(".dart") ||
-      file.endsWith("_test.dart") ||
-      file.endsWith(".g.dart") ||
-      file.endsWith(".freezed.dart") ||
-      isBarrelFile(file) ||
-      !isTestableSource(file)
-    ) {
-      continue;
-    }
+  // testes dos source files da PR
+  for (const file of allChanged.filter(isTestableSource)) {
     const directTest = computeTestPath(file);
     if (directTest && fs.existsSync(directTest)) {
       testFiles.add(directTest);
       continue;
     }
-    const testFileName = path.basename(file, ".dart") + "_test.dart";
+    const testFileName = file.fileName.replace(/\.dart$/, "_test.dart");
     const cwd = process.cwd();
     const found = findTestByName(cwd, testFileName);
     if (found) {

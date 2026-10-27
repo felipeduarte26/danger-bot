@@ -56,11 +56,16 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * Spell Checker Plugin
  * Verifica ortografia em identificadores Dart usando cspell.
  *
- * Analisa apenas linhas adicionadas no diff (não o arquivo inteiro).
- * Extrai classes, métodos, variáveis e parâmetros, quebra camelCase/PascalCase
- * em palavras individuais, e verifica cada uma com cspell.
+ * Analisa apenas os nomes declarados nas linhas adicionadas do PR:
+ *   - classes;
+ *   - métodos, funções e funções locais com tipo de retorno escrito
+ *     (getters, setters, operadores e `build`, `dispose`, `toString`... ficam de fora);
+ *   - variáveis, campos e parâmetros declarados com `final`, `const`, `var` ou `late`
+ *     (exceto a variável do `for-in` e `i`, `j`, `k`, `e`, `x`, `y`, `_`).
+ * Comentários e strings nunca contam. Cada nome é quebrado em palavras
+ * (camelCase/snake_case); palavras com até 2 letras e números ficam de fora.
  *
- * Agrupa erros por arquivo para evitar ruído excessivo.
+ * Agrupa erros por arquivo para evitar ruído excessivo (máx. 10 por motivo).
  */
 const _types_1 = require("../../../types.js");
 const child_process_1 = require("child_process");
@@ -317,81 +322,127 @@ function isNonEnglishWord(word, eld) {
   if (NON_ENGLISH_FALLBACK.has(word.toLowerCase())) return true;
   return NON_ENGLISH_LANGS.has(eld.detect(word).language);
 }
-function breakCamelCase(identifier) {
-  return identifier
-    .replace(/([a-z])([A-Z])/g, "$1 $2")
-    .replace(/([A-Z])([A-Z][a-z])/g, "$1 $2")
-    .split(/[\s_]+/)
-    .filter((w) => w.length > 2)
-    .filter((w) => !/^\d+$/.test(w))
-    .map((w) => w.toLowerCase());
-}
-function isCommentLine(line) {
-  const trimmed = line.trim();
-  return trimmed.startsWith("//") || trimmed.startsWith("*") || trimmed.startsWith("///");
-}
-function extractIdentifiers(line, lineNumber) {
-  const results = [];
-  if (isCommentLine(line)) return results;
-  const clean = line
-    .replace(/\/\/.*$/, "")
-    .replace(/\/\*[\s\S]*?\*\//g, "")
-    .replace(/'[^']*'/g, '""')
-    .replace(/"[^"]*"/g, '""')
-    .replace(/r'[^']*'/g, '""')
-    .replace(/r"[^"]*"/g, '""');
-  if (!clean.trim()) return results;
-  const classMatch = clean.match(
-    /(?:abstract\s+interface\s+class|abstract\s+class|final\s+class|sealed\s+class|class)\s+(?:const\s+)?([A-Za-z_]\w*)/
+/** Gerados que o plugin não verifica (os outros, como `.gen.dart`, são verificados). */
+const SKIPPED_SUFFIXES = [".g.dart", ".freezed.dart", ".mocks.dart"];
+/** Ordem dos nomes de uma mesma linha nas mensagens: classe, métodos, variáveis. */
+const TYPE_ORDER = ["class", "method", "variable"];
+/** Métodos que o Flutter/Dart impõem ou que são comuns demais para verificar. */
+const IGNORED_METHODS = new Set([
+  "get",
+  "set",
+  "build",
+  "createState",
+  "initState",
+  "dispose",
+  "toString",
+  "hashCode",
+  "main",
+  "runApp",
+  "of",
+  "from",
+  "parse",
+  "tryParse",
+]);
+/** Variáveis de laço e de catch curtas demais para verificar. */
+const IGNORED_VARIABLES = new Set(["i", "j", "k", "e", "x", "y", "_"]);
+/**
+ * Tipo "simples": nomeado e sem genérico aninhado (`User`, `Future<User>`, `Map<String, dynamic>`).
+ * É o escopo que o plugin sempre verificou: tipo de função, record e genérico aninhado
+ * (`Future<Either<F, X>>`) deixam o nome de fora. Mantido para não aumentar as reprovações.
+ */
+function isSimpleType(type) {
+  return (
+    type.kind === _types_1.DartTypeKind.Named &&
+    type.typeArguments.every((arg) => !arg.some((t) => t.typeArguments.length > 0))
   );
-  if (classMatch) {
-    for (const word of breakCamelCase(classMatch[1])) {
-      results.push({
-        word,
-        identifier: classMatch[1],
-        type: "class",
-        line: lineNumber,
-        context: line.trim(),
-      });
+}
+/** Método/função com tipo de retorno escrito, simples e não nulo (`Future<User> load()`). */
+function isCheckedFunction(fn) {
+  return (
+    fn.memberKind === _types_1.DartMemberKind.Method &&
+    fn.returnType !== null &&
+    !fn.returnType.isNullable &&
+    isSimpleType(fn.returnType) &&
+    !IGNORED_METHODS.has(fn.name)
+  );
+}
+/** Variável/campo com `final`/`const`/`var`/`late` e sem tipo ou com tipo simples. */
+function isCheckedVariable(v) {
+  return (
+    (v.isFinal || v.isConst || v.isVar || v.isLate) &&
+    (v.type === null || isSimpleType(v.type)) &&
+    !IGNORED_VARIABLES.has(v.name)
+  );
+}
+/** Parâmetro com `final` (`(final String name)`), sem tipo ou com tipo simples. */
+function isCheckedParameter(p) {
+  return p.isFinal && (p.type === null || isSimpleType(p.type)) && !IGNORED_VARIABLES.has(p.name);
+}
+/** Nomes declarados no arquivo que o plugin verifica, por linha (classe, métodos, variáveis). */
+function declaredNames(file) {
+  const found = [];
+  const add = (type, name, line, column) => {
+    found.push({ name, type, line, column });
+  };
+  const functions = [...file.functions];
+  const parameters = [];
+  const bodies = [];
+  for (const cls of file.classes) add("class", cls.name, cls.nameLine, cls.column);
+  for (const decl of file.declarations) {
+    // os parâmetros `final`/`var` do primary constructor estão em `fields`
+    for (const field of decl.fields) {
+      if (isCheckedVariable(field)) add("variable", field.name, field.nameLine, field.column);
+    }
+    functions.push(...decl.methods);
+    for (const ctor of decl.constructors) {
+      parameters.push(
+        ...ctor.parameters.filter((p) => p.source !== _types_1.DartParameterSource.Declaring)
+      );
+      if (ctor.body) bodies.push(ctor.body);
     }
   }
-  const methodRe =
-    /(?:Future<[^>]*>|void|String|int|double|bool|dynamic|List<[^>]*>|Map<[^,>]*,[^>]*>|Set<[^>]*>|[A-Z]\w*(?:<[^>]*>)?)\s+([a-z_]\w*)\s*\(/g;
-  let m;
-  while ((m = methodRe.exec(clean)) !== null) {
-    const name = m[1];
-    if (
-      /^(get|set|build|createState|initState|dispose|toString|hashCode|main|runApp|of|from|parse|tryParse)$/.test(
-        name
-      )
-    )
-      continue;
-    for (const word of breakCamelCase(name)) {
-      results.push({
-        word,
-        identifier: name,
-        type: "method",
-        line: lineNumber,
-        context: line.trim(),
-      });
+  for (const v of file.variables) {
+    if (isCheckedVariable(v)) add("variable", v.name, v.nameLine, v.column);
+  }
+  for (const fn of functions) {
+    if (isCheckedFunction(fn)) add("method", fn.name, fn.nameLine, fn.column);
+    parameters.push(...fn.parameters);
+    if (fn.body) bodies.push(fn.body);
+  }
+  // closures e funções locais de todo o arquivo, inclusive em inicializadores
+  for (const closure of file.closures()) {
+    // o modelo não diz se a função local tem tipo de retorno: todas contam
+    if (closure.name !== null && !IGNORED_METHODS.has(closure.name)) {
+      add("method", closure.name, closure.line, closure.column);
+    }
+    parameters.push(...closure.parameters);
+    bodies.push(closure.body);
+  }
+  for (const p of parameters) {
+    if (isCheckedParameter(p)) add("variable", p.name, p.nameLine, p.column);
+  }
+  // o corpo de um método também lista as variáveis das closures dele: uma vez cada
+  const seenLocals = new Set();
+  for (const body of bodies) {
+    for (const v of body.localVariables) {
+      const key = `${v.startOffset}:${v.name}`;
+      if (seenLocals.has(key)) continue;
+      seenLocals.add(key);
+      // `for (final item in items)`: a variável do for-in nunca foi verificada
+      if (v.isLoopVariable && v.initializer === null) continue;
+      if (isCheckedVariable(v)) add("variable", v.name, v.nameLine, v.column);
     }
   }
-  const varRe =
-    /(?:final|const|var|late\s+final|late)\s+(?:[A-Za-z_]\w*(?:<[^>]*>)?\??\s+)?([a-z_]\w*)\s*[=;,)]/g;
-  while ((m = varRe.exec(clean)) !== null) {
-    const name = m[1];
-    if (/^(i|j|k|e|x|y|_)$/.test(name)) continue;
-    for (const word of breakCamelCase(name)) {
-      results.push({
-        word,
-        identifier: name,
-        type: "variable",
-        line: lineNumber,
-        context: line.trim(),
-      });
-    }
-  }
-  return results;
+  return found.sort(
+    (a, b) =>
+      a.line - b.line ||
+      TYPE_ORDER.indexOf(a.type) - TYPE_ORDER.indexOf(b.type) ||
+      a.column - b.column
+  );
+}
+/** Palavras com mais de 2 letras, sem números: `fetchHTTPData2` → `fetch`, `http`, `data2`. */
+function identifierWords(identifier) {
+  return _types_1.DartText.splitWords(identifier).filter((w) => w.length > 2 && !/^\d+$/.test(w));
 }
 function getVscodeWords() {
   try {
@@ -409,16 +460,17 @@ exports.default = (0, _types_1.createPlugin)(
     enabled: true,
   },
   async () => {
-    const danger = (0, _types_1.getDanger)();
-    const dartFiles = [...danger.git.created_files, ...danger.git.modified_files].filter(
-      (f) =>
-        f.endsWith(".dart") &&
-        !f.endsWith("_test.dart") &&
-        !f.endsWith(".g.dart") &&
-        !f.endsWith(".freezed.dart") &&
-        !f.endsWith(".mocks.dart") &&
-        !f.includes("/generated/") &&
-        fs.existsSync(f)
+    // Fora: `_test.dart`, `.g`, `.freezed`, `.mocks` e `generated/`. Os outros gerados
+    // (`.gen`, `.config`...) e os auxiliares de `test/` entram.
+    const dartFiles = _types_1.DartFile.changed({
+      createdFirst: true,
+      includeTests: true,
+      includeGenerated: true,
+    }).filter(
+      ({ path: p }) =>
+        !p.fileName.endsWith("_test.dart") &&
+        !SKIPPED_SUFFIXES.includes(p.compoundSuffix ?? "") &&
+        !p.inFolder("generated")
     );
     if (dartFiles.length === 0) return;
     const tmpDir = path.join(os.tmpdir(), `danger-spell-${Date.now()}`);
@@ -428,22 +480,13 @@ exports.default = (0, _types_1.createPlugin)(
     try {
       const allIdentifiers = [];
       const uniqueWords = new Set();
-      for (const file of dartFiles) {
-        const diff = await danger.git.structuredDiffForFile(file);
-        if (!diff) continue;
-        for (const chunk of diff.chunks) {
-          for (const change of chunk.changes) {
-            if (change.type !== "add") continue;
-            const lineContent = change.content?.replace(/^\+/, "") ?? "";
-            const lineNum = change.ln ?? 1;
-            if (lineContent.trim().startsWith("import ")) continue;
-            if (lineContent.trim().startsWith("export ")) continue;
-            if (lineContent.trim().startsWith("part ")) continue;
-            const identifiers = extractIdentifiers(lineContent, lineNum);
-            for (const id of identifiers) {
-              uniqueWords.add(id.word);
-              allIdentifiers.push({ ...id, file });
-            }
+      for (const { path: p } of dartFiles) {
+        const file = await _types_1.DartFile.readWithDiff(p.path);
+        for (const { name, type, line } of declaredNames(file)) {
+          if (!file.isAdded(line)) continue;
+          for (const word of identifierWords(name)) {
+            uniqueWords.add(word);
+            allIdentifiers.push({ word, identifier: name, type, line, file: p.path });
           }
         }
       }

@@ -71,6 +71,11 @@ export declare class DartPath {
    * pasta `test/` do pacote.
    */
   hasTest(prFiles?: Iterable<string>): boolean;
+  /**
+   * Caminho do teste do arquivo, pela mesma regra do `hasTest`: o `expectedTestPath` (no disco ou
+   * no PR) ou o primeiro `x_test.dart` em alguma subpasta de `test/` do pacote. `null` se não houver.
+   */
+  findTest(prFiles?: Iterable<string>): string | null;
 }
 /** Pacote Dart: o `pubspec.yaml` mais próximo de um arquivo. */
 export declare class DartPackage {

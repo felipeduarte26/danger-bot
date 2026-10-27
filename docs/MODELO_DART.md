@@ -21,6 +21,7 @@ for (const file of DartFile.changed()) {
 
 - **Onde fica:** `src/dart/` (exportado por `"@types"` dentro do pacote e por `@felipeduarte26/danger-bot` para plugins locais).
 - **Testes:** `tests/dart-model.test.cjs` (`npm test`).
+- **Como montar um plugin com ele:** [CRIANDO_PLUGINS.md](CRIANDO_PLUGINS.md) (passo a passo, "preciso de... → use", exemplos completos). Este arquivo é a referência da API.
 - **Quando usar:** sempre que um plugin precisar entender código Dart. Regex só para a **regra** (ex.: o padrão de um segredo, o formato de um nome), nunca para achar classes, campos, métodos, chamadas, comentários ou strings.
 
 ## Sumário
@@ -118,6 +119,7 @@ Métodos:
 - `inLayer(DartLayer.Domain)` — `path.includes("/domain/")`, a mesma regra do `isInLayer` (a 1ª pasta não conta).
 - `inFolder(DartLayerFolder.Entities)` ou `inFolder("enums")` — `path.includes("/entities/")`.
 - `hasTest(prFiles)` — teste no disco (`expectedTestPath`), no PR ou com o mesmo nome em qualquer pasta de `test/`.
+- `findTest(prFiles)` — o caminho desse teste, pela mesma regra (`null` se não houver).
 
 Para **regras**, use `inLayer`/`inFolder` (mesma semântica dos plugins antigos). `layer`/`layerFolder`
 servem para relatórios.
@@ -137,10 +139,12 @@ servem para relatórios.
 | `directives` / `imports` / `exports` / `parts` / `partOf` | diretivas |
 | `comments` / `strings` / `identifiers` | todos, na ordem do arquivo |
 | `calls()` | todas as chamadas (corpos, inicializadores, valores padrão) |
+| `closures()` / `tryStatements()` / `localVariables()` | closures, `try` e variáveis locais do arquivo inteiro, inclusive em inicializadores (`final onTap = () { try ... }`) |
 | `findClass(nome)` / `declarationAt(linha)` | busca |
 | `isCode(linha)` / `isCommentLine(linha)` | a linha tem código / é só comentário |
 | `lineAt(linha)` / `snippet(de, até)` | texto original |
 | `addedLines` / `isAdded(linha)` | linhas do diff (só com `readWithDiff`) |
+| `diffError` | por que o diff não foi lido (exceção do Danger ou diff ausente), ou `null`: separa "falhou" de "nenhuma linha adicionada" |
 | `generatedReason` / `isGenerated` / `languageVersionOverride` | gerado? `// @dart=` |
 | `isComplete` / `parseErrors` | tudo foi reconhecido? |
 
@@ -163,6 +167,7 @@ servem para relatórios.
 | `findField(nome)` / `findMethod(nome, kind?)` / `findConstructor(nome \| null)` | busca |
 | `hasMember(nome, kind?)` | `Presence.Present` / `Absent` / `Unknown` |
 | `isComplete` / `unknownMembers` | o corpo foi todo reconhecido? |
+| `calls()` | chamadas dentro da declaração (corpos e inicializadores) |
 | `line` / `nameLine` / `startLine` / `endLine` / `lineCount` | linha do 1º modificador/palavra-chave, do nome, com doc/anotações, fim |
 
 Todas as combinações de modificadores da [referência do Dart](https://dart.dev/language/class-modifiers)
@@ -181,6 +186,21 @@ são reconhecidas, inclusive quebradas em várias linhas ou com comentários ent
 | `line` / `nameLine` | linha do início da declaração / do nome |
 
 Só no `DartField`: `owner`, `origin` (`Body` ou `PrimaryConstructor`), `declaringParameter`, `isOverride`.
+
+Só no `DartLocalVariable`: `isLoopVariable` (`for (final x in xs)`, também o `for` de coleção
+`[for (final x in xs) x]`), `isPatternVariable` e `insideClosure`. Variáveis de pattern:
+
+| Código | Declara |
+| --- | --- |
+| `final (nome, idade) = registro;` / `var [a, ...resto] = lista;` | `nome`, `idade` / `a`, `resto` |
+| `final Point(:x, y: py) = p;` / `final {'k': v} = mapa;` | `x`, `py` / `v` |
+| `for (final (k, v) in pares)` | `k`, `v` (também `isLoopVariable`) |
+| `if (o case final String s)` / `case Foo(:final id) when id > 0:` | `s` / `id` |
+| `Sucesso(:final dado) => dado,` (braço de switch expression) | `dado` |
+| `case [a, b]:` / `case Status.ativo:` | nada: nome solto em `case` é constante |
+
+Variável de pattern não tem `initializer`; o `type` é o escrito no pattern (`String s`) ou `null`. Os
+locais depois de `case X:`/`default:` num switch statement são statements comuns.
 `final int a, b;` gera dois campos. Parâmetros `final`/`var` do primary constructor são campos com
 `origin === DartFieldOrigin.PrimaryConstructor`.
 
@@ -238,11 +258,12 @@ Dart não tem `float`: ponto flutuante é `double` (`isDouble`).
 | `expression` | no corpo `=>` |
 | `calls` | todas as chamadas, inclusive dentro de closures (`call.insideClosure`) |
 | `awaits` / `returns` | com `insideClosure` |
-| `closures` | funções anônimas e funções locais (`name`, `parameters`, `isAsync`, `body`) |
+| `closures` | funções anônimas e funções locais (`name`, `parameters`, `typeParameters`, `returnType`, `isAsync`, `body`), também genéricas: `<T>(T v) => v`, `T primeiro<T>(List<T> xs) {}` |
 | `tryStatements` | `DartTry` (`body`, `catches`, `finallyBody`); `DartCatch` (`onType`, `exceptionName`, `stackTraceName`, `isEmpty`, `body.comments`) |
-| `localVariables` | `DartLocalVariable` (inclui `for (final x in xs)`) |
+| `localVariables` | `DartLocalVariable` (statements, `for` e `for` de coleção, patterns) |
 | `firstTopLevelReturnLine` | 1º `return` fora de closures |
 | `references(nome)` | linhas onde o nome é usado (fora de strings/comentários) |
+| `memberAccesses(alvo)` | acessos `alvo.membro` / `alvo?.membro` (também `this.alvo.membro`): `memberAccesses("context")` → `[{ member: "mounted", line: 12 }]` |
 | `comments` | comentários dentro do corpo |
 
 `DartCall`:
@@ -271,8 +292,9 @@ declarações (`void helper() {}`, `Future<void> load()`) também não.
 `isMultiline`, `hasInterpolation`, `role`, `enclosingCallee` (`Text`, `print`, `RegExp`, `Key`...),
 `argumentLabel` (`semanticsLabel`).
 
-`role` (`DartStringRole`): `DirectiveUri`, `AnnotationArgument`, `MapKey` (`{'k': v}`, não confunde com
-`c ? 'a' : 'b'`), `IndexKey` (`json['k']`), `CaseLabel`, `CallArgument`, `Value`.
+`role` (`DartStringRole`): `DirectiveUri`, `AnnotationArgument`, `MapKey` (`{'k': v}`, também depois de
+`if`/`for`/`else` de coleção; não confunde com `c ? 'a' : 'b'`), `IndexKey` (`json['k']`, `json?['k']`),
+`CaseLabel`, `CallArgument` (inclusive `assert(x, 'mensagem')`, com `enclosingCallee === "assert"`), `Value`.
 
 `DartComment`: `kind` (`Line`, `Doc`, `Block`, `DocBlock`), `content` (sem marcadores), `isDoc`,
 `isTrailing` (há código antes na linha), `directive` (`Ignore`, `IgnoreForFile`, `Todo`, `Fixme`,
@@ -395,6 +417,8 @@ if (state.hasMember("dispose", DartMemberKind.Method) === Presence.Unknown) cont
 - `node.nameLine`: linha do nome (diferente de `line` quando a declaração quebra linha).
 - `node.lineText`: a linha `line` sem espaços nas pontas — o "código real" do `problem.wrong`.
 - `node.text`: o texto original inteiro do nó (várias linhas).
+- `node.compact`: o nó em uma linha, sem comentários nem a vírgula final (não depende da quebra de linha).
+- `node.contains(outro)`: `outro` está dentro do nó (`method.contains(call)`).
 - `file.snippet(de, até)`: linhas originais.
 
 O padrão obrigatório das mensagens continua o mesmo (`sendFormattedFail`/`sendFormattedWarn`, código

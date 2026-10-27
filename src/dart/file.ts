@@ -20,10 +20,14 @@ import {
   DartCall,
   DartClosure,
   DartComment,
+  DartLocalVariable,
   DartNodeBase,
   DartParameter,
   DartString,
+  DartTry,
   compactText,
+  BodyScan,
+  scanBody,
   scanCalls,
   scanClosures,
 } from "./nodes";
@@ -34,7 +38,7 @@ import {
   DartTopLevelVariable,
   DartTypedef,
 } from "./declarations";
-import { Lexed, isIdent, isPunct, lex, lineOf } from "./internal/lexer";
+import { Lexed, isIdent, isPunct, lex, lineOf, matchOpenBackward } from "./internal/lexer";
 import { TopLevel, scanTopLevel } from "./internal/toplevel";
 
 /** URI de `part` com extensão dupla (`x.g.dart`, `x.freezed.dart`, `x.pb.dart`...). */
@@ -91,6 +95,7 @@ export class DartFile {
   private stringByToken: Map<number, DartString> | null = null;
   private identifiersCache: DartIdentifier[] | null = null;
   private addedLinesSet: Set<number> | null = null;
+  private diffErrorText: string | null = null;
 
   private constructor(filePath: string, source: string, exists: boolean) {
     this.path = DartPath.of(filePath);
@@ -142,13 +147,15 @@ export class DartFile {
       try {
         const danger = (globalThis as any).danger;
         const diff = await danger?.git?.structuredDiffForFile(filePath);
+        if (!diff) file.diffErrorText = "o Danger não devolveu diff para o arquivo";
         for (const chunk of diff?.chunks ?? []) {
           for (const change of chunk.changes ?? []) {
             if (change.type === "add" && typeof change.ln === "number") added.add(change.ln);
           }
         }
-      } catch {
+      } catch (error) {
         // sem diff: nenhuma linha adicionada
+        file.diffErrorText = error instanceof Error ? error.message : String(error);
       }
       file.addedLinesSet = added;
     }
@@ -269,6 +276,14 @@ export class DartFile {
 
   isAdded(line: number): boolean {
     return this.addedLinesSet?.has(line) ?? false;
+  }
+
+  /**
+   * Por que o `readWithDiff` não leu o diff (exceção do Danger ou diff ausente), ou `null`.
+   * Diferencia "o diff falhou" de "nenhuma linha adicionada" (`addedLines` vazio nos dois casos).
+   */
+  get diffError(): string | null {
+    return this.diffErrorText;
   }
 
   // ─── Fatos do arquivo ───────────────────────────────────────────────────
@@ -481,7 +496,7 @@ export class DartFile {
         top >= 0 &&
         isPunct(tokens[top], "{") &&
         isPunct(after, ":") &&
-        (isPunct(before, "{") || isPunct(before, ","))
+        (isPunct(before, "{") || isPunct(before, ",") || afterCollectionControl(tokens, first - 1))
       ) {
         role = DartStringRole.MapKey;
       } else if (
@@ -561,6 +576,34 @@ export class DartFile {
     return this.closuresCache;
   }
 
+  private rangeScansCache: BodyScan[] | null = null;
+  private rangeScans(): BodyScan[] {
+    if (this.rangeScansCache === null) {
+      this.rangeScansCache = this.expressionRanges().map(([a, b]) => scanBody(this, a, b));
+    }
+    return this.rangeScansCache;
+  }
+
+  /**
+   * Todos os `try` do arquivo (nos mesmos lugares que `calls()`: corpos e closures, inclusive as de
+   * inicializadores), na ordem do arquivo.
+   */
+  tryStatements(): readonly DartTry[] {
+    return this.rangeScans()
+      .flatMap((s) => s.tries)
+      .sort((x, y) => x.startOffset - y.startOffset);
+  }
+
+  /**
+   * Todas as variáveis locais do arquivo (statements, `for`, patterns; corpos e closures, inclusive
+   * as de inicializadores), na ordem do arquivo. `insideClosure` é a closure mais interna.
+   */
+  localVariables(): readonly DartLocalVariable[] {
+    return this.rangeScans()
+      .flatMap((s) => s.locals)
+      .sort((x, y) => x.startOffset - y.startOffset || x.nameLine - y.nameLine);
+  }
+
   /** Identificadores DECLARADOS no arquivo (não os usos), na ordem do arquivo. */
   get identifiers(): readonly DartIdentifier[] {
     if (this.identifiersCache === null) this.identifiersCache = buildIdentifiers(this);
@@ -598,10 +641,23 @@ const LIST_PREFIX_WORDS = new Set([
 ]);
 
 function isIndexBracket(tokens: Lexed["tokens"], open: number): boolean {
-  const prev = tokens[open - 1];
+  let prev = tokens[open - 1];
   if (prev === undefined) return false;
+  // `json?['k']`: o `?` colado no `[` (no ternário, `cond ? [...]`, há espaço)
+  if (isPunct(prev, "?") && prev.end === tokens[open].start && open >= 2) {
+    prev = tokens[open - 2];
+    if (prev.kind === "ident") return !LIST_PREFIX_WORDS.has(prev.value);
+  }
   if (prev.kind === "ident") return !LIST_PREFIX_WORDS.has(prev.value);
   return isPunct(prev, ")") || isPunct(prev, "]") || isPunct(prev, "!");
+}
+
+/** O token `k` fecha um `if (...)`/`for (...)` de coleção ou é o `else` dele (`{if (c) 'k': v}`). */
+function afterCollectionControl(tokens: Lexed["tokens"], k: number): boolean {
+  if (isIdent(tokens[k], "else")) return true;
+  if (!isPunct(tokens[k], ")")) return false;
+  const open = matchOpenBackward(tokens, k, 0);
+  return open > 0 && (isIdent(tokens[open - 1], "if") || isIdent(tokens[open - 1], "for"));
 }
 
 const NOT_CALL_WORDS = new Set([
@@ -612,7 +668,6 @@ const NOT_CALL_WORDS = new Set([
   "catch",
   "return",
   "await",
-  "assert",
   "Function",
   "super",
   "this",

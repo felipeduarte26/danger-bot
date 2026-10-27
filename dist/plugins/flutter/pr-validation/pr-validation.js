@@ -52,9 +52,23 @@ var __importStar =
     };
   })();
 Object.defineProperty(exports, "__esModule", { value: true });
+/**
+ * PR Validation Plugin
+ * Valida aspectos gerais do PR:
+ * - descrição com pelo menos 15 caracteres (GitHub ou Bitbucket Cloud);
+ * - `changelog.md`/`CHANGELOG.md` da raiz criado ou modificado (se o projeto não tem changelog na
+ *   raiz, reprova pedindo para criar);
+ * - `pubspec.lock` modificado sem o `pubspec.yaml` (só os da raiz);
+ * - tamanho do PR em linhas (mensagem informativa ou aviso).
+ */
 const _types_1 = require("../../../types.js");
 const fs = __importStar(require("fs"));
-const path = __importStar(require("path"));
+const MIN_DESCRIPTION_LENGTH = 15;
+const REQUIRE_CHANGELOG = true;
+/** Nomes que contam como "changelog atualizado" (só na raiz). */
+const CHANGELOG_NAMES = ["changelog.md", "CHANGELOG.md"];
+/** Nomes procurados na raiz para saber se o projeto tem changelog. */
+const CHANGELOG_PATHS = ["changelog.md", "CHANGELOG.md", "Changelog.md", "CHANGELOG.MD"];
 exports.default = (0, _types_1.createPlugin)(
   {
     name: "pr-validation",
@@ -62,15 +76,13 @@ exports.default = (0, _types_1.createPlugin)(
     enabled: true,
   },
   async () => {
-    const danger = (0, _types_1.getDanger)();
-    const { git } = danger;
-    const minDescriptionLength = 15;
-    const requireChangelog = true;
-    const prDescription = danger.github?.pr?.body || danger.bitbucket_cloud?.pr?.description || "";
-    if (prDescription.length < minDescriptionLength) {
+    const { git } = (0, _types_1.getDanger)();
+    const changedFiles = new Set([...git.modified_files, ...git.created_files]);
+    const prDescription = (0, _types_1.getPRDescription)();
+    if (prDescription.length < MIN_DESCRIPTION_LENGTH) {
       (0, _types_1.sendFormattedFail)({
         title: "DESCRIÇÃO DO PR MUITO CURTA",
-        description: `A descrição tem apenas **${prDescription.length} caracteres** (mínimo: ${minDescriptionLength}).`,
+        description: `A descrição tem apenas **${prDescription.length} caracteres** (mínimo: ${MIN_DESCRIPTION_LENGTH}).`,
         problem: {
           wrong: prDescription || "(vazio)",
           correct: `## Contexto\nDescrição do motivo da mudança.\n\n## Mudanças\n- O que foi alterado\n\n## Testes\n- Como foi testado`,
@@ -86,21 +98,11 @@ exports.default = (0, _types_1.createPlugin)(
         line: 1,
       });
     }
-    if (requireChangelog) {
-      const changelogModified =
-        git.modified_files.includes("changelog.md") ||
-        git.modified_files.includes("CHANGELOG.md") ||
-        git.created_files.includes("changelog.md") ||
-        git.created_files.includes("CHANGELOG.md");
+    if (REQUIRE_CHANGELOG) {
+      const changelogModified = CHANGELOG_NAMES.some((name) => changedFiles.has(name));
       if (!changelogModified) {
-        const changelogPaths = ["changelog.md", "CHANGELOG.md", "Changelog.md", "CHANGELOG.MD"];
-        const hasChangelog = changelogPaths.some((p) => {
-          try {
-            return fs.existsSync(path.join(process.cwd(), p));
-          } catch {
-            return false;
-          }
-        });
+        // caminho relativo à raiz do projeto (cwd do Danger)
+        const hasChangelog = CHANGELOG_PATHS.some((p) => fs.existsSync(p));
         if (!hasChangelog) {
           (0, _types_1.sendFormattedFail)({
             title: "CHANGELOG NÃO ENCONTRADO",

@@ -105,14 +105,16 @@ class DartFile {
     this.stringByToken = null;
     this.identifiersCache = null;
     this.addedLinesSet = null;
+    this.diffErrorText = null;
     this.codeLinesCache = null;
     // ─── Diretivas ──────────────────────────────────────────────────────────
     this.directivesCache = null;
     this.typedefsCache = null;
     this.functionsCache = null;
     this.variablesCache = null;
-    // ─── Chamadas e identificadores ─────────────────────────────────────────
     this.callsCache = null;
+    this.closuresCache = null;
+    this.rangeScansCache = null;
     this.path = path_1.DartPath.of(filePath);
     this.exists = exists;
     this.source = source;
@@ -158,13 +160,15 @@ class DartFile {
       try {
         const danger = globalThis.danger;
         const diff = await danger?.git?.structuredDiffForFile(filePath);
+        if (!diff) file.diffErrorText = "o Danger não devolveu diff para o arquivo";
         for (const chunk of diff?.chunks ?? []) {
           for (const change of chunk.changes ?? []) {
             if (change.type === "add" && typeof change.ln === "number") added.add(change.ln);
           }
         }
-      } catch {
+      } catch (error) {
         // sem diff: nenhuma linha adicionada
+        file.diffErrorText = error instanceof Error ? error.message : String(error);
       }
       file.addedLinesSet = added;
     }
@@ -266,6 +270,13 @@ class DartFile {
   }
   isAdded(line) {
     return this.addedLinesSet?.has(line) ?? false;
+  }
+  /**
+   * Por que o `readWithDiff` não leu o diff (exceção do Danger ou diff ausente), ou `null`.
+   * Diferencia "o diff falhou" de "nenhuma linha adicionada" (`addedLines` vazio nos dois casos).
+   */
+  get diffError() {
+    return this.diffErrorText;
   }
   // ─── Fatos do arquivo ───────────────────────────────────────────────────
   /** `// @dart=3.x` do arquivo, ou `null`. */
@@ -457,7 +468,9 @@ class DartFile {
         top >= 0 &&
         (0, lexer_1.isPunct)(tokens[top], "{") &&
         (0, lexer_1.isPunct)(after, ":") &&
-        ((0, lexer_1.isPunct)(before, "{") || (0, lexer_1.isPunct)(before, ","))
+        ((0, lexer_1.isPunct)(before, "{") ||
+          (0, lexer_1.isPunct)(before, ",") ||
+          afterCollectionControl(tokens, first - 1))
       ) {
         role = enums_1.DartStringRole.MapKey;
       } else if (
@@ -501,6 +514,19 @@ class DartFile {
     this.stringsCache = out;
     this.stringByToken = byToken;
   }
+  // ─── Chamadas e identificadores ─────────────────────────────────────────
+  /** Faixas de tokens com expressões: corpos, inicializadores, parâmetros, initializer lists, argumentos de enum. */
+  expressionRanges() {
+    const ranges = [];
+    for (const cls of this.declarations) {
+      for (const m of cls.members) ranges.push(...m.expressionRanges());
+      for (const v of cls.enumValues) ranges.push(...v.expressionRanges());
+      if (cls.primaryConstructor) ranges.push(...cls.primaryConstructor.expressionRanges());
+    }
+    for (const f of this.functions) ranges.push(...f.expressionRanges());
+    for (const v of this.variables) ranges.push(...v.expressionRanges());
+    return ranges.filter(([a, b]) => a >= 0 && b >= a);
+  }
   /**
    * Todas as chamadas do arquivo: corpos de métodos/funções/construtores,
    * inicializadores de campos e variáveis, initializer lists, valores padrão e
@@ -508,23 +534,52 @@ class DartFile {
    */
   calls() {
     if (this.callsCache === null) {
-      const ranges = [];
-      for (const cls of this.declarations) {
-        for (const m of cls.members) ranges.push(...m.expressionRanges());
-        for (const v of cls.enumValues) ranges.push(...v.expressionRanges());
-        if (cls.primaryConstructor) ranges.push(...cls.primaryConstructor.expressionRanges());
-      }
-      for (const f of this.functions) ranges.push(...f.expressionRanges());
-      for (const v of this.variables) ranges.push(...v.expressionRanges());
       const calls = [];
-      for (const [a, b] of ranges) {
-        if (a < 0 || b < a) continue;
-        const closures = (0, nodes_1.scanClosures)(this, a, b);
-        calls.push(...(0, nodes_1.scanCalls)(this, a, b, closures));
+      for (const [a, b] of this.expressionRanges()) {
+        calls.push(...(0, nodes_1.scanCalls)(this, a, b, (0, nodes_1.scanClosures)(this, a, b)));
       }
       this.callsCache = calls.sort((x, y) => x.startOffset - y.startOffset);
     }
     return this.callsCache;
+  }
+  /**
+   * Todas as closures e funções locais do arquivo (nos mesmos lugares que
+   * `calls()`), inclusive as de inicializadores: `final onTap = (bool reload) {};`.
+   */
+  closures() {
+    if (this.closuresCache === null) {
+      const closures = [];
+      for (const [a, b] of this.expressionRanges())
+        closures.push(...(0, nodes_1.scanClosures)(this, a, b));
+      this.closuresCache = closures.sort((x, y) => x.startOffset - y.startOffset);
+    }
+    return this.closuresCache;
+  }
+  rangeScans() {
+    if (this.rangeScansCache === null) {
+      this.rangeScansCache = this.expressionRanges().map(([a, b]) =>
+        (0, nodes_1.scanBody)(this, a, b)
+      );
+    }
+    return this.rangeScansCache;
+  }
+  /**
+   * Todos os `try` do arquivo (nos mesmos lugares que `calls()`: corpos e closures, inclusive as de
+   * inicializadores), na ordem do arquivo.
+   */
+  tryStatements() {
+    return this.rangeScans()
+      .flatMap((s) => s.tries)
+      .sort((x, y) => x.startOffset - y.startOffset);
+  }
+  /**
+   * Todas as variáveis locais do arquivo (statements, `for`, patterns; corpos e closures, inclusive
+   * as de inicializadores), na ordem do arquivo. `insideClosure` é a closure mais interna.
+   */
+  localVariables() {
+    return this.rangeScans()
+      .flatMap((s) => s.locals)
+      .sort((x, y) => x.startOffset - y.startOffset || x.nameLine - y.nameLine);
   }
   /** Identificadores DECLARADOS no arquivo (não os usos), na ordem do arquivo. */
   get identifiers() {
@@ -561,13 +616,28 @@ const LIST_PREFIX_WORDS = new Set([
   "when",
 ]);
 function isIndexBracket(tokens, open) {
-  const prev = tokens[open - 1];
+  let prev = tokens[open - 1];
   if (prev === undefined) return false;
+  // `json?['k']`: o `?` colado no `[` (no ternário, `cond ? [...]`, há espaço)
+  if ((0, lexer_1.isPunct)(prev, "?") && prev.end === tokens[open].start && open >= 2) {
+    prev = tokens[open - 2];
+    if (prev.kind === "ident") return !LIST_PREFIX_WORDS.has(prev.value);
+  }
   if (prev.kind === "ident") return !LIST_PREFIX_WORDS.has(prev.value);
   return (
     (0, lexer_1.isPunct)(prev, ")") ||
     (0, lexer_1.isPunct)(prev, "]") ||
     (0, lexer_1.isPunct)(prev, "!")
+  );
+}
+/** O token `k` fecha um `if (...)`/`for (...)` de coleção ou é o `else` dele (`{if (c) 'k': v}`). */
+function afterCollectionControl(tokens, k) {
+  if ((0, lexer_1.isIdent)(tokens[k], "else")) return true;
+  if (!(0, lexer_1.isPunct)(tokens[k], ")")) return false;
+  const open = (0, lexer_1.matchOpenBackward)(tokens, k, 0);
+  return (
+    open > 0 &&
+    ((0, lexer_1.isIdent)(tokens[open - 1], "if") || (0, lexer_1.isIdent)(tokens[open - 1], "for"))
   );
 }
 const NOT_CALL_WORDS = new Set([
@@ -578,7 +648,6 @@ const NOT_CALL_WORDS = new Set([
   "catch",
   "return",
   "await",
-  "assert",
   "Function",
   "super",
   "this",

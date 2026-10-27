@@ -21,6 +21,7 @@ import {
   DartAnnotation,
   DartArgument,
   DartBody,
+  DartCall,
   DartDeclaration,
   DartDoc,
   DartExpression,
@@ -28,8 +29,10 @@ import {
   DartParameter,
   DartVariable,
   VariableInit,
+  DartTypeParameter,
   buildArguments,
   buildParameters,
+  buildTypeParameters,
   docOf,
   ignoredBy,
   readAsyncMarker,
@@ -62,64 +65,6 @@ const DECL_KIND: Record<RawTypeDecl["kind"], DartDeclarationKind> = {
   extensionType: DartDeclarationKind.ExtensionType,
   mixinApplication: DartDeclarationKind.MixinApplication,
 };
-
-/** Parâmetro de tipo: `T extends Comparable<T>`. */
-export class DartTypeParameter {
-  readonly name: string;
-  /** `T extends Comparable<T>` → `Comparable<T>` */
-  readonly bound: DartType | null;
-  readonly line: number;
-  /** @internal */
-  readonly nameTokIndex: number;
-
-  /** @internal */
-  constructor(name: string, bound: DartType | null, line: number, nameTokIndex: number) {
-    this.name = name;
-    this.bound = bound;
-    this.line = line;
-    this.nameTokIndex = nameTokIndex;
-  }
-}
-
-/** @internal Parâmetros de tipo de `<` em `open`. */
-export function buildTypeParameters(
-  file: DartFile,
-  open: number,
-  outer: ReadonlySet<string>
-): DartTypeParameter[] {
-  const { tokens } = file.lexed;
-  if (open < 0 || !isPunct(tokens[open], "<")) return [];
-  const close = matchTypeArgs(tokens, open, tokens.length);
-  if (close < 0) return [];
-  const names = new Set(outer);
-  const chunks = splitTopLevelCommas(tokens, open + 1, close - 1);
-  for (const [a] of chunks) {
-    const nameTok = isPunct(tokens[a], "@") ? findNameAfterAnnotations(tokens, a) : a;
-    if (isIdent(tokens[nameTok])) names.add(tokens[nameTok].value);
-  }
-  return chunks.map(([a, b]) => {
-    const nameTok = isPunct(tokens[a], "@") ? findNameAfterAnnotations(tokens, a) : a;
-    const bound = isIdent(tokens[nameTok + 1], "extends")
-      ? parseDartType(file.lexed, nameTok + 2, b, names)
-      : null;
-    return new DartTypeParameter(
-      tokens[nameTok]?.value ?? "",
-      bound,
-      file.lineAtOffset(tokens[nameTok]?.start ?? 0),
-      nameTok
-    );
-  });
-}
-
-function findNameAfterAnnotations(tokens: { kind: string; value: string }[], a: number): number {
-  let k = a;
-  while (
-    k < tokens.length &&
-    !(tokens[k].kind === "ident" && tokens[k - 1]?.value !== "@" && tokens[k - 1]?.value !== ".")
-  )
-    k++;
-  return k;
-}
 
 /** Membro de classe: `memberKind` discrimina a união `DartMember`. */
 export interface DartClassMember {
@@ -281,6 +226,11 @@ export class DartClass extends DartNodeBase implements DartDeclaration {
         m.memberKind === DartMemberKind.Setter ||
         m.memberKind === DartMemberKind.Operator
     );
+  }
+
+  /** Chamadas dentro da declaração (corpos, inicializadores, primary constructor), na ordem. */
+  calls(): readonly DartCall[] {
+    return this.file.calls().filter((c) => this.contains(c));
   }
 
   /** Trechos do corpo que o parser não reconheceu. */
@@ -729,7 +679,8 @@ export class DartFunction extends DartNodeBase implements DartDeclaration {
   expressionRanges(): [number, number][] {
     const raw = this.rawMember;
     const ranges: [number, number][] = [];
-    if (raw.paramsOpenTok >= 0) ranges.push([raw.paramsOpenTok, raw.paramsCloseTok]);
+    // por dentro dos parênteses: `(int a) => ...` não é uma closure
+    if (raw.paramsOpenTok >= 0) ranges.push([raw.paramsOpenTok + 1, raw.paramsCloseTok - 1]);
     if (this.bodyKind !== DartBodyKind.None) ranges.push([raw.bodyTok, raw.endTok]);
     return ranges;
   }
@@ -885,7 +836,8 @@ export class DartConstructor extends DartNodeBase implements DartDeclaration, Da
           : null;
       this.lineCount = this.endLine - this.line + 1;
       this.nameTokIndex = decl.nameTok;
-      this.ranges = [[decl.primaryParamsOpenTok, close]];
+      // por dentro dos parênteses: a lista de parâmetros não é uma closure
+      this.ranges = [[decl.primaryParamsOpenTok + 1, close - 1]];
       if (primaryBody && primaryBody.colonTok >= 0) {
         this.ranges.push([primaryBody.colonTok + 1, primaryBody.endTok]);
       } else if (primaryBody && primaryBody.bodyOpenTok >= 0) {
@@ -909,7 +861,11 @@ export class DartConstructor extends DartNodeBase implements DartDeclaration, Da
     this.startLine = this.doc?.line ?? file.lineAtOffset(tokens[raw.startTok].start);
     const nameTok = raw.paramsOpenTok - 1;
     this.nameTokIndex = nameTok;
-    this.ranges = [[raw.paramsOpenTok, raw.endTok]];
+    // parâmetros por dentro dos parênteses (a lista não é uma closure) + initializers/corpo
+    this.ranges = [
+      [raw.paramsOpenTok + 1, raw.paramsCloseTok - 1],
+      [raw.paramsCloseTok + 1, raw.endTok],
+    ];
     this.nameLine = file.lineAtOffset(tokens[nameTok].start);
     const params =
       raw.params === null

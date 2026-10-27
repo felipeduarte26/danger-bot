@@ -1,6 +1,14 @@
 import { DartIdentifierKind, GeneratedReason } from "./enums";
 import { DartPath } from "./path";
-import { DartCall, DartComment, DartNodeBase, DartString } from "./nodes";
+import {
+  DartCall,
+  DartClosure,
+  DartComment,
+  DartLocalVariable,
+  DartNodeBase,
+  DartString,
+  DartTry,
+} from "./nodes";
 import {
   DartClass,
   DartDirective,
@@ -40,6 +48,7 @@ export declare class DartFile {
   private stringByToken;
   private identifiersCache;
   private addedLinesSet;
+  private diffErrorText;
   private constructor();
   /**
    * Lê o arquivo do disco (`fs.readFileSync`, caminho relativo à raiz do
@@ -91,6 +100,11 @@ export declare class DartFile {
   /** Linhas adicionadas no PR (base 1). Vazio se o arquivo não veio de `readWithDiff`. */
   get addedLines(): ReadonlySet<number>;
   isAdded(line: number): boolean;
+  /**
+   * Por que o `readWithDiff` não leu o diff (exceção do Danger ou diff ausente), ou `null`.
+   * Diferencia "o diff falhou" de "nenhuma linha adicionada" (`addedLines` vazio nos dois casos).
+   */
+  get diffError(): string | null;
   /** `// @dart=3.x` do arquivo, ou `null`. */
   get languageVersionOverride(): string | null;
   /** Por que o arquivo é gerado: caminho, `part 'x.g.dart'` ou cabeçalho GENERATED; `null` se não for. */
@@ -134,6 +148,8 @@ export declare class DartFile {
   /** @internal String do token `k` (ou `null`). */
   stringAtToken(k: number): DartString | null;
   private buildStrings;
+  /** Faixas de tokens com expressões: corpos, inicializadores, parâmetros, initializer lists, argumentos de enum. */
+  private expressionRanges;
   private callsCache;
   /**
    * Todas as chamadas do arquivo: corpos de métodos/funções/construtores,
@@ -141,6 +157,24 @@ export declare class DartFile {
    * argumentos de valores de enum. Não inclui anotações.
    */
   calls(): readonly DartCall[];
+  private closuresCache;
+  /**
+   * Todas as closures e funções locais do arquivo (nos mesmos lugares que
+   * `calls()`), inclusive as de inicializadores: `final onTap = (bool reload) {};`.
+   */
+  closures(): readonly DartClosure[];
+  private rangeScansCache;
+  private rangeScans;
+  /**
+   * Todos os `try` do arquivo (nos mesmos lugares que `calls()`: corpos e closures, inclusive as de
+   * inicializadores), na ordem do arquivo.
+   */
+  tryStatements(): readonly DartTry[];
+  /**
+   * Todas as variáveis locais do arquivo (statements, `for`, patterns; corpos e closures, inclusive
+   * as de inicializadores), na ordem do arquivo. `insideClosure` é a closure mais interna.
+   */
+  localVariables(): readonly DartLocalVariable[];
   /** Identificadores DECLARADOS no arquivo (não os usos), na ordem do arquivo. */
   get identifiers(): readonly DartIdentifier[];
 }

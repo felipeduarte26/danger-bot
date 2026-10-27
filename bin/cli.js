@@ -15,6 +15,7 @@ import { validatePlugin } from "./commands/validate-plugin.js";
 import { showInfo } from "./commands/info.js";
 import { initConfig } from "./commands/init-config.js";
 import { dryRun } from "./commands/dry-run.js";
+import { inspectFile } from "./commands/inspect.js";
 
 import { readFileSync } from "fs";
 import { fileURLToPath } from "url";
@@ -76,6 +77,7 @@ function showStyledHelp() {
   console.log(`${c.bold}  Comandos:${c.reset}
   
   ${c.yellow}dry-run${c.reset} ${c.dim}(run)${c.reset}     Executar plugins localmente ${c.green}← mais usado${c.reset}
+  ${c.yellow}inspect${c.reset}          Ver o modelo Dart de um arquivo
   ${c.yellow}list${c.reset} ${c.dim}(ls)${c.reset}         Listar todos os plugins
   ${c.yellow}create-plugin${c.reset} ${c.dim}(new)${c.reset} Criar novo plugin
   ${c.yellow}remove-plugin${c.reset} ${c.dim}(rm)${c.reset}  Remover plugin existente
@@ -88,7 +90,8 @@ ${c.bold}  Uso rápido:${c.reset}
 
   ${c.dim}$${c.reset} db run -b develop          ${c.dim}# testar localmente${c.reset}
   ${c.dim}$${c.reset} db run --plugins "model"   ${c.dim}# plugin específico${c.reset}
-  ${c.dim}$${c.reset} db ls                      ${c.dim}# ver plugins${c.reset}
+  ${c.dim}${c.reset} db inspect lib/x.dart      ${c.dim}# o que o modelo vê no arquivo${c.reset}
+  ${c.dim}${c.reset} db ls                      ${c.dim}# ver plugins${c.reset}
   ${c.dim}$${c.reset} db --help                  ${c.dim}# ajuda completa${c.reset}
 `);
 }
@@ -125,6 +128,18 @@ program
   .option("--all", "Executar todos os plugins (incluindo os que precisam de API/CLI externa)")
   .option("-v, --verbose", "Exibir detalhes completos")
   .action(dryRun);
+
+// Comando: inspect (modelo Dart de um arquivo)
+program
+  .command("inspect <arquivo>")
+  .description("Mostrar o que o modelo Dart vê num arquivo .dart (o que os plugins usam)")
+  .option(
+    "--only <seções>",
+    "Seções separadas por vírgula: path, imports, classes, functions, variables, calls, strings, comments, locals, identifiers, errors"
+  )
+  .option("-l, --line <n>", "Só o que está na linha n")
+  .option("--json", "Saída em JSON")
+  .action(inspectFile);
 
 // Comando: criar plugin
 program

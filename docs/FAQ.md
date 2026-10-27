@@ -75,7 +75,7 @@ sendMessage(`${files.length} arquivos Dart modificados`);
 
 ### Como um plugin lê o código Dart?
 
-Pelo **modelo Dart** ([MODELO_DART.md](MODELO_DART.md)): `DartFile.changed()` entrega cada arquivo já analisado (classes, campos, métodos, tipos, chamadas, comentários, strings). O plugin trabalha com essas propriedades, sem regex sobre o texto — comentários, strings, genéricos aninhados, quebras de linha e primary constructors já vêm tratados.
+Pelo **modelo Dart** ([MODELO_DART.md](MODELO_DART.md); passo a passo em [CRIANDO_PLUGINS.md](CRIANDO_PLUGINS.md)). Para ver o que ele enxerga num arquivo, rode `npx danger-bot inspect lib/x.dart`. Em resumo: `DartFile.changed()` entrega cada arquivo já analisado (classes, campos, métodos, tipos, chamadas, comentários, strings). O plugin trabalha com essas propriedades, sem regex sobre o texto — comentários, strings, genéricos aninhados, quebras de linha e primary constructors já vêm tratados.
 
 ```typescript
 for (const file of DartFile.changed()) {

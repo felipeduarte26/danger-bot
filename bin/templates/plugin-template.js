@@ -1,69 +1,67 @@
 /**
  * PLUGIN TEMPLATE
  * ===============
- * Template para criação de novos plugins, no padrão obrigatório das mensagens
+ * Templates para criação de novos plugins, sobre o modelo Dart e no padrão
+ * obrigatório das mensagens. Cada tipo de regra tem um template em
+ * templates/plugins/<tipo>.ts.tpl (docs/CRIANDO_PLUGINS.md).
  */
 
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 import { toKebabCase } from "../utils/string-helpers.js";
 
+const TEMPLATES_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "plugins");
+
 /**
- * Gerar template de plugin
+ * Tipos de regra do create-plugin: o template e as constantes de exemplo que
+ * precisam ser trocadas pela regra real.
+ */
+export const PLUGIN_KINDS = [
+  {
+    id: "call",
+    label: "Call",
+    hint: "file.calls() — e.g. replace one API with another",
+    replace: "WRONG_CALL, RIGHT_CALL",
+  },
+  {
+    id: "class",
+    label: "Class/structure",
+    hint: "file.classes, cls.hasMember(), Presence — e.g. a model without a required method",
+    replace: "TARGET_FOLDER, REQUIRED_MEMBER, the example member",
+  },
+  {
+    id: "diff",
+    label: "Text added in the PR",
+    hint: "readWithDiff + file.strings (warn) — e.g. hardcoded text in Text()",
+    replace: "TARGET_CALLEE, the fixed value",
+  },
+  {
+    id: "path",
+    label: "Path/file",
+    hint: "file.path — e.g. a usecases file without the _usecase.dart suffix",
+    replace: "TARGET_FOLDER, REQUIRED_SUFFIX",
+  },
+];
+
+/**
+ * Gerar o código do plugin
  * @param {string} name - Nome do plugin
  * @param {string} description - Descrição do plugin
  * @param {boolean} enabled - Se está habilitado por padrão
+ * @param {string} [kind] - Tipo de regra (`PLUGIN_KINDS[].id`); padrão: `call`
  * @returns {string} - Código do plugin
  */
-export function generatePluginTemplate(name, description, enabled) {
-  const kebabName = toKebabCase(name);
-  const headerDescription = description.replace(/\*\//g, "*\\/");
-
-  return `/**
- * ${name}
- * ${headerDescription}
- */
-import { DartFile, createPlugin, sendFormattedFail } from "@types";
-
-// Leia o código pelo modelo Dart (docs/MODELO_DART.md): classes, campos, métodos,
-// tipos, chamadas, strings e comentários já vêm prontos, sem regex sobre o texto.
-const WRONG_CALL = "padraoProblematico";
-const RIGHT_CALL = "padraoCorreto";
-
-export default createPlugin(
-  {
-    name: "${kebabName}",
-    description: ${JSON.stringify(description)},
-    enabled: ${enabled},
-  },
-  async () => {
-    // .dart criados/modificados no PR, sem testes e sem arquivos gerados
-    for (const file of DartFile.changed()) {
-      for (const call of file.calls()) {
-        if (call.name !== WRONG_CALL) continue;
-
-        const wrong = call.lineText; // código REAL do arquivo (a linha da chamada)
-        const fixed = wrong.replace(\`\${WRONG_CALL}(\`, \`\${RIGHT_CALL}(\`); // a mesma linha, já corrigida
-
-        sendFormattedFail({
-          title: "TITULO FIXO EM CAPS", // chave do resumo: sem dados variáveis
-          description:
-            "Por que \`padraoProblematico()\` é um problema (1-2 linhas, **negrito** no essencial).",
-          problem: {
-            wrong,
-            correct: fixed,
-            wrongLabel: "Efeito do código atual",
-            correctLabel: "O que muda com a correção",
-          },
-          action: { text: "Substitua por:", code: fixed },
-          objective: "Benefício da correção em uma frase.",
-          reference: { text: "Nome da doc oficial", url: "https://api.flutter.dev/" },
-          file: file.path.path,
-          line: call.line,
-        });
-      }
-    }
-  }
-);
-`;
+export function generatePluginTemplate(name, description, enabled, kind = "call") {
+  const template = fs.readFileSync(path.join(TEMPLATES_DIR, `${kind}.ts.tpl`), "utf-8");
+  const values = {
+    __PLUGIN_TITLE__: name,
+    __HEADER_DESCRIPTION__: description.replace(/\*\//g, "*\\/"),
+    __PLUGIN_NAME__: toKebabCase(name),
+    __DESCRIPTION_JSON__: JSON.stringify(description),
+    __ENABLED__: String(enabled),
+  };
+  return template.replace(/__[A-Z_]+__/g, (key) => values[key] ?? key);
 }
 
 /**

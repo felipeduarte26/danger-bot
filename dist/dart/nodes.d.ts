@@ -63,6 +63,14 @@ export declare abstract class DartNodeBase implements DartNode {
   protected constructor(file: DartFile, startOffset: number, endOffset: number);
   get text(): string;
   get lineText(): string;
+  /** O nó `other` (do mesmo arquivo) está dentro deste: `method.contains(call)`. */
+  contains(other: DartNodeBase): boolean;
+  /**
+   * Texto do nó em uma linha, sem comentários nem a vírgula final do formato
+   * "tall": `required final String createdAt = 'a' 'b'` mesmo quando o código
+   * quebra a declaração em várias linhas. Nó sem tokens (comentário): `text`.
+   */
+  get compact(): string;
 }
 /** Offsets `[início, fim)` dos tokens `[from, to]`. */
 export declare function tokenSpan(file: DartFile, from: number, to: number): [number, number];
@@ -72,6 +80,13 @@ export declare function tokenSpan(file: DartFile, from: number, to: number): [nu
  * `dart format` coloca ao quebrar argumentos. `widget\n  .controller` → `widget.controller`.
  */
 export declare function compactText(file: DartFile, from: number, to: number): string;
+/**
+ * Texto dos tokens `[from, to]` em uma linha, sem comentários: mantém um
+ * espaço onde a linha tinha espaço; numa quebra de linha, põe um espaço, exceto
+ * depois de `(`/`[`/`{`/`.` e antes de fechamento, `,`, `;`, `.` e `!`.
+ * Remove a vírgula final do formato "tall". Usado em `node.compact`.
+ */
+export declare function oneLineText(file: DartFile, from: number, to: number): string;
 /** `@override`, `@JsonKey(name: 'x')`, `@p.Annotation()`. */
 export declare class DartAnnotation extends DartNodeBase {
   /** Último segmento do nome: `@JsonKey(...)` → `"JsonKey"`, `@override` → `"override"`. */
@@ -172,6 +187,23 @@ export declare class DartString extends DartNodeBase {
   /** Tem `$x` ou `${...}`. */
   get hasInterpolation(): boolean;
 }
+/** Parâmetro de tipo: `T extends Comparable<T>`. */
+export declare class DartTypeParameter {
+  readonly name: string;
+  /** `T extends Comparable<T>` → `Comparable<T>` */
+  readonly bound: DartType | null;
+  readonly line: number;
+  /** @internal */
+  readonly nameTokIndex: number;
+  /** @internal */
+  constructor(name: string, bound: DartType | null, line: number, nameTokIndex: number);
+}
+/** @internal Parâmetros de tipo de `<` em `open`. */
+export declare function buildTypeParameters(
+  file: DartFile,
+  open: number,
+  outer: ReadonlySet<string>
+): DartTypeParameter[];
 /** Parâmetro de método, função, construtor ou closure. */
 export declare class DartParameter extends DartNodeBase implements DartDeclaration {
   /** Como escrito: `_repository`, `onTap`. */
@@ -263,10 +295,18 @@ export declare abstract class DartVariable extends DartNodeBase implements DartD
   /** Comentário `//` no fim da última linha da declaração. */
   get trailingComment(): DartComment | null;
 }
-/** Variável declarada dentro de um corpo (ou de um `for`). Nunca aparece em `DartClass.fields`. */
+/**
+ * Variável declarada dentro de um corpo: statement, cabeçalho de `for` (também o `for` de
+ * coleção) ou pattern. Nunca aparece em `DartClass.fields`.
+ */
 export declare class DartLocalVariable extends DartVariable {
-  /** Declarada no cabeçalho de um `for`. */
+  /** Declarada no cabeçalho de um `for` (statement ou `[for (final x in xs) x]`). */
   readonly isLoopVariable: boolean;
+  /**
+   * Declarada por um pattern: `final (a, b) = ...`, `case Foo(:final x)`, `if (o case String s)`,
+   * braço de switch expression, `for (final (k, v) in ...)`. Não tem `initializer`.
+   */
+  readonly isPatternVariable: boolean;
   /** Closure (ou função local) mais interna que contém a declaração. */
   readonly insideClosure: DartClosure | null;
   /** @internal */
@@ -274,7 +314,8 @@ export declare class DartLocalVariable extends DartVariable {
     file: DartFile,
     init: VariableInit,
     isLoopVariable: boolean,
-    insideClosure: DartClosure | null
+    insideClosure: DartClosure | null,
+    isPatternVariable?: boolean
   );
 }
 /** Uma expressão (inicializador, argumento, valor padrão, elemento de lista...). */
@@ -298,10 +339,12 @@ export declare class DartExpression extends DartNodeBase {
   get strings(): readonly DartString[];
   /** Usa `this` ou `widget` (identificador solto, não `x.widget`). */
   get usesThis(): boolean;
-  /** Texto em uma linha (sem quebras). */
+  /** Texto em uma linha (ver `DartNodeBase.compact`). */
   get compact(): string;
   /** Chamadas dentro da expressão (inclusive aninhadas e em closures). */
   get calls(): readonly DartCall[];
+  /** Closures dentro da expressão (`final onTap = (bool reload) {}`), inclusive aninhadas. */
+  get closures(): readonly DartClosure[];
 }
 /** Argumento de uma chamada ou anotação. */
 export declare class DartArgument extends DartNodeBase {
@@ -391,6 +434,10 @@ export declare class DartClosure extends DartNodeBase {
   readonly openTok: number;
   /** @internal Último token do corpo. */
   readonly endTok: number;
+  /** Tipo de retorno escrito da função local (`Future<int> buscar() async`); `null` na anônima ou sem tipo. */
+  readonly returnType: DartType | null;
+  /** `<T>(T valor) {}` / `T primeiro<T>(List<T> xs) {}` */
+  readonly typeParameters: readonly DartTypeParameter[];
   private readonly paramsOpen;
   private readonly paramsClose;
   private readonly bodyTok;
@@ -407,6 +454,9 @@ export declare class DartClosure extends DartNodeBase {
       bodyTok: number;
       endTok: number;
       asyncKind: DartAsyncKind;
+      typeParamsOpen: number;
+      returnFrom: number;
+      returnTo: number;
     }
   );
   get parameters(): readonly DartParameter[];
@@ -414,7 +464,7 @@ export declare class DartClosure extends DartNodeBase {
 }
 /** `async`/`async*`/`sync*` a partir de `k`; devolve o tipo e o primeiro token depois. */
 export declare function readAsyncMarker(tokens: Token[], k: number): [DartAsyncKind, number];
-/** Closures e funções locais nos tokens `[from, to]`. @internal */
+/** Closures e funções locais nos tokens `[from, to]` (também genéricas: `<T>(T x) {}`, `T f<T>() {}`). @internal */
 export declare function scanClosures(file: DartFile, from: number, to: number): DartClosure[];
 /** `await` em um corpo. */
 export declare class DartAwait extends DartNodeBase {
@@ -538,8 +588,36 @@ export declare class DartBody extends DartNodeBase {
   get localVariables(): readonly DartLocalVariable[];
   /** Linha do primeiro `return` fora de closures/funções locais. */
   get firstTopLevelReturnLine(): number | null;
-  /** Linhas onde `name` é usado como identificador (fora de strings e comentários; `x.name` não conta). */
-  references(name: string): readonly number[];
+  /**
+   * Linhas onde `name` é usado como identificador (fora de strings e comentários).
+   * Por padrão `x.name` não conta; com `includeMemberAccess` conta também
+   * (`context.mounted`, `this.mounted`).
+   */
+  /**
+   * Acessos `target.membro` / `target?.membro` no corpo (também `this.target.membro`), na ordem:
+   * `body.memberAccesses("context")` → `[{ member: "mounted", line: 12 }, ...]`.
+   */
+  memberAccesses(target: string): readonly {
+    member: string;
+    line: number;
+  }[];
+  references(
+    name: string,
+    options?: {
+      includeMemberAccess?: boolean;
+    }
+  ): readonly number[];
 }
+/** @internal */
+export interface BodyScan {
+  closures: DartClosure[];
+  calls: DartCall[];
+  awaits: DartAwait[];
+  returns: DartReturn[];
+  tries: DartTry[];
+  locals: DartLocalVariable[];
+}
+/** @internal */
+export declare function scanBody(file: DartFile, from: number, to: number): BodyScan;
 /** Statements de nível 1 dos tokens `[from, to]`. @internal */
 export declare function readStatements(file: DartFile, from: number, to: number): DartStatement[];

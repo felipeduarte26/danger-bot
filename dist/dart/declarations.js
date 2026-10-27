@@ -11,9 +11,7 @@ exports.DartDirective =
   exports.DartField =
   exports.DartUnknownMember =
   exports.DartClass =
-  exports.DartTypeParameter =
     void 0;
-exports.buildTypeParameters = buildTypeParameters;
 const enums_1 = require("./enums");
 const type_1 = require("./type");
 const nodes_1 = require("./nodes");
@@ -28,51 +26,6 @@ const DECL_KIND = {
   extensionType: enums_1.DartDeclarationKind.ExtensionType,
   mixinApplication: enums_1.DartDeclarationKind.MixinApplication,
 };
-/** Parâmetro de tipo: `T extends Comparable<T>`. */
-class DartTypeParameter {
-  /** @internal */
-  constructor(name, bound, line, nameTokIndex) {
-    this.name = name;
-    this.bound = bound;
-    this.line = line;
-    this.nameTokIndex = nameTokIndex;
-  }
-}
-exports.DartTypeParameter = DartTypeParameter;
-/** @internal Parâmetros de tipo de `<` em `open`. */
-function buildTypeParameters(file, open, outer) {
-  const { tokens } = file.lexed;
-  if (open < 0 || !(0, lexer_1.isPunct)(tokens[open], "<")) return [];
-  const close = (0, lexer_1.matchTypeArgs)(tokens, open, tokens.length);
-  if (close < 0) return [];
-  const names = new Set(outer);
-  const chunks = (0, lexer_1.splitTopLevelCommas)(tokens, open + 1, close - 1);
-  for (const [a] of chunks) {
-    const nameTok = (0, lexer_1.isPunct)(tokens[a], "@") ? findNameAfterAnnotations(tokens, a) : a;
-    if ((0, lexer_1.isIdent)(tokens[nameTok])) names.add(tokens[nameTok].value);
-  }
-  return chunks.map(([a, b]) => {
-    const nameTok = (0, lexer_1.isPunct)(tokens[a], "@") ? findNameAfterAnnotations(tokens, a) : a;
-    const bound = (0, lexer_1.isIdent)(tokens[nameTok + 1], "extends")
-      ? (0, type_1.parseDartType)(file.lexed, nameTok + 2, b, names)
-      : null;
-    return new DartTypeParameter(
-      tokens[nameTok]?.value ?? "",
-      bound,
-      file.lineAtOffset(tokens[nameTok]?.start ?? 0),
-      nameTok
-    );
-  });
-}
-function findNameAfterAnnotations(tokens, a) {
-  let k = a;
-  while (
-    k < tokens.length &&
-    !(tokens[k].kind === "ident" && tokens[k - 1]?.value !== "@" && tokens[k - 1]?.value !== ".")
-  )
-    k++;
-  return k;
-}
 // ═══════════════════════════════════════════════════════════════════════════
 // Classe
 // ═══════════════════════════════════════════════════════════════════════════
@@ -104,7 +57,7 @@ class DartClass extends nodes_1.DartNodeBase {
       this.kind === enums_1.DartDeclarationKind.Class &&
       this.modifiers.has(enums_1.DartClassModifier.Mixin);
     this.isAugmentation = raw.isAugmentation;
-    this.typeParameters = buildTypeParameters(file, raw.typeParamsOpenTok, new Set());
+    this.typeParameters = (0, nodes_1.buildTypeParameters)(file, raw.typeParamsOpenTok, new Set());
     this.typeParamNames = new Set(this.typeParameters.map((t) => t.name));
     this.hasBody = raw.bodyOpenTok >= 0;
     this.lineCount = this.endLine - this.line + 1;
@@ -163,6 +116,10 @@ class DartClass extends nodes_1.DartNodeBase {
         m.memberKind === enums_1.DartMemberKind.Setter ||
         m.memberKind === enums_1.DartMemberKind.Operator
     );
+  }
+  /** Chamadas dentro da declaração (corpos, inicializadores, primary constructor), na ordem. */
+  calls() {
+    return this.file.calls().filter((c) => this.contains(c));
   }
   /** Trechos do corpo que o parser não reconheceu. */
   get unknownMembers() {
@@ -477,7 +434,11 @@ class DartFunction extends nodes_1.DartNodeBase {
     this.annotations = raw.annotations.map((a) => new nodes_1.DartAnnotation(file, a));
     this.doc = (0, nodes_1.docOf)(file, raw.startTok, raw.headTok);
     this.startLine = this.doc?.line ?? file.lineAtOffset(tokens[raw.startTok].start);
-    this.typeParameters = buildTypeParameters(file, raw.typeParamsOpenTok, outerTypeParams);
+    this.typeParameters = (0, nodes_1.buildTypeParameters)(
+      file,
+      raw.typeParamsOpenTok,
+      outerTypeParams
+    );
     const typeParams = new Set([...outerTypeParams, ...this.typeParameters.map((t) => t.name)]);
     const returnEnd = raw.memberKind === "method" ? raw.nameTok - 1 : raw.nameTok - 2; // antes de get/set/operator
     this.returnType =
@@ -534,7 +495,8 @@ class DartFunction extends nodes_1.DartNodeBase {
   expressionRanges() {
     const raw = this.rawMember;
     const ranges = [];
-    if (raw.paramsOpenTok >= 0) ranges.push([raw.paramsOpenTok, raw.paramsCloseTok]);
+    // por dentro dos parênteses: `(int a) => ...` não é uma closure
+    if (raw.paramsOpenTok >= 0) ranges.push([raw.paramsOpenTok + 1, raw.paramsCloseTok - 1]);
     if (this.bodyKind !== enums_1.DartBodyKind.None) ranges.push([raw.bodyTok, raw.endTok]);
     return ranges;
   }
@@ -641,7 +603,8 @@ class DartConstructor extends nodes_1.DartNodeBase {
           : null;
       this.lineCount = this.endLine - this.line + 1;
       this.nameTokIndex = decl.nameTok;
-      this.ranges = [[decl.primaryParamsOpenTok, close]];
+      // por dentro dos parênteses: a lista de parâmetros não é uma closure
+      this.ranges = [[decl.primaryParamsOpenTok + 1, close - 1]];
       if (primaryBody && primaryBody.colonTok >= 0) {
         this.ranges.push([primaryBody.colonTok + 1, primaryBody.endTok]);
       } else if (primaryBody && primaryBody.bodyOpenTok >= 0) {
@@ -664,7 +627,11 @@ class DartConstructor extends nodes_1.DartNodeBase {
     this.startLine = this.doc?.line ?? file.lineAtOffset(tokens[raw.startTok].start);
     const nameTok = raw.paramsOpenTok - 1;
     this.nameTokIndex = nameTok;
-    this.ranges = [[raw.paramsOpenTok, raw.endTok]];
+    // parâmetros por dentro dos parênteses (a lista não é uma closure) + initializers/corpo
+    this.ranges = [
+      [raw.paramsOpenTok + 1, raw.paramsCloseTok - 1],
+      [raw.paramsCloseTok + 1, raw.endTok],
+    ];
     this.nameLine = file.lineAtOffset(tokens[nameTok].start);
     const params =
       raw.params === null
@@ -857,16 +824,44 @@ class DartTypedef extends nodes_1.DartNodeBase {
     this.annotations = raw.annotations.map((a) => new nodes_1.DartAnnotation(file, a));
     this.doc = (0, nodes_1.docOf)(file, raw.firstTok, raw.headTok);
     this.startLine = this.doc?.line ?? file.lineAtOffset(tokens[raw.firstTok].start);
-    this.typeParameters = buildTypeParameters(file, raw.typeParamsOpenTok, new Set());
-    this.aliasedType =
-      raw.aliasStartTok >= 0
-        ? (0, type_1.parseDartType)(
-            file.lexed,
-            raw.aliasStartTok,
-            raw.aliasEndTok,
-            new Set(this.typeParameters.map((t) => t.name))
-          )
-        : null;
+    if (raw.aliasStartTok >= 0) {
+      this.typeParameters = (0, nodes_1.buildTypeParameters)(
+        file,
+        raw.typeParamsOpenTok,
+        new Set()
+      );
+      const typeParams = new Set(this.typeParameters.map((t) => t.name));
+      this.aliasedType = (0, type_1.parseDartType)(
+        file.lexed,
+        raw.aliasStartTok,
+        raw.aliasEndTok,
+        typeParams
+      );
+    } else {
+      // sintaxe antiga: `typedef void Callback<T>(T value);`
+      let open = raw.nameTok + 1;
+      const typeParamsOpen = (0, lexer_1.isPunct)(tokens[open], "<") ? open : -1;
+      if (typeParamsOpen >= 0) open = (0, lexer_1.matchTypeArgs)(tokens, open, raw.endTok) + 1;
+      this.typeParameters = (0, nodes_1.buildTypeParameters)(file, typeParamsOpen, new Set());
+      const typeParams = new Set(this.typeParameters.map((t) => t.name));
+      const close = (0, lexer_1.isPunct)(tokens[open], "(")
+        ? (0, lexer_1.matchClose)(tokens, open, raw.endTok)
+        : -1;
+      let typedefTok = raw.headTok;
+      while (typedefTok < raw.nameTok && !(0, lexer_1.isIdent)(tokens[typedefTok], "typedef"))
+        typedefTok++;
+      this.aliasedType =
+        close > 0
+          ? (0, type_1.functionTypeFromSignature)(
+              file.lexed,
+              typedefTok + 1,
+              raw.nameTok - 1,
+              open,
+              close,
+              typeParams
+            )
+          : null;
+    }
   }
   hasAnnotation(name) {
     return this.annotations.some((a) => a.name === name);

@@ -4,11 +4,12 @@
  *
  * Analisa apenas as strings das linhas adicionadas no PR (o texto sem as
  * interpolações e com os escapes resolvidos). Ficam de fora:
- *   - raw strings (`r'...'`), strings com menos de 3 caracteres e as que não são
- *     texto (`NON_TEXT_PATTERNS`: caminhos, URLs, chaves, datas, cores...);
+ *   - raw strings (`r'...'`), strings em várias linhas (aspas triplas), strings com
+ *     menos de 3 caracteres e as que não são texto (`NON_TEXT_PATTERNS`: caminhos,
+ *     URLs, chaves, datas, cores...);
  *   - URIs de diretivas, argumentos de anotação, rótulos de `case`, chaves de map
  *     (`{'k': v}`), índices (`json['k']`) e argumentos de `print`, `debugPrint`,
- *     `log.d/i/w/e/v`, `RegExp` e `Key`/`ValueKey`/`GlobalKey`...;
+ *     `log.d/i/w/e/v`, `assert`, `RegExp` e `Key`/`ValueKey`/`GlobalKey`...;
  *   - testes, gerados, `l10n/` e qualquer pasta `test/` no caminho.
  *
  * Detecta erros de acentuação e cedilha com uma lista de palavras que
@@ -310,8 +311,8 @@ const NON_TEXT_ROLES = new Set([
   DartStringRole.IndexKey,
 ]);
 
-/** Chamadas cujos argumentos não são texto para o usuário: logs, regex e keys de widget. */
-const NON_TEXT_CALLEES = new Set([
+/** Chamadas cujos argumentos não são texto para o usuário: logs, asserts, regex e keys de widget. */
+const NON_TEXT_CALLEES = [
   "print",
   "debugPrint",
   "log.d",
@@ -319,18 +320,21 @@ const NON_TEXT_CALLEES = new Set([
   "log.w",
   "log.e",
   "log.v",
+  "assert",
   "RegExp",
   "Key",
   "ValueKey",
   "GlobalKey",
   "ObjectKey",
   "PageStorageKey",
-]);
+];
 
 function isNonTextContext(s: DartString): boolean {
+  const callee = s.enclosingCallee;
   return (
     NON_TEXT_ROLES.has(s.role) ||
-    (s.enclosingCallee !== null && NON_TEXT_CALLEES.has(s.enclosingCallee))
+    // com ou sem receptor: `print(...)`, `logger.print(...)`, `this.log.d(...)`
+    (callee !== null && NON_TEXT_CALLEES.some((c) => callee === c || callee.endsWith(`.${c}`)))
   );
 }
 
@@ -682,7 +686,7 @@ export default createPlugin(
 
       for (const s of file.strings) {
         if (!file.isAdded(s.line) || s.isRaw || isNonTextContext(s)) continue;
-        // string em várias linhas (aspas triplas): o texto longo fica de fora
+        // string em várias linhas (aspas triplas, HTML/JS embutido): nunca foi verificada
         if (s.endLine !== s.line) continue;
         if (resolveEscapes(s.value).trim().length < 3) continue;
 

@@ -57,35 +57,48 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * Gera coverage executando `flutter test --coverage` e mostra
  * uma tabela de cobertura no summary da PR.
  *
- * Filtra somente arquivos modificados/criados na PR.
+ * Filtra somente arquivos .dart (sem `_test.dart`) modificados/criados na PR.
  * Mostra: linhas cobertas, linhas totais, percentual por arquivo e total.
+ *
+ * Testes rodados: os `_test.dart` da PR e os dos source files de usecases/, datasources/,
+ * repositories/, viewmodels/, models/ e entities/ (sem barrel files e .g.dart/.freezed.dart),
+ * pela mesma regra do flutter-test-runner.
  */
 const child_process_1 = require("child_process");
 const _types_1 = require("../../../types.js");
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 const TESTABLE_FOLDERS = [
-  "/usecases/",
-  "/datasources/",
-  "/repositories/",
-  "/viewmodels/",
-  "/models/",
-  "/entities/",
+  _types_1.DartLayerFolder.UseCases,
+  _types_1.DartLayerFolder.DataSources,
+  _types_1.DartLayerFolder.Repositories,
+  _types_1.DartLayerFolder.ViewModels,
+  _types_1.DartLayerFolder.Models,
+  _types_1.DartLayerFolder.Entities,
 ];
-function isBarrelFile(filePath) {
-  const fileName = path.basename(filePath, ".dart");
-  const parentDir = path.basename(path.dirname(filePath));
-  return fileName === parentDir;
+/** Gerados sem teste próprio (lista do plugin, menor que `DartPath.isGenerated`). */
+const GENERATED_SUFFIXES = [".g.dart", ".freezed.dart"];
+function isTestFile(file) {
+  return file.fileName.endsWith("_test.dart");
 }
-function isTestableSource(filePath) {
-  const normalized = filePath.replace(/\\/g, "/");
-  return TESTABLE_FOLDERS.some((f) => normalized.includes(f));
+/** Arquivo de produção que deve ter teste: .dart das pastas-alvo, sem barrel e sem gerados. */
+function isTestableSource(file) {
+  return (
+    file.isDart &&
+    !isTestFile(file) &&
+    !GENERATED_SUFFIXES.includes(file.compoundSuffix ?? "") &&
+    !file.isBarrel &&
+    TESTABLE_FOLDERS.some((folder) => file.inFolder(folder))
+  );
 }
-function computeTestPath(sourcePath) {
-  const normalized = sourcePath.replace(/\\/g, "/");
-  const libIdx = normalized.indexOf("lib/");
+/**
+ * `.../lib/(...)/x.dart` → `test/(...)/x_test.dart`, sempre no test/ da raiz, onde o
+ * `flutter test` roda (o `DartPath.expectedTestPath` aponta para o test/ do pacote em monorepo).
+ */
+function computeTestPath(file) {
+  const libIdx = file.path.indexOf("lib/");
   if (libIdx === -1) return null;
-  const relative = normalized.substring(libIdx + "lib/".length);
+  const relative = file.path.substring(libIdx + "lib/".length);
   return "test/" + relative.replace(/\.dart$/, "_test.dart");
 }
 function findTestByName(projectRoot, testFileName) {
@@ -116,29 +129,23 @@ function findTestByName(projectRoot, testFileName) {
 }
 function collectTestFiles(git) {
   const testFiles = new Set();
-  const allChanged = [...git.created_files, ...git.modified_files];
+  const allChanged = [...git.created_files, ...git.modified_files].map((f) =>
+    _types_1.DartPath.of(f)
+  );
+  // testes alterados na PR
   for (const file of allChanged) {
-    if (file.endsWith("_test.dart") && fs.existsSync(file)) {
-      testFiles.add(file);
+    if (isTestFile(file) && fs.existsSync(file.path)) {
+      testFiles.add(file.path);
     }
   }
-  for (const file of allChanged) {
-    if (
-      !file.endsWith(".dart") ||
-      file.endsWith("_test.dart") ||
-      file.endsWith(".g.dart") ||
-      file.endsWith(".freezed.dart") ||
-      isBarrelFile(file) ||
-      !isTestableSource(file)
-    ) {
-      continue;
-    }
+  // testes dos source files da PR
+  for (const file of allChanged.filter(isTestableSource)) {
     const directTest = computeTestPath(file);
     if (directTest && fs.existsSync(directTest)) {
       testFiles.add(directTest);
       continue;
     }
-    const testFileName = path.basename(file, ".dart") + "_test.dart";
+    const testFileName = file.fileName.replace(/\.dart$/, "_test.dart");
     const cwd = process.cwd();
     const found = findTestByName(cwd, testFileName);
     if (found) {
@@ -146,6 +153,12 @@ function collectTestFiles(git) {
     }
   }
   return [...testFiles];
+}
+/** Arquivos .dart da PR que não são `_test.dart` (os que entram na tabela de cobertura). */
+function prSourceFiles(git) {
+  return [...git.created_files, ...git.modified_files]
+    .map((f) => _types_1.DartPath.of(f))
+    .filter((file) => file.isDart && !isTestFile(file));
 }
 function generateCoverage(testFiles) {
   const lcovPath = "coverage/lcov.info";
@@ -225,6 +238,7 @@ function reportCoverage(git) {
       return;
     }
   }
+  // eslint-disable-next-line no-restricted-syntax -- lcov.info, não é código Dart
   const lcovContent = fs.readFileSync(lcovPath, "utf-8");
   const allCoverage = parseLcov(lcovContent);
   if (allCoverage.length === 0) {
@@ -234,11 +248,7 @@ function reportCoverage(git) {
     );
     return;
   }
-  const prFiles = new Set(
-    [...git.created_files, ...git.modified_files]
-      .filter((f) => f.endsWith(".dart") && !f.endsWith("_test.dart"))
-      .map(normalizePath)
-  );
+  const prFiles = new Set(prSourceFiles(git).map((file) => normalizePath(file.path)));
   if (prFiles.size === 0) return;
   const prCoverage = allCoverage.filter((c) => prFiles.has(normalizePath(c.file)));
   if (prCoverage.length === 0) {
@@ -275,10 +285,7 @@ function reportCoverage(git) {
   (0, _types_1.sendMarkdown)(md);
 }
 function sendChecklist(git) {
-  const hasDart = [...git.created_files, ...git.modified_files].some(
-    (f) => f.endsWith(".dart") && !f.endsWith("_test.dart")
-  );
-  if (!hasDart) return;
+  if (prSourceFiles(git).length === 0) return;
   let md = "**Checklist**\n\n";
   md += "| | Item |\n";
   md += "| :--: | :-- |\n";

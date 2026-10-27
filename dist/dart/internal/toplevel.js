@@ -273,10 +273,22 @@ function scanTopLevel(lx) {
             aliasEndTok = end - 1;
           }
         } else {
-          // sintaxe antiga: typedef void Callback(int x);
+          // sintaxe antiga: typedef void Callback(int x); / typedef void Callback<T>(T x);
           const paren = (0, lexer_1.findAtDepth0)(tokens, k + 1, end, ["("]);
           nameTok = paren > k + 1 ? paren - 1 : k + 1;
-          if ((0, lexer_1.isPunct)(tokens[nameTok], ">")) nameTok = k + 1;
+          if ((0, lexer_1.isPunct)(tokens[nameTok], ">")) {
+            // nome antes dos parâmetros de tipo: volta até o `<` correspondente
+            let depth = 0;
+            let lt = -1;
+            for (let j = nameTok; j > k; j--) {
+              if ((0, lexer_1.isPunct)(tokens[j], ">")) depth++;
+              else if ((0, lexer_1.isPunct)(tokens[j], "<") && --depth === 0) {
+                lt = j;
+                break;
+              }
+            }
+            nameTok = lt > k + 1 ? lt - 1 : k + 1;
+          }
         }
         if ((0, lexer_1.isIdent)(tokens[nameTok])) {
           result.typedefs.push({
@@ -297,7 +309,12 @@ function scanTopLevel(lx) {
     } else {
       // Função ou variável de nível superior
       const member = (0, syntax_1.parseMember)(lx, start, n, "\0");
-      if (member !== null && (member.kind === "field" || member.kind === "method")) {
+      // `Foo.bar() {}` fora de uma classe não é função: vira trecho não reconhecido
+      const qualified =
+        member !== null &&
+        member.kind === "method" &&
+        (0, lexer_1.isPunct)(tokens[member.nameTok - 1], ".");
+      if (member !== null && !qualified && (member.kind === "field" || member.kind === "method")) {
         if (member.kind === "field") result.variables.push(member);
         else result.functions.push(member);
         i = member.endTok + 1;

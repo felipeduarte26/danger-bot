@@ -20,6 +20,7 @@ import {
   DartAnnotation,
   DartArgument,
   DartBody,
+  DartCall,
   DartDeclaration,
   DartDoc,
   DartExpression,
@@ -27,26 +28,10 @@ import {
   DartParameter,
   DartVariable,
   VariableInit,
+  DartTypeParameter,
 } from "./nodes";
 import { ConstructorMember, FieldMember, InitializerElement, OtherMember } from "./internal/syntax";
 import { RawDirective, RawTypeDecl, RawTypedef } from "./internal/toplevel";
-/** Parâmetro de tipo: `T extends Comparable<T>`. */
-export declare class DartTypeParameter {
-  readonly name: string;
-  /** `T extends Comparable<T>` → `Comparable<T>` */
-  readonly bound: DartType | null;
-  readonly line: number;
-  /** @internal */
-  readonly nameTokIndex: number;
-  /** @internal */
-  constructor(name: string, bound: DartType | null, line: number, nameTokIndex: number);
-}
-/** @internal Parâmetros de tipo de `<` em `open`. */
-export declare function buildTypeParameters(
-  file: DartFile,
-  open: number,
-  outer: ReadonlySet<string>
-): DartTypeParameter[];
 /** Membro de classe: `memberKind` discrimina a união `DartMember`. */
 export interface DartClassMember {
   readonly memberKind: DartMemberKind;
@@ -113,6 +98,8 @@ export declare class DartClass extends DartNodeBase implements DartDeclaration {
   get constructors(): readonly DartConstructor[];
   /** Métodos, getters, setters e operadores (veja `memberKind`). */
   get methods(): readonly DartMethod[];
+  /** Chamadas dentro da declaração (corpos, inicializadores, primary constructor), na ordem. */
+  calls(): readonly DartCall[];
   /** Trechos do corpo que o parser não reconheceu. */
   get unknownMembers(): readonly DartUnknownMember[];
   /** Todo o corpo foi reconhecido (`unknownMembers` vazio). */

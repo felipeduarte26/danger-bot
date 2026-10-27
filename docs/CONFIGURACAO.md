@@ -104,7 +104,10 @@ export default createPlugin(
           title: "TODO ENCONTRADO",
           description: "Comentário TODO detectado no código.",
           problem: { wrong: comment.lineText, correct: "// (TODO resolvido e removido)" },
-          action: { text: "Resolva o TODO antes de mergear a PR." },
+          action: {
+            text: "Resolva o TODO antes de mergear a PR e remova o comentário.",
+            code: "// (TODO resolvido e removido)",
+          },
           objective: "Manter o código limpo e sem pendências.",
           file: file.path.path,
           line: comment.line,

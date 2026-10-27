@@ -1,56 +1,4 @@
 "use strict";
-var __createBinding =
-  (this && this.__createBinding) ||
-  (Object.create
-    ? function (o, m, k, k2) {
-        if (k2 === undefined) k2 = k;
-        var desc = Object.getOwnPropertyDescriptor(m, k);
-        if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-          desc = {
-            enumerable: true,
-            get: function () {
-              return m[k];
-            },
-          };
-        }
-        Object.defineProperty(o, k2, desc);
-      }
-    : function (o, m, k, k2) {
-        if (k2 === undefined) k2 = k;
-        o[k2] = m[k];
-      });
-var __setModuleDefault =
-  (this && this.__setModuleDefault) ||
-  (Object.create
-    ? function (o, v) {
-        Object.defineProperty(o, "default", { enumerable: true, value: v });
-      }
-    : function (o, v) {
-        o["default"] = v;
-      });
-var __importStar =
-  (this && this.__importStar) ||
-  (function () {
-    var ownKeys = function (o) {
-      ownKeys =
-        Object.getOwnPropertyNames ||
-        function (o) {
-          var ar = [];
-          for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-          return ar;
-        };
-      return ownKeys(o);
-    };
-    return function (mod) {
-      if (mod && mod.__esModule) return mod;
-      var result = {};
-      if (mod != null)
-        for (var k = ownKeys(mod), i = 0; i < k.length; i++)
-          if (k[i] !== "default") __createBinding(result, mod, k[i]);
-      __setModuleDefault(result, mod);
-      return result;
-    };
-  })();
 Object.defineProperty(exports, "__esModule", { value: true });
 /**
  * Class Naming Convention Plugin
@@ -58,14 +6,16 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * 1. Verifica se nomes de classes usam substantivos, não verbos (Clean Code).
  * 2. Verifica se nomes de classes estão no singular (plural é para listas).
  *
- * Escopo: Repository, Datasource, Entity, Model, ViewModel.
- * Exceção: UseCase (por padrão arquitetural, aceita verbos).
+ * Escopo: classes (inclusive `mixin class` e mixin application) em arquivos de
+ * entities/, repositories/, datasources/, viewmodels/, models/ e `*_viewmodel.dart`.
+ * Exceções: UseCase (`/usecases/`, `/use_cases/`, `_usecase.dart`, `_use_case.dart`
+ * — por padrão arquitetural, aceita verbos), `.g.dart`, `.freezed.dart`, `_test.dart`.
+ * A regra de plural não vale para ViewModel e olha só a 1ª palavra do nome.
  *
- * Usa wordpos (WordNet) para detecção gramatical e @boringnode/pluralize para singular/plural.
+ * Usa wordpos (WordNet) para detecção gramatical e compromise para singular/plural;
+ * sem a biblioteca, a checagem correspondente não roda.
  */
 const _types_1 = require("../../../types.js");
-const fs = __importStar(require("fs"));
-const primary_constructors_1 = require("../primary-constructors/primary-constructors");
 let compromiseLib = null;
 try {
   compromiseLib = require("compromise");
@@ -283,25 +233,28 @@ const LAYER_SUFFIXES = [
   "Interface",
 ];
 const TARGET_FOLDERS = [
-  { folder: "/entities/", label: "Entity" },
-  { folder: "/repositories/", label: "Repository" },
-  { folder: "/datasources/", label: "Datasource" },
-  { folder: "/viewmodels/", label: "ViewModel" },
-  { folder: "/models/", label: "Model" },
+  { folder: _types_1.DartLayerFolder.Entities, label: "Entity" },
+  { folder: _types_1.DartLayerFolder.Repositories, label: "Repository" },
+  { folder: _types_1.DartLayerFolder.DataSources, label: "Datasource" },
+  { folder: _types_1.DartLayerFolder.ViewModels, label: "ViewModel" },
+  { folder: _types_1.DartLayerFolder.Models, label: "Model" },
 ];
-function isTargetFile(file) {
+/** Camada (rótulo da mensagem) do arquivo, ou `null` se ele está fora do escopo. */
+function targetLayer(file) {
   if (
-    file.includes("/usecases/") ||
-    file.includes("/use_cases/") ||
-    file.endsWith("_usecase.dart") ||
-    file.endsWith("_use_case.dart")
+    file.inFolder(_types_1.DartLayerFolder.UseCases) ||
+    file.inFolder("use_cases") ||
+    file.fileName.endsWith("_usecase.dart") ||
+    file.fileName.endsWith("_use_case.dart")
   ) {
     return null;
   }
   for (const { folder, label } of TARGET_FOLDERS) {
-    if (file.includes(folder)) return label;
+    if (file.inFolder(folder)) return label;
   }
-  if (file.endsWith("_viewmodel.dart") || file.endsWith("_view_model.dart")) return "ViewModel";
+  if (file.fileName.endsWith("_viewmodel.dart") || file.fileName.endsWith("_view_model.dart")) {
+    return "ViewModel";
+  }
   return null;
 }
 function splitPascalCase(name) {
@@ -481,6 +434,44 @@ async function loadWordPOS() {
     return null;
   }
 }
+/** Palavras do nome sem o sufixo de camada e o prefixo `I`: `IGetUserRepository` → `Get`, `User`. */
+function classWords(className) {
+  return splitPascalCase(stripLayerSuffix(className));
+}
+/** Palavras do nome da classe que são verbos (não substantivos). */
+async function findVerbWords(wp, words) {
+  const verbWords = [];
+  for (let wi = 0; wi < words.length; wi++) {
+    const lower = words[wi].toLowerCase();
+    if (lower.length < 2) continue;
+    if (isAgentNoun(lower)) continue;
+    if (isPartOfCompoundNoun(words, wi)) continue;
+    if (ACTION_VERBS.has(lower)) {
+      if (wi === 0) {
+        if (VERB_ALSO_NOUN.has(lower) && words.length === 1) continue;
+        verbWords.push(lower);
+        continue;
+      }
+      if (VERB_ALSO_NOUN.has(lower)) {
+        try {
+          if (await wp.isNoun(lower)) continue;
+        } catch {
+          continue;
+        }
+      }
+      verbWords.push(lower);
+      continue;
+    }
+    try {
+      if (!(await wp.isVerb(lower))) continue;
+      if (await wp.isNoun(lower)) continue;
+      verbWords.push(lower);
+    } catch {
+      continue;
+    }
+  }
+  return verbWords;
+}
 exports.default = (0, _types_1.createPlugin)(
   {
     name: "class-naming-convention",
@@ -489,78 +480,32 @@ exports.default = (0, _types_1.createPlugin)(
   },
   async () => {
     const wp = await loadWordPOS();
-    const { git } = (0, _types_1.getDanger)();
-    const allFiles = [...git.created_files, ...git.modified_files];
-    const targetFiles = allFiles
-      .filter((f) => {
-        if (f.endsWith(".g.dart") || f.endsWith(".freezed.dart") || f.endsWith("_test.dart"))
-          return false;
-        return isTargetFile(f) !== null;
-      })
-      .filter((f) => fs.existsSync(f));
+    const targetFiles = _types_1.DartFile.changed({
+      createdFirst: true,
+      includeTests: true,
+      includeGenerated: true,
+    }).filter(
+      (file) =>
+        !file.path.fileName.endsWith(".g.dart") &&
+        !file.path.fileName.endsWith(".freezed.dart") &&
+        !file.path.fileName.endsWith("_test.dart") &&
+        targetLayer(file.path) !== null
+    );
     if (targetFiles.length === 0) return;
     if (wp) {
       const violations = [];
       for (const file of targetFiles) {
-        const layer = isTargetFile(file);
-        const content = fs.readFileSync(file, "utf-8");
-        const lines = (0, primary_constructors_1.normalizePrimaryConstructorHeaders)(content).split(
-          "\n"
-        );
-        let inBlock = false;
-        for (let i = 0; i < lines.length; i++) {
-          const comment = isInsideComment(lines[i], inBlock);
-          inBlock = comment.inBlock;
-          if (comment.skip) continue;
-          const classMatch = lines[i].match(
-            /(?:abstract\s+)?(?:interface\s+)?(?:final\s+|sealed\s+|base\s+)?class\s+([A-Za-z_]\w*)/
-          );
-          if (!classMatch) continue;
-          const className = classMatch[1];
-          const coreName = stripLayerSuffix(className);
-          const words = splitPascalCase(coreName);
-          const verbWords = [];
-          for (let wi = 0; wi < words.length; wi++) {
-            const word = words[wi];
-            const lower = word.toLowerCase();
-            if (lower.length < 2) continue;
-            if (isAgentNoun(lower)) continue;
-            if (isPartOfCompoundNoun(words, wi)) continue;
-            const isFirstWord = wi === 0;
-            if (ACTION_VERBS.has(lower)) {
-              if (isFirstWord) {
-                if (VERB_ALSO_NOUN.has(lower) && words.length === 1) continue;
-                verbWords.push(lower);
-                continue;
-              }
-              if (VERB_ALSO_NOUN.has(lower)) {
-                if (wp) {
-                  try {
-                    const isNoun = await wp.isNoun(lower);
-                    if (isNoun) continue;
-                  } catch {
-                    continue;
-                  }
-                } else {
-                  continue;
-                }
-              }
-              verbWords.push(lower);
-              continue;
-            }
-            if (!wp) continue;
-            try {
-              const isVerb = await wp.isVerb(lower);
-              if (!isVerb) continue;
-              const isNoun = await wp.isNoun(lower);
-              if (isNoun) continue;
-              verbWords.push(lower);
-            } catch {
-              continue;
-            }
-          }
+        const layer = targetLayer(file.path);
+        for (const cls of file.classes) {
+          const verbWords = await findVerbWords(wp, classWords(cls.name));
           if (verbWords.length > 0) {
-            violations.push({ file, className, layer, verbWords, line: i + 1 });
+            violations.push({
+              file: file.path.path,
+              className: cls.name,
+              layer,
+              verbWords,
+              line: cls.nameLine,
+            });
           }
         }
       }
@@ -646,68 +591,41 @@ function buildSuggestion(verbWords) {
     .join("\n");
   return `Sufixos aceitos: -Handler, -Builder, -Processor, -Observer, -Validator, etc.\n\n**Sugestão:**\n${suggestions}`;
 }
-function isInsideComment(line, inBlock) {
-  const trimmed = line.trimStart();
-  if (inBlock) {
-    if (trimmed.includes("*/")) return { skip: true, inBlock: false };
-    return { skip: true, inBlock: true };
-  }
-  if (trimmed.startsWith("//")) return { skip: true, inBlock: false };
-  if (trimmed.startsWith("/*")) {
-    const closed = trimmed.includes("*/");
-    return { skip: true, inBlock: !closed };
-  }
-  return { skip: false, inBlock: false };
-}
 function checkPluralClassNames(targetFiles) {
   for (const file of targetFiles) {
-    const layer = isTargetFile(file);
+    const layer = targetLayer(file.path);
     if (layer === "ViewModel") continue;
-    const content = fs.readFileSync(file, "utf-8");
-    const lines = (0, primary_constructors_1.normalizePrimaryConstructorHeaders)(content).split(
-      "\n"
-    );
-    let inBlock = false;
-    for (let i = 0; i < lines.length; i++) {
-      const comment = isInsideComment(lines[i], inBlock);
-      inBlock = comment.inBlock;
-      if (comment.skip) continue;
-      const classMatch = lines[i].match(
-        /(?:abstract\s+)?(?:interface\s+)?(?:final\s+|sealed\s+|base\s+)?class\s+([A-Za-z_]\w*)/
-      );
-      if (!classMatch) continue;
-      const className = classMatch[1];
-      const coreName = stripLayerSuffix(className);
-      const words = splitPascalCase(coreName);
+    for (const cls of file.classes) {
+      const className = cls.name;
+      const words = classWords(className);
       if (words.length === 0) continue;
       const firstWord = words[0];
       const lower = firstWord.toLowerCase();
       if (lower.length < 3) continue;
       if (PLURAL_ALLOWLIST.has(lower)) continue;
-      if (identifyWordNumber(lower) === "plural") {
-        const singularForm = getSingularForm(lower);
-        if (isLikelyAcronym(firstWord, singularForm)) continue;
-        const singularPascal = singularForm.charAt(0).toUpperCase() + singularForm.slice(1);
-        const correctedName = className.replace(firstWord, singularPascal);
-        (0, _types_1.sendFormattedFail)({
-          title: "CLASSE COM NOME NO PLURAL",
-          description: `**${layer}:** \`${className}\` — \`${firstWord}\` está no plural. Nomes de classes devem ser **singulares**.`,
-          problem: {
-            wrong: `class ${className} { }`,
-            correct: `class ${correctedName} { }`,
-            wrongLabel: "Nome no plural",
-            correctLabel: "Nome no singular",
-          },
-          action: {
-            text: "Renomeie a classe para o singular — plural é reservado para variáveis de lista:",
-            code: `// ${className} → ${correctedName}`,
-          },
-          objective:
-            "Nomes de classes devem ser **singulares** — o plural é reservado para variáveis do tipo `List`.",
-          file,
-          line: i + 1,
-        });
-      }
+      if (identifyWordNumber(lower) !== "plural") continue;
+      const singularForm = getSingularForm(lower);
+      if (isLikelyAcronym(firstWord, singularForm)) continue;
+      const singularPascal = singularForm.charAt(0).toUpperCase() + singularForm.slice(1);
+      const correctedName = className.replace(firstWord, singularPascal);
+      (0, _types_1.sendFormattedFail)({
+        title: "CLASSE COM NOME NO PLURAL",
+        description: `**${layer}:** \`${className}\` — \`${firstWord}\` está no plural. Nomes de classes devem ser **singulares**.`,
+        problem: {
+          wrong: `class ${className} { }`,
+          correct: `class ${correctedName} { }`,
+          wrongLabel: "Nome no plural",
+          correctLabel: "Nome no singular",
+        },
+        action: {
+          text: "Renomeie a classe para o singular — plural é reservado para variáveis de lista:",
+          code: `// ${className} → ${correctedName}`,
+        },
+        objective:
+          "Nomes de classes devem ser **singulares** — o plural é reservado para variáveis do tipo `List`.",
+        file: file.path.path,
+        line: cls.nameLine,
+      });
     }
   }
 }

@@ -40,8 +40,8 @@ exports.DartParseError =
   exports.DartTopLevelVariable =
   exports.DartField =
   exports.DartUnknownMember =
-  exports.DartTypeParameter =
   exports.DartClass =
+  exports.DartTypeParameter =
   exports.DartBody =
   exports.DartStatement =
   exports.DartCatch =
@@ -244,17 +244,17 @@ Object.defineProperty(exports, "DartBody", {
     return nodes_1.DartBody;
   },
 });
+Object.defineProperty(exports, "DartTypeParameter", {
+  enumerable: true,
+  get: function () {
+    return nodes_1.DartTypeParameter;
+  },
+});
 var declarations_1 = require("./declarations");
 Object.defineProperty(exports, "DartClass", {
   enumerable: true,
   get: function () {
     return declarations_1.DartClass;
-  },
-});
-Object.defineProperty(exports, "DartTypeParameter", {
-  enumerable: true,
-  get: function () {
-    return declarations_1.DartTypeParameter;
   },
 });
 Object.defineProperty(exports, "DartUnknownMember", {

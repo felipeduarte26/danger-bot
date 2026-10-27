@@ -251,8 +251,9 @@ O pacote inclui uma CLI para gerenciamento e teste de plugins:
 ```bash
 danger-bot dry-run            # Executar plugins localmente (sem CI/tokens)
 danger-bot run --base develop # Alias para dry-run
+danger-bot inspect lib/x.dart # Ver o que o modelo Dart enxerga num arquivo
 danger-bot list               # Listar todos os plugins
-danger-bot create-plugin      # Criar novo plugin interativamente
+danger-bot create-plugin      # Criar novo plugin (escolhe o tipo de regra)
 danger-bot gen                # Gerar dangerfile de exemplo
 danger-bot validate <file>    # Validar estrutura de um plugin
 danger-bot init               # Gerar danger-bot.yaml de configuracao
@@ -291,6 +292,7 @@ db ls                         # Equivalente a: danger-bot list
 | [Guia de Plugins](docs/GUIA_PLUGINS.md)    | Como usar, configurar e criar plugins |
 | [API Reference](docs/API.md)               | Referencia completa da API            |
 | [Helpers](docs/HELPERS.md)                 | Funcoes auxiliares disponiveis        |
+| [Criando Plugins](docs/CRIANDO_PLUGINS.md) | Passo a passo e receitas para plugins |
 | [Modelo Dart](docs/MODELO_DART.md)         | Como os plugins leem o codigo Dart    |
 | [CLI](docs/CLI.md)                         | Comandos da CLI                       |
 | [Exemplos](docs/EXEMPLOS.md)               | Casos de uso praticos                 |

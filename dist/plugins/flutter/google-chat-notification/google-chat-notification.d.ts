@@ -10,6 +10,7 @@
  * Ou via env var: GOOGLE_CHAT_WEBHOOK
  *
  * IMPORTANTE: este plugin deve ser o ÚLTIMO a rodar para capturar todos os resultados.
+ * Não lê arquivos do PR: só conta os fails/warnings da execução.
  */
 declare const _default: import("../../../types.js").DangerPlugin;
 export default _default;

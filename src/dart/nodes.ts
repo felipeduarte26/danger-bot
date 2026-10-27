@@ -99,6 +99,15 @@ export abstract class DartNodeBase implements DartNode {
     return (this.file.lines[this.line - 1] ?? "").trim();
   }
 
+  /** O nó `other` (do mesmo arquivo) está dentro deste: `method.contains(call)`. */
+  contains(other: DartNodeBase): boolean {
+    return (
+      other.file === this.file &&
+      other.startOffset >= this.startOffset &&
+      other.endOffset <= this.endOffset
+    );
+  }
+
   /**
    * Texto do nó em uma linha, sem comentários nem a vírgula final do formato
    * "tall": `required final String createdAt = 'a' 'b'` mesmo quando o código
@@ -140,7 +149,15 @@ export function compactText(file: DartFile, from: number, to: number): string {
     if (k < to && isTrailingComma(tokens, k, from)) continue;
     if (prev !== null) {
       const word = (x: Token): boolean => x.kind !== "punct";
-      if (isPunct(prev, ",") || (word(prev) && word(t) && t.start > prev.end)) out += " ";
+      // `as`/`is` sempre separados: `(json['id'] as num?).toInt`
+      const operatorWord = (x: Token): boolean => isIdent(x, "as") || isIdent(x, "is");
+      if (
+        isPunct(prev, ",") ||
+        (word(prev) && word(t) && t.start > prev.end) ||
+        ((operatorWord(prev) || operatorWord(t)) && t.start > prev.end)
+      ) {
+        out += " ";
+      }
     }
     out += t.value;
     prev = t;
@@ -505,6 +522,64 @@ export class DartString extends DartNodeBase {
   }
 }
 
+/** Parâmetro de tipo: `T extends Comparable<T>`. */
+export class DartTypeParameter {
+  readonly name: string;
+  /** `T extends Comparable<T>` → `Comparable<T>` */
+  readonly bound: DartType | null;
+  readonly line: number;
+  /** @internal */
+  readonly nameTokIndex: number;
+
+  /** @internal */
+  constructor(name: string, bound: DartType | null, line: number, nameTokIndex: number) {
+    this.name = name;
+    this.bound = bound;
+    this.line = line;
+    this.nameTokIndex = nameTokIndex;
+  }
+}
+
+/** @internal Parâmetros de tipo de `<` em `open`. */
+export function buildTypeParameters(
+  file: DartFile,
+  open: number,
+  outer: ReadonlySet<string>
+): DartTypeParameter[] {
+  const { tokens } = file.lexed;
+  if (open < 0 || !isPunct(tokens[open], "<")) return [];
+  const close = matchTypeArgs(tokens, open, tokens.length);
+  if (close < 0) return [];
+  const names = new Set(outer);
+  const chunks = splitTopLevelCommas(tokens, open + 1, close - 1);
+  for (const [a] of chunks) {
+    const nameTok = isPunct(tokens[a], "@") ? findNameAfterAnnotations(tokens, a) : a;
+    if (isIdent(tokens[nameTok])) names.add(tokens[nameTok].value);
+  }
+  return chunks.map(([a, b]) => {
+    const nameTok = isPunct(tokens[a], "@") ? findNameAfterAnnotations(tokens, a) : a;
+    const bound = isIdent(tokens[nameTok + 1], "extends")
+      ? parseDartType(file.lexed, nameTok + 2, b, names)
+      : null;
+    return new DartTypeParameter(
+      tokens[nameTok]?.value ?? "",
+      bound,
+      file.lineAtOffset(tokens[nameTok]?.start ?? 0),
+      nameTok
+    );
+  });
+}
+
+function findNameAfterAnnotations(tokens: { kind: string; value: string }[], a: number): number {
+  let k = a;
+  while (
+    k < tokens.length &&
+    !(tokens[k].kind === "ident" && tokens[k - 1]?.value !== "@" && tokens[k - 1]?.value !== ".")
+  )
+    k++;
+  return k;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // Parâmetros e variáveis
 // ═══════════════════════════════════════════════════════════════════════════
@@ -699,10 +774,18 @@ export abstract class DartVariable extends DartNodeBase implements DartDeclarati
   }
 }
 
-/** Variável declarada dentro de um corpo (ou de um `for`). Nunca aparece em `DartClass.fields`. */
+/**
+ * Variável declarada dentro de um corpo: statement, cabeçalho de `for` (também o `for` de
+ * coleção) ou pattern. Nunca aparece em `DartClass.fields`.
+ */
 export class DartLocalVariable extends DartVariable {
-  /** Declarada no cabeçalho de um `for`. */
+  /** Declarada no cabeçalho de um `for` (statement ou `[for (final x in xs) x]`). */
   readonly isLoopVariable: boolean;
+  /**
+   * Declarada por um pattern: `final (a, b) = ...`, `case Foo(:final x)`, `if (o case String s)`,
+   * braço de switch expression, `for (final (k, v) in ...)`. Não tem `initializer`.
+   */
+  readonly isPatternVariable: boolean;
   /** Closure (ou função local) mais interna que contém a declaração. */
   readonly insideClosure: DartClosure | null;
 
@@ -711,10 +794,12 @@ export class DartLocalVariable extends DartVariable {
     file: DartFile,
     init: VariableInit,
     isLoopVariable: boolean,
-    insideClosure: DartClosure | null
+    insideClosure: DartClosure | null,
+    isPatternVariable = false
   ) {
     super(file, init);
     this.isLoopVariable = isLoopVariable;
+    this.isPatternVariable = isPatternVariable;
     this.insideClosure = insideClosure;
   }
 }
@@ -1333,6 +1418,10 @@ export class DartClosure extends DartNodeBase {
   readonly openTok: number;
   /** @internal Último token do corpo. */
   readonly endTok: number;
+  /** Tipo de retorno escrito da função local (`Future<int> buscar() async`); `null` na anônima ou sem tipo. */
+  readonly returnType: DartType | null;
+  /** `<T>(T valor) {}` / `T primeiro<T>(List<T> xs) {}` */
+  readonly typeParameters: readonly DartTypeParameter[];
   private readonly paramsOpen: number;
   private readonly paramsClose: number;
   private readonly bodyTok: number;
@@ -1350,10 +1439,23 @@ export class DartClosure extends DartNodeBase {
       bodyTok: number;
       endTok: number;
       asyncKind: DartAsyncKind;
+      typeParamsOpen: number;
+      returnFrom: number;
+      returnTo: number;
     }
   ) {
     super(file, ...tokenSpan(file, init.startTok, init.endTok));
     this.name = init.name;
+    this.typeParameters = buildTypeParameters(file, init.typeParamsOpen, new Set());
+    this.returnType =
+      init.returnTo >= init.returnFrom && init.returnFrom >= 0
+        ? parseDartType(
+            file.lexed,
+            init.returnFrom,
+            init.returnTo,
+            new Set(this.typeParameters.map((t) => t.name))
+          )
+        : null;
     this.openTok = init.startTok;
     this.endTok = init.endTok;
     this.paramsOpen = init.paramsOpen;
@@ -1366,8 +1468,9 @@ export class DartClosure extends DartNodeBase {
 
   get parameters(): readonly DartParameter[] {
     if (this.parametersCache === null) {
+      const typeParams = new Set(this.typeParameters.map((t) => t.name));
       this.parametersCache =
-        buildParameters(this.file, this.paramsOpen, this.paramsClose, false, new Set()) ?? [];
+        buildParameters(this.file, this.paramsOpen, this.paramsClose, false, typeParams) ?? [];
     }
     return this.parametersCache;
   }
@@ -1422,59 +1525,122 @@ function arrowEnd(tokens: Token[], arrow: number, limit: number): number {
   return limit;
 }
 
-/** Closures e funções locais nos tokens `[from, to]`. @internal */
+/** `<` que abre os argumentos de tipo fechados no `>` em `close` (ou -1). */
+function typeArgsOpenBackward(tokens: Token[], close: number, lower: number): number {
+  let depth = 0;
+  for (let j = close; j >= lower; j--) {
+    if (isPunct(tokens[j], ">")) depth++;
+    else if (isPunct(tokens[j], "<")) {
+      if (--depth === 0) return j;
+    } else if (!(
+      tokens[j].kind === "ident" || [",", ".", "?", "(", ")", "{", "}"].includes(tokens[j].value)
+    )) {
+      return -1;
+    }
+  }
+  return -1;
+}
+
+/** Início do tipo de retorno escrito antes do token `nameTok` (ou `nameTok` se não houver). */
+function returnTypeStart(tokens: Token[], nameTok: number, lower: number): number {
+  let j = nameTok - 1;
+  let start = nameTok;
+  while (j >= lower) {
+    const t = tokens[j];
+    if (isPunct(t, ">")) {
+      const lt = typeArgsOpenBackward(tokens, j, lower);
+      if (lt < 0) break;
+      j = lt - 1;
+      continue;
+    }
+    if (isPunct(t, ")") && j > lower) {
+      // `void Function(int)` como tipo de retorno
+      const open = matchOpenBackward(tokens, j, lower);
+      if (open > lower && isIdent(tokens[open - 1], "Function")) {
+        j = open - 1;
+        continue;
+      }
+      break;
+    }
+    if (t.kind === "ident" && !CALL_PREFIX_WORDS.has(t.value) && !NOT_TYPE_START.has(t.value)) {
+      start = j;
+      j--;
+      continue;
+    }
+    if (isPunct(t, "?") || isPunct(t, ".")) {
+      j--;
+      continue;
+    }
+    break;
+  }
+  return start;
+}
+
+/** Closures e funções locais nos tokens `[from, to]` (também genéricas: `<T>(T x) {}`, `T f<T>() {}`). @internal */
 export function scanClosures(file: DartFile, from: number, to: number): DartClosure[] {
   const { tokens } = file.lexed;
   const out: DartClosure[] = [];
   for (let k = from; k <= to; k++) {
     if (!isPunct(tokens[k], "(")) continue;
-    const prev = tokens[k - 1];
+    let prevIndex = k - 1;
+    let typeParamsOpen = -1;
+    // `...<T>(`: parâmetros de tipo antes da lista de parâmetros
+    if (prevIndex >= from && isPunct(tokens[prevIndex], ">")) {
+      const lt = typeArgsOpenBackward(tokens, prevIndex, from);
+      if (lt < 0) continue;
+      typeParamsOpen = lt;
+      prevIndex = lt - 1;
+    }
+    const prev = tokens[prevIndex];
     let name: string | null = null;
-    let startTok = k;
-    if (k - 1 >= from && prev.kind === "ident" && !CALL_PREFIX_WORDS.has(prev.value)) {
-      // Função local: `[tipo] nome(...) {` — o nome vem depois de um tipo ou no início do statement.
-      const before = tokens[k - 2];
+    let startTok = typeParamsOpen >= 0 ? typeParamsOpen : k;
+    let nameTok = -1;
+    if (prevIndex >= from && prev.kind === "ident" && !CALL_PREFIX_WORDS.has(prev.value)) {
+      // Função local: `[tipo] nome[<T>](...) {` — o nome vem depois de um tipo.
+      const before = tokens[prevIndex - 1];
       const declared =
-        k - 2 >= from &&
+        prevIndex - 1 >= from &&
         !NOT_CALLEE.has(prev.value) &&
-        (before.kind === "ident" || isPunct(before, ">") || isPunct(before, "?")) &&
+        (before.kind === "ident" ||
+          isPunct(before, ">") ||
+          isPunct(before, "?") ||
+          isPunct(before, ")")) &&
         !CALL_PREFIX_WORDS.has(before.value);
       if (!declared) continue;
+      if (isPunct(before, ")")) {
+        const open = matchOpenBackward(tokens, prevIndex - 1, from);
+        if (!(open > from && isIdent(tokens[open - 1], "Function"))) continue;
+      }
       name = prev.value;
-      startTok = k - 1;
-    } else if (k - 1 >= from && (isPunct(prev, ">") || isPunct(prev, ")") || isPunct(prev, "]"))) {
+      nameTok = prevIndex;
+      startTok = prevIndex;
+    } else if (
+      prevIndex >= from &&
+      (isPunct(prev, ">") || isPunct(prev, ")") || isPunct(prev, "]"))
+    ) {
       continue;
     }
     const close = matchClose(tokens, k, to + 1);
     if (close < 0) continue;
     const [asyncKind, after] = readAsyncMarker(tokens, close + 1);
+    const returnFrom = nameTok >= 0 ? returnTypeStart(tokens, nameTok, from) : -1;
+    const common = {
+      startTok,
+      name,
+      paramsOpen: k,
+      paramsClose: close,
+      bodyTok: after,
+      asyncKind,
+      typeParamsOpen,
+      returnFrom,
+      returnTo: nameTok - 1,
+    };
     if (isPunct(tokens[after], "{")) {
       const end = matchClose(tokens, after, to + 1);
       if (end < 0) continue;
-      out.push(
-        new DartClosure(file, {
-          startTok,
-          name,
-          paramsOpen: k,
-          paramsClose: close,
-          bodyTok: after,
-          endTok: end,
-          asyncKind,
-        })
-      );
+      out.push(new DartClosure(file, { ...common, endTok: end }));
     } else if (isPunct(tokens[after], "=>")) {
-      const end = arrowEnd(tokens, after, to);
-      out.push(
-        new DartClosure(file, {
-          startTok,
-          name,
-          paramsOpen: k,
-          paramsClose: close,
-          bodyTok: after,
-          endTok: end,
-          asyncKind,
-        })
-      );
+      out.push(new DartClosure(file, { ...common, endTok: arrowEnd(tokens, after, to) }));
     }
   }
   return out;
@@ -1772,7 +1938,7 @@ function readStatement(
   file: DartFile,
   j: number,
   limit: number
-): { kind: DartStatementKind; end: number; children: [number, number][] } {
+): { kind: DartStatementKind; end: number; children: [number, number][]; start?: number } {
   const { tokens } = file.lexed;
   const t = tokens[j];
   const endAtSemicolon = (from: number): number => {
@@ -1804,7 +1970,20 @@ function readStatement(
   }
   if (t.kind === "ident") {
     if (isPunct(tokens[j + 1], ":") && !NOT_TYPE_START.has(t.value) && t.value !== "default") {
-      return readStatement(file, j + 2, limit); // rótulo
+      const inner = readStatement(file, j + 2, limit); // rótulo
+      return { ...inner, start: inner.start ?? j + 2 };
+    }
+    // `case <pattern> [when <guarda>]:` e `default:` do switch: rótulos do statement seguinte
+    if (t.value === "case" || (t.value === "default" && isPunct(tokens[j + 1], ":"))) {
+      let colon = t.value === "default" ? j + 1 : patternEnd(tokens, j + 1, limit);
+      if (colon > 0 && isIdent(tokens[colon], "when")) {
+        colon = findAtDepth0(tokens, colon + 1, limit + 1, [":"]);
+      }
+      if (colon > 0 && isPunct(tokens[colon], ":")) {
+        if (colon + 1 > limit) return { kind: DartStatementKind.Empty, end: colon, children: [] };
+        const inner = readStatement(file, colon + 1, limit);
+        return { ...inner, start: inner.start ?? colon + 1 };
+      }
     }
     const simple = SIMPLE_STATEMENTS[t.value];
     if (simple !== undefined && !isPunct(tokens[j + 1], ".")) {
@@ -1884,9 +2063,15 @@ function localFunctionAt(tokens: Token[], j: number, limit: number): number | nu
   while (k <= limit) {
     const t = tokens[k];
     if (t.kind === "ident") {
-      if (isPunct(tokens[k + 1], "(") && k > j && !isIdent(t, "Function")) {
+      // `T primeiro<T>(...)`: parâmetros de tipo entre o nome e os parâmetros
+      let open = k + 1;
+      if (isPunct(tokens[open], "<") && k > j) {
+        const typeClose = matchTypeArgs(tokens, open, limit + 1);
+        if (typeClose > 0 && isPunct(tokens[typeClose + 1], "(")) open = typeClose + 1;
+      }
+      if (isPunct(tokens[open], "(") && k > j && !isIdent(t, "Function")) {
         if (!looksLikeType(tokens, j, k - 1)) return null;
-        const close = matchClose(tokens, k + 1, limit + 1);
+        const close = matchClose(tokens, open, limit + 1);
         if (close < 0) return null;
         const [, after] = readAsyncMarker(tokens, close + 1);
         if (isPunct(tokens[after], "{")) {
@@ -2054,6 +2239,26 @@ export class DartBody extends DartNodeBase {
    * Por padrão `x.name` não conta; com `includeMemberAccess` conta também
    * (`context.mounted`, `this.mounted`).
    */
+  /**
+   * Acessos `target.membro` / `target?.membro` no corpo (também `this.target.membro`), na ordem:
+   * `body.memberAccesses("context")` → `[{ member: "mounted", line: 12 }, ...]`.
+   */
+  memberAccesses(target: string): readonly { member: string; line: number }[] {
+    const { tokens } = this.file.lexed;
+    const [from, to] = this.inner;
+    const out: { member: string; line: number }[] = [];
+    for (let k = from; k < to; k++) {
+      if (!isIdent(tokens[k], target)) continue;
+      const prev = tokens[k - 1];
+      const afterDot = prev?.kind === "punct" && MEMBER_ACCESS.has(prev.value);
+      if (afterDot && !(isPunct(prev, ".") && isIdent(tokens[k - 2], "this"))) continue;
+      const dot = tokens[k + 1];
+      if (!(isPunct(dot, ".") || isPunct(dot, "?.")) || !isIdent(tokens[k + 2])) continue;
+      out.push({ member: tokens[k + 2].value, line: this.file.lineAtOffset(tokens[k + 2].start) });
+    }
+    return out;
+  }
+
   references(name: string, options: { includeMemberAccess?: boolean } = {}): readonly number[] {
     const { tokens } = this.file.lexed;
     const [from, to] = this.inner;
@@ -2068,7 +2273,8 @@ export class DartBody extends DartNodeBase {
   }
 }
 
-interface BodyScan {
+/** @internal */
+export interface BodyScan {
   closures: DartClosure[];
   calls: DartCall[];
   awaits: DartAwait[];
@@ -2077,7 +2283,8 @@ interface BodyScan {
   locals: DartLocalVariable[];
 }
 
-function scanBody(file: DartFile, from: number, to: number): BodyScan {
+/** @internal */
+export function scanBody(file: DartFile, from: number, to: number): BodyScan {
   const { tokens } = file.lexed;
   const closures = to >= from ? scanClosures(file, from, to) : [];
   const calls = to >= from ? scanCalls(file, from, to, closures) : [];
@@ -2129,26 +2336,63 @@ function scanLocals(
     while (j <= b) {
       const s = readStatement(file, j, b);
       const end = Math.max(j, Math.min(s.end, b));
+      const start = s.start ?? j; // depois dos rótulos (`case X:`, `loop:`)
       if (s.kind === DartStatementKind.VariableDeclaration) {
-        addDeclaration(j, end, false);
+        addDeclaration(start, end, false);
       } else if (s.kind === DartStatementKind.For) {
-        const forTok = isIdent(tokens[j], "await") ? j + 1 : j;
-        const close = matchClose(tokens, forTok + 1, b + 1);
-        if (close > 0) {
-          // `for (final x in xs)` ou `for (var i = 0; ...; ...)`
-          let inWord = -1;
-          for (let k = forTok + 2; k < close && inWord < 0; k++) {
-            if (isIdent(tokens[k], "in")) inWord = k;
-          }
-          const firstSemi = findAtDepth0(tokens, forTok + 2, close, [";"]);
-          if (inWord > 0) addLoopVariable(forTok + 2, inWord - 1);
-          else if (firstSemi > forTok + 2 && isVariableDeclaration(tokens, forTok + 2, firstSemi)) {
-            addDeclaration(forTok + 2, firstSemi, true);
-          }
-        }
+        addForHeader(isIdent(tokens[start], "await") ? start + 1 : start, b);
       }
       for (const [ca, cb] of s.children) visit(ca + 1, cb - 1);
       j = end + 1;
+    }
+  };
+  // `for (final x in xs)` ou `for (var i = 0; ...; ...)` — statement ou `for` de coleção
+  const forHeaders = new Set<number>();
+  const addForHeader = (forTok: number, b: number): void => {
+    if (forHeaders.has(forTok)) return;
+    forHeaders.add(forTok);
+    const close = matchClose(tokens, forTok + 1, b + 1);
+    if (close < 0) return;
+    let inWord = -1;
+    for (let k = forTok + 2; k < close && inWord < 0; k++) {
+      if (isIdent(tokens[k], "in")) inWord = k;
+    }
+    const firstSemi = findAtDepth0(tokens, forTok + 2, close, [";"]);
+    if (inWord > 0) addLoopVariable(forTok + 2, inWord - 1);
+    else if (firstSemi > forTok + 2 && isVariableDeclaration(tokens, forTok + 2, firstSemi)) {
+      addDeclaration(forTok + 2, firstSemi, true);
+    }
+  };
+  const addPattern = (
+    a: number,
+    b: number,
+    declaration: boolean,
+    outer: ReadonlySet<string>,
+    isLoop: boolean
+  ): void => {
+    for (const v of patternBindings(tokens, a, b, declaration)) {
+      const modifiers = new Set([...outer, ...v.modifiers]);
+      out.push(
+        new DartLocalVariable(
+          file,
+          {
+            firstTok: v.startTok,
+            headTok: v.startTok,
+            nameTok: v.nameTok,
+            endTok: v.nameTok,
+            modifiers,
+            typeStartTok: v.typeStartTok,
+            typeEndTok: v.typeEndTok,
+            initStartTok: -1,
+            initEndTok: -1,
+            annotations: [],
+            typeParams: new Set(),
+          },
+          isLoop,
+          innermost(closures, v.nameTok),
+          true
+        )
+      );
     }
   };
   const addDeclaration = (a: number, end: number, isLoop: boolean): void => {
@@ -2159,6 +2403,11 @@ function scanLocals(
       p++;
     }
     if (!isPunct(tokens[end], ";")) return;
+    const patternClose = declarationPatternEnd(tokens, p, end);
+    if (patternClose > 0) {
+      addPattern(p, patternClose, true, modifiers, isLoop); // `final (a, b) = ...;`
+      return;
+    }
     const field = parseField(file.lexed, a, a, p, end + 1, modifiers, []);
     if (!field) return;
     for (const v of field.vars) {
@@ -2191,6 +2440,10 @@ function scanLocals(
       modifiers.add(tokens[p].value);
       p++;
     }
+    if (b >= p && isClosing(tokens[b])) {
+      addPattern(p, b, true, modifiers, true); // `for (final (k, v) in ...)`
+      return;
+    }
     if (!isIdent(tokens[b]) || b < p) return;
     out.push(
       new DartLocalVariable(
@@ -2218,5 +2471,210 @@ function scanLocals(
     const { tokens: tk } = file.lexed;
     if (isPunct(tk[c.body.openTok], "{")) visit(c.body.openTok + 1, c.body.closeTok - 1);
   }
+  // Fora dos statements: `for` de coleção, patterns de `case` (switch e if-case) e braços de
+  // switch expression. Os `for` de statement já foram lidos (`forHeaders`).
+  for (let k = from; k <= to; k++) {
+    const t = tokens[k];
+    if (t.kind !== "ident" || isPunct(tokens[k - 1], ".")) continue;
+    if (t.value === "for" && isPunct(tokens[k + 1], "(")) {
+      addForHeader(k, to);
+    } else if (t.value === "case") {
+      const end = patternEnd(tokens, k + 1, to);
+      if (end > k + 1) addPattern(k + 1, end - 1, false, new Set(), false);
+    } else if (t.value === "switch" && isPunct(tokens[k + 1], "(")) {
+      for (const [a, b] of switchExpressionPatterns(tokens, k, to)) {
+        addPattern(a, b, false, new Set(), false);
+      }
+    }
+  }
   return out;
+}
+
+function isClosing(t: Token | undefined): boolean {
+  return t !== undefined && (isPunct(t, ")") || isPunct(t, "]") || isPunct(t, "}"));
+}
+
+/**
+ * Fim (exclusivo) do pattern que começa em `from`: o primeiro `:`, `=>`, `when` ou `=` fora de
+ * parênteses/colchetes/chaves, ou o fechamento que não abriu dentro dele (`if (x case P)`).
+ * `-1` se chegar a `limit` sem achar.
+ */
+function patternEnd(tokens: Token[], from: number, limit: number): number {
+  for (let k = from; k <= limit; k++) {
+    const t = tokens[k];
+    if (t === undefined) return -1;
+    if (isPunct(t, "(") || isPunct(t, "[") || isPunct(t, "{")) {
+      const close = matchClose(tokens, k, limit + 1);
+      if (close < 0) return -1;
+      k = close;
+      continue;
+    }
+    if (isClosing(t) || isPunct(t, ":") || isPunct(t, "=>") || isPunct(t, "=") || isPunct(t, ";")) {
+      return k;
+    }
+    if (isIdent(t, "when")) return k;
+  }
+  return -1;
+}
+
+/**
+ * `(a, b)`, `[a, b]`, `{'k': v}` ou `Point(:x)` logo antes do `=` de uma declaração
+ * (`final (a, b) = ...`): devolve o último token do pattern, ou -1 (declaração comum, inclusive
+ * com tipo record: `final (int, String) par = ...`).
+ */
+function declarationPatternEnd(tokens: Token[], p: number, end: number): number {
+  let open = p;
+  if (isIdent(tokens[p])) {
+    // object pattern: `Tipo(...)` ou `Tipo<T>(...)`
+    open = p + 1;
+    if (isPunct(tokens[open], "<")) {
+      const close = matchTypeArgs(tokens, open, end + 1);
+      if (close < 0) return -1;
+      open = close + 1;
+    }
+    if (!isPunct(tokens[open], "(")) return -1;
+  } else if (!(isPunct(tokens[p], "(") || isPunct(tokens[p], "[") || isPunct(tokens[p], "{"))) {
+    return -1;
+  }
+  const close = matchClose(tokens, open, end + 1);
+  return close > 0 && isPunct(tokens[close + 1], "=") ? close : -1;
+}
+
+/** Patterns dos braços de uma switch expression (`switch (x) { P when g => v, ... }`). */
+function switchExpressionPatterns(
+  tokens: Token[],
+  switchTok: number,
+  limit: number
+): [number, number][] {
+  const parenClose = matchClose(tokens, switchTok + 1, limit + 1);
+  const open = parenClose + 1;
+  if (parenClose < 0 || !isPunct(tokens[open], "{")) return [];
+  const first = tokens[open + 1];
+  // switch statement (`case`/`default`) ou vazio
+  if (isIdent(first, "case") || isIdent(first, "default") || isPunct(first, "}")) return [];
+  const close = matchClose(tokens, open, limit + 1);
+  if (close < 0) return [];
+  const out: [number, number][] = [];
+  let a = open + 1;
+  while (a < close) {
+    const end = patternEnd(tokens, a, close);
+    if (end < 0 || !(isPunct(tokens[end], "=>") || isIdent(tokens[end], "when"))) break;
+    if (end > a) out.push([a, end - 1]);
+    const comma = findAtDepth0(tokens, end, close, [","]);
+    if (comma < 0) break;
+    a = comma + 1;
+  }
+  return out;
+}
+
+const PATTERN_WORDS = new Set([
+  "var",
+  "final",
+  "as",
+  "when",
+  "const",
+  "null",
+  "true",
+  "false",
+  "case",
+  "_",
+  "in",
+]);
+
+interface PatternBinding {
+  startTok: number;
+  nameTok: number;
+  typeStartTok: number;
+  typeEndTok: number;
+  modifiers: string[];
+}
+
+/**
+ * Variáveis declaradas no pattern `[a, b]`. Em contexto de declaração (`final (a, b) = ...`,
+ * `for (final [a, b] in ...)`) todo nome em posição de valor declara. Em contexto de matching
+ * (`case`, if-case, switch expression) só declara com `var`/`final`/tipo (`case [var a, final b]`,
+ * `String nome`, `:final x`); nome solto é constante (`case [a, b]`).
+ */
+function patternBindings(
+  tokens: Token[],
+  a: number,
+  b: number,
+  declaration: boolean
+): PatternBinding[] {
+  const out: PatternBinding[] = [];
+  for (let k = a; k <= b; k++) {
+    const t = tokens[k];
+    // argumentos de tipo (`List<int> xs`, `Map<String, int> m`) não declaram nada
+    if (
+      isPunct(t, "<") &&
+      k > a &&
+      isIdent(tokens[k - 1]) &&
+      !PATTERN_WORDS.has(tokens[k - 1].value)
+    ) {
+      const close = matchTypeArgs(tokens, k, b + 1);
+      if (close > 0) k = close;
+      continue;
+    }
+    if (t.kind !== "ident" || PATTERN_WORDS.has(t.value)) continue;
+    const prev = tokens[k - 1];
+    const next = k < b ? tokens[k + 1] : undefined;
+    if (isPunct(prev, ".") || isPunct(prev, "?.")) continue; // `Status.ativo`
+    if (next !== undefined) {
+      // nome de tipo (`Point(`, `p.User`, `String nome`, `String? nome`) ou chave (`nome: ...`)
+      if (isPunct(next, ".") || isPunct(next, "(") || isPunct(next, "<") || isPunct(next, ":"))
+        continue;
+      if (isIdent(next) && next.value !== "as") continue;
+      if (isPunct(next, "?") && isIdent(tokens[k + 2]) && tokens[k + 2].value !== "as") continue;
+      const terminal =
+        isClosing(next) ||
+        [",", "!", "?", "&&", "||"].some((v) => isPunct(next, v)) ||
+        isIdent(next, "as");
+      if (!terminal) continue;
+    }
+    if (isIdent(prev, "var") || isIdent(prev, "final")) {
+      out.push({
+        startTok: k - 1,
+        nameTok: k,
+        typeStartTok: -1,
+        typeEndTok: -1,
+        modifiers: [prev.value],
+      });
+      continue;
+    }
+    const typeStart = patternTypeStart(tokens, k - 1, a);
+    if (typeStart >= 0) {
+      const finalTok =
+        isIdent(tokens[typeStart - 1], "final") && typeStart - 1 >= a ? typeStart - 1 : -1;
+      out.push({
+        startTok: finalTok >= 0 ? finalTok : typeStart,
+        nameTok: k,
+        typeStartTok: typeStart,
+        typeEndTok: k - 1,
+        modifiers: finalTok >= 0 ? ["final"] : [],
+      });
+      continue;
+    }
+    const valuePosition = k === a || ["(", "[", ",", ":", "..."].some((v) => isPunct(prev, v));
+    if (declaration && valuePosition) {
+      out.push({ startTok: k, nameTok: k, typeStartTok: -1, typeEndTok: -1, modifiers: [] });
+    }
+  }
+  return out;
+}
+
+/** Início do tipo que termina em `end` dentro de um pattern (`String`, `List<int>?`, `p.User`), ou -1. */
+function patternTypeStart(tokens: Token[], end: number, lower: number): number {
+  let j = end;
+  if (j >= lower && isPunct(tokens[j], "?")) j--;
+  if (j >= lower && isPunct(tokens[j], ">")) {
+    const lt = typeArgsOpenBackward(tokens, j, lower);
+    if (lt < 0) return -1;
+    j = lt - 1;
+  }
+  if (j < lower || !isIdent(tokens[j]) || PATTERN_WORDS.has(tokens[j].value)) return -1;
+  let start = j;
+  while (start - 2 >= lower && isPunct(tokens[start - 1], ".") && isIdent(tokens[start - 2])) {
+    start -= 2;
+  }
+  return start;
 }

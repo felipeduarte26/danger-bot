@@ -1,56 +1,4 @@
 "use strict";
-var __createBinding =
-  (this && this.__createBinding) ||
-  (Object.create
-    ? function (o, m, k, k2) {
-        if (k2 === undefined) k2 = k;
-        var desc = Object.getOwnPropertyDescriptor(m, k);
-        if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-          desc = {
-            enumerable: true,
-            get: function () {
-              return m[k];
-            },
-          };
-        }
-        Object.defineProperty(o, k2, desc);
-      }
-    : function (o, m, k, k2) {
-        if (k2 === undefined) k2 = k;
-        o[k2] = m[k];
-      });
-var __setModuleDefault =
-  (this && this.__setModuleDefault) ||
-  (Object.create
-    ? function (o, v) {
-        Object.defineProperty(o, "default", { enumerable: true, value: v });
-      }
-    : function (o, v) {
-        o["default"] = v;
-      });
-var __importStar =
-  (this && this.__importStar) ||
-  (function () {
-    var ownKeys = function (o) {
-      ownKeys =
-        Object.getOwnPropertyNames ||
-        function (o) {
-          var ar = [];
-          for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-          return ar;
-        };
-      return ownKeys(o);
-    };
-    return function (mod) {
-      if (mod && mod.__esModule) return mod;
-      var result = {};
-      if (mod != null)
-        for (var k = ownKeys(mod), i = 0; i < k.length; i++)
-          if (k[i] !== "default") __createBinding(result, mod, k[i]);
-      __setModuleDefault(result, mod);
-      return result;
-    };
-  })();
 Object.defineProperty(exports, "__esModule", { value: true });
 /**
  * Date Type Checker Plugin
@@ -58,19 +6,22 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * Detecta campos com nome de data/hora declarados como String
  * quando deveriam ser DateTime. Analisa entities e models.
  *
+ * Campos: `String`/`String?` (com ou sem `final`/`late`) do corpo da classe ou
+ * do primary constructor (Dart 3.13+); `static` e `const` ficam de fora.
+ * Variáveis locais e de nível superior não são campos.
+ *
  * Detecção por nome (camelCase):
  * - Sufixos: At, Date, Timestamp, Time, Dt
  * - Prefixos: date, timestamp, dt
  * - Nomes exatos: date, timestamp, datetime, deadline, birthday, dt
  *
  * Detecção por documentação (///):
- * - Se o doc comment acima do campo menciona "date", "time",
+ * - Se o doc comment do campo menciona "date", "time",
  *   "datetime", "timestamp" ou "data de", o campo é reportado
- *   mesmo que o nome não siga os padrões acima.
+ *   mesmo que o nome não siga os padrões acima. No primary
+ *   constructor vale a doc do próprio parâmetro.
  */
 const _types_1 = require("../../../types.js");
-const fs = __importStar(require("fs"));
-const primary_constructors_1 = require("../primary-constructors/primary-constructors");
 const DATE_SUFFIXES = ["At", "Date", "Timestamp", "Time", "Dt"];
 const DATE_PREFIXES = ["date", "timestamp", "dt"];
 const EXACT_NAMES = new Set(["date", "timestamp", "datetime", "deadline", "birthday", "dt"]);
@@ -92,7 +43,6 @@ const DATE_PREFIX_EXCLUSIONS = new Set([
   "timestampparser",
   "timestamputil",
 ]);
-const STRING_FIELD_RE = /^\s*(?:final\s+|late\s+(?:final\s+)?)?(?:String\??)\s+(\w+)\s*[;=]/;
 const DOC_DATE_KEYWORDS_RE = /\b(date|time|datetime|timestamp|data\s+de|fecha)\b/i;
 function looksLikeDateField(name) {
   const lower = name.toLowerCase();
@@ -109,17 +59,12 @@ function looksLikeDateField(name) {
   }
   return false;
 }
-function getDocComment(lines, fieldLine) {
-  const docs = [];
-  for (let j = fieldLine - 1; j >= 0; j--) {
-    const trimmed = lines[j].trim();
-    if (trimmed.startsWith("///")) {
-      docs.unshift(trimmed);
-    } else {
-      break;
-    }
-  }
-  return docs.join(" ");
+/** Linhas `///` da doc do campo, como escritas, unidas por espaço. */
+function docText(field) {
+  return (field.doc?.comments ?? [])
+    .filter((c) => c.kind === _types_1.DartCommentKind.Doc)
+    .map((c) => c.text.trim())
+    .join(" ");
 }
 function isEntityOrModelFile(filePath) {
   const lower = filePath.toLowerCase();
@@ -138,39 +83,22 @@ exports.default = (0, _types_1.createPlugin)(
     enabled: true,
   },
   async () => {
-    const { git } = (0, _types_1.getDanger)();
-    const dartFiles = [...git.modified_files, ...git.created_files].filter(
-      (f) =>
-        f.endsWith(".dart") &&
-        !f.endsWith(".g.dart") &&
-        !f.endsWith(".freezed.dart") &&
-        !f.endsWith("_test.dart") &&
-        isEntityOrModelFile(f) &&
-        fs.existsSync(f)
-    );
-    for (const file of dartFiles) {
-      const content = fs.readFileSync(file, "utf-8");
-      const lines = content.split("\n");
-      for (let i = 0; i < lines.length; i++) {
-        const match = lines[i].match(STRING_FIELD_RE);
-        if (!match) continue;
-        checkStringField(file, match[1], getDocComment(lines, i), lines[i].trim(), i + 1);
-      }
-      // Campos declarados no primary constructor (Dart 3.13+): `final String createdAt,`.
-      // A doc considerada é a do próprio parâmetro (nunca a da classe, acima do cabeçalho).
-      for (const decl of (0, primary_constructors_1.findPrimaryConstructors)(content)) {
-        for (const field of decl.fields) {
-          if (!/^String\??$/.test(field.type)) continue;
-          const sameLine = lines[field.lineIndex]?.match(STRING_FIELD_RE);
-          if (sameLine?.[1] === field.name) continue; // já avaliado pelo laço acima
-          checkStringField(
-            file,
-            field.name,
-            field.docLines.join(" "),
-            field.text,
-            field.lineIndex + 1
-          );
-        }
+    const files = _types_1.DartFile.changed().filter((file) => isEntityOrModelFile(file.path.path));
+    for (const file of files) {
+      for (const field of file.declarations.flatMap((d) => d.fields)) {
+        if (!field.type?.isString || field.isStatic || field.isConst) continue;
+        // No primary constructor, o código mostrado é o parâmetro (`required final String createdAt`).
+        const param =
+          field.origin === _types_1.DartFieldOrigin.PrimaryConstructor
+            ? field.declaringParameter
+            : null;
+        checkStringField(
+          file.path.path,
+          field.name,
+          docText(field),
+          param ? param.text : field.lineText,
+          field.nameLine
+        );
       }
     }
   }

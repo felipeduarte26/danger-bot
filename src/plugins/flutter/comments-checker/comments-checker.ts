@@ -37,6 +37,8 @@ export default createPlugin(
         if (ALLOWED_PREFIXES.test(comment.content)) continue;
 
         const ignoredAbove = file.comments.some(
+          // regex no texto de um comentário (não em código): aceita `// danger:ignore` em qualquer caixa
+          // eslint-disable-next-line no-restricted-syntax
           (c) => c.line === comment.line - 1 && DANGER_IGNORE.test(c.text)
         );
         if (ignoredAbove) continue;

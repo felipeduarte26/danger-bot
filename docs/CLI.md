@@ -11,6 +11,7 @@ A CLI e instalada automaticamente com o pacote e pode ser usada via `danger-bot`
 | Comando | Alias | Descricao |
 |---------|-------|-----------|
 | `danger-bot dry-run` | `run` | Executar plugins localmente (sem CI/tokens) |
+| `danger-bot inspect <arquivo.dart>` | - | Ver o que o modelo Dart enxerga num arquivo (para escrever plugins) |
 | `danger-bot list` | `ls` | Listar todos os plugins |
 | `danger-bot create-plugin` | `new` | Criar novo plugin interativamente |
 | `danger-bot remove-plugin` | `rm` | Remover um plugin existente |
@@ -70,6 +71,43 @@ Use `--all` para incluir todos.
 
 ---
 
+## danger-bot inspect
+
+Mostra o que o [modelo Dart](MODELO_DART.md) enxerga num arquivo `.dart`, com os **nomes das propriedades** que um plugin usa: `file.path`, diretivas, classes e membros (`cls.fields`, `cls.methods`...), `file.calls()`, `file.strings`, `file.comments`, `file.localVariables()` e trechos não reconhecidos. Use antes de escrever a regra de um plugin, para saber qual propriedade dá o fato que você precisa ([Criando plugins](CRIANDO_PLUGINS.md)).
+
+```bash
+danger-bot inspect lib/features/order/data/models/order_model.dart
+danger-bot inspect lib/x.dart --line 42              # só o que está na linha 42
+danger-bot inspect lib/x.dart --only calls,strings   # só algumas seções
+danger-bot inspect lib/x.dart --json                 # para scripts
+```
+
+**Opcoes:**
+
+| Opcao | Descricao | Default |
+|-------|-----------|---------|
+| `--only <seções>` | Seções separadas por vírgula: `path`, `imports`, `classes`, `functions`, `variables`, `calls`, `strings`, `comments`, `locals`, `identifiers`, `errors` | Todas, menos `identifiers` |
+| `-l, --line <n>` | Só os nós que contêm a linha `n` (a classe, o método, a chamada...) | - |
+| `--json` | Saída em JSON | `false` |
+
+**Saida** (`--only classes --line 37`):
+
+```text
+📄 lib/features/branch/data/models/branch_custom_holiday_model.dart  (só a linha 37)
+   flags: só as verdadeiras · tipos e textos em uma linha (compact)
+
+file.declarations (classes, enums, mixins, extensions) — 1
+  L5-60     class BranchCustomHolidayModel {
+            kind=class  name=BranchCustomHolidayModel  nameLine=5  isComplete
+    cls.fields — 1
+      L37       name
+                type=String  nullability=nonNullable  isFinal  origin=body
+```
+
+Cada linha mostra a faixa de linhas do nó (`L5-60`), o texto em uma linha e as propriedades com o nome exato da API (`type`, `nullability`, `isFinal`...). Booleanos aparecem só quando verdadeiros. Roda no projeto Flutter (o caminho é relativo ao diretório atual) e lê o `dist/` do pacote instalado.
+
+---
+
 ## danger-bot list
 
 Lista todos os plugins disponiveis, organizados por plataforma.
@@ -104,7 +142,7 @@ DANGER BOT PLUGINS
 Total: 48 plugin(s) across 1 platform(s)
 ```
 
-> Comandos de desenvolvimento do pacote (`list`, `info`, `create-plugin`, `remove-plugin`) leem `src/plugins/` do diretorio atual: rode-os na raiz do repositorio do danger-bot. `dry-run`, `init` e `gen` sao para o projeto que usa o Danger Bot; `validate` recebe o caminho do arquivo e funciona em qualquer lugar.
+> Comandos de desenvolvimento do pacote (`list`, `info`, `create-plugin`, `remove-plugin`) leem `src/plugins/` do diretorio atual: rode-os na raiz do repositorio do danger-bot. `dry-run`, `inspect`, `init` e `gen` sao para o projeto que usa o Danger Bot; `validate` recebe o caminho do arquivo e funciona em qualquer lugar.
 
 ---
 
@@ -115,7 +153,15 @@ Cria um novo plugin interativamente. A CLI pergunta:
 1. **Plataforma** (Flutter/Dart ou Node.js)
 2. **Nome do plugin** (sera convertido para kebab-case)
 3. **Descricao** do que o plugin faz
-4. Se o plugin vem **habilitado** por padrao
+4. **Tipo de regra**, que escolhe o template (todos leem o código pelo [modelo Dart](MODELO_DART.md))
+5. Se o plugin vem **habilitado** por padrao
+
+| Tipo | Template | Troque |
+|------|----------|--------|
+| 1. Call | `file.calls()`: a chamada errada e a mesma chamada corrigida (`fail`) | `WRONG_CALL`, `RIGHT_CALL` |
+| 2. Class/structure | `file.classes` + `cls.hasMember(...) !== Presence.Absent`: membro obrigatório que falta (`fail`) | `TARGET_FOLDER`, `REQUIRED_MEMBER`, o membro de exemplo |
+| 3. Text added in the PR | `readWithDiff` + `file.strings` + `isAdded`: texto nas linhas do PR (`warn`) | `TARGET_CALLEE`, o valor da correção |
+| 4. Path/file | `file.path`: arquivo na pasta certa com o nome errado (`fail`) | `TARGET_FOLDER`, `REQUIRED_SUFFIX` |
 
 ```bash
 danger-bot create-plugin
@@ -127,12 +173,12 @@ danger-bot new
 
 ```
 src/plugins/flutter/meu-plugin/
-├── meu-plugin.ts    # Esqueleto com createPlugin e sendFormattedFail (padrao das mensagens)
+├── meu-plugin.ts    # Template do tipo escolhido: modelo Dart + sendFormattedFail/Warn (padrao das mensagens)
 ├── index.ts         # Export default
-└── README.md        # Na estrutura padrao: O que verifica, Severidade, Exemplo, Referencias
+└── README.md        # Na estrutura padrao: O que verifica, Severidade (a do tipo), Exemplo, Referencias
 ```
 
-Troque o `PATTERN`, o `REPLACEMENT` e os textos de exemplo do `sendFormattedFail` pela regra real, e os exemplos do README pelos do plugin.
+Troque as constantes do tipo (tabela acima) e os textos de exemplo da mensagem pela regra real, e os exemplos do README pelos do plugin. O código gerado passa no `npm run lint`, inclusive nas regras que barram regex e parser próprio em `src/plugins/`.
 
 **Alem disso, a CLI automaticamente (Flutter):**
 
@@ -143,30 +189,34 @@ Troque o `PATTERN`, o `REPLACEMENT` e os textos de exemplo do `sendFormattedFail
 
 As insercoes preservam o resto do arquivo (virgulas, comentarios e formatacao) e nao duplicam nada se o plugin ja estiver registrado. Se algum bloco nao for encontrado, a CLI mostra `[WARN]` para registrar manualmente. Colocar o plugin num array de categoria (`codeQualityPlugins`, `performancePlugins`...) continua manual — a CLI lembra no final.
 
-**Exemplo de uso:**
+**Exemplo de uso** (respostas depois dos `:`):
 
-```
+```text
 $ danger-bot create-plugin
 
-🔌 CRIAR NOVO PLUGIN
-=====================
+Select platform/language:
+  1. Flutter/Dart
+  2. Node.js
+Platform (1-2) [1]: 1
 
-📝 Nome do plugin: code-coverage-checker
-📝 Descrição: Verifica cobertura de testes do projeto
+Plugin name (e.g., "My Custom Plugin"): Hardcoded Text
+Description: Texto fixo em Text() adicionado no PR
 
-✅ Plugin criado com sucesso!
+Rule type (template):
+  1. Call — file.calls() — e.g. replace one API with another
+  2. Class/structure — file.classes, cls.hasMember(), Presence — e.g. a model without a required method
+  3. Text added in the PR — readWithDiff + file.strings (warn) — e.g. hardcoded text in Text()
+  4. Path/file — file.path — e.g. a usecases file without the _usecase.dart suffix
+Rule type (1-4) [1]: 3
+Enable by default? (y/n) [y]: y
 
-Arquivos criados:
-  - src/plugins/flutter/code-coverage-checker/code-coverage-checker.ts
-  - src/plugins/flutter/code-coverage-checker/index.ts
-  - src/plugins/flutter/code-coverage-checker/README.md
-
-Próximos passos:
-  1. Edite: src/plugins/flutter/code-coverage-checker/code-coverage-checker.ts
-  2. Implemente a lógica do plugin
-  3. Teste: danger-bot validate src/plugins/flutter/code-coverage-checker/code-coverage-checker.ts
-  4. Build: npm run build
-  5. Use: import { codeCoverageCheckerPlugin } from "@felipeduarte26/danger-bot"
+[OK] Created plugin folder: flutter/hardcoded-text/
+[OK] Created plugin file: flutter/hardcoded-text/hardcoded-text.ts
+...
+Next steps:
+  1. Implement the rule (Text added in the PR): src/plugins/flutter/hardcoded-text/hardcoded-text.ts
+     (replace TARGET_CALLEE, the fixed value and the example texts of the message)
+     Guide: docs/CRIANDO_PLUGINS.md · see the model of a file: db inspect <file.dart>
 ```
 
 ---

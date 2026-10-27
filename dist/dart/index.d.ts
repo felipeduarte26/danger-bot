@@ -29,11 +29,11 @@ export {
   DartCatch,
   DartStatement,
   DartBody,
+  DartTypeParameter,
 } from "./nodes";
 export type { DartMember, DartClassMember } from "./declarations";
 export {
   DartClass,
-  DartTypeParameter,
   DartUnknownMember,
   DartField,
   DartTopLevelVariable,

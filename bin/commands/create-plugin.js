@@ -9,6 +9,7 @@ import { question, closeReadline } from "../utils/readline-helper.js";
 import { toKebabCase, toCamelCase } from "../utils/string-helpers.js";
 import { exists, createDirectory, writeFile, readFile } from "../utils/fs-helpers.js";
 import {
+  PLUGIN_KINDS,
   generatePluginTemplate,
   generatePluginBarrel,
   generatePlatformBarrel,
@@ -61,6 +62,19 @@ export async function createPlugin() {
     return;
   }
 
+  // Tipo de regra: escolhe o template (todos leem o código pelo modelo Dart)
+  console.log("\nRule type (template):");
+  PLUGIN_KINDS.forEach((k, i) => console.log(`  ${i + 1}. ${k.label} — ${k.hint}`));
+  const kindInput = (await question(`Rule type (1-${PLUGIN_KINDS.length}) [1]: `)).trim();
+  const kind =
+    PLUGIN_KINDS[Number(kindInput) - 1] ?? PLUGIN_KINDS.find((k) => k.id === kindInput) ?? null;
+  if (kindInput && !kind) {
+    console.error(`\nError: invalid rule type: ${kindInput}`);
+    closeReadline();
+    return;
+  }
+  const pluginKind = kind ?? PLUGIN_KINDS[0];
+
   const enabledInput = await question("Enable by default? (y/n) [y]: ");
   const enabled =
     !enabledInput || enabledInput.toLowerCase() === "y" || enabledInput.toLowerCase() === "s";
@@ -107,7 +121,7 @@ export async function createPlugin() {
   console.log(`[OK] Created plugin folder: ${platformFolder}/${kebabName}/`);
 
   // Gerar e escrever arquivo principal do plugin
-  const content = generatePluginTemplate(name, description, enabled);
+  const content = generatePluginTemplate(name, description, enabled, pluginKind.id);
   writeFile(filePath, content);
   console.log(`[OK] Created plugin file: ${platformFolder}/${kebabName}/${fileName}`);
 
@@ -117,7 +131,7 @@ export async function createPlugin() {
   console.log(`[OK] Created barrel file: ${platformFolder}/${kebabName}/index.ts`);
 
   // Criar README.md
-  const readmeContent = generatePluginReadme(name, description);
+  const readmeContent = generatePluginReadme(name, description, pluginKind.id);
   writeFile(readmePath, readmeContent);
   console.log(`[OK] Created documentation: ${platformFolder}/${kebabName}/README.md`);
 
@@ -206,8 +220,11 @@ export async function createPlugin() {
   }
   console.log();
   console.log("Next steps:");
-  console.log(`  1. Implement the rule: ${filePath}`);
-  console.log(`     (replace PATTERN, REPLACEMENT and the example texts of sendFormattedFail)`);
+  console.log(`  1. Implement the rule (${pluginKind.label}): ${filePath}`);
+  console.log(`     (replace ${pluginKind.replace} and the example texts of the message)`);
+  console.log(
+    `     Guide: docs/CRIANDO_PLUGINS.md · see the model of a file: db inspect <file.dart>`
+  );
   console.log(`  2. Replace the examples in: ${readmePath}`);
   console.log(`  3. Run: npm run build`);
   console.log(

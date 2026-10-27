@@ -8,6 +8,57 @@ As versões até a 4.0.0 foram reconstruídas a partir do histórico de commits 
 
 ## [Não publicado]
 
+### Adicionado
+
+- Modelo Dart exportado pelo pacote. São classes como `DartFile`, `DartPath`, `DartClass`, `DartField`, `DartMethod`, `DartType`, `DartCall`, `DartString` e `DartComment`, mais enums como `DartLayer`, `DartLayerFolder`, `Presence` e `Nullability`.
+  - Cada `.dart` do PR é lido uma vez por execução, e todos os plugins compartilham o resultado.
+  - O modelo dá classes, membros, tipos, chamadas, strings, comentários, imports, variáveis locais (inclusive de patterns e de `for`) e as linhas adicionadas no diff.
+  - Plugins locais podem usá-lo em vez de regex.
+  - Guias: `docs/CRIANDO_PLUGINS.md` (passo a passo, "preciso de... → use", exemplos e checklist de revisão) e `docs/MODELO_DART.md` (referência).
+- Comando `inspect <arquivo.dart>` (`db inspect`): mostra o que o modelo Dart enxerga num arquivo (classes e membros, chamadas, strings, comentários, variáveis locais), com o nome de cada propriedade na API. Aceita `--line N` para ver só uma linha, `--only` para escolher as seções e `--json`.
+- `npm test` com os testes do modelo Dart.
+
+### Modificado
+
+- Os plugins Flutter leem o código pelo modelo Dart, e não mais com regex linha a linha. O resultado não depende mais da formatação nem de comentários ou strings no meio do código.
+- **Incompatível:** os plugins podem reprovar PRs que passavam. O modelo vê código que a regex perdia quando a declaração quebrava linha. Medido no esfera-web, os achados novos são:
+  - `data-datasources` e `domain-usecases`: `DOCUMENTAÇÃO REDUNDANTE EM @override` em métodos com parâmetros nomeados quebrados (`({`), com o tipo de retorno na linha de cima ou genéricos;
+  - `domain-usecases`: a interface real do usecase passa a ser analisada, com `SUFIXO DO USECASE COM CASING INCORRETO` (`Usecase`) e `USECASE COM MUITOS PARÂMETROS`;
+  - `late-final-checker`: `late final` com o inicializador em várias linhas;
+  - `mediaquery-modern`: `MediaQuery.of(` com os argumentos em outra linha;
+  - `column-row-spacing`: `Column`/`Row` com um filho comentado na lista;
+  - `identifier-language` e `spell-checker`: nomes declarados em patterns (`final (a, b) = ...`, `case Foo(:final x)`);
+  - `avoid-setstate-after-async` (`warn`, não reprova): métodos async com a assinatura em várias linhas.
+- `create-plugin` pergunta o tipo de regra e gera o template correspondente, já sobre o modelo Dart e no padrão das mensagens: `Call` (`file.calls()`), `Class/structure` (`file.classes` + `Presence`), `Text added in the PR` (`readWithDiff` + `file.strings`, `warn`) ou `Path/file` (`file.path`). O README sai com a severidade e o exemplo do tipo.
+
+### Obsoleto
+
+- `getDartFiles()`, `getDartFilesInDirectory()`, `getDomainDartFiles()`, `getDataDartFiles()`, `getPresentationDartFiles()`, `isInLayer()`, `normalizePrimaryConstructorHeaders()`, `findPrimaryConstructors()` e `primaryConstructorFieldsByLine()`. Continuam exportados para plugins locais antigos.
+  - Para arquivos e camadas, use `DartFile.changed()` e `file.path.inLayer(...)`.
+  - Para primary constructors, use `cls.fields` e `cls.header`.
+
+### Corrigido
+
+Falsos positivos que deixam de ser reportados:
+
+- `empty-catch-detector`: catch com código comentado, ou com `{`/`}` em comentário dentro do corpo.
+- `print-statement-detector`: declaração de método chamado `print` e `print(...)` em comentário no fim da linha.
+- `positional-bool-params`: parâmetro do tipo `bool Function(...)` tratado como `bool`.
+- `presentation-encapsulation`: parâmetros de closure, variáveis de `for` e palavras de strings lidos como membros públicos do `State`.
+- `flutter-widgets`: continuações de inicializadores, itens de lista e chamadas dentro de getters lidos como construtores e métodos; `@override // comentário` não reconhecido.
+- `flutter-performance`: o `for` da árvore de widgets do `return` acusado como loop no `build()`, e closures declaradas antes do `return`.
+- `memory-leak-detector`: `dispose()` em cascata quebrado em linhas (`_controller\n  ..stop()\n  ..dispose()`).
+- `column-row-spacing`: filho comentado contado como filho.
+- `boolean-naming-convention`: código gerado (`*.gen.dart`) deixa de ser analisado.
+- `domain-usecases`:
+  - uma doc com "abstract interface class that…" era lida como uma interface chamada `that`;
+  - `USECASE COM EXTENDS INCORRETO` mostra o nome real da interface.
+- `repositories`: em método genérico (`on<T>(...)`), a mensagem citava o método seguinte.
+- `avoid-god-class`: continuações de arrow (`emit(...)`) contadas como métodos públicos.
+- `class-naming-convention`, `clean-architecture` e `comments-checker`: `class`, `import` e `//` dentro de string ou comentário.
+- `test-file-checker`: mais sufixos de código gerado ficam fora da lista de arquivos sem teste.
+- `spell-checker-ptbr`: mensagens de `assert(...)` e logs com receptor (`logger.print(...)`) não são verificadas.
+
 ## [4.1.0] - 2026-10-20
 
 ### Adicionado

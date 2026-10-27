@@ -337,6 +337,8 @@ executeDangerBot(allFlutterPlugins);
 
 ## Criando um plugin customizado
 
+> **Passo a passo, receitas ("preciso de... → use") e exemplos completos:** [CRIANDO_PLUGINS.md](CRIANDO_PLUGINS.md).
+
 Todo plugin Flutter lê o código pelo **modelo Dart** ([MODELO_DART.md](MODELO_DART.md)): `DartFile.changed()` entrega os arquivos `.dart` do PR já analisados, e o plugin trabalha com propriedades — `file.classes`, `cls.fields`, `cls.methods`, `method.body.calls`, `file.imports`, `file.comments`, `file.strings`... Não use regex nem contagem de chaves para achar classes, campos, métodos, chamadas, comentários ou strings: o modelo já trata comentários, strings, genéricos aninhados, quebras de linha e primary constructors (Dart 3.13).
 
 ### Usando a CLI (recomendado) — para plugins do pacote
@@ -345,8 +347,8 @@ Todo plugin Flutter lê o código pelo **modelo Dart** ([MODELO_DART.md](MODELO_
 danger-bot create-plugin
 ```
 
-A CLI pergunta nome e descricao, e gera automaticamente:
-- Arquivo do plugin com `createPlugin`, já lendo o código pelo modelo Dart (`DartFile.changed()` + `file.calls()`), e um `sendFormattedFail` de exemplo, no [padrao de mensagens](#padrao-de-mensagens-dos-plugins)
+A CLI pergunta nome, descricao e o **tipo de regra** (Call, Class/structure, Text added in the PR, Path/file), e gera automaticamente:
+- Arquivo do plugin com `createPlugin` no template do tipo escolhido, já lendo o código pelo modelo Dart (`file.calls()`, `file.classes` + `Presence`, `readWithDiff` + `file.strings` ou `file.path`), com a mensagem de exemplo no [padrao de mensagens](#padrao-de-mensagens-dos-plugins) — veja a [tabela dos tipos](CLI.md#danger-bot-create-plugin)
 - `index.ts` com export
 - `README.md` na estrutura padrao (`O que verifica`, `Severidade`, `Exemplo`, `Referencias`)
 - Atualiza o barrel da plataforma (`src/plugins/flutter/index.ts`)

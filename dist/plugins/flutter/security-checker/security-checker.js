@@ -63,7 +63,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * 4. Arquivos sensíveis commitados (.env, google-services.json, keystore, etc.)
  * 5. Arquivos sensíveis ausentes no .gitignore
  *
- * Exclui arquivos de teste (*_test.dart) e ignora matches em comentários.
+ * Os padrões de 1-3 valem nas linhas de código dos `.dart` (a credencial entre aspas, com
+ * comprimento mínimo): linhas só de comentário e o comentário `//` no fim da linha não
+ * contam. Um report por linha (o primeiro padrão da lista).
+ * Exclui testes (`_test.dart`, qualquer pasta `test/`, `test_driver/`, `integration_test/`)
+ * e mocks (`.mock.dart`, `.mocks.dart`); os demais gerados são analisados.
+ * Arquivo sensível: o nome do arquivo igual a um de `SENSITIVE_FILES`.
  */
 const _types_1 = require("../../../types.js");
 const fs = __importStar(require("fs"));
@@ -219,9 +224,24 @@ const GITIGNORE_EXPECTED = [
   "GoogleService-Info.plist",
   "service-account.json",
 ];
-function isCommentLine(line) {
-  const trimmed = line.trim();
-  return trimmed.startsWith("//") || trimmed.startsWith("*") || trimmed.startsWith("///");
+const MOCK_SUFFIXES = [".mock.dart", ".mocks.dart"];
+/** As linhas de código do arquivo, sem o comentário `//` do fim da linha. */
+function codeLines(file) {
+  const trailingComments = new Map();
+  for (const comment of file.comments) {
+    const lineComment =
+      comment.kind === _types_1.DartCommentKind.Line ||
+      comment.kind === _types_1.DartCommentKind.Doc;
+    if (lineComment && comment.isTrailing) trailingComments.set(comment.line, comment.column);
+  }
+  const result = [];
+  for (let line = 1; line <= file.lineCount; line++) {
+    if (!file.isCode(line)) continue;
+    const text = file.lineAt(line);
+    const commentColumn = trailingComments.get(line);
+    result.push({ line, code: commentColumn ? text.slice(0, commentColumn - 1) : text });
+  }
+  return result;
 }
 exports.default = (0, _types_1.createPlugin)(
   {
@@ -232,25 +252,21 @@ exports.default = (0, _types_1.createPlugin)(
   async () => {
     const { git } = (0, _types_1.getDanger)();
     const allFiles = [...git.created_files, ...git.modified_files];
-    const dartFiles = allFiles.filter(
-      (f) =>
-        f.endsWith(".dart") &&
-        !f.endsWith("_test.dart") &&
-        !f.endsWith(".mock.dart") &&
-        !f.endsWith(".mocks.dart") &&
-        !f.includes("/test/") &&
-        !f.includes("/test_driver/") &&
-        !f.includes("/integration_test/") &&
-        fs.existsSync(f)
+    const dartFiles = _types_1.DartFile.changed({
+      createdFirst: true,
+      includeGenerated: true,
+    }).filter(
+      ({ path }) =>
+        !MOCK_SUFFIXES.includes(path.compoundSuffix ?? "") &&
+        !path.inFolder("test") &&
+        !path.inFolder("test_driver") &&
+        !path.inFolder("integration_test")
     );
-    for (const file of dartFiles) {
-      const content = fs.readFileSync(file, "utf-8");
-      const lines = content.split("\n");
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        if (isCommentLine(line)) continue;
+    for (const dartFile of dartFiles) {
+      const file = dartFile.path.path;
+      for (const { line, code } of codeLines(dartFile)) {
         for (const { regex, label, severity } of SECRET_PATTERNS) {
-          if (!regex.test(line)) continue;
+          if (!regex.test(code)) continue;
           const icon = severity === "critical" ? "🚨" : "⚠️";
           (0, _types_1.sendFormattedFail)({
             title: `${icon} SEGURANÇA — ${label.toUpperCase()}`,
@@ -267,16 +283,15 @@ exports.default = (0, _types_1.createPlugin)(
             },
             objective: "Proteger **credenciais** contra exposição em repositórios.",
             file,
-            line: i + 1,
+            line,
           });
           break;
         }
       }
     }
     for (const file of allFiles) {
-      const fileName = file.split("/").pop() ?? "";
-      const matched = SENSITIVE_FILES.find((s) => fileName === s || file.endsWith(`/${s}`));
-      if (matched) {
+      const { fileName } = _types_1.DartPath.of(file);
+      if (SENSITIVE_FILES.includes(fileName)) {
         (0, _types_1.sendFormattedFail)({
           title: "ARQUIVO SENSÍVEL COMMITADO",
           description: `O arquivo \`${fileName}\` **não deve ser commitado** no repositório.`,
