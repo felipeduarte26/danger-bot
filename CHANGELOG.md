@@ -8,6 +8,8 @@ As versões até a 4.0.0 foram reconstruídas a partir do histórico de commits 
 
 ## [Não publicado]
 
+## [5.0.0] - 2026-10-27
+
 ### Adicionado
 
 - Modelo Dart exportado pelo pacote. São classes como `DartFile`, `DartPath`, `DartClass`, `DartField`, `DartMethod`, `DartType`, `DartCall`, `DartString` e `DartComment`, mais enums como `DartLayer`, `DartLayerFolder`, `Presence` e `Nullability`.
@@ -1042,7 +1044,8 @@ Falsos positivos que deixam de ser reportados:
 - CLI `danger-bot` com os comandos `create-plugin` (`new`), `list` (`ls`), `generate-dangerfile` (`gen`), `validate` e `info`.
 - Guias de instalação, CLI, arquitetura e configuração de pipelines em `docs/`.
 
-[Não publicado]: https://github.com/felipeduarte26/danger-bot/compare/v4.1.0...HEAD
+[Não publicado]: https://github.com/felipeduarte26/danger-bot/compare/v5.0.0...HEAD
+[5.0.0]: https://github.com/felipeduarte26/danger-bot/compare/v4.1.0...v5.0.0
 [4.1.0]: https://github.com/felipeduarte26/danger-bot/compare/v4.0.1...v4.1.0
 [4.0.1]: https://github.com/felipeduarte26/danger-bot/compare/fc1c4ea50...v4.0.1
 [4.0.0]: https://github.com/felipeduarte26/danger-bot/compare/48760e7fe...fc1c4ea50
