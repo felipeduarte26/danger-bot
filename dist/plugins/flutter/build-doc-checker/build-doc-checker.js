@@ -1,56 +1,4 @@
 "use strict";
-var __createBinding =
-  (this && this.__createBinding) ||
-  (Object.create
-    ? function (o, m, k, k2) {
-        if (k2 === undefined) k2 = k;
-        var desc = Object.getOwnPropertyDescriptor(m, k);
-        if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-          desc = {
-            enumerable: true,
-            get: function () {
-              return m[k];
-            },
-          };
-        }
-        Object.defineProperty(o, k2, desc);
-      }
-    : function (o, m, k, k2) {
-        if (k2 === undefined) k2 = k;
-        o[k2] = m[k];
-      });
-var __setModuleDefault =
-  (this && this.__setModuleDefault) ||
-  (Object.create
-    ? function (o, v) {
-        Object.defineProperty(o, "default", { enumerable: true, value: v });
-      }
-    : function (o, v) {
-        o["default"] = v;
-      });
-var __importStar =
-  (this && this.__importStar) ||
-  (function () {
-    var ownKeys = function (o) {
-      ownKeys =
-        Object.getOwnPropertyNames ||
-        function (o) {
-          var ar = [];
-          for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-          return ar;
-        };
-      return ownKeys(o);
-    };
-    return function (mod) {
-      if (mod && mod.__esModule) return mod;
-      var result = {};
-      if (mod != null)
-        for (var k = ownKeys(mod), i = 0; i < k.length; i++)
-          if (k[i] !== "default") __createBinding(result, mod, k[i]);
-      __setModuleDefault(result, mod);
-      return result;
-    };
-  })();
 Object.defineProperty(exports, "__esModule", { value: true });
 /**
  * Build Doc Checker Plugin
@@ -59,9 +7,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * Documentação dentro de build é desnecessária e polui o código.
  * Doc comments devem ser usados em: classes, construtores, métodos, campos.
  * Widgets instanciados dentro de build são auto-explicativos pelo código.
+ *
+ * Só conta o `Widget build(...)` com `@override` e o `///` que começa a linha.
+ * Não contam: a doc acima do build, `///` dentro de string ou de comentário de bloco,
+ * e o build `=>` de uma linha só.
  */
 const _types_1 = require("../../../types.js");
-const fs = __importStar(require("fs"));
 exports.default = (0, _types_1.createPlugin)(
   {
     name: "build-doc-checker",
@@ -69,30 +20,25 @@ exports.default = (0, _types_1.createPlugin)(
     enabled: true,
   },
   async () => {
-    const { git } = (0, _types_1.getDanger)();
-    const dartFiles = [...git.modified_files, ...git.created_files].filter(
-      (f) =>
-        f.endsWith(".dart") &&
-        !f.endsWith("_test.dart") &&
-        !f.endsWith(".g.dart") &&
-        !f.endsWith(".freezed.dart") &&
-        fs.existsSync(f)
-    );
-    for (const file of dartFiles) {
-      const content = fs.readFileSync(file, "utf-8");
-      if (!content.includes("Widget build(")) continue;
-      const lines = content.replace(/\r/g, "").split("\n");
-      const buildBodies = findBuildBodies(lines);
-      for (const body of buildBodies) {
-        for (let i = body.start; i <= body.end; i++) {
-          const trimmed = lines[i].trim();
-          if (!trimmed.startsWith("///")) continue;
-          // Skip if inside a multi-line string (heuristic: odd number of ''' before this line)
-          if (isInsideMultiLineString(lines, i)) continue;
-          const { wrongSnippet, correctSnippet } = buildRealSnippets(lines, i);
+    for (const file of _types_1.DartFile.changed()) {
+      const builds = file.declarations.flatMap((d) => d.methods).filter(isWidgetBuild);
+      if (builds.length === 0) continue;
+      // `///` no início da linha (comentário de doc que não vem depois de código)
+      const docLines = new Set(
+        file.comments
+          .filter((c) => c.kind === _types_1.DartCommentKind.Doc && !c.isTrailing)
+          .map((c) => c.line)
+      );
+      for (const build of builds) {
+        const body = build.body;
+        if (!body || body.endLine === body.line) continue;
+        for (const comment of body.comments) {
+          if (!docLines.has(comment.line) || comment.line === body.line) continue;
+          const line = comment.line;
+          const { wrongSnippet, correctSnippet } = buildRealSnippets(file, line, docLines);
           (0, _types_1.sendFormattedFail)({
             title: "DOCUMENTAÇÃO DESNECESSÁRIA DENTRO DE BUILD",
-            description: `Comentário \`///\` dentro do método \`build\` é desnecessário. Widgets dentro de build são auto-explicativos pelo código.\n\n\`${trimmed}\``,
+            description: `Comentário \`///\` dentro do método \`build\` é desnecessário. Widgets dentro de build são auto-explicativos pelo código.\n\n\`${comment.lineText}\``,
             problem: {
               wrong: wrongSnippet,
               correct: correctSnippet,
@@ -105,153 +51,31 @@ exports.default = (0, _types_1.createPlugin)(
             },
             objective:
               "Comentários `///` dentro de `build` poluem o código e não geram documentação útil. Widgets são auto-descritivos por seus nomes e parâmetros.",
-            file,
-            line: i + 1,
+            file: file.path.path,
+            line,
           });
         }
       }
     }
   }
 );
-/**
- * Encontra os corpos (start/end) de todos os métodos `Widget build(` no arquivo.
- * Suporta tanto `{ ... }` quanto `=> ...;`
- */
-function findBuildBodies(lines) {
-  const bodies = [];
-  for (let i = 0; i < lines.length; i++) {
-    const trimmed = lines[i].trim();
-    if (!/Widget\s+build\s*\(/.test(trimmed)) continue;
-    if (!hasOverrideAbove(lines, i)) continue;
-    // Find end of signature (closing `)` of parameters)
-    let signatureEnd = -1;
-    let parenDepth = 0;
-    let sigStarted = false;
-    for (let j = i; j < Math.min(i + 10, lines.length); j++) {
-      for (const ch of lines[j]) {
-        if (ch === "(") {
-          parenDepth++;
-          sigStarted = true;
-        }
-        if (ch === ")") {
-          parenDepth--;
-          if (sigStarted && parenDepth === 0) {
-            signatureEnd = j;
-            break;
-          }
-        }
-      }
-      if (signatureEnd !== -1) break;
-    }
-    if (signatureEnd === -1) continue;
-    // Determine body type: `{` (brace) or `=>` (arrow) — whichever comes first
-    let bodyType = null;
-    let bodyStartLine = -1;
-    for (let j = signatureEnd; j < Math.min(signatureEnd + 5, lines.length); j++) {
-      const arrowIdx = lines[j].indexOf("=>");
-      const braceIdx = lines[j].indexOf("{");
-      if (arrowIdx !== -1 && (braceIdx === -1 || arrowIdx < braceIdx)) {
-        bodyType = "arrow";
-        bodyStartLine = j;
-        break;
-      }
-      if (braceIdx !== -1 && (arrowIdx === -1 || braceIdx < arrowIdx)) {
-        bodyType = "brace";
-        bodyStartLine = j;
-        break;
-      }
-    }
-    if (!bodyType || bodyStartLine === -1) continue;
-    if (bodyType === "brace") {
-      // Track { } to find the closing brace
-      let depth = 0;
-      let bodyStart = -1;
-      for (let j = bodyStartLine; j < lines.length; j++) {
-        for (const ch of lines[j]) {
-          if (ch === "{") {
-            depth++;
-            if (bodyStart === -1) bodyStart = j + 1;
-          }
-          if (ch === "}") {
-            depth--;
-            if (depth === 0) {
-              bodies.push({ start: bodyStart, end: j - 1 });
-              i = j;
-              break;
-            }
-          }
-        }
-        if (depth === 0 && bodyStart !== -1) break;
-      }
-    } else {
-      // Arrow: track () and [] depth, end at `;` when depth === 0
-      let depth = 0;
-      let arrowEnd = -1;
-      for (let j = bodyStartLine; j < lines.length; j++) {
-        for (const ch of lines[j]) {
-          if (ch === "(" || ch === "[") depth++;
-          if (ch === ")" || ch === "]") depth--;
-        }
-        if (depth <= 0 && lines[j].trimEnd().endsWith(";")) {
-          arrowEnd = j;
-          break;
-        }
-      }
-      if (arrowEnd !== -1 && arrowEnd > bodyStartLine) {
-        bodies.push({ start: bodyStartLine + 1, end: arrowEnd });
-        i = arrowEnd;
-      }
-    }
-  }
-  return bodies;
+/** `@override Widget build(...)` com corpo. */
+function isWidgetBuild(method) {
+  return method.name === "build" && method.isOverride && method.returnType?.name === "Widget";
 }
 /**
- * Extrai um snippet real do código mostrando o /// e contexto ao redor,
- * e gera a versão corrigida sem o ///.
+ * Trecho real do código: a linha antes do `///`, o bloco de `///` seguidos e
+ * duas linhas depois; a versão corrigida é o mesmo trecho sem o bloco de `///`.
  */
-function buildRealSnippets(lines, docLineIdx) {
-  const contextBefore = 1;
-  const contextAfter = 2;
-  const start = Math.max(0, docLineIdx - contextBefore);
-  let end = Math.min(lines.length - 1, docLineIdx + contextAfter);
-  // Collect consecutive /// lines starting from docLineIdx
-  let docEnd = docLineIdx;
-  while (docEnd + 1 < lines.length && lines[docEnd + 1].trim().startsWith("///")) {
-    docEnd++;
-  }
-  end = Math.min(lines.length - 1, docEnd + contextAfter);
-  const wrongLines = [];
-  const correctLines = [];
-  for (let k = start; k <= end; k++) {
-    wrongLines.push(lines[k]);
-    if (k < docLineIdx || k > docEnd) {
-      correctLines.push(lines[k]);
-    }
-  }
+function buildRealSnippets(file, docLine, docLines) {
+  let docEnd = docLine;
+  while (docLines.has(docEnd + 1)) docEnd++;
+  const start = Math.max(1, docLine - 1);
+  const end = Math.min(file.lineCount, docEnd + 2);
+  const context = Array.from({ length: end - start + 1 }, (_, k) => start + k);
+  const text = (lines) => lines.map((l) => file.lineAt(l).trimEnd()).join("\n");
   return {
-    wrongSnippet: wrongLines.map((l) => l.trimEnd()).join("\n"),
-    correctSnippet: correctLines.map((l) => l.trimEnd()).join("\n"),
+    wrongSnippet: text(context),
+    correctSnippet: text(context.filter((l) => l < docLine || l > docEnd)),
   };
-}
-function hasOverrideAbove(lines, idx) {
-  for (let k = idx - 1; k >= Math.max(0, idx - 3); k--) {
-    const t = lines[k].trim();
-    if (t === "@override") return true;
-    if (t === "" || t.startsWith("///") || t.startsWith("//")) continue;
-    break;
-  }
-  return false;
-}
-/**
- * Heurística simples para detectar se estamos dentro de uma string multi-line ('''/""").
- * Conta quantas aberturas de ''' ou """ existem antes da linha atual.
- * Se ímpar, estamos dentro de uma string.
- */
-function isInsideMultiLineString(lines, lineIdx) {
-  let tripleQuoteCount = 0;
-  for (let i = 0; i < lineIdx; i++) {
-    const matches = lines[i].match(/'''|"""/g);
-    if (matches) tripleQuoteCount += matches.length;
-  }
-  return tripleQuoteCount % 2 !== 0;
 }

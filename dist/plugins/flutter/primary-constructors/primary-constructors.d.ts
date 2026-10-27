@@ -1,3 +1,4 @@
+import { parseSdkLowerBound } from "../../../dart/internal/pubspec";
 /** Resultado da análise de uma classe/enum (exportado para testes). */
 export interface PrimaryConstructorReport {
   name: string;
@@ -71,17 +72,12 @@ export declare function primaryConstructorFieldsByLine(
  * Sem primary constructor, devolve o texto original.
  */
 export declare function normalizePrimaryConstructorHeaders(source: string): string;
-/**
- * Versão mínima (major.minor) de uma restrição de SDK: `^3.13.0`,
- * `>=3.13.0 <4.0.0`, `<4.0.0 >=3.13.0`, `">= 3.13.0-0"`, `3.13.0`. Limites
- * superiores (`<`, `<=`) não contam; sem limite inferior (`any`) retorna null.
- */
-declare function parseSdkLowerBound(constraint: string): {
-  major: number;
-  minor: number;
-} | null;
 /** Motivo para não analisar o arquivo, ou null se primary constructors estão disponíveis. */
 declare function languageVersionIssue(file: string, content: string): string | null;
+/**
+ * Arquivo analisado: `.dart` escrito à mão, fora de testes e de código gerado
+ * (inclui qualquer pasta `test/` ou `integration_test/` no caminho).
+ */
 declare function isCandidateFile(file: string): boolean;
 /** Funções internas expostas só para os testes do plugin. */
 export declare const __testing: {

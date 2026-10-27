@@ -10,12 +10,11 @@
  * Ou via env var: GOOGLE_CHAT_WEBHOOK
  *
  * IMPORTANTE: este plugin deve ser o ÚLTIMO a rodar para capturar todos os resultados.
+ * Não lê arquivos do PR: só conta os fails/warnings da execução.
  */
 
-import { createPlugin, getDanger } from "@types";
+import { createPlugin, getDanger, getPendingSummaryCounts, getPRTitle, loadConfig } from "@types";
 import { getBranding } from "../../../branding";
-import { loadConfig } from "../../../config";
-import { getPendingSummaryCounts, getPRTitle } from "../../../helpers";
 
 const REQUEST_TIMEOUT_MS = 10000;
 

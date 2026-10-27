@@ -31,11 +31,8 @@ export default createPlugin(
       );
 
       for (const build of builds) {
-        const body = build.body;
-        if (!body || body.endLine === body.line) continue;
-
-        for (const comment of body.comments) {
-          if (!docLines.has(comment.line) || comment.line === body.line) continue;
+        for (const comment of build.body?.comments ?? []) {
+          if (!docLines.has(comment.line)) continue;
 
           const line = comment.line;
           const { wrongSnippet, correctSnippet } = buildRealSnippets(file, line, docLines);
@@ -64,7 +61,7 @@ export default createPlugin(
   }
 );
 
-/** `@override Widget build(...)` com corpo. */
+/** `@override Widget build(...)` (o `build` de StatelessWidget/State). */
 function isWidgetBuild(method: DartMethod): boolean {
   return method.name === "build" && method.isOverride && method.returnType?.name === "Widget";
 }

@@ -17,12 +17,13 @@ npm install          # roda o postinstall scripts/patch-danger.cjs (patches no D
 npm run build        # tsc + tsc-alias + dist/package.json {"type":"commonjs"}
 npm run lint         # eslint . --max-warnings 0 (type-checked)
 npm run type-check   # tsc --noEmit
+npm test             # testes do modelo Dart (tests/*.test.cjs, sobre o dist/: rode o build antes)
 npx prettier --write <arquivos alterados>   # formate só o que você mexeu (ver Armadilhas)
 
 node bin/cli.js dry-run --project <projeto-flutter> --base <branch|sha> [--plugins a,b] [-v] [--all]
 ```
 
-Não há suíte de testes. Para validar um plugin, use o **dry-run** num projeto real (ex.: uma cópia do esfera-web) ou o **harness** da seção [Testando](#testando-um-plugin). Antes de testar, rode `npm run build`: o CLI e o harness carregam o `dist/`, não o `src/`.
+Os testes automáticos cobrem o **modelo Dart** (`tests/dart-model.test.cjs`). Para validar um plugin, use o **dry-run** num projeto real (ex.: uma cópia do esfera-web) ou o **harness** da seção [Testando](#testando-um-plugin). Antes de testar, rode `npm run build`: os testes, o CLI e o harness carregam o `dist/`, não o `src/`.
 
 **Git hooks (Husky):**
 
@@ -59,6 +60,36 @@ O histórico fica no [CHANGELOG.md](CHANGELOG.md), no formato [Keep a Changelog 
 5. `runPlugins()` registra os ativos (`setActivePlugins`) e roda **em sequência**. Um plugin que lança erro para a execução e chama `onError`.
 6. `flushSummaries()` roda no `finally` (mesmo com erro) e publica os resumos de fail/warn.
 7. A Promise da execução é registrada com o `schedule()` do Danger, que espera ela terminar antes de publicar os comentários.
+
+### Modelo Dart ([src/dart/](src/dart/)) — obrigatório nos plugins Flutter
+
+Os plugins **não leem Dart com regex**. Eles usam o modelo compartilhado: o arquivo é lido e analisado uma vez (tokens, não linhas) e o plugin trabalha só com propriedades. Guia completo: [docs/MODELO_DART.md](docs/MODELO_DART.md).
+
+| Classe                                                              | O que dá                                                                                                                                                                                                                                                                                                        |
+| ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DartFile`                                                          | Ponto de entrada: `DartFile.changed()` (arquivos `.dart` do PR, sem testes/gerados), `read(caminho)`, `readWithDiff(caminho)` (linhas adicionadas); `classes`, `enums`, `mixins`, `extensions`, `functions`, `variables`, `imports`/`exports`, `comments`, `strings`, `identifiers`, `calls()`, `isCode(linha)` |
+| `DartPath`                                                          | Só o caminho: `layer`/`inLayer()`, `layerFolder`/`inFolder()`, `isTest`, `isGenerated`, `isBarrel`, `category`, `feature`, `expectedTestPath`/`hasTest()`, `package` (`DartPackage`)                                                                                                                            |
+| `DartClass`                                                         | class, enum, mixin, extension, extension type, mixin application: modificadores (`isAbstract`, `isSealed`, `isFinal`, `isBase`, `isInterface`, `isMixinClass`), `superclass`/`interfaces`/`mixins`, `fields`, `methods`, `constructors`, `primaryConstructor`, `enumValues`, `hasMember()`, `isComplete`        |
+| `DartField` / `DartLocalVariable` / `DartTopLevelVariable`          | `type`, `nullability`, `isFinal`/`isLate`/`isStatic`/`isConst`, `initializer`, `origin` (corpo ou primary constructor)                                                                                                                                                                                          |
+| `DartMethod` / `DartFunction` / `DartConstructor` / `DartParameter` | assinatura, `returnType`, `parameters`, `isAsync`, `isOverride`, `body`                                                                                                                                                                                                                                         |
+| `DartType`                                                          | `canonical`, `name`, `typeArguments`, `isString`/`isBool`/`isNumeric`/`isFuture`..., `unwrapFuture()`, `equals()`                                                                                                                                                                                               |
+| `DartBody`                                                          | `statements`, `calls`, `awaits`, `returns`, `closures`, `tryStatements`, `localVariables`, `references()`                                                                                                                                                                                                       |
+| `DartCall` / `DartExpression` / `DartString` / `DartComment`        | callee, receptor, cascata, argumentos; tipo da expressão, itens de lista; papel da string; diretiva do comentário                                                                                                                                                                                               |
+
+Enums (string): `DartLayer`, `DartLayerFolder`, `FileCategory`, `Presence`, `Nullability`, `DartMemberKind`, `DartTypeKind`... O valor é o texto do código/caminho (`DartLayer.Domain === "domain"`).
+
+Regras que o modelo garante (e que o plugin não pode desfazer):
+
+- **Linhas e textos de antes:** `fs.readFileSync` + `split("\n")`, linhas base 1; `node.line` vai no comentário inline e `node.lineText` é o "código real" do `problem.wrong`.
+- **Desconhecido nunca vira `false`:** tipo não escrito → `type === null`, `nullability === Nullability.Unknown`. Compare com o enum, nunca com `!`.
+- **Ausência só com certeza:** regra "falta X" usa `cls.hasMember(...) === Presence.Absent` ou `cls.isComplete`; trecho não reconhecido vira `DartUnknownMember` e deixa a classe incompleta.
+- **Sem sinônimos:** `inFolder(DartLayerFolder.UseCases)` = `includes("/usecases/")`; `usecase` (singular) só com `inFolder("usecase")`. `isTest` é a pasta de testes do pacote (fora de `lib/`); "qualquer `/test/` no caminho" é `inFolder("test")`.
+- **Nunca lança exceção:** arquivo truncado/inexistente devolve listas vazias e `parseErrors`.
+- **Fatos, não decisões:** o modelo diz o que o código é; allowlists, limites e severidade ficam no plugin.
+
+No plugin é **proibido**: contar `{`/`}`, pular comentário ou string à mão, regex para achar classe/campo/método/import/chamada, `split("\n")` para varrer código, e usar membros `@internal` (`file.lexed`, `rawMember`...). Regex só para o **conteúdo da regra**, aplicada a fatos do modelo (o formato de `field.name`, o padrão de um segredo em `string.value`). Se faltar algo no modelo, acrescente nele (com teste em `tests/dart-model.test.cjs`), não no plugin.
+
+Internos: `src/dart/internal/` tem o lexer e o parser (também usados pelo primary-constructors). Os helpers antigos `normalizePrimaryConstructorHeaders`, `findPrimaryConstructors`, `primaryConstructorFieldsByLine`, `getDartFiles`, `isInLayer` continuam exportados para plugins locais antigos, mas código novo usa o modelo.
 
 ### Mensagens e quando o build falha ([src/helpers.ts](src/helpers.ts))
 
@@ -126,7 +157,7 @@ Como funciona:
 
 `create-plugin` e `remove-plugin` são interativos (readline): stdin em pipe não funciona, porque o `rl.question` só lê a primeira linha. Para automatizar, use um script que escreve cada resposta quando aparece um prompt terminando em `: `.
 
-O `.ts` que o `create-plugin` gera é o [template](#template-arquivo-inteiro) com `PATTERN`, `REPLACEMENT` e textos de exemplo no `sendFormattedFail`, e o README já sai na estrutura de [README do plugin](#convenções-dos-plugins-existentes). Troque os exemplos pela regra real; o que ficar do exemplo vai para o PR.
+O `.ts` que o `create-plugin` gera é o [template](#template-arquivo-inteiro), já sobre o modelo Dart (`DartFile.changed()` + `file.calls()`), com `WRONG_CALL`, `RIGHT_CALL` e textos de exemplo no `sendFormattedFail`, e o README já sai na estrutura de [README do plugin](#convenções-dos-plugins-existentes). Troque os exemplos pela regra real; o que ficar do exemplo vai para o PR.
 
 No resumo do dry-run, `erro(s)` conta os `fail` que reprovariam o build. Os comentários inline (de `fail` e de `warn`) aparecem numa seção à parte e não reprovam nada sozinhos: o que reprova é o resumo que o `flushSummaries()` gera.
 
@@ -154,18 +185,17 @@ src/plugins/flutter/<nome-kebab>/
 
 ### Template (arquivo inteiro)
 
-A maioria dos plugins lê o arquivo inteiro com `fs.readFileSync`. Toda mensagem segue o [padrão obrigatório](#padrão-obrigatório-das-mensagens): código real do erro, a mesma linha corrigida, ação, objetivo e referência.
+Todo plugin Flutter lê o código pelo [modelo Dart](#modelo-dart-srcdart--obrigatório-nos-plugins-flutter) (é o que o `create-plugin` gera). Toda mensagem segue o [padrão obrigatório](#padrão-obrigatório-das-mensagens): código real do erro, a mesma linha corrigida, ação, objetivo e referência.
 
 ```typescript
 /**
  * Meu Plugin
  * O que verifica e por quê (1-3 linhas). Exceções que evitam falso positivo.
  */
-import { createPlugin, getDanger, sendFormattedFail } from "@types";
-import * as fs from "fs";
+import { DartFile, createPlugin, sendFormattedFail } from "@types";
 
-const PATTERN = /\bpadraoProblematico\(/;
-const REPLACEMENT = "padraoCorreto(";
+const WRONG_CALL = "padraoProblematico";
+const RIGHT_CALL = "padraoCorreto";
 
 export default createPlugin(
   {
@@ -174,25 +204,13 @@ export default createPlugin(
     enabled: true,
   },
   async () => {
-    const { git } = getDanger();
+    // .dart criados/modificados no PR, sem testes e sem arquivos gerados
+    for (const file of DartFile.changed()) {
+      for (const call of file.calls()) {
+        if (call.name !== WRONG_CALL) continue;
 
-    const dartFiles = [...git.modified_files, ...git.created_files].filter(
-      (f: string) =>
-        f.endsWith(".dart") &&
-        !f.endsWith("_test.dart") &&
-        !f.endsWith(".g.dart") &&
-        !f.endsWith(".freezed.dart") &&
-        fs.existsSync(f)
-    );
-
-    for (const file of dartFiles) {
-      const lines = fs.readFileSync(file, "utf-8").split("\n");
-
-      for (let i = 0; i < lines.length; i++) {
-        if (!PATTERN.test(lines[i])) continue;
-
-        const wrong = lines[i].trim(); // código REAL do arquivo
-        const fixed = wrong.replace(PATTERN, REPLACEMENT); // a mesma linha, já corrigida
+        const wrong = call.lineText; // código REAL do arquivo (a linha da chamada)
+        const fixed = wrong.replace(`${WRONG_CALL}(`, `${RIGHT_CALL}(`); // a mesma linha, já corrigida
 
         sendFormattedFail({
           title: "TITULO FIXO EM CAPS", // chave do resumo: sem dados variáveis
@@ -207,8 +225,8 @@ export default createPlugin(
           action: { text: "Substitua por:", code: fixed },
           objective: "Benefício da correção em uma frase.",
           reference: { text: "Nome da doc oficial", url: "https://api.flutter.dev/..." },
-          file,
-          line: i + 1,
+          file: file.path.path,
+          line: call.line,
         });
       }
     }
@@ -216,28 +234,49 @@ export default createPlugin(
 );
 ```
 
-**Só linhas adicionadas** (o padrão de comments-checker, spell-checker, spell-checker-ptbr e ai-code-review):
+Outras entradas comuns (receitas completas em [docs/MODELO_DART.md](docs/MODELO_DART.md#receitas)):
 
 ```typescript
-const diff = await danger.git.structuredDiffForFile(file);
-for (const chunk of diff?.chunks ?? []) {
-  for (const change of chunk.changes as any[]) {
-    if (change.type !== "add") continue;
-    const content = String(change.content).replace(/^\+/, ""); // CI mantém o "+"
-    const line = change.ln; // linhas "normal" usam ln2 no Danger real
+for (const file of DartFile.changed()) {
+  if (!file.path.inFolder(DartLayerFolder.Entities) || file.path.isBarrel) continue;
+  for (const cls of file.classes) {
+    // classes (com primary constructor já resolvido)
+    for (const field of cls.fields) {
+      /* field.type?.isString, field.isFinal, field.nameLine */
+    }
+    for (const method of cls.methods) {
+      /* method.isOverride, method.returnType, method.body?.calls */
+    }
+  }
+  for (const imp of file.imports) {
+    /* imp.uriKind, imp.packagePath */
   }
 }
 ```
 
+**Só linhas adicionadas** (o padrão de comments-checker, spell-checker, spell-checker-ptbr e ai-code-review):
+
+```typescript
+const file = await DartFile.readWithDiff(caminho);
+for (const comment of file.comments) {
+  if (!file.isAdded(comment.line)) continue;
+  /* ... */
+}
+```
+
+`readWithDiff` lê o `structuredDiffForFile` do Danger e já trata as diferenças do CI (prefixo `+`, `ln`/`ln2`).
+
 **Plugin local do projeto** — um arquivo `.ts`/`.js` apontado em `local_plugins`. O mesmo formato, importando do pacote:
 
 ```typescript
-import { createPlugin, getDartFiles, sendFormattedWarn } from "@felipeduarte26/danger-bot";
+import { DartFile, createPlugin, sendFormattedWarn } from "@felipeduarte26/danger-bot";
 export default createPlugin(
   { name: "regra-local", description: "...", enabled: true },
   async () => {
-    for (const file of await getDartFiles()) {
-      /* ... */
+    for (const file of DartFile.changed()) {
+      for (const cls of file.classes) {
+        /* ... */
+      }
     }
   }
 );
@@ -245,7 +284,7 @@ export default createPlugin(
 
 O Node carrega o `.ts` direto ([type stripping](https://nodejs.org/api/typescript.html)), sem compilar. Ao escrever o plugin:
 
-- só sintaxe apagável: tipos e interfaces; `enum`, `namespace` e parameter properties dão `ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX`;
+- só sintaxe apagável: tipos e interfaces; `enum`, `namespace` e parameter properties dão `ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX` (usar os enums do pacote, como `DartLayer.Domain`, funciona; declarar um enum próprio, não);
 - import relativo **com extensão**: `import { x } from "../shared/util.ts"`; sem ela dá `ERR_MODULE_NOT_FOUND`.
 
 As regras de carregamento estão em [Configuração no projeto consumidor](#configuração-no-projeto-consumidor).
@@ -303,11 +342,10 @@ frase curta
 
 ### Convenções dos plugins existentes
 
-- **Exclusões padrão:**
-  - `_test.dart`, `.g.dart`, `.freezed.dart` (às vezes também `.mocks.dart`, `/generated/`, `/test/`);
-  - barrel files: nome do arquivo igual ao da pasta (`isBarrelFile`) ou `<camada>s.dart`.
-- **Camada:** pelo caminho (`/domain/`, `/data/`, `/presentation/`, `/usecases/`, `/entities/`...).
-- **Parse de classes linha a linha:** antes de aplicar regex de cabeçalho, chame `normalizePrimaryConstructorHeaders(content)`. Para os campos declarados no cabeçalho, use `primaryConstructorFieldsByLine(content)`/`findPrimaryConstructors(content)` (vêm de `primary-constructors.ts`). Sem isso, código com primary constructor (Dart 3.13) gera falso positivo (`const` lido como nome da classe, campos invisíveis). Quem confere identificadores do arquivo inteiro deve ler o conteúdo **original**.
+- **Exclusões padrão:** `DartFile.changed()` já tira testes (`path.isTest`) e gerados (`path.isGenerated`: `.g`, `.freezed`, `.mocks`... e as pastas `generated/`, `.dart_tool/`, `build/`); barrel files com `file.path.isBarrel` (nome do arquivo igual ao da pasta) ou `<camada>s.dart` pelo `fileName`.
+- **Camada e papel:** `file.path.inLayer(DartLayer.Domain)`, `file.path.inFolder(DartLayerFolder.Entities)` (a mesma regra de `includes("/domain/")`).
+- **Classes, campos e métodos:** sempre pelo modelo (`file.classes`, `cls.fields`, `cls.methods`...). O primary constructor (Dart 3.13) já está resolvido: os parâmetros declarantes aparecem em `cls.fields` (`origin === DartFieldOrigin.PrimaryConstructor`) e `cls.header` é o cabeçalho clássico.
+- **Ordem das mensagens:** é a ordem dos arquivos. `DartFile.changed()` devolve modificados e depois criados; `changed({ createdFirst: true })` inverte.
 - **Duplicidade entre plugins:** use `isPluginActive("outro-plugin")` para não repetir checagem (ex.: o changelog-checker não roda quando o pr-validation está ativo).
 - **Logs de debug:** use `verboseLog(...)`, que só aparece com `settings.verbose: true` ou `dry-run -v`.
 - **README do plugin:**
@@ -317,18 +355,19 @@ frase curta
 ### Checklist de entrega (plugin novo ou alterado)
 
 1. Registro nos [4 lugares](#registro-4-lugares--o-que-a-cli-faz): a CLI faz os três primeiros; o array de categoria é manual.
-2. README do plugin na estrutura de [README do plugin](#convenções-dos-plugins-existentes).
-3. Plugin novo, nos docs:
+2. O código Dart é lido pelo [modelo](#modelo-dart-srcdart--obrigatório-nos-plugins-flutter): nada de regex/contagem de chaves para achar classes, campos, métodos, chamadas, comentários ou strings. Se o modelo não tiver o que a regra precisa, acrescente no `src/dart/` com teste em `tests/dart-model.test.cjs` e rode `npm test`.
+3. README do plugin na estrutura de [README do plugin](#convenções-dos-plugins-existentes).
+4. Plugin novo, nos docs:
    - linha na tabela da categoria em `README.md` (`## Plugins`) e em `docs/GUIA_PLUGINS.md` (`## Lista completa de plugins`);
    - se entrou num array de categoria, a lista desse array em `README.md` (`## Importacao por Categoria`), `docs/API.md` e `docs/FAQ.md`;
    - o total de plugins em `docs/API.md`, `docs/FAQ.md`, `docs/CLI.md` e em [Plugins existentes](#plugins-existentes-48) (título e lista).
-4. Item em `## [Não publicado]` no `CHANGELOG.md` (ver [Versões e releases](#versões-e-releases)).
-5. `npm run lint`, `npm run type-check` e `npm run build`, com o `dist/` limpo como manda a [armadilha do dist](#armadilhas-conhecidas).
-6. Teste no dry-run ou no harness, com o caso que deve ser reportado e o que não deve.
+5. Item em `## [Não publicado]` no `CHANGELOG.md` (ver [Versões e releases](#versões-e-releases)).
+6. `npm run lint`, `npm run type-check` e `npm run build`, com o `dist/` limpo como manda a [armadilha do dist](#armadilhas-conhecidas).
+7. Teste no dry-run ou no harness, com o caso que deve ser reportado e o que não deve.
 
 ## Helpers disponíveis
 
-Todos são exportados por `@felipeduarte26/danger-bot` (e por `"@types"` dentro do pacote). Referência completa em [docs/HELPERS.md](docs/HELPERS.md) e [docs/API.md](docs/API.md).
+Todos são exportados por `@felipeduarte26/danger-bot` (e por `"@types"` dentro do pacote). Referência completa em [docs/HELPERS.md](docs/HELPERS.md) e [docs/API.md](docs/API.md). Para ler código Dart, use o [modelo Dart](#modelo-dart-srcdart--obrigatório-nos-plugins-flutter) (`DartFile`, `DartPath`...); os helpers marcados como legado continuam exportados só por compatibilidade com plugins locais antigos.
 
 | Helper                                                                                                                  | O que faz                                                                                   |
 | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
@@ -338,11 +377,11 @@ Todos são exportados por `@felipeduarte26/danger-bot` (e por `"@types"` dentro 
 | `sendMarkdown(msg, file?, line?)`                                                                                       | Markdown livre (tabelas, relatórios)                                                        |
 | `scheduleTask(fn)`                                                                                                      | Agenda tarefa no `schedule()` do Danger                                                     |
 | `getAllChangedFiles()`                                                                                                  | Criados + modificados, respeitando `ignore_files`                                           |
-| `getDartFiles()` **async**                                                                                              | `.dart` existentes no disco, **sem** `_test.dart`                                           |
+| `getDartFiles()` **async**                                                                                              | Legado: `.dart` existentes no disco, **sem** `_test.dart` (use `DartFile.changed()`)        |
 | `getDartFilesInDirectory(dir)` / `getDomainDartFiles()` / `getDataDartFiles()` / `getPresentationDartFiles()` **async** | Subconjuntos do `getDartFiles()`                                                            |
 | `getFilesMatching(re)` / `getFilesByExtension(ext)` / `hasFilesMatching(re)`                                            | Filtros sobre `getAllChangedFiles()`                                                        |
 | `getFileContent(file)` / `fileContainsPattern(file, re)` **async**                                                      | Conteúdo depois do PR (`diffForFile().after`, senão o disco)                                |
-| `isInLayer(file, "domain" \| "data" \| "presentation")`                                                                 | `file.includes("/<camada>/")`                                                               |
+| `isInLayer(file, "domain" \| "data" \| "presentation")`                                                                 | Legado: `file.includes("/<camada>/")` (use `DartPath.of(file).inLayer(DartLayer.Domain)`)   |
 | `getPRTitle()` / `getPRDescription()`                                                                                   | GitHub ou Bitbucket Cloud                                                                   |
 | `getLineStats()` **async**                                                                                              | `{ added, removed }` somando `diffForFile` (funciona no CI). `getLinesChanged()` é obsoleto |
 | `isPluginActive(name)` / `setActivePlugins(names)`                                                                      | Plugins que rodam nesta execução                                                            |
@@ -352,7 +391,7 @@ Todos são exportados por `@felipeduarte26/danger-bot` (e por `"@types"` dentro 
 | `setIgnoredFiles` / `getIgnoredFiles` / `isFileIgnored`                                                                 | Regra de `ignore_files` (globs)                                                             |
 | `createPlugin(config, run)` / `runPlugins(plugins)` / `executeDangerBot(plugins, callbacks?)`                           | Núcleo                                                                                      |
 | `loadConfig()` / `loadLocalPlugins(paths)`                                                                              | Leitura do `danger-bot.yaml`                                                                |
-| `normalizePrimaryConstructorHeaders` / `findPrimaryConstructors` / `primaryConstructorFieldsByLine`                     | Suporte a primary constructors (Dart 3.13+)                                                 |
+| `normalizePrimaryConstructorHeaders` / `findPrimaryConstructors` / `primaryConstructorFieldsByLine`                     | Legado: primary constructors em texto (o modelo já resolve: `cls.fields`, `cls.header`)     |
 | `importModule(specifier)` (só dentro do pacote, `src/native-import.ts`)                                                 | `import()` nativo para pacotes só-ESM                                                       |
 | `getLineAuthor(file, line)` / `formatBlameLine(file, line)` / `isBlameEnabled()`                                        | Autoria via `git blame` nos comentários inline (só Bitbucket)                               |
 
@@ -421,6 +460,12 @@ require(`${dist}/plugins/flutter/${plugin}`)
 ```
 
 Teste o caso que deve ser reportado **e** o que não deve. Para mudanças em parsers, compare o resultado antigo com o novo no mesmo diff: crie um `git worktree` do HEAD com `node_modules` linkado e rode o dry-run das duas versões num clone do esfera-web.
+
+**Mudanças no modelo Dart** (`src/dart/`) afetam todos os plugins:
+
+1. caso novo em `tests/dart-model.test.cjs` e `npm run build && npm test`;
+2. antes/depois de **todos** os plugins no mesmo código (um clone do esfera com todos os arquivos como criados e alguns PRs reais): as mensagens e as linhas têm de ser iguais, salvo correção explicada;
+3. autoconsistência: o mesmo esfera passado no `dart format --page-width 40` e `160` tem de dar os mesmos achados — o resultado não pode depender de quebra de linha.
 
 ## Configuração no projeto consumidor
 
@@ -565,7 +610,8 @@ Exemplos completos por plataforma em [docs/pipelines/](docs/pipelines/README.md)
 - **Danger runtime:**
   - `executeDangerBot` precisa continuar registrado no `schedule()` e com `flushSummaries()` no `finally`;
   - o `google-chat-notification` lê `global.results` mais `getPendingSummaryCounts()`.
-- **`getDartFiles()` é assíncrona e exclui testes:** use `getFilesMatching(/_test\.dart$/)` para pegar testes.
+- **Testes e gerados:** `DartFile.changed()` exclui os dois; `changed({ includeTests: true, includeGenerated: true })` traz tudo. O legado `getDartFiles()` é assíncrono e só exclui `_test.dart`.
+- **`path.isTest` × `/test/`:** `isTest` é a pasta de testes do pacote (fora de `lib/`); o esfera tem uma feature `lib/features/test/`, que é código de produção. Quem precisa da regra antiga ("qualquer `/test/` no caminho") usa `inFolder("test")`.
 - **Mudança no `domain-usecases`:** ele passou a analisar os `*_usecase.dart` (antes um filtro excluía todos) e reprova `Usecase` como casing errado. PRs que tocam usecases antigos com `Usecase` falham.
 - **Antes de mexer em heurísticas**, valide contra código real do time (esfera-web) num clone/cópia em diretório temporário. Nunca altere o repositório do projeto original.
 

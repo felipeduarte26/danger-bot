@@ -1,67 +1,18 @@
 "use strict";
-var __createBinding =
-  (this && this.__createBinding) ||
-  (Object.create
-    ? function (o, m, k, k2) {
-        if (k2 === undefined) k2 = k;
-        var desc = Object.getOwnPropertyDescriptor(m, k);
-        if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-          desc = {
-            enumerable: true,
-            get: function () {
-              return m[k];
-            },
-          };
-        }
-        Object.defineProperty(o, k2, desc);
-      }
-    : function (o, m, k, k2) {
-        if (k2 === undefined) k2 = k;
-        o[k2] = m[k];
-      });
-var __setModuleDefault =
-  (this && this.__setModuleDefault) ||
-  (Object.create
-    ? function (o, v) {
-        Object.defineProperty(o, "default", { enumerable: true, value: v });
-      }
-    : function (o, v) {
-        o["default"] = v;
-      });
-var __importStar =
-  (this && this.__importStar) ||
-  (function () {
-    var ownKeys = function (o) {
-      ownKeys =
-        Object.getOwnPropertyNames ||
-        function (o) {
-          var ar = [];
-          for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-          return ar;
-        };
-      return ownKeys(o);
-    };
-    return function (mod) {
-      if (mod && mod.__esModule) return mod;
-      var result = {};
-      if (mod != null)
-        for (var k = ownKeys(mod), i = 0; i < k.length; i++)
-          if (k[i] !== "default") __createBinding(result, mod, k[i]);
-      __setModuleDefault(result, mod);
-      return result;
-    };
-  })();
 Object.defineProperty(exports, "__esModule", { value: true });
 /**
  * Clean Architecture Plugin
- * Detecta violações de dependência entre camadas:
+ * Detecta violações de dependência entre camadas nos `import` (os `export` não contam):
  * - Domain só pode importar: própria camada, dart SDK, Flutter e pacotes puros (whitelist)
+ * - Domain não importa Data, Presentation nem Infrastructure (exceto caminhos com `/domain/`)
  * - Data não pode importar Presentation nem UseCases
+ * - UseCase não pode importar outro UseCase
  * - Presentation não pode importar Data diretamente
+ *
+ * Analisa só arquivos das camadas domain/data/presentation (exceto `_test.dart`).
+ * Imports `dart:` e relativos nunca são pacote externo.
  */
 const _types_1 = require("../../../types.js");
-const fs = __importStar(require("fs"));
-const IMPORT_RE = /^\s*import\s+['"]([^'"]+)['"]/;
 const DOMAIN_ALLOWED_PACKAGES = new Set([
   "meta",
   "equatable",
@@ -80,27 +31,31 @@ const DOMAIN_FORBIDDEN_LAYERS = [
   { pattern: "/infrastructure/", label: "Infrastructure" },
   { pattern: "/infra/", label: "Infrastructure" },
 ];
-function detectAppPackage(lines) {
-  for (const line of lines) {
-    const m = line.match(IMPORT_RE);
-    if (!m?.[1].startsWith("package:")) continue;
-    const importPath = m[1];
-    if (
-      importPath.includes("/domain/") ||
-      importPath.includes("/data/") ||
-      importPath.includes("/presentation/") ||
-      importPath.includes("/core/") ||
-      importPath.includes("/features/") ||
-      importPath.includes("/utils/") ||
-      importPath.includes("/shared/") ||
-      importPath.includes("/common/") ||
-      importPath.includes("/modules/") ||
-      importPath.includes("/app/")
-    ) {
-      return importPath.replace("package:", "").split("/")[0];
-    }
-  }
-  return null;
+/** Pastas que identificam um import do próprio app (e não de um pacote de terceiros). */
+const APP_PACKAGE_FOLDERS = [
+  "/domain/",
+  "/data/",
+  "/presentation/",
+  "/core/",
+  "/features/",
+  "/utils/",
+  "/shared/",
+  "/common/",
+  "/modules/",
+  "/app/",
+];
+/** Pacote do app: o do 1º import `package:` que aponta para uma pasta típica do projeto. */
+function detectAppPackage(file) {
+  const appImport = file.imports.find(
+    (imp) =>
+      imp.uriKind === _types_1.DartUriKind.Package &&
+      APP_PACKAGE_FOLDERS.some((folder) => imp.uri.includes(folder))
+  );
+  return appImport?.packageName ?? null;
+}
+/** O import aponta para um usecase (pasta `/usecases/` ou arquivo `_usecase.dart`). */
+function importsUseCase(uri) {
+  return uri.includes("/usecases/") || uri.includes("_usecase.dart");
 }
 exports.default = (0, _types_1.createPlugin)(
   {
@@ -109,33 +64,33 @@ exports.default = (0, _types_1.createPlugin)(
     enabled: true,
   },
   async () => {
-    const { git } = (0, _types_1.getDanger)();
-    const dartFiles = [...git.modified_files, ...git.created_files].filter(
-      (f) => f.endsWith(".dart") && !f.endsWith("_test.dart") && fs.existsSync(f)
-    );
+    const dartFiles = _types_1.DartFile.changed({
+      includeTests: true,
+      includeGenerated: true,
+    }).filter((file) => !file.path.fileName.endsWith("_test.dart"));
     const violations = [];
-    for (const file of dartFiles) {
-      const content = fs.readFileSync(file, "utf-8");
-      const lines = content.split("\n");
-      const isDomain = file.includes("/domain/");
-      const isData = file.includes("/data/");
-      const isPresentation = file.includes("/presentation/");
-      const isUseCase = file.includes("/usecases/") || file.endsWith("_usecase.dart");
+    for (const dartFile of dartFiles) {
+      const file = dartFile.path.path;
+      const isDomain = dartFile.path.inLayer(_types_1.DartLayer.Domain);
+      const isData = dartFile.path.inLayer(_types_1.DartLayer.Data);
+      const isPresentation = dartFile.path.inLayer(_types_1.DartLayer.Presentation);
+      const isUseCase =
+        dartFile.path.inFolder(_types_1.DartLayerFolder.UseCases) ||
+        dartFile.path.fileName.endsWith("_usecase.dart");
       if (!isDomain && !isData && !isPresentation) continue;
-      const appPackage = isDomain ? detectAppPackage(lines) : null;
-      for (let i = 0; i < lines.length; i++) {
-        const match = lines[i].match(IMPORT_RE);
-        if (!match) continue;
-        const importPath = match[1];
+      const appPackage = isDomain ? detectAppPackage(dartFile) : null;
+      for (const imp of dartFile.imports) {
+        const importPath = imp.uri;
+        const line = imp.line;
         if (isDomain) {
-          if (importPath.startsWith("package:")) {
-            const packageName = importPath.replace("package:", "").split("/")[0];
+          if (imp.uriKind === _types_1.DartUriKind.Package && imp.packageName !== null) {
+            const packageName = imp.packageName;
             const isOwnPackage = packageName === appPackage;
             const isAllowedPackage = DOMAIN_ALLOWED_PACKAGES.has(packageName);
             if (!isOwnPackage && !isAllowedPackage) {
               violations.push({
                 file,
-                line: i + 1,
+                line,
                 importPath,
                 rule: "DOMAIN → PACOTE EXTERNO",
                 title: "VIOLAÇÃO CLEAN ARCHITECTURE — DOMAIN IMPORTA PACOTE EXTERNO",
@@ -149,7 +104,7 @@ exports.default = (0, _types_1.createPlugin)(
             if (importPath.includes(layer.pattern) && !importPath.includes("/domain/")) {
               violations.push({
                 file,
-                line: i + 1,
+                line,
                 importPath,
                 rule: `DOMAIN → ${layer.label.toUpperCase()}`,
                 title: `VIOLAÇÃO CLEAN ARCHITECTURE — DOMAIN → ${layer.label.toUpperCase()}`,
@@ -164,7 +119,7 @@ exports.default = (0, _types_1.createPlugin)(
         if (isData && importPath.includes("/presentation/")) {
           violations.push({
             file,
-            line: i + 1,
+            line,
             importPath,
             rule: "DATA → PRESENTATION",
             title: "VIOLAÇÃO CLEAN ARCHITECTURE — DATA → PRESENTATION",
@@ -174,10 +129,10 @@ exports.default = (0, _types_1.createPlugin)(
             correctExample: `// Data não importa Presentation — passe dados via parâmetro`,
           });
         }
-        if (isData && (importPath.includes("/usecases/") || importPath.includes("_usecase.dart"))) {
+        if (isData && importsUseCase(importPath)) {
           violations.push({
             file,
-            line: i + 1,
+            line,
             importPath,
             rule: "DATA → USECASE",
             title: "VIOLAÇÃO CLEAN ARCHITECTURE — DATA → USECASE",
@@ -187,13 +142,10 @@ exports.default = (0, _types_1.createPlugin)(
             correctExample: `import 'package:app/.../domain/repositories/user_repository_interface.dart';`,
           });
         }
-        if (
-          isUseCase &&
-          (importPath.includes("/usecases/") || importPath.includes("_usecase.dart"))
-        ) {
+        if (isUseCase && importsUseCase(importPath)) {
           violations.push({
             file,
-            line: i + 1,
+            line,
             importPath,
             rule: "USECASE → USECASE",
             title: "VIOLAÇÃO CLEAN ARCHITECTURE — USECASE → USECASE",
@@ -206,7 +158,7 @@ exports.default = (0, _types_1.createPlugin)(
         if (isPresentation && importPath.includes("/data/")) {
           violations.push({
             file,
-            line: i + 1,
+            line,
             importPath,
             rule: "PRESENTATION → DATA",
             title: "VIOLAÇÃO CLEAN ARCHITECTURE — PRESENTATION → DATA",

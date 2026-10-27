@@ -6,73 +6,24 @@ Object.defineProperty(exports, "__esModule", { value: true });
  *
  * Exemplo: domain/usecase/ deve ser domain/usecases/
  *
- * Analisa os caminhos dos arquivos alterados/criados no PR e verifica
- * se alguma pasta usa a forma singular quando o padrão é plural.
- * Reporta cada pasta incorreta apenas uma vez, independente de quantos
- * arquivos dentro dela foram alterados.
+ * Analisa os caminhos dos arquivos `.dart` alterados/criados no PR (exceto
+ * `_test.dart`) e verifica se alguma pasta usa a forma singular logo abaixo da
+ * camada (segmento exato: `usecases/` não casa `usecase/`). Reporta cada pasta
+ * incorreta apenas uma vez no PR, independente de quantos arquivos dentro dela
+ * foram alterados.
  */
 const _types_1 = require("../../../types.js");
 const FOLDER_RULES = [
-  {
-    pattern: /\/domain\/usecase\//,
-    singular: "usecase",
-    plural: "usecases",
-    layer: "domain",
-  },
-  {
-    pattern: /\/domain\/entity\//,
-    singular: "entity",
-    plural: "entities",
-    layer: "domain",
-  },
-  {
-    pattern: /\/domain\/failure\//,
-    singular: "failure",
-    plural: "failures",
-    layer: "domain",
-  },
-  {
-    pattern: /\/domain\/repository\//,
-    singular: "repository",
-    plural: "repositories",
-    layer: "domain",
-  },
-  {
-    pattern: /\/data\/datasource\//,
-    singular: "datasource",
-    plural: "datasources",
-    layer: "data",
-  },
-  {
-    pattern: /\/data\/model\//,
-    singular: "model",
-    plural: "models",
-    layer: "data",
-  },
-  {
-    pattern: /\/data\/repository\//,
-    singular: "repository",
-    plural: "repositories",
-    layer: "data",
-  },
-  {
-    pattern: /\/presentation\/viewmodel\//,
-    singular: "viewmodel",
-    plural: "viewmodels",
-    layer: "presentation",
-  },
-  {
-    pattern: /\/presentation\/view\//,
-    singular: "view",
-    plural: "views",
-    layer: "presentation",
-  },
-  {
-    pattern: /\/presentation\/widget\//,
-    singular: "widget",
-    plural: "widgets",
-    layer: "presentation",
-  },
+  { layer: _types_1.DartLayer.Domain, singular: "usecase", plural: "usecases" },
+  { layer: _types_1.DartLayer.Domain, singular: "entity", plural: "entities" },
+  { layer: _types_1.DartLayer.Domain, singular: "failure", plural: "failures" },
+  { layer: _types_1.DartLayer.Domain, singular: "repository", plural: "repositories" },
+  { layer: _types_1.DartLayer.Data, singular: "datasource", plural: "datasources" },
+  { layer: _types_1.DartLayer.Data, singular: "model", plural: "models" },
+  { layer: _types_1.DartLayer.Data, singular: "repository", plural: "repositories" },
+  { layer: _types_1.DartLayer.Presentation, singular: "viewmodel", plural: "viewmodels" },
+  { layer: _types_1.DartLayer.Presentation, singular: "view", plural: "views" },
+  { layer: _types_1.DartLayer.Presentation, singular: "widget", plural: "widgets" },
 ];
 exports.default = (0, _types_1.createPlugin)(
   {
@@ -82,19 +33,19 @@ exports.default = (0, _types_1.createPlugin)(
   },
   async () => {
     const { git } = (0, _types_1.getDanger)();
-    const dartFiles = [...git.created_files, ...git.modified_files].filter(
-      (f) => f.endsWith(".dart") && !f.endsWith("_test.dart")
-    );
+    const dartFiles = [...git.created_files, ...git.modified_files]
+      .map((f) => _types_1.DartPath.of(f))
+      .filter((file) => file.isDart && !file.fileName.endsWith("_test.dart"));
     if (dartFiles.length === 0) return;
     const reported = new Set();
     for (const file of dartFiles) {
       for (const rule of FOLDER_RULES) {
-        if (!rule.pattern.test(file)) continue;
-        const key = `${rule.layer}/${rule.singular}`;
-        if (reported.has(key)) continue;
-        reported.add(key);
-        const featureMatch = file.match(/\/features\/([^/]+)\//);
-        const featureName = featureMatch ? featureMatch[1] : "feature";
+        // `/domain/usecase/` no caminho: a pasta singular logo abaixo da camada
+        const singularFolder = `${rule.layer}/${rule.singular}`;
+        if (!file.inFolder(singularFolder)) continue;
+        if (reported.has(singularFolder)) continue;
+        reported.add(singularFolder);
+        const featureName = file.feature ?? "feature";
         const wrongTree =
           `features/${featureName}/\n` +
           `└── ${rule.layer}/\n` +
@@ -122,7 +73,7 @@ exports.default = (0, _types_1.createPlugin)(
             text: "Flutter Clean Architecture — Folder Structure",
             url: "https://resocoder.com/flutter-clean-architecture-tdd/",
           },
-          file,
+          file: file.path,
           line: 1,
         });
       }

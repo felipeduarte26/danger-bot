@@ -36,6 +36,13 @@ var __setModuleDefault =
     : function (o, v) {
         o["default"] = v;
       });
+var __exportStar =
+  (this && this.__exportStar) ||
+  function (m, exports) {
+    for (var p in m)
+      if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p))
+        __createBinding(exports, m, p);
+  };
 var __importStar =
   (this && this.__importStar) ||
   (function () {
@@ -314,6 +321,9 @@ Object.defineProperty(exports, "loadLocalPlugins", {
     return config_1.loadLocalPlugins;
   },
 });
+// Modelo Dart (DartFile, DartClass, DartPath...): docs/MODELO_DART.md
+__exportStar(require("./dart"), exports);
+const dart_1 = require("./dart");
 /**
  * HELPER: Criar plugin facilmente
  */
@@ -333,6 +343,7 @@ async function runPlugins(plugins) {
     __importStar(require("./helpers"))
   );
   const verbose = isVerbose();
+  dart_1.DartFile.clearCache();
   setActivePlugins(plugins.filter((p) => p.config.enabled).map((p) => p.config.name));
   const totalStart = Date.now();
   if (verbose) {

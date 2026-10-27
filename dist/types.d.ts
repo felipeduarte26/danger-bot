@@ -44,6 +44,7 @@ export {
 export type { FormattedMessageOptions } from "./helpers";
 export { loadConfig, loadLocalPlugins } from "./config";
 export type { DangerBotConfig } from "./config";
+export * from "./dart";
 export interface DangerPluginConfig {
   /** Nome do plugin para identificação em logs */
   name: string;

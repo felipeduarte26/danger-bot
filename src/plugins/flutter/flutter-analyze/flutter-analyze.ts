@@ -1,6 +1,19 @@
+/**
+ * Flutter Analyze Plugin
+ * Roda `flutter analyze` nos arquivos .dart criados/modificados e publica cada
+ * diagnóstico como comentário inline (mensagem traduzida + link da regra), com um
+ * `fail` de resumo.
+ *
+ * Analisa todo .dart existente no disco, exceto `_test.dart` e os gerados de
+ * SKIPPED_GENERATED_SUFFIXES. Helpers e fixtures em test/ e os gerados de outras
+ * ferramentas (.gen.dart, l10n/generated/) continuam sendo analisados.
+ */
 import { execSync } from "child_process";
 import * as fs from "fs";
-import { createPlugin, getDanger, sendMessage, sendFail } from "@types";
+import { DartPath, createPlugin, getDanger, sendMessage, sendFail } from "@types";
+
+/** Gerados que não vão para o analyze (lista do plugin, menor que `DartPath.isGenerated`). */
+const SKIPPED_GENERATED_SUFFIXES = [".g.dart", ".freezed.dart", ".mocks.dart"];
 
 export default createPlugin(
   {
@@ -9,20 +22,17 @@ export default createPlugin(
     enabled: true,
   },
   async () => {
-    const danger = getDanger();
+    const { git } = getDanger();
 
-    const allFiles = [...danger.git.modified_files, ...danger.git.created_files];
-
-    // Filtrar apenas arquivos .dart (excluindo gerados e testes)
-    const dartFiles = allFiles.filter(
-      (file: string) =>
-        file.endsWith(".dart") &&
-        !file.endsWith("_test.dart") &&
-        !file.includes(".g.dart") &&
-        !file.includes(".freezed.dart") &&
-        !file.includes(".mocks.dart") &&
-        fs.existsSync(file)
-    );
+    const dartFiles = [...git.modified_files, ...git.created_files].filter((f: string) => {
+      const file = DartPath.of(f);
+      return (
+        file.isDart &&
+        !file.fileName.endsWith("_test.dart") &&
+        !SKIPPED_GENERATED_SUFFIXES.includes(file.compoundSuffix ?? "") &&
+        fs.existsSync(f)
+      );
+    });
 
     if (dartFiles.length === 0) {
       sendMessage("ℹ️ **Flutter Analyze**: Nenhum arquivo Dart alterado para analisar.");
