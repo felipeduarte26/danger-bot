@@ -41,7 +41,7 @@ Os testes automáticos cobrem o **modelo Dart** (`tests/dart-model.test.cjs`). P
 - `conventions`: commitlint nos commits do PR ou do push, aviso quando o PR muda `src/`/`bin/`/`scripts/` sem mexer no CHANGELOG, e [.github/scripts/check-version.cjs](.github/scripts/check-version.cjs) (versão do `package.json` igual no badge, no `CLI.md`, no `INSTALACAO.md` e no CHANGELOG);
 - `tag`: só em push na `main`, depois de todos: cria a tag anotada `vX.Y.Z` da versão do `package.json`, se ela ainda não existir no remoto.
 
-**Commits:** [Conventional Commits](https://www.conventionalcommits.org/) (`docs/COMMITS.md`): `type(scope): subject`, subject em minúsculas e sem ponto final, header ≤ 100. Tipos: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert. Scope é opcional (sem ele, só um aviso).
+**Commits:** [Conventional Commits](https://www.conventionalcommits.org/) (`docs/COMMITS.md`): `type(scope): subject`, subject em minúsculas e sem ponto final, header ≤ 100. Tipos: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert. Scope é opcional (sem ele, só um aviso). O autor é sempre o dono do repositório: **não** adicione `Co-Authored-By: Claude` (nem qualquer atribuição ao Claude/Anthropic) nos commits nem "Generated with Claude Code" nas descrições de PR.
 
 ## Versões e releases
 
