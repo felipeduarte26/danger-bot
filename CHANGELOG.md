@@ -6,6 +6,8 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 As versões até a 4.0.0 foram reconstruídas a partir do histórico de commits (o `version` do `package.json` em cada commit) e não têm tag: os links delas comparam commits. Nem todas seguiram o SemVer à risca, e números que o pacote nunca teve não aparecem. As tags `vX.Y.Z` começam na 4.0.1.
 
+## [Não publicado]
+
 ## [5.0.1] - 2026-10-27
 
 ### Modificado
@@ -1060,7 +1062,8 @@ Falsos positivos que deixam de ser reportados:
 - CLI `danger-bot` com os comandos `create-plugin` (`new`), `list` (`ls`), `generate-dangerfile` (`gen`), `validate` e `info`.
 - Guias de instalação, CLI, arquitetura e configuração de pipelines em `docs/`.
 
-[Não publicado]: https://github.com/felipeduarte26/danger-bot/compare/v5.0.0...HEAD
+[Não publicado]: https://github.com/felipeduarte26/danger-bot/compare/v5.0.1...HEAD
+[5.0.1]: https://github.com/felipeduarte26/danger-bot/compare/v5.0.0...v5.0.1
 [5.0.0]: https://github.com/felipeduarte26/danger-bot/compare/v4.1.0...v5.0.0
 [4.1.0]: https://github.com/felipeduarte26/danger-bot/compare/v4.0.1...v4.1.0
 [4.0.1]: https://github.com/felipeduarte26/danger-bot/compare/fc1c4ea50...v4.0.1
