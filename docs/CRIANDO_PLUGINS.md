@@ -541,7 +541,7 @@ Não contorne no plugin com regex, tokens ou contagem de chaves. Acrescente no m
    - o resultado não depende da formatação.
 2. Adicione o caso em [tests/dart-model.test.cjs](../tests/dart-model.test.cjs), inclusive o que **não**
    deve ser reconhecido, e rode `npm run build && npm test`.
-3. Documente em [MODELO_DART.md](MODELO_DART.md) e, se servir de receita, aqui.
+3. Documente em [MODELO_DART.md](MODELO_DART.md) e, se for útil como exemplo, acrescente-o ao [cookbook](MODELO_DART.md#16-cookbook).
 4. Rode a paridade de **todos** os plugins (`tools/parity/ab.sh novo` sem nomes): uma propriedade nova
    pode mudar o que outros plugins já usam.
 

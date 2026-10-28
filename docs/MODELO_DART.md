@@ -30,7 +30,7 @@ uma vez por execução, e todos os plugins compartilham o resultado.
 13. [Diretivas, identificadores e erros de leitura](#13-diretivas-identificadores-e-erros-de-leitura)
 14. [`DartText`: utilitários de nomes](#14-darttext-utilitários-de-nomes)
 15. [Enums](#15-enums)
-16. [Receitas](#16-receitas)
+16. [Cookbook](#16-cookbook)
 17. [Mensagens: qual linha e qual texto usar](#17-mensagens-qual-linha-e-qual-texto-usar)
 18. [O que o modelo garante](#18-o-que-o-modelo-garante)
 19. [Perguntas frequentes](#19-perguntas-frequentes)
@@ -1108,9 +1108,9 @@ A categoria de um arquivo do PR (`path.category`), avaliada nesta ordem:
 
 ---
 
-## 16. Receitas
+## 16. Cookbook
 
-Cada receita é uma função que recebe um `DartFile` e devolve os nós a reportar. No plugin, cada item
+Cada exemplo do cookbook é uma função que recebe um `DartFile` e devolve os nós a reportar. No plugin, cada item
 vira uma mensagem no [padrão obrigatório](CRIANDO_PLUGINS.md#5-monte-a-mensagem):
 
 ```typescript
@@ -1125,9 +1125,9 @@ for (const file of DartFile.changed()) {
 }
 ```
 
-### Receitas por objetivo
+### Cookbook por objetivo
 
-| Quero...                              | Receita                                                                  |
+| Quero...                              | Exemplo                                                                  |
 | ------------------------------------- | ------------------------------------------------------------------------ |
 | Filtrar arquivos por camada ou pasta  | [1](#1-arquivos-de-uma-pasta-de-papel)                                   |
 | Achar campos com um problema          | [2](#2-campo-mutável-em-entity)                                          |

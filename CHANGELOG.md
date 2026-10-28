@@ -10,7 +10,7 @@ As versões até a 4.0.0 foram reconstruídas a partir do histórico de commits 
 
 ### Modificado
 
-- `docs/MODELO_DART.md` reescrito como referência completa do modelo Dart: todas as classes, propriedades, métodos e enums, com o que cada um faz e exemplos reais, mais 18 receitas testadas e perguntas frequentes.
+- `docs/MODELO_DART.md` reescrito como referência completa do modelo Dart: todas as classes, propriedades, métodos e enums, com o que cada um faz e exemplos reais, mais um cookbook com 18 exemplos testados e perguntas frequentes.
 
 ### Removido
 

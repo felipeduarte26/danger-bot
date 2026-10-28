@@ -118,7 +118,7 @@ Abra um PR no GitHub.
 
 ## Criando um plugin
 
-> Guia completo: [CRIANDO_PLUGINS.md](CRIANDO_PLUGINS.md) (passo a passo, receitas, exemplos e checklist de revisão).
+> Guia completo: [CRIANDO_PLUGINS.md](CRIANDO_PLUGINS.md) (passo a passo, cookbook, exemplos e checklist de revisão).
 
 ### Via CLI (recomendado)
 

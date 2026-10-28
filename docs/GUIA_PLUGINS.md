@@ -337,7 +337,7 @@ executeDangerBot(allFlutterPlugins);
 
 ## Criando um plugin customizado
 
-> **Passo a passo, receitas ("preciso de... → use") e exemplos completos:** [CRIANDO_PLUGINS.md](CRIANDO_PLUGINS.md).
+> **Passo a passo, cookbook ("preciso de... → use") e exemplos completos:** [CRIANDO_PLUGINS.md](CRIANDO_PLUGINS.md).
 
 Todo plugin Flutter lê o código pelo **modelo Dart** ([MODELO_DART.md](MODELO_DART.md)): `DartFile.changed()` entrega os arquivos `.dart` do PR já analisados, e o plugin trabalha com propriedades — `file.classes`, `cls.fields`, `cls.methods`, `method.body.calls`, `file.imports`, `file.comments`, `file.strings`... Não use regex nem contagem de chaves para achar classes, campos, métodos, chamadas, comentários ou strings: o modelo já trata comentários, strings, genéricos aninhados, quebras de linha e primary constructors (Dart 3.13).
 

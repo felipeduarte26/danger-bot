@@ -293,7 +293,7 @@ db ls                         # Equivalente a: danger-bot list
 | [Guia de Plugins](docs/GUIA_PLUGINS.md)    | Como usar, configurar e criar plugins |
 | [API Reference](docs/API.md)               | Referencia completa da API            |
 | [Helpers](docs/HELPERS.md)                 | Funcoes auxiliares disponiveis        |
-| [Criando Plugins](docs/CRIANDO_PLUGINS.md) | Passo a passo e receitas para plugins |
+| [Criando Plugins](docs/CRIANDO_PLUGINS.md) | Passo a passo e cookbook para plugins |
 | [Modelo Dart](docs/MODELO_DART.md)         | Como os plugins leem o codigo Dart    |
 | [CLI](docs/CLI.md)                         | Comandos da CLI                       |
 | [Exemplos](docs/EXEMPLOS.md)               | Casos de uso praticos                 |
