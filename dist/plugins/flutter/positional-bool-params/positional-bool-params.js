@@ -19,16 +19,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * - Operadores (operator ==)
  * - Tipos que só contêm bool: `bool Function(int)`, `void Function(bool)`, `List<bool>`
  * - Closures passadas como argumento (`onChanged: (bool value) {...}`)
- * - Funções genéricas (`foo<T>(bool x)`), por compatibilidade com o código antigo
  *
  * @see https://dart.dev/effective-dart/design#avoid-positional-boolean-parameters
  */
 const _types_1 = require("../../../types.js");
-/**
- * Callables do arquivo, na ordem das linhas (a ordem das mensagens).
- * Compatibilidade: funções e métodos genéricos (`void _sort<T>(...)`) ficam de fora,
- * porque o código antigo não os via; incluí-los passa a reportar 1 caso no esfera.
- */
+/** Callables do arquivo (também genéricos: `void _sort<T>(...)`), na ordem das linhas (a ordem das mensagens). */
 function callablesOf(file) {
   const callables = [];
   const add = (name, line, parameters) => {
@@ -41,8 +36,7 @@ function callablesOf(file) {
     }
   };
   for (const fn of file.functions) {
-    if (fn.memberKind !== _types_1.DartMemberKind.Setter && fn.typeParameters.length === 0)
-      add(fn.name, fn.nameLine, fn.parameters);
+    if (fn.memberKind !== _types_1.DartMemberKind.Setter) add(fn.name, fn.nameLine, fn.parameters);
     addLocalFunctions(fn.body);
   }
   for (const declaration of file.declarations) {
@@ -54,8 +48,7 @@ function callablesOf(file) {
       const skipped =
         method.isOverride ||
         method.memberKind === _types_1.DartMemberKind.Setter ||
-        method.memberKind === _types_1.DartMemberKind.Operator ||
-        method.typeParameters.length > 0;
+        method.memberKind === _types_1.DartMemberKind.Operator;
       if (!skipped) add(method.name, method.nameLine, method.parameters);
       addLocalFunctions(method.body);
     }

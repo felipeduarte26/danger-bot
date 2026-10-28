@@ -38,8 +38,8 @@ npm run type-check
 | `watch` | `tsc --watch` | Compila em modo watch |
 | `lint` | `eslint . --max-warnings 0` | Verifica erros de lint |
 | `lint:fix` | `eslint . --fix` | Corrige erros automaticamente |
-| `format` | `prettier --write "src/**/*.ts" "bin/**/*.js"` | Formata codigo |
-| `format:check` | `prettier --check "src/**/*.ts" "bin/**/*.js"` | Verifica formatacao |
+| `format` | `prettier --write` em `src/`, `bin/`, `tests/` e `.github/` | Formata codigo |
+| `format:check` | `prettier --check` nos mesmos arquivos | Verifica formatacao (roda no CI) |
 | `type-check` | `tsc --noEmit` | Verifica tipos sem gerar arquivos |
 | `test` | `node --test tests/*.test.cjs` | Testes do modelo Dart (sobre o `dist/`: rode o build antes) |
 | `prepare` | `husky` | Configura git hooks |
@@ -199,16 +199,33 @@ O `pre-push` roda lint, type-check e build. Se o `src/` esta sem alteracoes loca
 
 ## Versionamento
 
-```bash
-# Atualizar versao no package.json
-npm version patch  # 1.8.0 → 1.8.1
-npm version minor  # 1.8.0 → 1.9.0
-npm version major  # 1.8.0 → 2.0.0
+O historico fica no [CHANGELOG](../CHANGELOG.md) (Keep a Changelog + SemVer). Para fechar uma versao:
 
-# Criar tag
-git tag v1.9.0
-git push origin v1.9.0
-```
+1. No `CHANGELOG.md`, troque `## [Nao publicado]` por `## [X.Y.Z] - AAAA-MM-DD`, abra um `## [Nao publicado]` vazio acima e atualize os links do fim.
+2. Mesmo numero no `package.json`, no badge do `README.md`, na saida do `info` em `docs/CLI.md` e na do `npm list` em `docs/INSTALACAO.md`.
+3. Commit `chore(release): vX.Y.Z` e `git push origin main`.
+
+A tag `vX.Y.Z` e criada pelo CI (veja abaixo). Nao use `npm version`: ele cria commit e tag com outro formato.
+
+---
+
+## CI
+
+O workflow [.github/workflows/ci.yml](../.github/workflows/ci.yml) roda em todo PR, em todo push na `main` e manualmente (`workflow_dispatch`). Os jobs de verificacao rodam em paralelo, cada um com o proprio status no PR:
+
+| Job | O que verifica |
+| --- | --- |
+| `lint` | ESLint (inclusive as regras que barram regex e parser proprio nos plugins) e Prettier (`npm run format:check`) |
+| `types` | `npm run type-check` |
+| `build` | `npm run build` e se o `dist/` commitado e o build do `src/` (sem diff depois do build) |
+| `test` | `npm test` sobre o `dist/` commitado (o que o consumidor instala) |
+| `cli` | Smoke test da CLI: `--version`, `list`, `inspect` de um arquivo Dart e `validate` de um plugin |
+| `conventions` | Mensagens de commit (commitlint), aviso de CHANGELOG no PR que muda `src/`, `bin/` ou `scripts/`, e versao igual no `package.json`, no badge do README, no `CLI.md`, no `INSTALACAO.md` e no CHANGELOG |
+| `tag` | So em push na `main`, depois de todos: cria a tag anotada `vX.Y.Z` da versao do `package.json` |
+
+Todos os jobs usam a preparacao comum de [.github/actions/setup](../.github/actions/setup/action.yml): Node 25, cache do npm (pelo `package.json`, ja que nao ha lock commitado) e `npm install`.
+
+O job `tag` le a versao do `package.json` e cria a tag no commit **se ela ainda nao existir** no remoto. Se a versao nao mudou, nao faz nada. Versao fora do formato `X.Y.Z` reprova o job; sem a secao `## [X.Y.Z]` no CHANGELOG, a tag e criada com um aviso.
 
 ---
 

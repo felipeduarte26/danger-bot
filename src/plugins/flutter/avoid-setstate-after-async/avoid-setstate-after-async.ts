@@ -13,9 +13,7 @@
  * awaits dela contam, e um `mounted` entre o último await e o setState libera
  * (um novo await exige nova verificação).
  *
- * Compatibilidade com o código antigo: State genérico (`class _FooState<T> extends
- * State<Foo<T>>`) fica de fora, porque o código antigo não o via; incluí-lo passa a
- * reportar 1 caso no esfera.
+ * Vale também para State genérico (`class _FooState<T> extends State<Foo<T>>`).
  *
  * Este plugin emite WARNING (não fail) pois pode haver casos onde o
  * mounted check está em um nível acima ou em um helper.
@@ -36,7 +34,7 @@ export default createPlugin(
   async () => {
     for (const file of DartFile.changed()) {
       const issues = file.classes
-        .filter((c) => c.extendsAny("State", "ViewState") && c.typeParameters.length === 0)
+        .filter((c) => c.extendsAny("State", "ViewState"))
         .flatMap((state) => asyncBodiesOf(file, state))
         .flatMap(findSetStateAfterAwait)
         .sort((a, b) => a.line - b.line);

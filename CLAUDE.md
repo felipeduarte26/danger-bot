@@ -31,6 +31,16 @@ Os testes automáticos cobrem o **modelo Dart** (`tests/dart-model.test.cjs`). P
 - `commit-msg`: commitlint
 - `pre-push`: lint + type-check + build e, com o `src/` sem alterações locais, confere se o build mudou o `dist/` (se mudou, o `dist/` commitado está desatualizado: commite-o e faça o push de novo)
 
+**CI** ([.github/workflows/ci.yml](.github/workflows/ci.yml), GitHub Actions, em PR, em push na `main` e manual). Jobs em paralelo, todos com a preparação comum de [.github/actions/setup](.github/actions/setup/action.yml) (Node 25, cache do npm, `npm install`):
+
+- `lint`: ESLint e `npm run format:check` (Prettier em `src/`, `bin/`, `tests/` e `.github/`);
+- `types`: `npm run type-check`;
+- `build`: `npm run build` e conferência do `dist/` (sem diff depois do build);
+- `test`: `npm test` sobre o `dist/` commitado;
+- `cli`: smoke test da CLI (`--version`, `list`, `inspect` de um arquivo Dart, `validate`);
+- `conventions`: commitlint nos commits do PR ou do push, aviso quando o PR muda `src/`/`bin/`/`scripts/` sem mexer no CHANGELOG, e [.github/scripts/check-version.cjs](.github/scripts/check-version.cjs) (versão do `package.json` igual no badge, no `CLI.md`, no `INSTALACAO.md` e no CHANGELOG);
+- `tag`: só em push na `main`, depois de todos: cria a tag anotada `vX.Y.Z` da versão do `package.json`, se ela ainda não existir no remoto.
+
 **Commits:** [Conventional Commits](https://www.conventionalcommits.org/) (`docs/COMMITS.md`): `type(scope): subject`, subject em minúsculas e sem ponto final, header ≤ 100. Tipos: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert. Scope é opcional (sem ele, só um aviso).
 
 ## Versões e releases
@@ -45,8 +55,7 @@ O histórico fica no [CHANGELOG.md](CHANGELOG.md), no formato [Keep a Changelog 
 - **Fechar uma versão:**
   1. No `CHANGELOG.md`, troque `## [Não publicado]` por `## [X.Y.Z] - AAAA-MM-DD`, abra um `## [Não publicado]` vazio acima e atualize os links do fim (`[Não publicado]` compara `vX.Y.Z...HEAD`; `[X.Y.Z]` compara a tag anterior com `vX.Y.Z`).
   2. Mesmo número no `package.json`, no badge do `README.md`, na saída do `info` em `docs/CLI.md` e na do `npm list` em `docs/INSTALACAO.md`. O `PATCH_VERSION` do patch lê o `package.json`.
-  3. Commit `chore(release): vX.Y.Z` e tag anotada nele: `git tag -a vX.Y.Z -m "vX.Y.Z"`.
-  4. `git push origin main vX.Y.Z`.
+  3. Commit `chore(release): vX.Y.Z` e `git push origin main`. O CI cria a tag anotada `vX.Y.Z` nesse commit depois que as verificações passam; se a tag já existir, não faz nada. Criar a tag à mão (`git tag -a vX.Y.Z -m "vX.Y.Z"` e `git push origin main vX.Y.Z`) continua funcionando. Sem a seção `## [X.Y.Z]` no CHANGELOG, a tag sai assim mesmo, com um aviso no log do CI.
 - As tags `vX.Y.Z` começam na 4.0.1. As versões anteriores estão no CHANGELOG com links por hash de commit.
 
 ## Arquitetura
@@ -144,10 +153,6 @@ Como funciona:
 - Trecho que não casa vira `⚠️ trecho nao encontrado (<rótulo>)` no log e um aviso de patch incompleto no fim. Ao atualizar o Danger, rode o script e corrija os textos `original` que deixaram de casar.
 - O GitLab usa o `githubIssueTemplate`; não há patch específico para ele.
 - Para conferir uma instalação: `cat node_modules/danger/.danger-bot-patched` e `grep -c "__dangerBotBranding" node_modules/danger/distribution/runner/templates/*.js`.
-
-### Scripts legados
-
-`scripts/extract_dart_identifiers.js` e `scripts/setup_spell_check.sh` são do spell check antigo, que rodava como step separado do CI. Nada os usa: o spell-checker monta a config do cspell sozinho, e o `.js` nem roda (usa `require` num pacote `"type": "module"`). Não os use como base nem os recomende em pipelines. Remover ou manter é decisão do dono, porque vão junto no pacote publicado (`files`).
 
 ### CLI ([bin/cli.js](bin/cli.js), alias `db`)
 
@@ -529,7 +534,6 @@ settings:
 - **`settings.blame`** — (default `true`) apenas no Bitbucket: adiciona aos comentários inline quem alterou a linha por último via `git blame` (`👤 Última alteração: **Nome** · dd/mm/aaaa · \`abc1234\``). `false`desliga. Precisa de`clone: depth: full`. Fora do Bitbucket (GitHub, GitLab, dry-run) não tem efeito.
 - **`settings.gemini_api_keys`** — keys do ai-code-review, somadas às env `GEMINI_API_KEYS`/`GEMINI_API_KEY`.
 - **`settings.google_chat_webhook`** — webhook do google-chat-notification (precisa começar com `https://`); alternativa: env `GOOGLE_CHAT_WEBHOOK`.
-- **`settings.fail_on_errors`** — existe no tipo `DangerBotConfig`, mas nenhum código o lê.
 
 Keys e webhook são segredos: um `danger-bot.yaml` com eles não deve ir para o git. O esfera-web mantém o arquivo no `.gitignore` e no Generic File Storage do Bitrise.
 

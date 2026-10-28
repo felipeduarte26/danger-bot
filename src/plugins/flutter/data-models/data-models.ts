@@ -9,7 +9,6 @@
  */
 import {
   DartField,
-  DartFieldOrigin,
   DartFile,
   DartLayerFolder,
   DartText,
@@ -19,10 +18,8 @@ import {
 
 /**
  * Campo mutável: sem `final`, `static`, `const`, `late` e `@override`, sem inicializador e com
- * tipo `int`/`double`/`bool`/`num` ou com nome em maiúscula (`String`, `List<...>`, `UserModel`).
- * No primary constructor, o parâmetro `var Tipo nome`. No corpo da classe a regra sempre pegou só
- * tipos nullable ou genéricos (`String? nome;`, `List<int> nome;`); `String nome;` fica de fora
- * para não mudar o que já reprovava.
+ * tipo `int`/`double`/`bool`/`num` ou com nome em maiúscula (`String`, `String?`, `List<...>`,
+ * `UserModel`). No primary constructor, o parâmetro `var Tipo nome`.
  */
 function isMutableField(field: DartField): boolean {
   const { type } = field;
@@ -35,13 +32,7 @@ function isMutableField(field: DartField): boolean {
   const typed =
     type.prefix === null &&
     (type.isInt || type.isDouble || type.isBool || type.isNum || /^[A-Z]/.test(type.name ?? ""));
-  if (!typed) return false;
-
-  return (
-    field.origin === DartFieldOrigin.PrimaryConstructor ||
-    type.isNullable ||
-    type.typeArguments.length > 0
-  );
+  return typed;
 }
 
 export default createPlugin(

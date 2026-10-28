@@ -438,8 +438,8 @@ interface DangerBotConfig {
   local_plugins?: string[];
   ignore_files?: string[];
   settings?: {
-    fail_on_errors?: boolean;
     verbose?: boolean;
+    blame?: boolean;
     gemini_api_keys?: string[];
     google_chat_webhook?: string;
   };

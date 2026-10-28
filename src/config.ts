@@ -25,8 +25,6 @@ export interface DangerBotConfig {
   ignore_files?: string[];
   /** Configurações gerais */
   settings?: {
-    /** Se true, falha o CI ao encontrar erros (default: true) */
-    fail_on_errors?: boolean;
     /** Se true, exibe logs detalhados (default: false) */
     verbose?: boolean;
     blame?: boolean;

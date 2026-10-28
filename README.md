@@ -6,7 +6,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/felipeduarte26/danger-bot"><img src="https://img.shields.io/badge/version-5.0.0-blue.svg" alt="Version"></a>
+  <a href="https://github.com/felipeduarte26/danger-bot/actions/workflows/ci.yml"><img src="https://github.com/felipeduarte26/danger-bot/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/felipeduarte26/danger-bot"><img src="https://img.shields.io/badge/version-5.0.1-blue.svg" alt="Version"></a>
   <a href="https://nodejs.org"><img src="https://img.shields.io/badge/node-%3E%3D25.2.1-brightgreen.svg" alt="Node"></a>
   <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.9-blue.svg" alt="TypeScript"></a>
   <a href="https://github.com/felipeduarte26/danger-bot/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License"></a>
@@ -329,9 +330,7 @@ danger-bot/
 │   ├── templates/            # Templates de codigo
 │   └── utils/                # Utilitarios
 ├── scripts/
-│   ├── patch-danger.cjs      # Patches no Danger JS (postinstall)
-│   ├── extract_dart_identifiers.js
-│   └── setup_spell_check.sh
+│   └── patch-danger.cjs      # Patches no Danger JS (postinstall)
 ├── tests/                    # Testes do modelo Dart (npm test)
 ├── tools/parity/             # Paridade antes × depois dos plugins (manutencao)
 ├── dist/                     # Build output (commitado para install via git)

@@ -1,6 +1,6 @@
 {
   "name": "@felipeduarte26/danger-bot",
-  "version": "5.0.0",
+  "version": "5.0.1",
   "description": "Conjunto modular de plugins Danger JS",
   "type": "module",
   "main": "dist/index.js",
@@ -26,8 +26,8 @@
     "postinstall": "node scripts/patch-danger.cjs",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix",
-    "format": "prettier --write \"src/**/*.ts\" \"bin/**/*.js\"",
-    "format:check": "prettier --check \"src/**/*.ts\" \"bin/**/*.js\"",
+    "format": "prettier --write \"src/**/*.ts\" \"bin/**/*.js\" \"tests/**/*.cjs\" \".github/**/*.{yml,cjs}\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"bin/**/*.js\" \"tests/**/*.cjs\" \".github/**/*.{yml,cjs}\"",
     "type-check": "tsc --noEmit",
     "test": "node --test tests/*.test.cjs"
   },

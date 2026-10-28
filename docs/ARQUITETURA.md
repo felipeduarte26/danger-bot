@@ -51,9 +51,7 @@ danger-bot/
 │       ├── string-helpers.js
 │       └── readline-helper.js
 ├── scripts/                # Scripts de build e setup
-│   ├── patch-danger.cjs    # Patches no Danger JS (postinstall)
-│   ├── extract_dart_identifiers.js
-│   └── setup_spell_check.sh
+│   └── patch-danger.cjs    # Patches no Danger JS (postinstall)
 ├── tests/                  # Testes do modelo Dart (node:test, sobre o dist/)
 ├── tools/parity/           # Paridade antes × depois dos plugins sobre o esfera (fora do pacote)
 ├── dist/                   # Build output (commitado)
@@ -219,10 +217,6 @@ Executado automaticamente no `postinstall`. Modifica o Danger JS para:
 - Corrigir inline comments no Bitbucket Cloud
 
 O nome e o link nao ficam gravados no Danger: os arquivos alterados chamam `getBranding()` (`src/branding.ts`) ao serem carregados, entao mudar o YAML vale na proxima execucao. Cada arquivo e patcheado a partir do original do Danger (`<arquivo>.backup`), e um marcador versionado (`.danger-bot-patched`) evita reaplicar sem necessidade.
-
-### extract_dart_identifiers.js e setup_spell_check.sh (legado)
-
-Scripts da versao antiga do spell check, quando o cspell rodava como step separado do CI. Nada no pacote os usa hoje: o plugin `spell-checker` monta a configuracao do cspell sozinho. O `extract_dart_identifiers.js` usa `require` e nao roda como `.js` neste pacote (`"type": "module"`).
 
 ---
 

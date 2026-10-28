@@ -1,0 +1,22 @@
+# Preparação comum aos jobs do CI: Node 25 (engines), cache do npm e npm install.
+# Sem package-lock.json commitado, o cache é indexado pelo package.json e a instalação
+# é npm install (o npm ci exige o lock). O postinstall aplica os patches no Danger.
+name: Preparar Node e dependências
+description: Node 25, cache do npm e npm install
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: "25"
+
+    - uses: actions/cache@v4
+      with:
+        path: ~/.npm
+        key: npm-${{ runner.os }}-${{ hashFiles('package.json') }}
+        restore-keys: npm-${{ runner.os }}-
+
+    - name: Instalar dependências
+      shell: bash
+      run: npm install --no-audit --no-fund

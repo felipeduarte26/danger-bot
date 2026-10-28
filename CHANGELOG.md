@@ -6,7 +6,23 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 As versões até a 4.0.0 foram reconstruídas a partir do histórico de commits (o `version` do `package.json` em cada commit) e não têm tag: os links delas comparam commits. Nem todas seguiram o SemVer à risca, e números que o pacote nunca teve não aparecem. As tags `vX.Y.Z` começam na 4.0.1.
 
-## [Não publicado]
+## [5.0.1] - 2026-10-27
+
+### Modificado
+
+- `docs/MODELO_DART.md` reescrito como referência completa do modelo Dart: todas as classes, propriedades, métodos e enums, com o que cada um faz e exemplos reais, mais 18 receitas testadas e perguntas frequentes.
+
+### Removido
+
+- Chave `settings.fail_on_errors` do tipo `DangerBotConfig`: nenhum código a lia, então nunca teve efeito. Num `danger-bot.yaml` antigo ela continua sendo ignorada, como qualquer chave desconhecida.
+- `scripts/extract_dart_identifiers.js` e `scripts/setup_spell_check.sh`, do spell check antigo. Nada os usava (o `spell-checker` monta a config do cspell sozinho), e o `.js` nem rodava.
+
+### Corrigido
+
+- **Pode reprovar PRs que passavam.** Falsos negativos que a regex antiga deixava passar e a 5.0.0 manteve por compatibilidade:
+  - `data-models`: campo mutável com tipo não nulável (`String uid;`) passa a ser reportado; antes só `String? x;` e tipos genéricos;
+  - `positional-bool-params`: funções e métodos genéricos (`void _sort<T>(..., bool ascending)`);
+  - `avoid-setstate-after-async` (`warn`): `State` genérico (`class _FooState<T> extends State<Foo<T>>`).
 
 ## [5.0.0] - 2026-10-27
 

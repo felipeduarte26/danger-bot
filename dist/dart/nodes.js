@@ -1865,11 +1865,6 @@ class DartBody extends DartNodeBase {
     return this.returns.find((r) => r.insideClosure === null)?.line ?? null;
   }
   /**
-   * Linhas onde `name` é usado como identificador (fora de strings e comentários).
-   * Por padrão `x.name` não conta; com `includeMemberAccess` conta também
-   * (`context.mounted`, `this.mounted`).
-   */
-  /**
    * Acessos `target.membro` / `target?.membro` no corpo (também `this.target.membro`), na ordem:
    * `body.memberAccesses("context")` → `[{ member: "mounted", line: 12 }, ...]`.
    */
@@ -1896,6 +1891,11 @@ class DartBody extends DartNodeBase {
     }
     return out;
   }
+  /**
+   * Linhas onde `name` é usado como identificador (fora de strings e comentários).
+   * Por padrão `x.name` não conta; com `includeMemberAccess` conta também
+   * (`context.mounted`, `this.mounted`).
+   */
   references(name, options = {}) {
     const { tokens } = this.file.lexed;
     const [from, to] = this.inner;

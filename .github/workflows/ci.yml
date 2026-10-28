@@ -1,42 +1,68 @@
-# CI do pacote: as mesmas verificações do pre-push, mais os testes e a conferência
-# do dist/ (quem instala via git usa o dist/ commitado, sem build).
+# CI do pacote. Roda em todo PR e em todo push na main (direto ou merge de PR).
+#
+#   lint ─────────┐
+#   types ────────┤
+#   build ────────┤
+#   test ─────────┼──► tag (só em push na main: cria vX.Y.Z do package.json, se não existir)
+#   cli ──────────┤
+#   conventions ──┘
+#
+# Os jobs de verificação rodam em paralelo, cada um com o próprio status no PR. Os testes
+# e a CLI rodam sobre o dist/ commitado, que é o que o consumidor instala via git; o job
+# build garante que esse dist/ é o build do src/.
 name: CI
 
 on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # PR: um push novo cancela o anterior. main: nunca cancela (perderia a criação da tag).
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  HUSKY: 0 # sem git hooks no CI
 
 jobs:
-  check:
-    name: Lint, tipos, build e testes
+  lint:
+    name: Lint e formatação
     runs-on: ubuntu-latest
-    env:
-      HUSKY: 0 # sem git hooks no CI
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "25"
-
-      # Sem package-lock.json commitado: npm install (o npm ci exige o lock).
-      # O postinstall aplica os patches no Danger, como no projeto consumidor.
-      - name: Instalar dependências
-        run: npm install
-
-      - name: Lint
+      # Inclui as regras que barram regex e parser próprio em src/plugins.
+      - name: ESLint
         run: npm run lint
 
-      - name: Type-check
+      - name: Prettier
+        run: npm run format:check
+
+  types:
+    name: Tipos
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+
+      - name: TypeScript
         run: npm run type-check
+
+  build:
+    name: Build e dist/
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
 
       - name: Build
         run: npm run build
@@ -44,11 +70,150 @@ jobs:
       # O build formata o dist/ com o Prettier: sem mudança no src/, não pode sobrar diff.
       - name: dist/ em dia com o src/
         run: |
-          if [ -n "$(git status --porcelain -- dist)" ]; then
-            echo "::error::O dist/ commitado não corresponde ao build do src/. Rode npm run build e commite o dist/."
+          if [ -z "$(git status --porcelain -- dist)" ]; then
+            echo "O dist/ commitado é o build do src/."
+            exit 0
+          fi
+          echo "::error::O dist/ commitado não corresponde ao build do src/. Rode npm run build e commite o dist/."
+          {
+            echo "### ❌ dist/ desatualizado"
+            echo
+            echo "Rode \`npm run build\` e commite o \`dist/\`. Arquivos que mudaram com o build:"
+            echo
+            echo '```'
             git status --short -- dist
-            exit 1
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit 1
+
+  test:
+    name: Testes do modelo Dart
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+
+      - name: npm test
+        run: npm test
+
+  cli:
+    name: CLI (smoke test)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+
+      - name: Versão e lista de plugins
+        run: |
+          node bin/cli.js --version
+          node bin/cli.js list > "$RUNNER_TEMP/list.txt"
+          grep -E "Total: [0-9]+ plugin" "$RUNNER_TEMP/list.txt"
+
+      - name: inspect lê um arquivo Dart
+        run: |
+          mkdir -p "$RUNNER_TEMP/smoke/lib"
+          cat > "$RUNNER_TEMP/smoke/lib/order.dart" <<'DART'
+          class Order {
+            final int id;
+            Order(this.id);
+            void close() => print('fechado');
+          }
+          DART
+          node bin/cli.js inspect "$RUNNER_TEMP/smoke/lib/order.dart" --json > "$RUNNER_TEMP/inspect.json"
+          node -e '
+            const report = require(process.argv[1]);
+            const cls = report.classes[0];
+            if (cls?.props.name !== "Order") throw new Error("classe Order não encontrada");
+            if (!cls.children.some((g) => g.title === "cls.fields")) throw new Error("campos não encontrados");
+            if (!report.calls.some((c) => c.props.name === "print")) throw new Error("chamada print não encontrada");
+            console.log("inspect ok");
+          ' "$RUNNER_TEMP/inspect.json"
+
+      - name: validate aceita um plugin do pacote
+        run: node bin/cli.js validate src/plugins/flutter/print-statement-detector/print-statement-detector.ts
+
+  conventions:
+    name: Commits, CHANGELOG e versão
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # histórico para o commitlint e o diff do PR
+      - uses: ./.github/actions/setup
+
+      - name: Mensagens de commit (Conventional Commits)
+        env:
+          EVENT: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          PUSH_AFTER: ${{ github.sha }}
+        run: |
+          if [ "$EVENT" = "pull_request" ]; then
+            FROM="$PR_BASE"; TO="$PR_HEAD"
+          elif [ "$EVENT" = "push" ] && [ -n "$PUSH_BEFORE" ] && ! echo "$PUSH_BEFORE" | grep -Eq '^0+$'; then
+            FROM="$PUSH_BEFORE"; TO="$PUSH_AFTER"
+          else
+            echo "Nenhum intervalo de commits para validar."
+            exit 0
+          fi
+          if ! git cat-file -e "$FROM^{commit}" 2>/dev/null; then
+            echo "O commit $FROM não está no histórico (push forçado?): nada a validar."
+            exit 0
+          fi
+          npx commitlint --from "$FROM" --to "$TO" --verbose
+
+      # Lembrete, não reprova: refactor, lint e formatação não precisam de item.
+      - name: Item no CHANGELOG
+        if: github.event_name == 'pull_request'
+        env:
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          CHANGED=$(git diff --name-only "$PR_BASE"..."$PR_HEAD")
+          if echo "$CHANGED" | grep -Eq '^(src|bin|scripts)/' && ! echo "$CHANGED" | grep -qx 'CHANGELOG.md'; then
+            echo "::warning title=CHANGELOG::O PR muda src/, bin/ ou scripts/ e não mexe no CHANGELOG.md. Se afeta quem usa o pacote, registre em ## [Não publicado]."
+          else
+            echo "CHANGELOG ok."
           fi
 
-      - name: Testes do modelo Dart
-        run: npm test
+      - name: Versão igual em todos os lugares
+        run: node .github/scripts/check-version.cjs
+
+  tag:
+    name: Tag da versão
+    needs: [lint, types, build, test, cli, conventions]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write # push da tag
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Criar a tag vX.Y.Z do package.json (se ainda não existir)
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          TAG="v$VERSION"
+          if ! echo "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::Versão inválida no package.json: $VERSION (esperado X.Y.Z)."
+            exit 1
+          fi
+          # Consulta o remoto: o checkout não traz as tags.
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" > /dev/null; then
+            echo "A tag $TAG já existe: nada a fazer."
+            echo "Tag \`$TAG\` já existe: nada a fazer." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          if ! grep -q "^## \[$VERSION\]" CHANGELOG.md; then
+            echo "::warning::O CHANGELOG.md não tem a seção ## [$VERSION]: a tag $TAG será criada mesmo assim."
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "$TAG"
+          git push origin "$TAG"
+          echo "Tag $TAG criada em $(git rev-parse --short HEAD)."
+          echo "### 🏷️ Tag \`$TAG\` criada em \`$(git rev-parse --short HEAD)\`" >> "$GITHUB_STEP_SUMMARY"
