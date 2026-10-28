@@ -6,8 +6,6 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 As versões até a 4.0.0 foram reconstruídas a partir do histórico de commits (o `version` do `package.json` em cada commit) e não têm tag: os links delas comparam commits. Nem todas seguiram o SemVer à risca, e números que o pacote nunca teve não aparecem. As tags `vX.Y.Z` começam na 4.0.1.
 
-## [Não publicado]
-
 ## [5.0.1] - 2026-10-27
 
 ### Modificado
