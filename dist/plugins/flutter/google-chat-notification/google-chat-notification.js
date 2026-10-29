@@ -104,7 +104,9 @@ function buildChatMessage() {
           header: {
             title: `${(0, branding_1.getBranding)().name} — Code Review`,
             subtitle: prTitle,
-            imageUrl: "https://cdn-icons-png.flaticon.com/128/4712/4712109.png",
+            imageUrl:
+              (0, branding_1.getBranding)().logo ??
+              "https://cdn-icons-png.flaticon.com/128/4712/4712109.png",
             imageType: "CIRCLE",
           },
           sections,

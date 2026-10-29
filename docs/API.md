@@ -434,6 +434,7 @@ interface DangerBotConfig {
   branding?: {
     name?: string;
     url?: string;
+    logo?: string;
   };
   local_plugins?: string[];
   ignore_files?: string[];
@@ -464,10 +465,10 @@ function readConfig(): DangerBotConfig
 
 ### getBranding()
 
-Nome e link do bot (`branding` do `danger-bot.yaml`), lidos uma vez por processo. Campo ausente ou invalido usa o `DEFAULT_BRANDING` (`Danger Bot` e `https://github.com/felipeduarte26/danger-bot`). Detalhes em [Configuracao](CONFIGURACAO.md#branding).
+Nome, link e logo do bot (`branding` do `danger-bot.yaml`), lidos uma vez por processo. Campo ausente ou invalido usa o `DEFAULT_BRANDING` (`Danger Bot`, `https://github.com/felipeduarte26/danger-bot` e `logo: null`). Detalhes em [Configuracao](CONFIGURACAO.md#branding).
 
 ```typescript
-function getBranding(): { name: string; url: string }
+function getBranding(): { name: string; url: string; logo: string | null }
 ```
 
 ### loadLocalPlugins(pluginPaths)

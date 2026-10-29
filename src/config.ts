@@ -18,6 +18,8 @@ export interface DangerBotConfig {
     name?: string;
     /** Link do nome nas assinaturas e no status do build (default: repositório do Danger Bot) */
     url?: string;
+    /** URL pública da imagem no lugar do emoji do rodapé e no card do Google Chat (default: nenhuma) */
+    logo?: string;
   };
   /** Caminhos para plugins locais do projeto (arquivos .ts/.js ou diretórios) */
   local_plugins?: string[];

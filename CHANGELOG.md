@@ -8,6 +8,10 @@ As versões até a 4.0.0 foram reconstruídas a partir do histórico de commits 
 
 ## [Não publicado]
 
+### Adicionado
+
+- Chave `branding.logo` no `danger-bot.yaml`: URL pública de uma imagem que aparece no rodapé do comentário principal, no lugar do 🚀 (`Gerado por <logo> <nome> no commit ...`), e no card do `google-chat-notification`, no lugar do ícone padrão. No GitHub e no GitLab a imagem sai com 16 px de altura; no Bitbucket, no tamanho original. Sem a chave, nada muda.
+
 ## [5.0.2] - 2026-10-29
 
 ### Corrigido

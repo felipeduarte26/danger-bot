@@ -119,7 +119,8 @@ function buildChatMessage(): object {
           header: {
             title: `${getBranding().name} — Code Review`,
             subtitle: prTitle,
-            imageUrl: "https://cdn-icons-png.flaticon.com/128/4712/4712109.png",
+            imageUrl:
+              getBranding().logo ?? "https://cdn-icons-png.flaticon.com/128/4712/4712109.png",
             imageType: "CIRCLE",
           },
           sections,

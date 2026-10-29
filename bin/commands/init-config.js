@@ -21,11 +21,14 @@ const CONFIG_TEMPLATE = `# ============================================
 # Nome e link que identificam o bot nos comentários do PR
 # e no status do build. Sem configuração, usa o padrão:
 # "Danger Bot" e https://github.com/felipeduarte26/danger-bot
+# O logo (opcional) aparece no rodapé do comentário, no lugar
+# do emoji: imagem num link público.
 #
 # Exemplo:
 #   branding:
 #     name: "Minha Empresa"
 #     url: "https://minhaempresa.com"
+#     logo: "https://minhaempresa.com/logo.png"
 branding: {}
 
 # ─────────────────────────────────────────────

@@ -17,10 +17,11 @@ Isso cria um `danger-bot.yaml` com todas as opcoes documentadas e exemplos.
 ## Estrutura do arquivo
 
 ```yaml
-# Nome e link do bot nos comentarios do PR
+# Nome, link e logo do bot nos comentarios do PR
 branding:
   name: "Minha Empresa"
   url: "https://minhaempresa.com"
+  logo: "https://minhaempresa.com/logo.png"
 
 # Plugins locais do projeto
 local_plugins:
@@ -41,29 +42,36 @@ settings:
 
 ## branding
 
-Nome e link que identificam o bot. Sem a secao (ou com um campo invalido), vale o padrao: **Danger Bot** e `https://github.com/felipeduarte26/danger-bot`.
+Nome, link e logo que identificam o bot. Sem a secao (ou com um campo invalido), vale o padrao: **Danger Bot**, `https://github.com/felipeduarte26/danger-bot` e nenhum logo (o rodape usa um emoji).
 
 ```yaml
 branding:
-  name: "Minha Empresa"            # texto nao vazio
-  url: "https://minhaempresa.com"  # precisa comecar com http:// ou https://
+  name: "Minha Empresa"                     # texto nao vazio
+  url: "https://minhaempresa.com"           # precisa comecar com http:// ou https://
+  logo: "https://minhaempresa.com/logo.png" # opcional; imagem num link publico
 ```
 
 Onde aparece:
 
 | Local | Exemplo com o branding acima |
 | ----- | ---------------------------- |
-| Rodape do comentario principal | `Gerado por 🚀 Minha Empresa no commit <commit>`, com o nome linkando para a `url` |
+| Rodape do comentario principal | `Gerado por <logo> Minha Empresa no commit <commit>`, com o nome linkando para a `url`. Sem `logo`, `Gerado por 🚀 Minha Empresa...` |
 | Link invisivel no fim de cada comentario (principal e inline) | Nao aparece na tela; o Danger o usa para achar os proprios comentarios. Aponta para a `url` |
 | Status do build | Link do status quando o CI nao informa a URL do build; chave do status no Bitbucket quando o Danger roda sem `--id` |
-| Card do Google Chat (`google-chat-notification`) | Titulo `Minha Empresa — Code Review` |
+| Card do Google Chat (`google-chat-notification`) | Titulo `Minha Empresa — Code Review`, com o `logo` no lugar do icone padrao |
 | Rodape da revisao por IA (`ai-code-review`) | `Analise gerada por Minha Empresa AI` |
+
+Sobre o `logo`:
+
+- **Link publico:** a plataforma busca a imagem pela URL. Imagem de repositorio privado (como `raw.githubusercontent.com` de um repo privado) nao aparece.
+- **Tamanho:** no GitHub (e no GitLab) o rodape mostra a imagem com 16 px de altura, entao qualquer tamanho serve; uma imagem quadrada de 64 a 192 px fica nitida. No Bitbucket ela aparece no tamanho original: use uma imagem pequena (16 a 20 px de altura).
+- **Formato da URL:** precisa comecar com `http://` ou `https://` e nao pode ter espaco, aspas, `<`, `>` nem parenteses. URL invalida e ignorada e o rodape volta ao emoji.
 
 Os comentarios inline continuam sem rodape visivel: o nome aparece so no comentario principal.
 
 A frase de abertura quando ha erros nao usa o branding: e sempre `⚠️ Danger Bot encontrou alguns problemas. Nao se preocupe, tudo pode ser corrigido.`
 
-O nome e o link sao lidos a cada execucao do Danger: mudar o `danger-bot.yaml` vale no proximo build, sem reinstalar. O `--id` passado ao `danger ci` e outra coisa: ele identifica os comentarios do bot (para atualiza-los ou remove-los) e da nome ao status do build quando informado. Trocar o `--id` faz o bot deixar de reconhecer os comentarios antigos.
+O nome, o link e o logo sao lidos a cada execucao do Danger: mudar o `danger-bot.yaml` vale no proximo build, sem reinstalar. O `--id` passado ao `danger ci` e outra coisa: ele identifica os comentarios do bot (para atualiza-los ou remove-los) e da nome ao status do build quando informado. Trocar o `--id` faz o bot deixar de reconhecer os comentarios antigos.
 
 ---
 

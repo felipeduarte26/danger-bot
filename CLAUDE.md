@@ -139,7 +139,7 @@ Detalhes do filtro `--plugins`:
 O postinstall substitui strings exatas no `node_modules/danger/distribution`:
 
 - tradução pt-BR;
-- branding (nome e link) lido do `danger-bot.yaml` em tempo de execução (ver abaixo);
+- branding (nome, link e logo) lido do `danger-bot.yaml` em tempo de execução (ver abaixo);
 - resumo em 3 cenários: fails → problemas; só warnings → "Aprovado!"; limpo → "Parabéns!";
 - comentários inline do Bitbucket Cloud no estilo Danger Ruby (link invisível com dangerID + arquivo/linha);
 - remoção do check de `uuid` para não duplicar comentários;
@@ -148,7 +148,7 @@ O postinstall substitui strings exatas no `node_modules/danger/distribution`:
 Como funciona:
 
 - Cada substituição é `[rótulo, original, novo]` e parte sempre do **original do Danger**, guardado em `<arquivo>.backup` na primeira vez. Reaplicar é seguro, e os textos `original` são os do Danger sem patch.
-- **Branding:** entra só no rodapé (`Gerado por 🚀 <nome> no commit <hash>`), nos links invisíveis e no status do build; a frase de abertura com erros usa sempre o nome do produto (`PRODUCT_NAME`: "Danger Bot encontrou alguns problemas…"). Os textos novos usam `__dangerBotBranding.name`/`.url`. O script injeta no topo de cada arquivo que os usa uma declaração que chama `getBranding()` do `dist/branding.js` (caminho relativo ao arquivo do Danger), com fallback para o padrão. Por isso mudar o `branding` do YAML vale na próxima execução, sem reinstalar.
+- **Branding:** entra só no rodapé (`Gerado por 🚀 <nome> no commit <hash>`; com `logo`, a imagem no lugar do 🚀: `<img height="16">` no GitHub/GitLab, `![](url)` no Bitbucket), nos links invisíveis e no status do build; a frase de abertura com erros usa sempre o nome do produto (`PRODUCT_NAME`: "Danger Bot encontrou alguns problemas…"). Os textos novos usam `__dangerBotBranding.name`/`.url`. O script injeta no topo de cada arquivo que os usa uma declaração que chama `getBranding()` do `dist/branding.js` (caminho relativo ao arquivo do Danger), com fallback para o padrão. Por isso mudar o `branding` do YAML vale na próxima execução, sem reinstalar.
 - Ele grava `node_modules/danger/.danger-bot-patched` com `PATCH_VERSION`, que é o `version` do `package.json`. **Ao mudar os patches, suba a versão do pacote**, senão o marker impede a reaplicação nas instalações já patcheadas.
 - Trecho que não casa vira `⚠️ trecho nao encontrado (<rótulo>)` no log e um aviso de patch incompleto no fim. Ao atualizar o Danger, rode o script e corrija os textos `original` que deixaram de casar.
 - O GitLab usa o `githubIssueTemplate`; não há patch específico para ele.
@@ -499,9 +499,10 @@ node tools/parity/self-consistency.cjs novo <plugin>
 `danger-bot.yaml` na raiz (gerado por `danger-bot init`; detalhes em [docs/CONFIGURACAO.md](docs/CONFIGURACAO.md)):
 
 ```yaml
-branding: # nome e link nos comentários e no status (default: Danger Bot + repo do GitHub)
+branding: # nome, link e logo nos comentários e no status (default: Danger Bot + repo do GitHub, sem logo)
   name: "Minha Empresa"
   url: "https://minhaempresa.com"
+  logo: "https://minhaempresa.com/logo.png" # opcional: no lugar do 🚀 no rodapé e no card do Google Chat
 local_plugins: # arquivos .ts/.js ou pastas (exceto index.*)
   - ./danger/plugins/
 ignore_files: # caminho exato ou glob: lib/legacy/**, **/old_page.dart, lib/x/*.dart
@@ -521,7 +522,7 @@ settings:
 
 **Chaves:**
 
-- **`branding`** — nome e link nos comentários e no status do build ([src/branding.ts](src/branding.ts), lido pelo Danger via patch). Campo inválido cai no padrão. Detalhes em [Patches no Danger](#patches-no-danger-scriptspatch-dangercjs) e em [docs/CONFIGURACAO.md](docs/CONFIGURACAO.md#branding).
+- **`branding`** — nome, link e logo nos comentários e no status do build ([src/branding.ts](src/branding.ts), lido pelo Danger via patch). Campo inválido cai no padrão. O `logo` precisa ser um link público, sem aspas, `<`, `>` nem parênteses (ele vai num `<img src>` e num `![](...)`). Detalhes em [Patches no Danger](#patches-no-danger-scriptspatch-dangercjs) e em [docs/CONFIGURACAO.md](docs/CONFIGURACAO.md#branding).
 - **`local_plugins`** — plugins do próprio projeto, sem publicar no pacote:
   - cada item é um arquivo ou uma pasta, relativo à raiz; pasta carrega só os `.ts`/`.js` do primeiro nível (não é recursiva; `.mjs`/`.cjs` ficam de fora) e pula `index.*`;
   - o módulo precisa exportar um plugin (`config.name` + `run()`) como `export default` ou `module.exports`; `.js` pode ser ESM ou CommonJS;

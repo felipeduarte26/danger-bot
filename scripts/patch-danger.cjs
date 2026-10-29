@@ -97,7 +97,7 @@ function createPatchMarker(dangerPath) {
 function brandingDeclaration(filePath) {
   let modulePath = path.relative(path.dirname(filePath), BRANDING_MODULE).split(path.sep).join("/");
   if (!modulePath.startsWith(".")) modulePath = "./" + modulePath;
-  const fallback = JSON.stringify({ name: PRODUCT_NAME, url: REPO_URL });
+  const fallback = JSON.stringify({ name: PRODUCT_NAME, url: REPO_URL, logo: null });
 
   return (
     `var ${BRANDING} = (function () {\n` +
@@ -180,6 +180,24 @@ const SIGNATURE_PT_BR = [
   ],
 ];
 
+// Logo do branding no lugar do emoji do rodapé. Vem depois do SIGNATURE_PT_BR e do
+// emoji na lista de cada arquivo, porque casa com o texto já traduzido.
+// GitHub (e GitLab): HTML, com altura fixa para qualquer tamanho de imagem.
+const GITHUB_LOGO = [
+  "logo no rodape",
+  String.raw`"Gerado por :rocket: <a href=\"".concat(meta.runtimeHref`,
+  String.raw`"Gerado por ".concat(${BRANDING}.logo ? "<img src=\"".concat(${BRANDING}.logo, "\" alt=\"\" height=\"16\" align=\"top\">") : ":rocket:", " <a href=\"").concat(meta.runtimeHref`,
+];
+
+// Bitbucket: markdown, sem controle de tamanho (a imagem aparece no tamanho original).
+function markdownLogo(emojiVar) {
+  return [
+    "logo no rodape",
+    `"Gerado por ".concat(${emojiVar}, " [")`,
+    `"Gerado por ".concat(${BRANDING}.logo ? "![](".concat(${BRANDING}.logo, ")") : ${emojiVar}, " [")`,
+  ];
+}
+
 // É o bot que fala: usa sempre o nome do produto, não o branding
 const SUMMARY_WITH_ISSUES = `${PRODUCT_NAME} encontrou alguns problemas. Não se preocupe, tudo pode ser corrigido.`;
 const SUMMARY_APPROVED =
@@ -219,6 +237,7 @@ function main() {
       [
         RUNTIME_META,
         ...SIGNATURE_PT_BR,
+        markdownLogo("signatureEmoji"),
         [
           "emoji da assinatura",
           'var signatureEmoji = ":no_entry_sign:"',
@@ -267,6 +286,7 @@ function main() {
           `exports.messageForResultWithIssues = "${SUMMARY_WITH_ISSUES}";`,
         ],
         ["emoji da assinatura", ":no_entry_sign:", ":rocket:"],
+        GITHUB_LOGO,
         ["cabecalho de avisos", '"Warnings", "warning"', '"Avisos", "warning"'],
         ["cabecalho de mensagens", '"Messages", "book"', '"Mensagens", "book"'],
         ["cabecalho de erros", '"Fails", "no_entry_sign"', '"Erros", "rocket"'],
@@ -297,6 +317,7 @@ function main() {
       [
         RUNTIME_META,
         ...SIGNATURE_PT_BR,
+        markdownLogo("warningEmoji"),
         [
           "mensagem com problemas",
           'exports.messageForResultWithIssues = "".concat(warningEmoji, " Danger found some issues. Don\'t worry, everything is fixable.");',
