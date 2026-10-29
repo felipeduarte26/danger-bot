@@ -596,7 +596,7 @@ Exemplos completos por plataforma em [docs/pipelines/](docs/pipelines/README.md)
 ### GitHub Actions
 
 - **Disparo:** `on: pull_request`. O `branches:` desse evento filtra a branch de **destino**.
-- **Token:** `GITHUB_TOKEN` automático, com `permissions: contents: read`, `pull-requests: write` e `statuses: write`. Os comentários saem como `github-actions[bot]`; para outro usuário, use um PAT em `DANGER_GITHUB_API_TOKEN`.
+- **Token:** `GITHUB_TOKEN` automático, com `permissions: contents: read`, `issues: read`, `pull-requests: write` e `statuses: write`. Sem `issues: read`, o Danger registra `Request failed [403] ... issues/<n>` no log ao ler o PR pela API de issues (labels); o comentário sai assim mesmo. Os comentários saem como `github-actions[bot]`; para outro usuário, use um PAT em `DANGER_GITHUB_API_TOKEN`.
 - **Checkout:** `fetch-depth: 0` e `ref: ${{ github.event.pull_request.head.sha }}`. O padrão do `pull_request` é o merge commit, e os plugins leem do disco o conteúdo dos arquivos.
 - **PR de fork:** o `GITHUB_TOKEN` é só leitura e o Danger não comenta. `pull_request_target` resolve, mas roda código da PR com acesso aos secrets: só em repositório interno.
 - **merge-conflict-checker:** com conflito o GitHub não dispara o `pull_request`, então ele não roda nesse caso.

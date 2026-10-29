@@ -48,7 +48,7 @@ Guias de configuracao do Danger Bot em diferentes plataformas de CI/CD.
 
 Variavel: `GITHUB_TOKEN` (automatico no GitHub Actions) ou `DANGER_GITHUB_API_TOKEN` (PAT, para comentar como outro usuario).
 
-No GitHub Actions, de ao job as permissoes `pull-requests: write` e `statuses: write`.
+No GitHub Actions, de ao job as permissoes `pull-requests: write`, `statuses: write` e `issues: read`. Sem `issues: read`, o Danger nao consegue ler o PR pela API de issues (labels) e registra `Request failed [403] ... Resource not accessible by integration` no log; o comentario sai assim mesmo.
 
 ### GitLab
 
@@ -79,6 +79,7 @@ on:
 
 permissions:
   contents: read
+  issues: read # o Danger le o PR tambem pela API de issues (labels)
   pull-requests: write
   statuses: write
 

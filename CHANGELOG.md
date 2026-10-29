@@ -12,6 +12,10 @@ As versões até a 4.0.0 foram reconstruídas a partir do histórico de commits 
 
 - Chave `branding.logo` no `danger-bot.yaml`: URL pública de uma imagem que aparece no rodapé do comentário principal, no lugar do 🚀 (`Gerado por <logo> <nome> no commit ...`), e no card do `google-chat-notification`, no lugar do ícone padrão. No GitHub e no GitLab a imagem sai com 16 px de altura; no Bitbucket, no tamanho original. Sem a chave, nada muda.
 
+### Corrigido
+
+- `docs/pipelines/README.md`: o exemplo de GitHub Actions passa a dar `issues: read` ao token. Sem essa permissão, o Danger registra `Request failed [403] ... Resource not accessible by integration` no log ao ler o PR pela API de issues; o comentário sai assim mesmo. Quem copiou o exemplo pode acrescentar a linha no `permissions:` do workflow.
+
 ## [5.0.2] - 2026-10-29
 
 ### Corrigido
