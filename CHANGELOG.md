@@ -8,6 +8,8 @@ As versões até a 4.0.0 foram reconstruídas a partir do histórico de commits 
 
 ## [Não publicado]
 
+## [5.0.3] - 2026-11-05
+
 ### Modificado
 
 - GitHub e GitLab: erros, avisos e mensagens do comentário principal saem numa tabela só, com o título de cada seção numa linha. Em tabelas separadas cada uma ficava com a largura do próprio conteúdo, porque a página de PR do GitHub ignora o `width="100%"` das células. No Bitbucket nada muda.
@@ -1080,7 +1082,8 @@ Falsos positivos que deixam de ser reportados:
 - CLI `danger-bot` com os comandos `create-plugin` (`new`), `list` (`ls`), `generate-dangerfile` (`gen`), `validate` e `info`.
 - Guias de instalação, CLI, arquitetura e configuração de pipelines em `docs/`.
 
-[Não publicado]: https://github.com/felipeduarte26/danger-bot/compare/v5.0.2...HEAD
+[Não publicado]: https://github.com/felipeduarte26/danger-bot/compare/v5.0.3...HEAD
+[5.0.3]: https://github.com/felipeduarte26/danger-bot/compare/v5.0.2...v5.0.3
 [5.0.2]: https://github.com/felipeduarte26/danger-bot/compare/v5.0.1...v5.0.2
 [5.0.1]: https://github.com/felipeduarte26/danger-bot/compare/v5.0.0...v5.0.1
 [5.0.0]: https://github.com/felipeduarte26/danger-bot/compare/v4.1.0...v5.0.0
