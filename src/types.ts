@@ -17,6 +17,8 @@ export {
   sendWarn,
   sendFail,
   sendMarkdown,
+  sendReport,
+  TABLE_ROWS_MARKER,
   scheduleTask,
   getAllChangedFiles,
   getDartFiles,
@@ -46,7 +48,7 @@ export {
   flushSummaries,
   getPendingSummaryCounts,
 } from "./helpers";
-export type { FormattedMessageOptions } from "./helpers";
+export type { FormattedMessageOptions, ReportSection } from "./helpers";
 
 export { loadConfig, loadLocalPlugins } from "./config";
 export type { DangerBotConfig } from "./config";

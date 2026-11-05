@@ -1,7 +1,8 @@
 /**
  * PR Summary Plugin
  * Gera um sumário rico da PR com métricas, camadas, risco e checklist.
- * Usa apenas Markdown puro (sem HTML) para compatibilidade com Bitbucket Cloud.
+ * No GitHub e no GitLab as seções entram na tabela única do comentário principal
+ * (`sendReport`); no Bitbucket sai em markdown puro, sem HTML.
  *
  * Os arquivos são agrupados por `DartPath.category` (Dart, testes, gerados, config,
  * assets, docs, outros); deletados entram na contagem. Gerados e `.lock` ficam fora
@@ -15,6 +16,8 @@ import {
   getDanger,
   getLineStats,
   sendMarkdown,
+  sendReport,
+  type ReportSection,
 } from "@types";
 
 /** Rótulo de cada categoria, na ordem do breakdown. */
@@ -85,8 +88,6 @@ export default createPlugin(
     const size = getSizeInfo(dartSource.length);
     const risk = assessRisk(dartSource, testFiles, layers, categories);
 
-    let md = `${size.emoji} Resumo da PR — ${size.label}\n\n`;
-
     // ── Visão geral ──
     const fileDetails = [
       created.length > 0 ? `**+${created.length}** novo(s)` : null,
@@ -96,70 +97,70 @@ export default createPlugin(
       .filter(Boolean)
       .join(" · ");
 
-    md += "| Métrica | Valor |\n";
-    md += "| :-- | :-- |\n";
-    md += `| Arquivos | ${all.length} (${fileDetails}) |\n`;
-
-    if (dartSource.length > 0) {
-      md += `| Dart | **${dartSource.length}** arquivo(s) |\n`;
-    }
-
-    if (lines > 0) {
-      md += `| Linhas | **+${added}** / **-${removed}** |\n`;
-    }
-
+    const overview: [string, string][] = [["Arquivos", `${all.length} (${fileDetails})`]];
+    if (dartSource.length > 0) overview.push(["Dart", `**${dartSource.length}** arquivo(s)`]);
+    if (lines > 0) overview.push(["Linhas", `**+${added}** / **-${removed}**`]);
     if (layers.length > 0) {
-      const layerStr = layers.map((l) => `**${l.label}** (${l.files.length})`).join(" · ");
-      md += `| Camadas | ${layerStr} |\n`;
+      overview.push([
+        "Camadas",
+        layers.map((l) => `**${l.label}** (${l.files.length})`).join(" · "),
+      ]);
     }
-
     if (testFiles.length > 0) {
-      md += `| Testes | ✅ ${testFiles.length} arquivo(s) |\n`;
+      overview.push(["Testes", `✅ ${testFiles.length} arquivo(s)`]);
     } else if (dartSource.length > 0) {
-      md += `| Testes | ⚠️ Nenhum teste alterado |\n`;
+      overview.push(["Testes", "⚠️ Nenhum teste alterado"]);
     }
+    if (generatedFiles.length > 0)
+      overview.push(["Gerados", `${generatedFiles.length} arquivo(s)`]);
+    overview.push(["Risco", `${risk.emoji} **${risk.level}**`]);
 
-    if (generatedFiles.length > 0) {
-      md += `| Gerados | ${generatedFiles.length} arquivo(s) |\n`;
-    }
-
-    md += `| Risco | ${risk.emoji} **${risk.level}** |\n`;
+    const title = `${size.emoji} Resumo da PR — ${size.label}`;
+    const sections: ReportSection[] = [{ title, rows: overview }];
+    let md = `${title}\n\n${markdownTable(["Métrica", "Valor"], [":--", ":--"], overview)}`;
 
     // ── Breakdown por tipo ──
     if (categories.length > 1) {
-      md += "\n---\n\n";
-      md += "**Breakdown por tipo**\n\n";
-      md += "| Tipo | Qtd |\n";
-      md += "| :-- | :--: |\n";
-      for (const cat of categories) {
-        md += `| ${cat.label} | ${cat.files.length} |\n`;
-      }
+      const breakdown: [string, string][] = categories.map((cat) => [
+        cat.label,
+        String(cat.files.length),
+      ]);
+      sections.push({ title: "Breakdown por tipo", rows: breakdown });
+      md += `\n---\n\n**Breakdown por tipo**\n\n${markdownTable(["Tipo", "Qtd"], [":--", ":--:"], breakdown)}`;
     }
 
     // ── Arquivos em destaque ──
     const topFiles = getTopFiles(new Set(created), all);
     if (topFiles.length > 0) {
-      md += "\n---\n\n";
-      md += "**Arquivos em destaque**\n\n";
-      for (const { short, isNew } of topFiles) {
-        const tag = isNew ? " `novo`" : "";
-        md += `- \`${short}\`${tag}\n`;
-      }
+      const list = topFiles
+        .map(({ short, isNew }) => `- \`${short}\`${isNew ? " `novo`" : ""}`)
+        .join("\n");
+      sections.push({ title: "Arquivos em destaque", rows: [["", list]] });
+      md += `\n---\n\n**Arquivos em destaque**\n\n${list}\n`;
     }
 
     // ── Fatores de risco ──
     const detectedRisks = risk.factors.filter((f) => f.detected);
     if (detectedRisks.length > 0) {
-      md += "\n---\n\n";
-      md += "⚠️ **Pontos de atenção**\n\n";
-      for (const f of detectedRisks) {
-        md += `- ${f.label}\n`;
-      }
+      const list = detectedRisks.map((f) => `- ${f.label}`).join("\n");
+      sections.push({ title: "⚠️ Pontos de atenção", rows: [["", list]] });
+      md += `\n---\n\n⚠️ **Pontos de atenção**\n\n${list}\n`;
     }
 
-    sendMarkdown(md);
+    // GitHub/GitLab: seções na tabela única do comentário; Bitbucket: o markdown
+    sendReport(sections, md);
   }
 );
+
+/** Tabela markdown com cabeçalho, alinhamento e linhas `[rótulo, valor]`. */
+function markdownTable(
+  header: [string, string],
+  align: [string, string],
+  rows: [string, string][]
+): string {
+  const line = (cells: string[]): string => `| ${cells.join(" | ")} |\n`;
+  return line(header) + line(align) + rows.map(line).join("");
+}
 
 /** Até `limit` arquivos (sem gerados e `.lock`): novos primeiro, depois os Dart. */
 function getTopFiles(

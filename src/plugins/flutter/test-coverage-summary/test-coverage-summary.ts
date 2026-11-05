@@ -11,7 +11,14 @@
  * pela mesma regra do flutter-test-runner.
  */
 import { execSync } from "child_process";
-import { DartLayerFolder, DartPath, createPlugin, getDanger, sendMarkdown } from "@types";
+import {
+  DartLayerFolder,
+  DartPath,
+  createPlugin,
+  getDanger,
+  sendMarkdown,
+  sendReport,
+} from "@types";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -258,23 +265,37 @@ function reportCoverage(git: { created_files: string[]; modified_files: string[]
   }
   const totalPercent = totalLines > 0 ? Math.round((totalHit / totalLines) * 100) : 0;
 
-  let md =
+  const title =
     `${coverageEmoji(totalPercent)} **Cobertura de Testes** — ` +
-    `${totalPercent}% (${prCoverage.length} arquivo(s) da PR)\n\n`;
+    `${totalPercent}% (${prCoverage.length} arquivo(s) da PR)`;
+  let md = `${title}\n\n`;
   md += "| Arquivo | Cobertura | Linhas |\n";
   md += "| :-- | :--: | :--: |\n";
 
+  const rows: [string, string][] = [];
   for (const c of prCoverage) {
     const emoji = coverageEmoji(c.percent);
-    md += `| \`${shortPath(normalizePath(c.file))}\` | ${emoji} ${c.percent}% | ${c.linesHit}/${c.linesTotal} |\n`;
+    const file = `\`${shortPath(normalizePath(c.file))}\``;
+    md += `| ${file} | ${emoji} ${c.percent}% | ${c.linesHit}/${c.linesTotal} |\n`;
+    rows.push([file, `${emoji} ${c.percent}% · ${c.linesHit}/${c.linesTotal} linhas`]);
   }
 
   if (prCoverage.length > 1) {
-    md += `| **Total** | **${coverageEmoji(totalPercent)} ${totalPercent}%** | **${totalHit}/${totalLines}** |\n`;
+    const total = `**${coverageEmoji(totalPercent)} ${totalPercent}%**`;
+    md += `| **Total** | ${total} | **${totalHit}/${totalLines}** |\n`;
+    rows.push(["**Total**", `${total} · **${totalHit}/${totalLines}** linhas`]);
   }
 
-  sendMarkdown(md);
+  // GitHub/GitLab: na tabela única do comentário; Bitbucket: o markdown
+  sendReport([{ title, rows }], md);
 }
+
+const CHECKLIST = [
+  "Testado em dispositivo Android",
+  "Testado em dispositivo iOS",
+  "Testado em Plataforma WEB (Servidor)",
+  "UI responsiva em diferentes tamanhos de tela",
+];
 
 function sendChecklist(git: { created_files: string[]; modified_files: string[] }): void {
   if (prSourceFiles(git).length === 0) return;
@@ -282,12 +303,9 @@ function sendChecklist(git: { created_files: string[]; modified_files: string[] 
   let md = "**Checklist**\n\n";
   md += "| | Item |\n";
   md += "| :--: | :-- |\n";
-  md += "| ⬜ | Testado em dispositivo Android |\n";
-  md += "| ⬜ | Testado em dispositivo iOS |\n";
-  md += "| ⬜ | Testado em Plataforma WEB (Servidor) |\n";
-  md += "| ⬜ | UI responsiva em diferentes tamanhos de tela |\n";
+  for (const item of CHECKLIST) md += `| ⬜ | ${item} |\n`;
 
-  sendMarkdown(md);
+  sendReport([{ title: "Checklist", rows: CHECKLIST.map((item) => ["⬜", item]) }], md);
 }
 
 export default createPlugin(

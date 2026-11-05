@@ -270,30 +270,43 @@ function reportCoverage(git) {
     totalLines += c.linesTotal;
   }
   const totalPercent = totalLines > 0 ? Math.round((totalHit / totalLines) * 100) : 0;
-  let md =
+  const title =
     `${coverageEmoji(totalPercent)} **Cobertura de Testes** — ` +
-    `${totalPercent}% (${prCoverage.length} arquivo(s) da PR)\n\n`;
+    `${totalPercent}% (${prCoverage.length} arquivo(s) da PR)`;
+  let md = `${title}\n\n`;
   md += "| Arquivo | Cobertura | Linhas |\n";
   md += "| :-- | :--: | :--: |\n";
+  const rows = [];
   for (const c of prCoverage) {
     const emoji = coverageEmoji(c.percent);
-    md += `| \`${shortPath(normalizePath(c.file))}\` | ${emoji} ${c.percent}% | ${c.linesHit}/${c.linesTotal} |\n`;
+    const file = `\`${shortPath(normalizePath(c.file))}\``;
+    md += `| ${file} | ${emoji} ${c.percent}% | ${c.linesHit}/${c.linesTotal} |\n`;
+    rows.push([file, `${emoji} ${c.percent}% · ${c.linesHit}/${c.linesTotal} linhas`]);
   }
   if (prCoverage.length > 1) {
-    md += `| **Total** | **${coverageEmoji(totalPercent)} ${totalPercent}%** | **${totalHit}/${totalLines}** |\n`;
+    const total = `**${coverageEmoji(totalPercent)} ${totalPercent}%**`;
+    md += `| **Total** | ${total} | **${totalHit}/${totalLines}** |\n`;
+    rows.push(["**Total**", `${total} · **${totalHit}/${totalLines}** linhas`]);
   }
-  (0, _types_1.sendMarkdown)(md);
+  // GitHub/GitLab: na tabela única do comentário; Bitbucket: o markdown
+  (0, _types_1.sendReport)([{ title, rows }], md);
 }
+const CHECKLIST = [
+  "Testado em dispositivo Android",
+  "Testado em dispositivo iOS",
+  "Testado em Plataforma WEB (Servidor)",
+  "UI responsiva em diferentes tamanhos de tela",
+];
 function sendChecklist(git) {
   if (prSourceFiles(git).length === 0) return;
   let md = "**Checklist**\n\n";
   md += "| | Item |\n";
   md += "| :--: | :-- |\n";
-  md += "| ⬜ | Testado em dispositivo Android |\n";
-  md += "| ⬜ | Testado em dispositivo iOS |\n";
-  md += "| ⬜ | Testado em Plataforma WEB (Servidor) |\n";
-  md += "| ⬜ | UI responsiva em diferentes tamanhos de tela |\n";
-  (0, _types_1.sendMarkdown)(md);
+  for (const item of CHECKLIST) md += `| ⬜ | ${item} |\n`;
+  (0, _types_1.sendReport)(
+    [{ title: "Checklist", rows: CHECKLIST.map((item) => ["⬜", item]) }],
+    md
+  );
 }
 exports.default = (0, _types_1.createPlugin)(
   {

@@ -8,6 +8,15 @@ As versões até a 4.0.0 foram reconstruídas a partir do histórico de commits 
 
 ## [Não publicado]
 
+### Adicionado
+
+- Helper `sendReport(sections, markdown)` (e o tipo `ReportSection`): relatório em seções com linhas `[rótulo, valor]`. No GitHub e no GitLab as seções entram na tabela única do comentário principal, com a mesma largura de erros, avisos e mensagens; no Bitbucket e no dry-run publica o `markdown`, como o `sendMarkdown`.
+
+### Modificado
+
+- GitHub e GitLab: o resumo do `pr-summary` (Resumo da PR, Breakdown por tipo, Arquivos em destaque, Pontos de atenção) e a cobertura e o checklist do `test-coverage-summary` entram na tabela única do comentário principal, abaixo de erros, avisos e mensagens. Em tabelas soltas cada uma ficava com a largura do próprio conteúdo. No Bitbucket nada muda.
+- GitHub e GitLab: erros com ❌ na tabela do comentário principal (era 🚀) e nos comentários de linha (era 🚫). O 🚀 fica só no rodapé.
+
 ## [5.0.3] - 2026-11-05
 
 ### Modificado

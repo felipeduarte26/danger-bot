@@ -677,6 +677,80 @@ export function sendMarkdown(msg: string, file?: string, line?: number): void {
 }
 
 /**
+ * Marca o markdown que o template do GitHub (`dangerBotTable`, em scripts/patch-danger.cjs)
+ * encaixa como linhas na tabela única do comentário principal. O mesmo texto está lá.
+ */
+export const TABLE_ROWS_MARKER = "<!-- danger-bot:table-rows -->";
+
+/** Seção de um relatório: o título e as linhas `[rótulo, valor]` (markdown nos dois). */
+export interface ReportSection {
+  /** Título da seção (ex.: "Breakdown por tipo") */
+  title: string;
+  /** Linhas `[rótulo, valor]`; rótulo vazio deixa a primeira coluna em branco (ex.: uma lista) */
+  rows: [string, string][];
+}
+
+/**
+ * Publica um relatório em seções (resumos, tabelas de métricas).
+ *
+ * - **GitHub e GitLab:** as seções entram na tabela única do comentário principal, abaixo de
+ *   erros, avisos e mensagens, com a mesma largura. A página de PR do GitHub ignora o
+ *   `width` das células, e uma tabela separada ficaria com a largura do próprio conteúdo.
+ * - **Bitbucket e dry-run:** publica o `markdown` informado, como o `sendMarkdown`.
+ *
+ * @param sections - Seções na ordem em que aparecem
+ * @param markdown - O mesmo relatório em markdown, para as outras plataformas
+ * @category Mensagens
+ * @since 5.1.0
+ *
+ * @example
+ * ```typescript
+ * const rows: [string, string][] = [["Arquivos", "12"], ["Risco", "🟢 **Baixo**"]];
+ * sendReport(
+ *   [{ title: "Resumo da PR", rows }],
+ *   "Resumo da PR\n\n| Métrica | Valor |\n| :-- | :-- |\n| Arquivos | 12 |\n| Risco | 🟢 **Baixo** |"
+ * );
+ * ```
+ */
+export function sendReport(sections: ReportSection[], markdown: string): void {
+  if (!usesSingleTableTemplate()) {
+    sendMarkdown(markdown);
+    return;
+  }
+  const rows = sections.flatMap((section) => [
+    reportTitleRow(section.title),
+    ...section.rows.map(([label, value]) => reportValueRow(label, value)),
+  ]);
+  if (rows.length === 0) return;
+  sendMarkdown(`${TABLE_ROWS_MARKER}\n${rows.join("\n")}`);
+}
+
+/**
+ * Comentário montado pelo template do GitHub (GitHub ou GitLab). O dry-run simula todas as
+ * plataformas ao mesmo tempo: com Bitbucket presente, vale o markdown.
+ */
+function usesSingleTableTemplate(): boolean {
+  const danger = getDanger() as unknown as Record<string, unknown>;
+  return Boolean(
+    (danger.github || danger.gitlab) && !danger.bitbucket_cloud && !danger.bitbucket_server
+  );
+}
+
+/** Linha de título, no mesmo formato das seções Erros/Avisos/Mensagens do template. */
+function reportTitleRow(title: string): string {
+  return `<tr>\n      <th width="50"></th>\n      <th width="100%">${title}</th>\n    </tr>\n  `;
+}
+
+function reportValueRow(label: string, value: string): string {
+  return `<tr>\n      <td>${reportCell(label)}</td>\n      <td>${reportCell(value)}</td>\n    </tr>\n  `;
+}
+
+/** Markdown dentro de HTML só é renderizado entre linhas em branco (como no template do Danger). */
+function reportCell(text: string): string {
+  return /[`*_~[]/.test(text) || text.includes("\n") ? `\n\n  ${text}\n  ` : text;
+}
+
+/**
  * Agenda uma tarefa assíncrona para ser executada pelo Danger
  *
  * Use quando precisar executar operações assíncronas como chamadas de API,

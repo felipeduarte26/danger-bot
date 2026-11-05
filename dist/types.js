@@ -97,6 +97,8 @@ exports.loadLocalPlugins =
   exports.getDartFiles =
   exports.getAllChangedFiles =
   exports.scheduleTask =
+  exports.TABLE_ROWS_MARKER =
+  exports.sendReport =
   exports.sendMarkdown =
   exports.sendFail =
   exports.sendWarn =
@@ -138,6 +140,18 @@ Object.defineProperty(exports, "sendMarkdown", {
   enumerable: true,
   get: function () {
     return helpers_1.sendMarkdown;
+  },
+});
+Object.defineProperty(exports, "sendReport", {
+  enumerable: true,
+  get: function () {
+    return helpers_1.sendReport;
+  },
+});
+Object.defineProperty(exports, "TABLE_ROWS_MARKER", {
+  enumerable: true,
+  get: function () {
+    return helpers_1.TABLE_ROWS_MARKER;
   },
 });
 Object.defineProperty(exports, "scheduleTask", {

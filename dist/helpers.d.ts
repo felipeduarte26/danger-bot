@@ -388,6 +388,41 @@ export declare function sendFormattedWarn(opts: FormattedMessageOptions): void;
  */
 export declare function sendMarkdown(msg: string, file?: string, line?: number): void;
 /**
+ * Marca o markdown que o template do GitHub (`dangerBotTable`, em scripts/patch-danger.cjs)
+ * encaixa como linhas na tabela única do comentário principal. O mesmo texto está lá.
+ */
+export declare const TABLE_ROWS_MARKER = "<!-- danger-bot:table-rows -->";
+/** Seção de um relatório: o título e as linhas `[rótulo, valor]` (markdown nos dois). */
+export interface ReportSection {
+  /** Título da seção (ex.: "Breakdown por tipo") */
+  title: string;
+  /** Linhas `[rótulo, valor]`; rótulo vazio deixa a primeira coluna em branco (ex.: uma lista) */
+  rows: [string, string][];
+}
+/**
+ * Publica um relatório em seções (resumos, tabelas de métricas).
+ *
+ * - **GitHub e GitLab:** as seções entram na tabela única do comentário principal, abaixo de
+ *   erros, avisos e mensagens, com a mesma largura. A página de PR do GitHub ignora o
+ *   `width` das células, e uma tabela separada ficaria com a largura do próprio conteúdo.
+ * - **Bitbucket e dry-run:** publica o `markdown` informado, como o `sendMarkdown`.
+ *
+ * @param sections - Seções na ordem em que aparecem
+ * @param markdown - O mesmo relatório em markdown, para as outras plataformas
+ * @category Mensagens
+ * @since 5.1.0
+ *
+ * @example
+ * ```typescript
+ * const rows: [string, string][] = [["Arquivos", "12"], ["Risco", "🟢 **Baixo**"]];
+ * sendReport(
+ *   [{ title: "Resumo da PR", rows }],
+ *   "Resumo da PR\n\n| Métrica | Valor |\n| :-- | :-- |\n| Arquivos | 12 |\n| Risco | 🟢 **Baixo** |"
+ * );
+ * ```
+ */
+export declare function sendReport(sections: ReportSection[], markdown: string): void;
+/**
  * Agenda uma tarefa assíncrona para ser executada pelo Danger
  *
  * Use quando precisar executar operações assíncronas como chamadas de API,

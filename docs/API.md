@@ -11,7 +11,7 @@ Referencia completa da API publica do Danger Bot.
 export { executeDangerBot } from "@felipeduarte26/danger-bot";
 
 // Helpers de mensagem
-export { getDanger, sendMessage, sendWarn, sendFail, sendFormattedFail, sendFormattedWarn, sendMarkdown, scheduleTask };
+export { getDanger, sendMessage, sendWarn, sendFail, sendFormattedFail, sendFormattedWarn, sendMarkdown, sendReport, scheduleTask };
 export type { FormattedMessageOptions };
 
 // Modelo Dart: leitura do código pelos plugins (ver MODELO_DART.md)
@@ -211,6 +211,15 @@ sendMarkdown(`
 | Arquivos | 15 |
 | Linhas | +250 / -100 |
 `);
+```
+
+### sendReport(sections, markdown)
+
+Relatorio em secoes (titulo + linhas `[rotulo, valor]`). No GitHub e no GitLab entra na tabela unica do comentario principal, com a mesma largura de erros, avisos e mensagens; no Bitbucket e no dry-run publica o `markdown`. Detalhes em [Helpers](HELPERS.md#sendreportsections-markdown).
+
+```typescript
+function sendReport(sections: ReportSection[], markdown: string): void
+interface ReportSection { title: string; rows: [string, string][] }
 ```
 
 ### scheduleTask(fn)

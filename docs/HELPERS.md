@@ -168,6 +168,29 @@ sendMarkdown(`
 `);
 ```
 
+Num relatorio com tabelas, prefira o `sendReport`: no GitHub uma tabela solta fica com a largura do proprio conteudo.
+
+### sendReport(sections, markdown)
+
+Publica um relatorio em secoes (titulo + linhas `[rotulo, valor]`). No GitHub e no GitLab as secoes entram na tabela unica do comentario principal, abaixo de erros, avisos e mensagens, com a mesma largura: a pagina de PR do GitHub ignora o `width` das celulas, e uma tabela separada ficaria com a largura do proprio conteudo. No Bitbucket e no dry-run publica o `markdown` informado. E o que o `pr-summary` e o `test-coverage-summary` usam.
+
+```typescript
+function sendReport(sections: ReportSection[], markdown: string): void
+
+interface ReportSection {
+  title: string;              // titulo da secao
+  rows: [string, string][];   // [rotulo, valor], markdown nos dois; rotulo vazio = coluna em branco
+}
+```
+
+```typescript
+const rows: [string, string][] = [["Arquivos", "15"], ["Linhas", "**+250** / **-100**"]];
+sendReport(
+  [{ title: "Relatorio", rows }],
+  "Relatorio\n\n| Metrica | Valor |\n| :-- | :-- |\n| Arquivos | 15 |\n| Linhas | **+250** / **-100** |"
+);
+```
+
 ### scheduleTask(fn)
 
 Agenda tarefa assincrona para execucao pelo Danger.

@@ -143,7 +143,7 @@ O postinstall substitui strings exatas no `node_modules/danger/distribution`:
 - resumo em 3 cenários: fails → problemas; só warnings → "Aprovado!"; limpo → "Parabéns!";
 - comentários inline do Bitbucket Cloud no estilo Danger Ruby (link invisível com dangerID + arquivo/linha);
 - remoção do check de `uuid` para não duplicar comentários;
-- GitHub/GitLab: erros, avisos e mensagens numa tabela só (`dangerBotTable`). A página de PR do GitHub ignora o `width="100%"` das células, e em tabelas separadas cada uma ficava com a largura do próprio conteúdo;
+- GitHub/GitLab: erros, avisos, mensagens e os relatórios do `sendReport` numa tabela só (`dangerBotTable`; o markdown que começa com o `TABLE_ROWS_MARKER` entra como linhas). A página de PR do GitHub ignora o `width="100%"` das células, e em tabelas separadas cada uma ficava com a largura do próprio conteúdo. Erros com ❌ (o 🚀 fica só no rodapé);
 - `DANGER_BITBUCKETCLOUD_REPO_ACCESSTOKEN` passa a usar o template inline do Bitbucket.
 
 Como funciona:
@@ -333,7 +333,8 @@ Quando não der para mostrar a linha real:
 Os outros helpers ficam para mensagens **sem** linha de código associada:
 
 - `sendFail`/`sendWarn` sem arquivo — resumo de uma linha no formato `**TÍTULO** — detalhe`. Ex.: pr-size-checker, o total do flutter-analyze, flutter-test-runner, changelog-checker.
-- `sendMarkdown` — relatórios e tabelas (pr-summary, test-coverage-summary). Também serve para repassar a saída de uma ferramenta externa linha a linha, com o link da regra: é o que o flutter-analyze faz com cada diagnóstico, somando um `sendFail` de resumo.
+- `sendReport` — relatórios em seções com tabelas (pr-summary, test-coverage-summary): no GitHub/GitLab entram na tabela única do comentário, com a mesma largura de erros/avisos/mensagens; no Bitbucket sai o markdown passado junto.
+- `sendMarkdown` — markdown livre. Também serve para repassar a saída de uma ferramenta externa linha a linha, com o link da regra: é o que o flutter-analyze faz com cada diagnóstico, somando um `sendFail` de resumo.
 - `sendMessage` — informação neutra.
 
 `sendFormattedFail`/`sendFormattedWarn` montam este layout:
@@ -394,6 +395,7 @@ Todos são exportados por `@felipeduarte26/danger-bot` (e por `"@types"` dentro 
 | `sendFail` / `sendWarn` / `sendMessage` (`msg, file?, line?`)                                                           | Publicam; com arquivo/linha viram inline + resumo                                           |
 | `sendFormattedFail` / `sendFormattedWarn` (`FormattedMessageOptions`)                                                   | Layout padrão (título, problema, ação, objetivo, referência)                                |
 | `sendMarkdown(msg, file?, line?)`                                                                                       | Markdown livre (tabelas, relatórios)                                                        |
+| `sendReport(sections, markdown)`                                                                                        | Relatório em seções: tabela única no GitHub/GitLab, markdown no Bitbucket                   |
 | `scheduleTask(fn)`                                                                                                      | Agenda tarefa no `schedule()` do Danger                                                     |
 | `getAllChangedFiles()`                                                                                                  | Criados + modificados, respeitando `ignore_files`                                           |
 | `getDartFiles()` **async**                                                                                              | Legado: `.dart` existentes no disco, **sem** `_test.dart` (use `DartFile.changed()`)        |

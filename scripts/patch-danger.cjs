@@ -189,18 +189,27 @@ const GITHUB_LOGO = [
   String.raw`"Gerado por ".concat(${BRANDING}.logo ? "<img src=\"".concat(${BRANDING}.logo, "\" alt=\"\" height=\"16\" align=\"top\">") : ":rocket:", " <a href=\"").concat(meta.runtimeHref`,
 ];
 
-// GitHub (e GitLab): erros, avisos e mensagens numa tabela só, com o título de cada seção
-// numa linha. Em tabelas separadas cada uma fica com a largura do próprio conteúdo: a
-// página de PR do GitHub ignora o width="100%" das células. Casa com os textos já
-// traduzidos (cabecalho de erros/avisos/mensagens), então vem depois deles na lista.
+// GitHub (e GitLab): erros, avisos, mensagens e os relatórios do sendReport (pr-summary,
+// test-coverage-summary) numa tabela só, com o título de cada seção numa linha. Em tabelas
+// separadas cada uma fica com a largura do próprio conteúdo: a página de PR do GitHub
+// ignora o width="100%" das células. Casa com os textos já traduzidos (cabecalho de
+// erros/avisos/mensagens), então vem depois deles na lista. O marcador é o
+// TABLE_ROWS_MARKER de src/helpers.ts.
 const GITHUB_SINGLE_TABLE = [
   [
     "tabela unica (funcao)",
     "function table(name, defaultEmoji, violations) {",
-    String.raw`// DANGER-BOT: erros, avisos e mensagens numa tabela só (mesma largura)
-function dangerBotTable(sections) {
+    String.raw`// DANGER-BOT: erros, avisos, mensagens e relatórios numa tabela só (mesma largura)
+var DANGER_BOT_ROWS = "<!-- danger-bot:table-rows -->";
+function isDangerBotRows(markdown) {
+    return typeof markdown.message === "string" && markdown.message.indexOf(DANGER_BOT_ROWS) === 0;
+}
+function dangerBotTable(sections, markdowns) {
     var visible = sections.filter(function (section) { return !noViolationsOrAllOfThemEmpty(section[2]); });
-    if (visible.length === 0) {
+    var reports = markdowns.filter(isDangerBotRows).map(function (markdown) {
+        return markdown.message.slice(DANGER_BOT_ROWS.length).replace(/^\n/, "");
+    });
+    if (visible.length === 0 && reports.length === 0) {
         return "";
     }
     var body = visible.map(function (section, index) {
@@ -208,14 +217,22 @@ function dangerBotTable(sections) {
         var rows = section[2].map(function (violation) { return htmlForValidation(section[1], violation); }).join("\n");
         return (index === 0 ? "<thead>\n    ".concat(title, "</thead>\n  <tbody>") : title).concat(rows);
     }).join("\n");
-    return "\n<table>\n  ".concat(body, "</tbody>\n</table>\n");
+    if (visible.length === 0) {
+        body = "<tbody>";
+    }
+    return "\n<table>\n  ".concat(body, "\n").concat(reports.join("\n"), "</tbody>\n</table>\n");
 }
 function table(name, defaultEmoji, violations) {`,
   ],
   [
     "tabela unica (template)",
-    String.raw`.concat(table("Erros", "rocket", results.fails), "\n").concat(table("Avisos", "warning", results.warnings), "\n").concat(table("Mensagens", "book", results.messages), "\n")`,
-    String.raw`.concat(dangerBotTable([["Erros", "rocket", results.fails], ["Avisos", "warning", results.warnings], ["Mensagens", "book", results.messages]]), "\n")`,
+    String.raw`.concat(table("Erros", "x", results.fails), "\n").concat(table("Avisos", "warning", results.warnings), "\n").concat(table("Mensagens", "book", results.messages), "\n")`,
+    String.raw`.concat(dangerBotTable([["Erros", "x", results.fails], ["Avisos", "warning", results.warnings], ["Mensagens", "book", results.messages]], results.markdowns), "\n")`,
+  ],
+  [
+    "tabela unica (relatorios fora do markdown solto)",
+    String.raw`.concat(results.markdowns.map(function (v) { return v.message; }).join("\n\n"), "\n<p align=\"right\">\n  ")`,
+    String.raw`.concat(results.markdowns.filter(function (v) { return !isDangerBotRows(v); }).map(function (v) { return v.message; }).join("\n\n"), "\n<p align=\"right\">\n  ")`,
   ],
 ];
 
@@ -319,7 +336,9 @@ function main() {
         GITHUB_LOGO,
         ["cabecalho de avisos", '"Warnings", "warning"', '"Avisos", "warning"'],
         ["cabecalho de mensagens", '"Messages", "book"', '"Mensagens", "book"'],
-        ["cabecalho de erros", '"Fails", "no_entry_sign"', '"Erros", "rocket"'],
+        ["cabecalho de erros", '"Fails", "no_entry_sign"', '"Erros", "x"'],
+        // Erros com ❌ também nos comentários de linha (o 🚀 fica só no rodapé), como no Bitbucket
+        ["emoji dos erros (inline)", 'printViolation("no_entry_sign")', 'printViolation("x")'],
         ...GITHUB_SINGLE_TABLE,
         // O Bitbucket mostra comentários HTML (<!-- -->) como texto: troca por link invisível
         [
