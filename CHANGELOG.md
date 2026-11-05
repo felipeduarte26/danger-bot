@@ -8,6 +8,8 @@ As versões até a 4.0.0 foram reconstruídas a partir do histórico de commits 
 
 ## [Não publicado]
 
+## [5.1.0] - 2026-11-05
+
 ### Adicionado
 
 - Helper `sendReport(sections, markdown)` (e o tipo `ReportSection`): relatório em seções com linhas `[rótulo, valor]`. No GitHub e no GitLab as seções entram na tabela única do comentário principal, com a mesma largura de erros, avisos e mensagens; no Bitbucket e no dry-run publica o `markdown`, como o `sendMarkdown`.
@@ -1091,7 +1093,8 @@ Falsos positivos que deixam de ser reportados:
 - CLI `danger-bot` com os comandos `create-plugin` (`new`), `list` (`ls`), `generate-dangerfile` (`gen`), `validate` e `info`.
 - Guias de instalação, CLI, arquitetura e configuração de pipelines em `docs/`.
 
-[Não publicado]: https://github.com/felipeduarte26/danger-bot/compare/v5.0.3...HEAD
+[Não publicado]: https://github.com/felipeduarte26/danger-bot/compare/v5.1.0...HEAD
+[5.1.0]: https://github.com/felipeduarte26/danger-bot/compare/v5.0.3...v5.1.0
 [5.0.3]: https://github.com/felipeduarte26/danger-bot/compare/v5.0.2...v5.0.3
 [5.0.2]: https://github.com/felipeduarte26/danger-bot/compare/v5.0.1...v5.0.2
 [5.0.1]: https://github.com/felipeduarte26/danger-bot/compare/v5.0.0...v5.0.1
