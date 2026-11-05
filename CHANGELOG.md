@@ -8,6 +8,8 @@ As versões até a 4.0.0 foram reconstruídas a partir do histórico de commits 
 
 ## [Não publicado]
 
+## [5.1.1] - 2026-11-05
+
 ### Corrigido
 
 - `mediaquery-modern`: não aponta mais `final mq = MediaQuery.of(context)` quando o código usa o `MediaQueryData` inteiro (`mq.copyWith(...)`, `mq.removePadding(...)`, `MediaQuery(data: mq)`, `return mq`). Para copiar ou repassar os dados não existe API `xxxOf`, e o `MediaQuery.of` é o certo. Quem lê só propriedades (`mq.size`, `mq.padding`) continua sendo apontado.
@@ -1100,7 +1102,8 @@ Falsos positivos que deixam de ser reportados:
 - CLI `danger-bot` com os comandos `create-plugin` (`new`), `list` (`ls`), `generate-dangerfile` (`gen`), `validate` e `info`.
 - Guias de instalação, CLI, arquitetura e configuração de pipelines em `docs/`.
 
-[Não publicado]: https://github.com/felipeduarte26/danger-bot/compare/v5.1.0...HEAD
+[Não publicado]: https://github.com/felipeduarte26/danger-bot/compare/v5.1.1...HEAD
+[5.1.1]: https://github.com/felipeduarte26/danger-bot/compare/v5.1.0...v5.1.1
 [5.1.0]: https://github.com/felipeduarte26/danger-bot/compare/v5.0.3...v5.1.0
 [5.0.3]: https://github.com/felipeduarte26/danger-bot/compare/v5.0.2...v5.0.3
 [5.0.2]: https://github.com/felipeduarte26/danger-bot/compare/v5.0.1...v5.0.2
