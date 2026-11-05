@@ -143,6 +143,7 @@ O postinstall substitui strings exatas no `node_modules/danger/distribution`:
 - resumo em 3 cenários: fails → problemas; só warnings → "Aprovado!"; limpo → "Parabéns!";
 - comentários inline do Bitbucket Cloud no estilo Danger Ruby (link invisível com dangerID + arquivo/linha);
 - remoção do check de `uuid` para não duplicar comentários;
+- GitHub/GitLab: erros, avisos e mensagens numa tabela só (`dangerBotTable`). A página de PR do GitHub ignora o `width="100%"` das células, e em tabelas separadas cada uma ficava com a largura do próprio conteúdo;
 - `DANGER_BITBUCKETCLOUD_REPO_ACCESSTOKEN` passa a usar o template inline do Bitbucket.
 
 Como funciona:

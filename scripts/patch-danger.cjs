@@ -189,6 +189,36 @@ const GITHUB_LOGO = [
   String.raw`"Gerado por ".concat(${BRANDING}.logo ? "<img src=\"".concat(${BRANDING}.logo, "\" alt=\"\" height=\"16\" align=\"top\">") : ":rocket:", " <a href=\"").concat(meta.runtimeHref`,
 ];
 
+// GitHub (e GitLab): erros, avisos e mensagens numa tabela só, com o título de cada seção
+// numa linha. Em tabelas separadas cada uma fica com a largura do próprio conteúdo: a
+// página de PR do GitHub ignora o width="100%" das células. Casa com os textos já
+// traduzidos (cabecalho de erros/avisos/mensagens), então vem depois deles na lista.
+const GITHUB_SINGLE_TABLE = [
+  [
+    "tabela unica (funcao)",
+    "function table(name, defaultEmoji, violations) {",
+    String.raw`// DANGER-BOT: erros, avisos e mensagens numa tabela só (mesma largura)
+function dangerBotTable(sections) {
+    var visible = sections.filter(function (section) { return !noViolationsOrAllOfThemEmpty(section[2]); });
+    if (visible.length === 0) {
+        return "";
+    }
+    var body = visible.map(function (section, index) {
+        var title = "<tr>\n      <th width=\"50\"></th>\n      <th width=\"100%\" data-danger-table=\"true\">".concat(section[0], "</th>\n    </tr>\n  ");
+        var rows = section[2].map(function (violation) { return htmlForValidation(section[1], violation); }).join("\n");
+        return (index === 0 ? "<thead>\n    ".concat(title, "</thead>\n  <tbody>") : title).concat(rows);
+    }).join("\n");
+    return "\n<table>\n  ".concat(body, "</tbody>\n</table>\n");
+}
+function table(name, defaultEmoji, violations) {`,
+  ],
+  [
+    "tabela unica (template)",
+    String.raw`.concat(table("Erros", "rocket", results.fails), "\n").concat(table("Avisos", "warning", results.warnings), "\n").concat(table("Mensagens", "book", results.messages), "\n")`,
+    String.raw`.concat(dangerBotTable([["Erros", "rocket", results.fails], ["Avisos", "warning", results.warnings], ["Mensagens", "book", results.messages]]), "\n")`,
+  ],
+];
+
 // Bitbucket: markdown, sem controle de tamanho (a imagem aparece no tamanho original).
 function markdownLogo(emojiVar) {
   return [
@@ -290,6 +320,7 @@ function main() {
         ["cabecalho de avisos", '"Warnings", "warning"', '"Avisos", "warning"'],
         ["cabecalho de mensagens", '"Messages", "book"', '"Mensagens", "book"'],
         ["cabecalho de erros", '"Fails", "no_entry_sign"', '"Erros", "rocket"'],
+        ...GITHUB_SINGLE_TABLE,
         // O Bitbucket mostra comentários HTML (<!-- -->) como texto: troca por link invisível
         [
           "inline template (inicio)",
