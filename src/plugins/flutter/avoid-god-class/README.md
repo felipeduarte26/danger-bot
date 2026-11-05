@@ -4,7 +4,7 @@ Analisa classes em arquivos Dart alterados e sinaliza “god classes”: muitas 
 
 ## O que verifica
 
-- Classe com mais de **300 linhas** (do `{` inicial ao `}` de fechamento)
+- Classe com mais de **300 linhas de código** (400 em ViewModels, 600 em `presentation/`): contam só as linhas com código, sem documentação, comentários e linhas em branco
 - Classe com mais de **15 métodos públicos** (heurística por assinatura na profundidade de chaves 1)
 - Exclui enum, mixin e extension do parsing de “classe”
 

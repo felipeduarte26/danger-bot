@@ -8,6 +8,13 @@ As versões até a 4.0.0 foram reconstruídas a partir do histórico de commits 
 
 ## [Não publicado]
 
+### Corrigido
+
+- `mediaquery-modern`: não aponta mais `final mq = MediaQuery.of(context)` quando o código usa o `MediaQueryData` inteiro (`mq.copyWith(...)`, `mq.removePadding(...)`, `MediaQuery(data: mq)`, `return mq`). Para copiar ou repassar os dados não existe API `xxxOf`, e o `MediaQuery.of` é o certo. Quem lê só propriedades (`mq.size`, `mq.padding`) continua sendo apontado.
+- `date-type-checker`: pela documentação, o campo `String` só é apontado quando ela fala em `date`, `datetime`, `timestamp`, `time of`/`time when`/`time at`, `data de` ou `fecha`. Deixam de contar `time` sozinho ("the first time"), "up to date"/"out of date" e campos com nome de texto (`successMessage`, `timeLabel`, `dateFormat`...), que guardam um texto mesmo quando a doc cita uma data. A detecção pelo nome (`createdAt`, `birthDate`...) não muda.
+- `identifier-language`: nos comentários, só a prosa conta. Código entre crases e em blocos ` ``` `, texto entre aspas (o nome de uma tela, uma mensagem citada), referências `[Classe]`, caminhos e URLs (`docs/padrao/contrato.md`) e palavras com dígito (`I-COR000009`) deixam de ser lidos como português. Crase e aspas abertas numa linha continuam na seguinte do mesmo bloco.
+- `avoid-god-class`: o tamanho da classe conta só as linhas de código; documentação, comentários e linhas em branco deixam de contar. Classes que passavam do limite (300, 400 em ViewModels, 600 em `presentation/`) por causa da documentação deixam de ser reprovadas.
+
 ## [5.1.0] - 2026-11-05
 
 ### Adicionado

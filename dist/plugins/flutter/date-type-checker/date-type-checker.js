@@ -16,10 +16,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * - Nomes exatos: date, timestamp, datetime, deadline, birthday, dt
  *
  * Detecção por documentação (///):
- * - Se o doc comment do campo menciona "date", "time",
- *   "datetime", "timestamp" ou "data de", o campo é reportado
- *   mesmo que o nome não siga os padrões acima. No primary
- *   constructor vale a doc do próprio parâmetro.
+ * - Se o doc comment do campo menciona "date", "datetime", "timestamp",
+ *   "time of/when/at", "data de" ou "fecha", o campo é reportado mesmo que o
+ *   nome não siga os padrões acima. No primary constructor vale a doc do
+ *   próprio parâmetro.
+ * - Não contam: "time" sozinho ("the first time"), "up to date"/"out of date" e
+ *   campo com nome de texto (`successMessage`, `timeLabel`, `dateFormat`...), que
+ *   guarda um texto mesmo quando a doc fala de data.
  */
 const _types_1 = require("../../../types.js");
 const DATE_SUFFIXES = ["At", "Date", "Timestamp", "Time", "Dt"];
@@ -43,7 +46,28 @@ const DATE_PREFIX_EXCLUSIONS = new Set([
   "timestampparser",
   "timestamputil",
 ]);
-const DOC_DATE_KEYWORDS_RE = /\b(date|time|datetime|timestamp|data\s+de|fecha)\b/i;
+const DOC_DATE_KEYWORDS_RE =
+  /\b(date|datetime|timestamp|data\s+de|fecha)\b|\btime\s+(of|when|at)\b/i;
+/** Expressões com "date" que não falam de data. */
+const DOC_NOT_A_DATE_RE = /\b(up\s+to|out\s+of)\s+date\b/gi;
+/** Nome de campo que guarda texto: a doc pode citar data sem o campo ser uma. */
+const TEXT_FIELD_SUFFIXES = [
+  "Message",
+  "Text",
+  "Label",
+  "Title",
+  "Description",
+  "Format",
+  "Pattern",
+  "Name",
+  "Hint",
+  "Error",
+  "Url",
+  "Path",
+  "Key",
+  "Id",
+  "Zone",
+];
 function looksLikeDateField(name) {
   const lower = name.toLowerCase();
   if (EXACT_NAMES.has(lower)) return true;
@@ -105,7 +129,12 @@ exports.default = (0, _types_1.createPlugin)(
 );
 function checkStringField(file, fieldName, doc, lineContent, line) {
   const nameMatch = looksLikeDateField(fieldName);
-  const docMatch = doc.length > 0 && DOC_DATE_KEYWORDS_RE.test(doc);
+  const docMatch =
+    doc.length > 0 &&
+    !TEXT_FIELD_SUFFIXES.some(
+      (suffix) => fieldName.endsWith(suffix) || fieldName === suffix.toLowerCase()
+    ) &&
+    DOC_DATE_KEYWORDS_RE.test(doc.replace(DOC_NOT_A_DATE_RE, " "));
   if (!nameMatch && !docMatch) return;
   const reason = nameMatch
     ? `O campo \`${fieldName}\` parece representar uma data/hora mas está declarado como \`String\`.`

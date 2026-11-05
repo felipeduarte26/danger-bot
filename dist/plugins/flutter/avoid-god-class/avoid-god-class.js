@@ -3,7 +3,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 /**
  * Avoid God Class Plugin
  * Detecta classes muito grandes que violam o princípio de responsabilidade única.
- * Verifica número de métodos públicos e total de linhas da classe.
+ * Verifica número de métodos públicos e linhas de código da classe: linhas com algum token
+ * (`file.isCode`), sem as de documentação, comentário e em branco. Documentar a classe não a
+ * deixa maior.
  *
  * Thresholds:
  * - Mais de 300 linhas → warning (padrão)
@@ -32,9 +34,17 @@ function getMaxClassLines(file, cls) {
   if (file.path.inLayer(_types_1.DartLayer.Presentation)) return MAX_CLASS_LINES_PRESENTATION;
   return MAX_CLASS_LINES;
 }
-/** Linhas dos construtores escritos no corpo (o primary constructor fica no cabeçalho). */
-function constructorLineCount(cls) {
-  return cls.constructors.filter((c) => !c.isPrimary).reduce((sum, c) => sum + c.lineCount, 0);
+/** Linhas com código (algum token) de `node.line` a `node.endLine`. */
+function codeLineCount(file, node) {
+  let count = 0;
+  for (let line = node.line; line <= node.endLine; line++) if (file.isCode(line)) count++;
+  return count;
+}
+/** Linhas de código dos construtores escritos no corpo (o primary constructor fica no cabeçalho). */
+function constructorLineCount(file, cls) {
+  return cls.constructors
+    .filter((c) => !c.isPrimary)
+    .reduce((sum, c) => sum + codeLineCount(file, c), 0);
 }
 /** Métodos públicos, na ordem do arquivo. */
 function publicMethodsOf(cls) {
@@ -65,13 +75,20 @@ exports.default = (0, _types_1.createPlugin)(
       for (const cls of file.classes.filter((c) => !c.isMixinClass)) {
         const maxLines = getMaxClassLines(file, cls);
         const viewModel = isViewModel(file, cls);
-        const ctorLines = viewModel ? constructorLineCount(cls) : 0;
-        const effectiveLineCount = cls.lineCount - ctorLines;
+        const ctorLines = viewModel ? constructorLineCount(file, cls) : 0;
+        const codeLines = codeLineCount(file, cls);
+        const effectiveLineCount = codeLines - ctorLines;
         if (effectiveLineCount > maxLines) {
+          const notCounted = [
+            ctorLines > 0 ? `${ctorLines} de construtor` : null,
+            cls.lineCount > codeLines
+              ? `${cls.lineCount - codeLines} de doc, comentário ou em branco`
+              : null,
+          ].filter((part) => part !== null);
           const lineDetail =
-            ctorLines > 0
-              ? `**${effectiveLineCount} linhas** (${cls.lineCount} total, ${ctorLines} de construtor ignoradas)`
-              : `**${effectiveLineCount} linhas**`;
+            notCounted.length > 0
+              ? `**${effectiveLineCount} linhas de código** (${cls.lineCount} no total; não contam ${notCounted.join(" e ")})`
+              : `**${effectiveLineCount} linhas de código**`;
           (0, _types_1.sendFormattedFail)({
             title: "CLASSE MUITO GRANDE",
             description: `A classe \`${cls.name}\` tem ${lineDetail} (máximo recomendado: ${maxLines}).`,

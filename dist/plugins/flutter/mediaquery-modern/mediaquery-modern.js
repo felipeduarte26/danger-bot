@@ -17,6 +17,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * identificador (`context`, `dialogContext`). A variável intermediária vale no
  * corpo onde foi declarada (o campo, nos corpos da classe). Um achado por linha;
  * comentários e strings não contam.
+ *
+ * Fica de fora a variável usada inteira (`mq.copyWith(...)`, `MediaQuery(data: mq)`,
+ * `return mq`): para copiar ou repassar o MediaQueryData não existe API `xxxOf`, e o
+ * `MediaQuery.of` é o certo.
  */
 const _types_1 = require("../../../types.js");
 const PROPERTY_ALTERNATIVES = {
@@ -61,6 +65,7 @@ exports.default = (0, _types_1.createPlugin)(
           const call = mediaQueryAssignment(variable);
           if (!call) continue;
           assigned.add(call.startOffset);
+          if (call.postfixMember === null && usedWhole(variable, bodies)) continue;
           (_a = at(variable.line)).assignment ?? (_a.assignment = variable);
           for (const use of propertyUses(variable, bodies)) at(use.node.line).uses.push(use);
         }
@@ -193,6 +198,27 @@ function mediaQueryAssignment(variable) {
       : variable.type.name === "MediaQueryData" && !variable.type.isNullable;
   if (!declared) return null;
   return init.calls.find((c) => isMediaQueryOf(c) && c.startOffset === init.startOffset) ?? null;
+}
+/**
+ * A variável guarda o MediaQueryData inteiro e o código precisa dele assim: um membro sem API
+ * própria (`mq.copyWith(...)`, `mq.removePadding(...)`), o valor como argumento
+ * (`MediaQuery(data: mq)`) ou no `return`.
+ */
+function usedWhole(variable, bodies) {
+  const name = variable.name;
+  const hasAlternative = (member) =>
+    Object.prototype.hasOwnProperty.call(PROPERTY_ALTERNATIVES, member);
+  return bodies.some(
+    (body) =>
+      body.memberAccesses(name).some((access) => !hasAlternative(access.member)) ||
+      body.calls.some((call) =>
+        call.arguments.some(
+          (arg) =>
+            arg.value.kind === _types_1.DartExpressionKind.Identifier && arg.value.compact === name
+        )
+      ) ||
+      body.returns.some((ret) => ret.compact === `return ${name};`)
+  );
 }
 /** Variáveis e onde elas valem: a local no seu corpo; o campo nos corpos da classe. */
 function scopesOf(file) {

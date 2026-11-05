@@ -7,7 +7,10 @@
  * pelo modelo Dart — strings e comentários nunca viram identificador:
  * - comentários `//` e `///` em linha própria (os do fim da linha e os de bloco ficam
  *   de fora), exceto `ignore:`, `coverage:`, TODO, FIXME, `{@...}`, `@...` e textos
- *   com menos de 10 caracteres;
+ *   com menos de 10 caracteres. Só a prosa conta: o que está entre crases e em blocos
+ *   ```, texto entre aspas (o nome de uma tela, uma mensagem citada), referências
+ *   `[Classe]`, caminhos e URLs e palavras com dígito (`I-COR000009`) ficam de fora; crase
+ *   e aspas abertas numa linha continuam na linha seguinte do mesmo bloco;
  * - nomes declarados: classes, enums, métodos/funções com tipo de retorno simples e não
  *   nullable, funções locais e variáveis declaradas com `final`/`const`/`var`/`late`,
  *   sem tipo ou com tipo simples (campos, de topo, locais e parâmetros `final`).
@@ -33,6 +36,7 @@
  */
 import {
   DartBody,
+  DartComment,
   DartCommentKind,
   DartFile,
   DartFunction,
@@ -850,6 +854,57 @@ function commentContainsPtWords(text: string): boolean {
   return ptFound.length >= 1;
 }
 
+/**
+ * A prosa de cada comentário, sem o que não é texto em linguagem natural: código entre crases e
+ * blocos ```, texto entre aspas (`"Meu perfil"`, “...”), referências `[Classe]`, caminhos e URLs
+ * (palavra com `/`, `\` ou ponto no meio: `docs/padrao/contrato.md`) e palavras com dígito
+ * (`I-COR000009`). Crase e aspas abertas numa linha continuam na seguinte do mesmo bloco
+ * (comentários do mesmo tipo em linhas seguidas): um trecho citado pode quebrar a linha.
+ */
+function proseOfComments(comments: readonly DartComment[]): Map<DartComment, string> {
+  const prose = new Map<DartComment, string>();
+  let open: "`" | '"' | null = null;
+  let fenced = false;
+  let previous: DartComment | null = null;
+  for (const comment of [...comments].sort((a, b) => a.line - b.line)) {
+    const sameBlock =
+      previous !== null && comment.kind === previous.kind && comment.line === previous.endLine + 1;
+    if (!sameBlock) {
+      open = null;
+      fenced = false;
+    }
+    previous = comment;
+
+    const content = comment.content;
+    if (content.startsWith("```")) {
+      fenced = !fenced;
+      prose.set(comment, "");
+      continue;
+    }
+    if (fenced) {
+      prose.set(comment, "");
+      continue;
+    }
+
+    let kept = "";
+    for (const char of content) {
+      if (open !== null) {
+        if (char === open || (open === '"' && char === "\u201D")) open = null;
+        continue;
+      }
+      if (char === "`") open = "`";
+      else if (char === '"' || char === "\u201C") open = '"';
+      else kept += char;
+    }
+    const words = kept
+      .replace(/\[[^\]]*\]/g, " ")
+      .split(/\s+/)
+      .filter((word) => word.length > 0 && !/[/\\]|\w\.\w|\d/.test(word));
+    prose.set(comment, words.join(" "));
+  }
+  return prose;
+}
+
 /** Texto de comentário que não é prosa: diretivas, marcadores, macros, anotações e textos curtos. */
 function isSkippedComment(text: string): boolean {
   return (
@@ -908,14 +963,17 @@ export default createPlugin(
       const file = dartFile.path.path;
 
       // Comentários e documentação que não estão em inglês (só `//` e `///` em linha própria)
-      for (const comment of dartFile.comments) {
-        if (comment.isTrailing) continue;
-        if (comment.kind !== DartCommentKind.Line && comment.kind !== DartCommentKind.Doc) continue;
-
+      const ownLineComments = dartFile.comments.filter(
+        (c) => !c.isTrailing && (c.kind === DartCommentKind.Line || c.kind === DartCommentKind.Doc)
+      );
+      const prose = proseOfComments(ownLineComments);
+      for (const comment of ownLineComments) {
         const text = comment.content;
         if (isSkippedComment(text)) continue;
 
-        if (isNonEnglishComment(text) || commentContainsPtWords(text)) {
+        const words = prose.get(comment) ?? "";
+        if (words.length < 10) continue;
+        if (isNonEnglishComment(words) || commentContainsPtWords(words)) {
           commentMatches.push({
             file,
             line: comment.line,

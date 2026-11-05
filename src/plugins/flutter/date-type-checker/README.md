@@ -5,7 +5,7 @@ Em entities/models (pastas ou sufixos `_entity.dart` / `_model.dart`), detecta c
 ## O que verifica
 
 - Sufixos tipo `At`, `Date`, `Timestamp`, `Time`, `Dt`; prefixos `date`, `timestamp`, `dt`; nomes exatos (`deadline`, `birthday`, …)
-- Documentação acima do campo com palavras-chave de data/hora
+- Documentação acima do campo com `date`, `datetime`, `timestamp`, `time of`/`time when`/`time at`, `data de` ou `fecha` (não contam `time` sozinho, "up to date" e campos com nome de texto, como `successMessage` e `timeLabel`)
 - Exclusões por nome (ex.: `datepicker`, `dateformat`, …)
 
 ## Severidade
