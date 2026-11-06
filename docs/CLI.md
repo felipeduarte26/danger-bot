@@ -321,6 +321,7 @@ O arquivo permite configurar:
 
 - **`local_plugins`**: caminhos para plugins customizados do seu projeto
 - **`ignore_files`**: arquivos que devem ser ignorados por todos os plugins
+- **`paths`**: pastas da arquitetura do projeto (`paths.features`: onde ficam as features, se não for `lib/features/`). Vem comentado: sem a chave, vale o padrão
 - **`settings`**: configuracoes gerais (verbose, etc.)
 
 Se o arquivo ja existir, a CLI pergunta se deseja sobrescrever.

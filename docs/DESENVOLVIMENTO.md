@@ -110,7 +110,7 @@ Abra um PR no GitHub.
 | `src/index.ts` | Entry point, exports principais, arrays de plugins |
 | `src/types.ts` | Interfaces (`DangerPlugin`, `DangerBotCallbacks`), `executeDangerBot`, `createPlugin` |
 | `src/helpers.ts` | Funcoes auxiliares (mensagens, filtros de arquivos, PR info) |
-| `src/config.ts` | Loader do `danger-bot.yaml` (plugins locais, ignore_files) |
+| `src/config.ts` | Loader do `danger-bot.yaml` (plugins locais, ignore_files, paths) |
 
 > Detalhes: [Arquitetura](ARQUITETURA.md)
 

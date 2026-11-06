@@ -250,6 +250,7 @@ O código antigo dos plugins fazia isto. Não volte a fazer:
 | `[...git.modified_files, ...git.created_files].filter(f => f.endsWith(".dart"))` | `DartFile.changed()`                                                        |
 | `f.endsWith("_test.dart") \|\| /\.g\.dart$/.test(f)`                             | já excluídos pelo `changed()`; `path.isTest` / `path.isGenerated`           |
 | `f.includes("/domain/")`                                                         | `file.path.inLayer(DartLayer.Domain)`                                       |
+| `segments.indexOf("features")` ou regex no caminho para achar a feature          | `file.path.feature` / `featurePath` (seguem o `paths.features`)             |
 | `/class\s+(\w+)\s+extends\s+(\w+)/`                                              | `file.classes` → `cls.name`, `cls.superclass?.name`, `cls.extendsAny(...)`  |
 | contar `{` e `}` para achar o fim de classe ou método                            | `cls.endLine`, `method.body`, `node.contains(...)`                          |
 | `line.trim().startsWith("//")`                                                   | `file.isCode(linha)`, `file.comments`                                       |

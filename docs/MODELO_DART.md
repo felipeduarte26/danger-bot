@@ -375,6 +375,37 @@ Exemplo: `packages/app/lib/features/order/domain/usecases/get_order_usecase.dart
 > Para **regras**, use `inLayer` e `inFolder`: são a busca exata pelo nome da pasta. `layer` e
 > `layerFolder` escolhem **uma** camada ou pasta e servem para relatórios e textos.
 
+### A pasta das features (`paths.features`)
+
+`feature` e `featurePath` dependem de qual pasta agrupa as features do projeto. Por padrão, é
+qualquer pasta `features/` do caminho. Um projeto organizado de
+outro jeito configura no `danger-bot.yaml`
+([CONFIGURACAO](CONFIGURACAO.md#paths)):
+
+```yaml
+paths:
+  features:
+    - lib/modules # lib/modules/<modulo>/...
+    - lib/shared # lib/shared/<tema>/...
+```
+
+| Caminho                                  | Sem a chave                    | Com `[lib/modules, lib/shared]`                  |
+| ---------------------------------------- | ------------------------------ | ------------------------------------------------ |
+| `lib/features/order/domain/a.dart`       | `order` / `lib/features/order` | `null`                                           |
+| `lib/modules/waapi/domain/a.dart`        | `null`                         | `waapi` / `lib/modules/waapi`                    |
+| `lib/shared/senior_platform/data/b.dart` | `null`                         | `senior_platform` / `lib/shared/senior_platform` |
+| `lib/modules/modules.dart`               | `null`                         | `null` (direto na pasta de features)             |
+
+- Cada item é um caminho (`lib/modules`) ou o nome de uma pasta (`modules`), achado em qualquer
+  ponto do caminho (vale em monorepo). Com vários, vale o primeiro da lista que aparece.
+- A lista **substitui** o padrão. Item inválido é ignorado; sem item válido, vale o padrão.
+- O `DartPath` lê a chave uma vez por execução, do `danger-bot.yaml` do diretório atual (a raiz do
+  projeto). O `clearDartPathCaches()`, que o `runPlugins` chama no início, relê.
+- Numa regra, ache o módulo pelo `featurePath`, não por regex no caminho:
+  ``file.path.featurePath !== null && file.path.path.startsWith(`${file.path.featurePath}/domain/usecases/`)``.
+- Só a pasta das features é configurável. Camadas, pastas de testes e de código gerado são
+  convenção da Clean Architecture e do Dart, e os plugins também as usam por conta própria.
+
 ### Constantes
 
 | Constante            | Valor                                                                                                                                                                                                   |

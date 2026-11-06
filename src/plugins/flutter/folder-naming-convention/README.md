@@ -10,7 +10,7 @@ Garante que as pastas de agrupamento da Clean Architecture usem o nome no **plur
 | data | `datasource/`, `model/`, `repository/` | `datasources/`, `models/`, `repositories/` |
 | presentation | `viewmodel/`, `view/`, `widget/` | `viewmodels/`, `views/`, `widgets/` |
 
-A regra vale para a pasta logo abaixo da camada (`.../domain/usecase/...`).
+A regra vale para a pasta logo abaixo da camada (`.../domain/usecase/...`). A árvore da mensagem começa na pasta da feature: `features/<feature>/` por padrão, ou a pasta de `paths.features` no `danger-bot.yaml` (`modules/waapi/` com `[lib/modules]`).
 
 ## Severidade
 

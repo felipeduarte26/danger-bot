@@ -80,6 +80,7 @@ danger-bot/
    │       └── plugin.run()
    │           └── Le o codigo pelo modelo Dart (DartFile.changed(), file.classes...)
    │               e publica com sendFormattedFail/sendWarn
+   │               (o DartPath le o paths.features do YAML: a pasta das features)
    ├── callbacks.onSuccess() ou callbacks.onError()
    ├── flushSummaries() → fails/warns agrupados (sempre, mesmo se um plugin falhar)
    └── callbacks.onFinally()

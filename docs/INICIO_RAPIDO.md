@@ -120,7 +120,7 @@ A pipeline precisa de Node 25.2.1+, Flutter, historico completo do git e o token
 
 ## Configuracao do projeto (opcional)
 
-Gere um arquivo `danger-bot.yaml` para configurar plugins locais e arquivos ignorados:
+Gere um arquivo `danger-bot.yaml` para configurar plugins locais, arquivos ignorados e as pastas da arquitetura:
 
 ```bash
 npx danger-bot init
@@ -136,6 +136,11 @@ local_plugins:
 # Arquivos ignorados por todos os plugins
 ignore_files:
   - lib/features/old_module/legacy_page.dart
+
+# Só se as features não ficam em lib/features/ (ex.: lib/modules/<modulo>/)
+# paths:
+#   features:
+#     - lib/modules
 ```
 
 O `executeDangerBot` carrega o YAML automaticamente. Nenhuma mudanca no `dangerfile.ts` e necessaria.

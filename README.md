@@ -74,7 +74,7 @@ O `dry-run` simula o Danger localmente, mostrando exatamente quais erros e aviso
 
 ### Configuracao do projeto (opcional)
 
-Gere um arquivo `danger-bot.yaml` para configurar plugins locais e arquivos ignorados:
+Gere um arquivo `danger-bot.yaml` para configurar plugins locais, arquivos ignorados e as pastas da arquitetura (ex.: `lib/modules/` no lugar de `lib/features/`):
 
 ```bash
 npx danger-bot init

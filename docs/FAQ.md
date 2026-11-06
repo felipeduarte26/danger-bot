@@ -207,7 +207,7 @@ npx danger local
 
 ### O que e o danger-bot.yaml?
 
-Um arquivo opcional de configuracao na raiz do seu projeto. Permite definir plugins locais e arquivos ignorados sem alterar o `dangerfile.ts`.
+Um arquivo opcional de configuracao na raiz do seu projeto. Permite definir plugins locais, arquivos ignorados e as pastas da arquitetura sem alterar o `dangerfile.ts`.
 
 ```bash
 npx danger-bot init
@@ -225,6 +225,24 @@ ignore_files:
   - lib/core/deprecated_helper.dart
   - lib/legacy/** # globs: *, ** e ?
 ```
+
+### Meu projeto nao usa lib/features/ (ex.: lib/modules/). Os plugins entendem?
+
+Por padrao, o modelo Dart considera feature a pasta logo abaixo de qualquer `features/` (`lib/features/order/...` → `order`). Se o projeto agrupa por outra pasta, configure `paths.features` (danger-bot 5.2.0 ou mais novo):
+
+```yaml
+paths:
+  features:
+    - lib/modules # lib/modules/<modulo>/...
+    - lib/shared # lib/shared/<tema>/...
+```
+
+- `file.path.feature` e `file.path.featurePath` passam a valer nessas pastas (`lib/modules/waapi/...` → `waapi` e `lib/modules/waapi`), para os plugins do pacote e os plugins locais.
+- A lista substitui o padrao: com ela, `features/` so conta se estiver na lista.
+- Sem a chave, nada muda.
+- As camadas (`domain/`, `data/`, `presentation/`), as pastas de testes e as de codigo gerado continuam fixas.
+
+Veja [paths](CONFIGURACAO.md#paths).
 
 ### Posso criar plugins locais no meu projeto?
 
