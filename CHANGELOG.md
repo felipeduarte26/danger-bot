@@ -8,6 +8,10 @@ As versões até a 4.0.0 foram reconstruídas a partir do histórico de commits 
 
 ## [Não publicado]
 
+### Corrigido
+
+- GitHub: o resumo do Danger (comentário principal) fica sempre acima dos comentários de linha. O Danger publica a revisão inline antes do resumo; quando o PR ainda não tinha o resumo (primeiro push, ou o comentário foi apagado), ele nascia depois e ficava no fim da conversa. Agora um resumo provisório ("⏳ Analisando o PR...") é criado antes da revisão e atualizado no lugar no fim. Num PR em que o resumo já existe nada muda.
+
 ## [5.1.1] - 2026-11-05
 
 ### Corrigido

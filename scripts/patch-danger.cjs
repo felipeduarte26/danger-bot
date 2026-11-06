@@ -396,6 +396,32 @@ function main() {
           "            return githubIssueTemplate_1.messageForResultWithIssues;\n        }\n    }\n};",
           `            return githubIssueTemplate_1.messageForResultWithIssues;\n        }\n    }\n    else if (results.warnings.length) {\n        return "${SUMMARY_APPROVED}";\n    }\n    else {\n        return "${SUMMARY_CLEAN}";\n    }\n};`,
         ],
+        // GitHub: o Danger publica a revisão inline antes do comentário principal. Quando o
+        // resumo ainda não existe (primeiro push do PR, ou comentário apagado), ele nascia
+        // depois da revisão e ficava abaixo dos comentários de linha. Um resumo provisório é
+        // criado antes da revisão; no fim o Danger o atualiza no lugar.
+        [
+          "resumo antes da revisao inline (funcao)",
+          "var Executor = /** @class */ (function () {",
+          `var __dangerBotMainCommentFirst = function (executor, dangerID, results) {
+    var platform = executor.platform;
+    var api = platform && platform.api;
+    if (!platform || platform.name !== "GitHub" || !api || typeof api.getDangerCommentIDs !== "function" || typeof api.postPRComment !== "function") return Promise.resolve();
+    if (executor.options && executor.options.newComment) return Promise.resolve();
+    if ((0, DangerResults_1.isEmptyResults)((0, DangerResults_1.inlineResults)(results))) return Promise.resolve();
+    return api.getDangerCommentIDs(dangerID).then(function (ids) {
+        if (ids && ids.length > 0) return undefined;
+        var body = "<!--\\n  " + (0, githubIssueTemplate_1.dangerIDToString)(dangerID) + "\\n-->\\n\\n⏳ Analisando o PR...\\n\\n<p align=\\"right\\">\\n  Gerado por " + ${BRANDING}.name + "\\n</p>\\n";
+        return api.postPRComment(body);
+    }).catch(function () { return undefined; });
+};
+var Executor = /** @class */ (function () {`,
+        ],
+        [
+          "resumo antes da revisao inline (chamada)",
+          "                        if (!(git !== undefined)) return [3 /*break*/, 12];\n                        return [4 /*yield*/, this.platform.getInlineComments(dangerID)];",
+          "                        if (!(git !== undefined)) return [3 /*break*/, 12];\n                        return [4 /*yield*/, __dangerBotMainCommentFirst(this, dangerID, results).then(() => this.platform.getInlineComments(dangerID))];",
+        ],
         // Sem isso, os inline comments usam o template do GitHub em vez do Bitbucket Cloud
         [
           "inline template com REPO_ACCESSTOKEN",
