@@ -8,6 +8,8 @@ As versões até a 4.0.0 foram reconstruídas a partir do histórico de commits 
 
 ## [Não publicado]
 
+## [5.2.0] - 2026-11-06
+
 ### Adicionado
 
 - Chave `paths.features` no `danger-bot.yaml`: as pastas que agrupam as features (ou módulos) do projeto, para arquiteturas fora do padrão `lib/features/` (ex.: `paths: { features: [lib/modules] }`). A pasta logo abaixo vira o `DartPath.feature`. Sem a chave, nada muda: vale qualquer pasta `features/`, como antes. Detalhes em [CONFIGURACAO](docs/CONFIGURACAO.md#paths).
@@ -1117,7 +1119,8 @@ Falsos positivos que deixam de ser reportados:
 - CLI `danger-bot` com os comandos `create-plugin` (`new`), `list` (`ls`), `generate-dangerfile` (`gen`), `validate` e `info`.
 - Guias de instalação, CLI, arquitetura e configuração de pipelines em `docs/`.
 
-[Não publicado]: https://github.com/felipeduarte26/danger-bot/compare/v5.1.2...HEAD
+[Não publicado]: https://github.com/felipeduarte26/danger-bot/compare/v5.2.0...HEAD
+[5.2.0]: https://github.com/felipeduarte26/danger-bot/compare/v5.1.2...v5.2.0
 [5.1.2]: https://github.com/felipeduarte26/danger-bot/compare/v5.1.1...v5.1.2
 [5.1.1]: https://github.com/felipeduarte26/danger-bot/compare/v5.1.0...v5.1.1
 [5.1.0]: https://github.com/felipeduarte26/danger-bot/compare/v5.0.3...v5.1.0
