@@ -8,6 +8,8 @@ As versões até a 4.0.0 foram reconstruídas a partir do histórico de commits 
 
 ## [Não publicado]
 
+## [5.1.2] - 2026-11-06
+
 ### Corrigido
 
 - GitHub: o resumo do Danger (comentário principal) fica sempre acima dos comentários de linha. O Danger publica a revisão inline antes do resumo; quando o PR ainda não tinha o resumo (primeiro push, ou o comentário foi apagado), ele nascia depois e ficava no fim da conversa. Agora um resumo provisório ("⏳ Analisando o PR...") é criado antes da revisão e atualizado no lugar no fim. Num PR em que o resumo já existe nada muda.
@@ -1106,7 +1108,8 @@ Falsos positivos que deixam de ser reportados:
 - CLI `danger-bot` com os comandos `create-plugin` (`new`), `list` (`ls`), `generate-dangerfile` (`gen`), `validate` e `info`.
 - Guias de instalação, CLI, arquitetura e configuração de pipelines em `docs/`.
 
-[Não publicado]: https://github.com/felipeduarte26/danger-bot/compare/v5.1.1...HEAD
+[Não publicado]: https://github.com/felipeduarte26/danger-bot/compare/v5.1.2...HEAD
+[5.1.2]: https://github.com/felipeduarte26/danger-bot/compare/v5.1.1...v5.1.2
 [5.1.1]: https://github.com/felipeduarte26/danger-bot/compare/v5.1.0...v5.1.1
 [5.1.0]: https://github.com/felipeduarte26/danger-bot/compare/v5.0.3...v5.1.0
 [5.0.3]: https://github.com/felipeduarte26/danger-bot/compare/v5.0.2...v5.0.3

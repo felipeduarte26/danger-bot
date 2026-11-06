@@ -141,7 +141,7 @@ npm list danger @felipeduarte26/danger-bot
 
 # Saida esperada
 # ├── danger@14.x.x
-# └── @felipeduarte26/danger-bot@5.1.1
+# └── @felipeduarte26/danger-bot@5.1.2
 
 # Testar localmente (sem tokens, sem CI)
 npx danger-bot dry-run --base develop
