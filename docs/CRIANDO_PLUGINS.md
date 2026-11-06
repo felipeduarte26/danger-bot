@@ -470,15 +470,20 @@ Plugins reais para usar de modelo:
 
 ## Plugin local do projeto
 
-O plugin local é o mesmo código, com três diferenças:
+O plugin local é o mesmo código, com duas diferenças: importa de `"@felipeduarte26/danger-bot"` em vez
+de `"@types"` e fica no repositório do projeto, sem registro no pacote. Use para o que é da arquitetura
+de um projeto só. Há duas formas de ligar:
 
-- importa de `"@felipeduarte26/danger-bot"` em vez de `"@types"`;
-- fica no repositório do projeto, apontado em `local_plugins` no `danger-bot.yaml`, sem registro;
-- em `.ts`, o Node só apaga os tipos:
-  - os enums do pacote (`DartLayer.Domain`) funcionam, mas `enum` próprio, `namespace` e parameter properties não;
-  - import relativo leva a extensão (`"./util.ts"`).
+|            | Apontado em `local_plugins` (`danger-bot.yaml`)                                                                                                                                       | Importado no `dangerfile.ts` do projeto                                                                       |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Como liga  | o caminho do arquivo ou da pasta no YAML                                                                                                                                              | `import minhaRegra from "./rules/minha-regra"` e a regra na lista passada ao `executeDangerBot`               |
+| TypeScript | o Node só apaga os tipos: os enums do pacote (`DartLayer.Domain`) funcionam, mas `enum` próprio, `namespace` e parameter properties não; import relativo com extensão (`"./util.ts"`) | o Danger transpila: TypeScript completo, import relativo sem extensão, type-check com o `tsconfig` do projeto |
+| `dry-run`  | roda                                                                                                                                                                                  | não roda (use o `rule-check` ou o `danger pr`)                                                                |
+| Exemplo    | —                                                                                                                                                                                     | a wiipo-flutter-bridge (`danger/rules/`, lista `LOCAL_RULES`)                                                 |
 
-Detalhes em [CONFIGURACAO.md](CONFIGURACAO.md).
+Para testar uma regra local num projeto real, com falso positivo e larguras de formatação, use o
+[`tools/rule-check`](../tools/rule-check/README.md) (seção [Rode o plugin](#rode-o-plugin)).
+Configuração em [CONFIGURACAO.md](CONFIGURACAO.md).
 
 ## Testando
 
@@ -510,7 +515,18 @@ Para saber qual propriedade usar, procure o fato na saída: a chamada que a regr
 
 ### Rode o plugin
 
-- **Num projeto real:**
+- **Falso positivo num projeto real (o principal):** o [`tools/rule-check`](../tools/rule-check/README.md)
+  roda a regra com todos os `.dart` do projeto como criados no PR e compara com o código formatado em
+  40 e 160 colunas. Serve para plugin do pacote e para regra local, em qualquer projeto:
+
+  ```bash
+  node tools/rule-check/check.cjs --project ../meu-app --rule meu-plugin --widths 40,160
+  node tools/rule-check/check.cjs --project ../meu-app --rule ../meu-app/danger/rules/x.ts --widths 40,160 --lint
+  ```
+
+  Confira cada achado: um só errado já é falso positivo. As larguras têm de dar `igual`.
+
+- **No fluxo do PR:**
   - `node bin/cli.js dry-run --project ../esfera-web --base develop --plugins meu-plugin -v`;
   - use uma branch diferente da base, numa cópia do projeto.
 - **Em arquivos soltos:** o harness da seção [Testando um plugin](../CLAUDE.md#testando-um-plugin) do
@@ -561,4 +577,7 @@ Para quem escreve e para quem revisa o PR de um plugin:
 - [ ] `line` aponta o lugar do problema; o `wrong` é o código do arquivo.
 - [ ] Testado com o caso que reporta e com os que não reportam (comentário, string, quebra de linha, teste,
       gerado).
+- [ ] `tools/rule-check` no projeto real: cada achado conferido e as larguras 40 e 160 `igual`.
+- [ ] Fato de caminho (`feature`, `layer`, `isBarrel`...) conferido na estrutura do projeto alvo (o modelo
+      nasceu no esfera; módulos fora de `lib/features/` vão em `paths.features`).
 - [ ] README do plugin, registro, docs e CHANGELOG atualizados.

@@ -184,6 +184,36 @@ Guia do desenvolvedor: [docs/CRIANDO_PLUGINS.md](docs/CRIANDO_PLUGINS.md). Siga-
 
 Toda mensagem de plugin segue o [padrão obrigatório das mensagens](#padrão-obrigatório-das-mensagens): helpers `sendFormatted*`, código real do erro, a correção, a ação, o objetivo e o link de referência.
 
+### Fluxo completo (do pedido à entrega)
+
+Ao receber o pedido de uma regra nova (no pacote ou num projeto consumidor), faça tudo, nesta ordem, sem esperar outra instrução. Pergunte só o que muda o que a regra aponta e não dá para decidir pelo código ou pela doc do projeto (ex.: em que pastas ela vale); o resto, decida e conte no relatório.
+
+1. **Entenda a regra e o alvo:** o que é certo e o que é errado (com um exemplo real do projeto), em que pastas vale, a severidade (`fail` só para regra escrita no padrão do time; heurística é `warn`) e onde ela mora:
+   - **no pacote** (`src/plugins/flutter/`): vale para todos os consumidores, então tem de servir a qualquer projeto Clean Architecture, não só ao esfera;
+   - **regra local do projeto**: o que é da arquitetura de um projeto só. Pode ser importada no `dangerfile.ts` do projeto (lista `LOCAL_RULES`, como na wiipo-flutter-bridge: o Danger transpila, então vale TypeScript completo e import sem extensão, mas o `dry-run` não roda) ou apontada em `local_plugins` (só sintaxe apagável e import com extensão; o `dry-run` roda).
+2. **Veja se já existe:** os 48 plugins e as regras locais do projeto. Plugin do pacote que quase serve mas dá falso positivo no projeto: desligue-o no `dangerfile.ts` do projeto e escreva a regra local.
+3. **Confira o modelo no projeto alvo:**
+   - rode o `inspect` num arquivo real certo e num errado, e confirme que os fatos que a regra vai usar existem e batem;
+   - o modelo nasceu no esfera: fato de caminho (`feature`, `featurePath`, `layer`, `inLayer`, `isBarrel`, `isTest`, `expectedTestPath`) tem de ser conferido na estrutura do projeto. Módulos fora de `lib/features/` vão em `paths.features` no `danger-bot.yaml`;
+   - faltou um fato: acrescente no `src/dart/`, com teste, em vez de usar regex na regra.
+4. **Escreva** com o [template](#template-arquivo-inteiro) e o [padrão das mensagens](#padrão-obrigatório-das-mensagens):
+   - só fatos do modelo e título fixo;
+   - o código real no Errado e a mesma linha corrigida no Correto;
+   - um apontamento por causa: se uma falha implica outra, aponte só a raiz;
+   - o link da doc do projeto ou do Dart.
+5. **Valide.** Nada é entregue sem estes passos:
+   - **pacote:** `npm run lint`, `npm run type-check`, `npm run build` e `npm test`. Mudou o `src/dart/` ou o comportamento padrão: compare o `dist/` antigo com o novo; sem configuração nova, a saída tem de ser idêntica;
+   - **regra local:** o type-check do projeto (se ele tiver `tsconfig`) e o `--lint` do rule-check;
+   - **projeto real inteiro:** [`tools/rule-check`](tools/rule-check/README.md) com `--widths 40,160`. Confira **cada** achado (um só errado já é falso positivo a corrigir), e as larguras têm de dar `igual`;
+   - **casos montados:** uma pasta temporária com a estrutura do projeto, também passada no rule-check. Inclua o que deve ser apontado **e** o que não deve: barrel, classe privada, enum, extension, gerado, teste, nomes parecidos, código quebrado em várias linhas.
+6. **Registre e documente:** no pacote, siga o [checklist de entrega](#checklist-de-entrega-plugin-novo-ou-alterado); numa regra local, ponha-a em `LOCAL_RULES` (ou em `local_plugins`) e no README das regras do projeto.
+7. **Relate ao usuário:**
+   - o que a regra verifica e as decisões tomadas, com o motivo;
+   - os números: quantos achados no projeto real (e quais), os casos certos e errados e as larguras;
+   - o que ficou de fora.
+
+   Não faça push sem pedido.
+
 **Prefira `node bin/cli.js create-plugin`.** Ele cria a pasta, o `index.ts` e o README, e registra o plugin em `src/index.ts` (falta só colocá-lo num array de categoria). O `remove-plugin` desfaz tudo.
 
 ### Estrutura
@@ -286,7 +316,7 @@ for (const comment of file.comments) {
 
 `readWithDiff` lê o `structuredDiffForFile` do Danger e já trata as diferenças do CI (prefixo `+`, `ln`/`ln2`).
 
-**Plugin local do projeto** — um arquivo `.ts`/`.js` apontado em `local_plugins`. O mesmo formato, importando do pacote:
+**Plugin local do projeto** — um arquivo `.ts`/`.js` apontado em `local_plugins` ou importado no `dangerfile.ts` do projeto (ver o [fluxo](#fluxo-completo-do-pedido-à-entrega)). O mesmo formato, importando do pacote:
 
 ```typescript
 import { DartFile, createPlugin, sendFormattedWarn } from "@felipeduarte26/danger-bot";
@@ -302,7 +332,7 @@ export default createPlugin(
 );
 ```
 
-O Node carrega o `.ts` direto ([type stripping](https://nodejs.org/api/typescript.html)), sem compilar. Ao escrever o plugin:
+Em `local_plugins`, o Node carrega o `.ts` direto ([type stripping](https://nodejs.org/api/typescript.html)), sem compilar. Ao escrever o plugin:
 
 - só sintaxe apagável: tipos e interfaces; `enum`, `namespace` e parameter properties dão `ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX` (usar os enums do pacote, como `DartLayer.Domain`, funciona; declarar um enum próprio, não);
 - import relativo **com extensão**: `import { x } from "../shared/util.ts"`; sem ela dá `ERR_MODULE_NOT_FOUND`.
@@ -384,7 +414,7 @@ frase curta
    - o total de plugins em `docs/API.md`, `docs/FAQ.md`, `docs/CLI.md` e em [Plugins existentes](#plugins-existentes-48) (título e lista).
 5. Item em `## [Não publicado]` no `CHANGELOG.md` (ver [Versões e releases](#versões-e-releases)).
 6. `npm run lint`, `npm run type-check`, `npm run build` e `npm test`, com o `dist/` no mesmo commit do `src/`.
-7. Teste no dry-run ou no harness, com o caso que deve ser reportado e o que não deve.
+7. Teste no projeto real com o `tools/rule-check` (`--widths 40,160`, cada achado conferido) e nos casos montados, com o que deve ser reportado e o que não deve. Para o que o rule-check não cobre (saída de ferramenta, dados do PR), use o dry-run ou o harness.
 
 ## Helpers disponíveis
 
@@ -441,6 +471,16 @@ Antes de criar um plugin, veja se a regra já existe. Arrays em [src/index.ts](s
 ## Testando um plugin
 
 **Antes de escrever a regra**, veja o que o modelo dá para um arquivo real: `node bin/cli.js inspect <arquivo.dart>` (`--line N` para uma linha, `--only calls,strings` para filtrar).
+
+**Num projeto real, para falso positivo** (qualquer projeto; plugin do pacote pelo nome ou regra local pelo caminho):
+
+```bash
+npm run build
+node tools/rule-check/check.cjs --project ../meu-app --rule meu-plugin --widths 40,160
+node tools/rule-check/check.cjs --project ../meu-app --rule ../meu-app/danger/rules/x.ts --widths 40,160 --lint
+```
+
+Roda a regra com todos os `.dart` do projeto como criados no PR (cwd = o projeto, então o `danger-bot.yaml` dele vale), compara os achados com o código formatado em 40 e 160 colunas e, com `--lint`, aplica as proibições do lint do pacote à regra local. Detalhes e limites em [tools/rule-check/README.md](tools/rule-check/README.md). Regra local importada no `dangerfile.ts`, contra um PR aberto: `DANGER_GITHUB_API_TOKEN=$(gh auth token) npx danger pr --dangerfile danger/dangerfile.ts <url-do-PR>`, no projeto (só imprime).
 
 **No dry-run** (precisa estar numa branch diferente da base):
 
