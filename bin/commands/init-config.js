@@ -63,6 +63,18 @@ local_plugins: []
 ignore_files: []
 
 # ─────────────────────────────────────────────
+# Pastas da Arquitetura
+# ─────────────────────────────────────────────
+# Pastas que agrupam as features (ou módulos) do projeto: a pasta logo
+# abaixo é a feature do arquivo (file.path.feature nos plugins).
+# Sem a chave, vale qualquer pasta features/ (lib/features/<feature>/).
+#
+# Exemplo:
+#   paths:
+#     features:
+#       - lib/modules
+
+# ─────────────────────────────────────────────
 # Configurações Gerais
 # ─────────────────────────────────────────────
 settings:

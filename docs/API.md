@@ -447,6 +447,9 @@ interface DangerBotConfig {
   };
   local_plugins?: string[];
   ignore_files?: string[];
+  paths?: {
+    features?: string[]; // pastas das features (padrão: [features]); ver CONFIGURACAO.md#paths
+  };
   settings?: {
     verbose?: boolean;
     blame?: boolean;

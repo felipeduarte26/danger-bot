@@ -8,6 +8,11 @@ export declare const GENERATED_SUFFIXES: readonly string[];
 export declare const GENERATED_DIRS: readonly string[];
 /** Pastas de testes do pacote (raiz ou pacote de monorepo, fora de `lib/`). */
 export declare const TEST_DIRS: readonly string[];
+/**
+ * Pastas que agrupam as features, sem `paths.features` no `danger-bot.yaml`: qualquer pasta
+ * `features/` do caminho (`lib/features/<feature>/`, também em monorepo).
+ */
+export declare const DEFAULT_FEATURE_FOLDERS: readonly string[];
 /** Fatos do caminho de um arquivo. Crie com `DartPath.of(caminho)`. */
 export declare class DartPath {
   /** Como veio do Danger: relativo à raiz do repositório (barras normais). */
@@ -45,8 +50,18 @@ export declare class DartPath {
   readonly layer: DartLayer | null;
   /** Pasta de papel mais próxima do arquivo. Para REGRA, prefira `inFolder`. */
   readonly layerFolder: DartLayerFolder | null;
-  /** Segmento logo depois de `features/` (`null` fora de features). */
+  /**
+   * Pasta logo abaixo da pasta de features: `order` em `lib/features/order/...`. A pasta de
+   * features vem de `paths.features` no `danger-bot.yaml` (padrão: `features/`, em qualquer
+   * ponto do caminho); com `paths.features: [lib/modules]`, `lib/modules/waapi/...` → `waapi`.
+   * `null` fora de features.
+   */
   readonly feature: string | null;
+  /**
+   * Caminho até a pasta da feature, inclusive: `lib/features/order`,
+   * `packages/app/lib/modules/waapi`. `null` fora de features.
+   */
+  readonly featurePath: string | null;
   /** Caminho depois de `lib/` (`features/x/x.dart`), também em monorepo; `null` fora de `lib/`. */
   readonly libRelativePath: string | null;
   /** Prefixo antes de `lib/` (`""` na raiz, `packages/app` em monorepo); `null` fora de `lib/`. */
@@ -100,5 +115,8 @@ export declare class DartPackage {
   /** `true` se o SDK mínimo é pelo menos `major.minor`. */
   supportsLanguage(major: number, minor: number): boolean;
 }
-/** Limpa os caches de caminho e de pacote (o `runPlugins` chama no início de cada execução). */
+/**
+ * Limpa os caches de caminho, de pacote e o `paths.features` lido do `danger-bot.yaml` (o
+ * `runPlugins` chama no início de cada execução).
+ */
 export declare function clearDartPathCaches(): void;

@@ -148,7 +148,7 @@ Teste o caso que deve ser reportado **e** o que não deve. Veja [Testando](#test
 | pasta de papel                          | `file.path.inFolder(DartLayerFolder.UseCases)` ou `inFolder("enums")`                             |
 | nome do arquivo / sem extensão          | `file.path.fileName` / `file.path.baseName`                                                       |
 | barrel file                             | `file.path.isBarrel`                                                                              |
-| feature                                 | `file.path.feature` (`lib/features/<feature>/...`)                                                |
+| feature                                 | `file.path.feature` / `featurePath` (`lib/features/<feature>/`; outra pasta em `paths.features`)  |
 | é teste / é gerado                      | `path.isTest` / `path.isGenerated` (qualquer `/test/` no caminho: `inFolder("test")`)             |
 | arquivo que não é `.dart`               | `DartPath.of(caminho)` (só o caminho, sem ler)                                                    |
 | teste do arquivo                        | `path.hasTest(getAllChangedFiles())` / `path.findTest(...)` (o caminho) / `path.expectedTestPath` |

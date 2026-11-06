@@ -13,6 +13,15 @@ export interface DangerBotConfig {
   local_plugins?: string[];
   /** Arquivos que devem ser ignorados por todos os plugins */
   ignore_files?: string[];
+  /** Pastas da arquitetura do projeto, lidas pelo modelo Dart (`DartPath`) */
+  paths?: {
+    /**
+     * Pastas que agrupam as features (ou módulos): a pasta logo abaixo é o `DartPath.feature`.
+     * Cada item é um caminho (`lib/modules`) ou um nome de pasta (`modules`), achado em
+     * qualquer ponto do caminho (também em monorepo). Default: `[features]`.
+     */
+    features?: string[];
+  };
   /** Configurações gerais */
   settings?: {
     /** Se true, exibe logs detalhados (default: false) */

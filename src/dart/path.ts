@@ -4,6 +4,7 @@
  */
 import * as fs from "fs";
 import * as path from "path";
+import { readConfig } from "../config";
 import { DartLayer, DartLayerFolder, FileCategory, GeneratedReason } from "./enums";
 import { findNearestPubspec, readPubspec } from "./internal/pubspec";
 
@@ -33,10 +34,56 @@ export const GENERATED_DIRS: readonly string[] = ["generated", ".dart_tool", "bu
 /** Pastas de testes do pacote (raiz ou pacote de monorepo, fora de `lib/`). */
 export const TEST_DIRS: readonly string[] = ["test", "integration_test", "test_driver"];
 
+/**
+ * Pastas que agrupam as features, sem `paths.features` no `danger-bot.yaml`: qualquer pasta
+ * `features/` do caminho (`lib/features/<feature>/`, também em monorepo).
+ */
+export const DEFAULT_FEATURE_FOLDERS: readonly string[] = ["features"];
+
 const LAYER_ORDER = [DartLayer.Domain, DartLayer.Data, DartLayer.Presentation, DartLayer.Core];
 const LAYER_FOLDERS = Object.values(DartLayerFolder);
 
 const pathCache = new Map<string, DartPath>();
+
+/** Pastas de features em segmentos (`lib/modules` → `["lib", "modules"]`), lidas uma vez por execução. */
+let featureFoldersCache: readonly (readonly string[])[] | null = null;
+
+/**
+ * `paths.features` do `danger-bot.yaml`, em segmentos. Cada item é uma pasta (`lib/modules`) ou
+ * um nome de pasta (`modules`), achado em qualquer ponto do caminho. Item que não é texto, vazio
+ * ou lista inválida são ignorados; sem nenhum item válido, vale `DEFAULT_FEATURE_FOLDERS`.
+ */
+function featureFolders(): readonly (readonly string[])[] {
+  if (featureFoldersCache !== null) return featureFoldersCache;
+  const configured: unknown = readConfig().paths?.features;
+  const entries = (Array.isArray(configured) ? configured : [])
+    .filter((entry): entry is string => typeof entry === "string")
+    .map((entry) =>
+      entry
+        .replace(/\\/g, "/")
+        .split("/")
+        .filter((segment) => segment !== "" && segment !== ".")
+    )
+    .filter((segments) => segments.length > 0);
+  featureFoldersCache =
+    entries.length > 0 ? entries : DEFAULT_FEATURE_FOLDERS.map((folder) => folder.split("/"));
+  return featureFoldersCache;
+}
+
+/**
+ * Índice, em `segments`, da pasta da feature: o segmento logo depois da primeira pasta de
+ * features do caminho (na ordem do `paths.features`). `-1` fora de features.
+ */
+function featureIndex(segments: readonly string[]): number {
+  for (const folder of featureFolders()) {
+    for (let start = 0; start + folder.length < segments.length; start++) {
+      if (folder.every((segment, i) => segments[start + i] === segment)) {
+        return start + folder.length;
+      }
+    }
+  }
+  return -1;
+}
 
 /** Fatos do caminho de um arquivo. Crie com `DartPath.of(caminho)`. */
 export class DartPath {
@@ -77,8 +124,18 @@ export class DartPath {
   readonly layer: DartLayer | null;
   /** Pasta de papel mais próxima do arquivo. Para REGRA, prefira `inFolder`. */
   readonly layerFolder: DartLayerFolder | null;
-  /** Segmento logo depois de `features/` (`null` fora de features). */
+  /**
+   * Pasta logo abaixo da pasta de features: `order` em `lib/features/order/...`. A pasta de
+   * features vem de `paths.features` no `danger-bot.yaml` (padrão: `features/`, em qualquer
+   * ponto do caminho); com `paths.features: [lib/modules]`, `lib/modules/waapi/...` → `waapi`.
+   * `null` fora de features.
+   */
   readonly feature: string | null;
+  /**
+   * Caminho até a pasta da feature, inclusive: `lib/features/order`,
+   * `packages/app/lib/modules/waapi`. `null` fora de features.
+   */
+  readonly featurePath: string | null;
   /** Caminho depois de `lib/` (`features/x/x.dart`), também em monorepo; `null` fora de `lib/`. */
   readonly libRelativePath: string | null;
   /** Prefixo antes de `lib/` (`""` na raiz, `packages/app` em monorepo); `null` fora de `lib/`. */
@@ -125,11 +182,9 @@ export class DartPath {
       }
     }
     this.layerFolder = deepest;
-    const featureIndex = this.segments.indexOf("features");
-    this.feature =
-      featureIndex >= 0 && featureIndex + 1 < this.segments.length
-        ? this.segments[featureIndex + 1]
-        : null;
+    const feature = featureIndex(this.segments);
+    this.feature = feature >= 0 ? this.segments[feature] : null;
+    this.featurePath = feature >= 0 ? this.segments.slice(0, feature + 1).join("/") : null;
     const lib = /(^|\/)lib\//.exec(normalized);
     this.packageRootPath = lib ? normalized.slice(0, lib.index) : null;
     this.libRelativePath = lib ? normalized.slice(lib.index + lib[0].length) : null;
@@ -279,9 +334,13 @@ export class DartPackage {
   }
 }
 
-/** Limpa os caches de caminho e de pacote (o `runPlugins` chama no início de cada execução). */
+/**
+ * Limpa os caches de caminho, de pacote e o `paths.features` lido do `danger-bot.yaml` (o
+ * `runPlugins` chama no início de cada execução).
+ */
 export function clearDartPathCaches(): void {
   pathCache.clear();
+  featureFoldersCache = null;
   packageCache.clear();
   testNamesCache.clear();
 }

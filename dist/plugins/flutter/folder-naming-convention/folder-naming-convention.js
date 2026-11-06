@@ -45,15 +45,15 @@ exports.default = (0, _types_1.createPlugin)(
         if (!file.inFolder(singularFolder)) continue;
         if (reported.has(singularFolder)) continue;
         reported.add(singularFolder);
-        const featureName = file.feature ?? "feature";
+        // a pasta de features e a feature (`features/order`, `modules/waapi` com paths.features)
+        const featureFolder =
+          file.featurePath === null
+            ? "features/feature"
+            : file.featurePath.split("/").slice(-2).join("/");
         const wrongTree =
-          `features/${featureName}/\n` +
-          `└── ${rule.layer}/\n` +
-          `    └── ${rule.singular}/   ← singular`;
+          `${featureFolder}/\n` + `└── ${rule.layer}/\n` + `    └── ${rule.singular}/   ← singular`;
         const correctTree =
-          `features/${featureName}/\n` +
-          `└── ${rule.layer}/\n` +
-          `    └── ${rule.plural}/   ✓ plural`;
+          `${featureFolder}/\n` + `└── ${rule.layer}/\n` + `    └── ${rule.plural}/   ✓ plural`;
         (0, _types_1.sendFormattedFail)({
           title: "NOME DE PASTA FORA DO PADRÃO (SINGULAR)",
           description: `A pasta \`${rule.singular}/\` na camada **${rule.layer}** deve usar o nome no **plural**: \`${rule.plural}/\`.`,

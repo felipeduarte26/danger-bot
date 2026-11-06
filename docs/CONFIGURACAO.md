@@ -33,6 +33,11 @@ ignore_files:
   - lib/features/old_module/legacy_page.dart
   - lib/core/deprecated_helper.dart
 
+# Pastas da arquitetura do projeto (modelo Dart)
+paths:
+  features:
+    - lib/features
+
 # Configuracoes gerais
 settings:
   verbose: false
@@ -201,6 +206,35 @@ ignore_files:
 ```
 
 O `executeDangerBot` (e o `dry-run`, com a mesma regra) remove esses arquivos de `danger.git.modified_files` e `danger.git.created_files` antes de rodar os plugins, entao eles nao aparecem para nenhum plugin nem nos helpers (`DartFile.changed()`, `getAllChangedFiles()`, `getFilesMatching()`...).
+
+---
+
+## paths
+
+Pastas da arquitetura do projeto, lidas pelo modelo Dart (`DartPath`). Sem a chave, vale o padrao do pacote, que e o mesmo de antes dela.
+
+### `features`
+
+Pastas que agrupam as features (ou modulos). A pasta logo abaixo de uma delas e a feature do arquivo: `file.path.feature` (o nome) e `file.path.featurePath` (o caminho ate ela).
+
+| Valor | `lib/features/order/domain/a.dart` | `lib/modules/waapi/domain/a.dart` |
+| ----- | ---------------------------------- | --------------------------------- |
+| sem a chave (padrao `[features]`) | `order` / `lib/features/order` | `null` |
+| `[lib/modules]` | `null` | `waapi` / `lib/modules/waapi` |
+| `[lib/features, lib/modules]` | `order` / `lib/features/order` | `waapi` / `lib/modules/waapi` |
+
+```yaml
+paths:
+  features:
+    - lib/modules # lib/modules/<modulo>/...
+```
+
+- Cada item e um caminho (`lib/modules`) ou o nome de uma pasta (`modules`), achado em qualquer ponto do caminho, entao vale tambem em monorepo (`packages/app/lib/modules/x/...`).
+- A lista **substitui** o padrao: com `[lib/modules]`, uma pasta `features/` deixa de contar. Para usar as duas, liste as duas.
+- Com mais de um item, vale o primeiro da lista que aparece no caminho.
+- Arquivo direto na pasta de features (`lib/modules/modules.dart`) nao tem feature.
+- Item que nao e texto, item vazio ou lista invalida sao ignorados; sem nenhum item valido, vale o padrao. A pasta de testes nao muda: `expectedTestPath` continua espelhando `lib/` em `test/`.
+- Quem usa: o `folder-naming-convention` (a arvore de pastas da mensagem) e os plugins locais que leem `file.path.feature`/`featurePath`.
 
 ---
 

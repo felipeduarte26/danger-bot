@@ -115,6 +115,7 @@ function collect(section, file, line) {
           layer: p.layer,
           layerFolder: p.layerFolder,
           feature: p.feature,
+          featurePath: p.featurePath,
           category: p.category,
           isTest: p.isTest,
           isGenerated: p.isGenerated,

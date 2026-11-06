@@ -562,6 +562,88 @@ test("DartPath: camada, pasta, teste, gerado, barrel e caminho do teste", () => 
   assert.equal(DartPath.of("lib/a.mocks.dart").category, FileCategory.Generated);
 });
 
+test("DartPath: paths.features do danger-bot.yaml define a pasta das features", () => {
+  const fs = require("node:fs");
+  const os = require("node:os");
+  const { clearDartPathCaches } = require(path.join(dist, "dart", "path.js"));
+  const cwd = process.cwd();
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "danger-bot-paths-"));
+  const facts = (p) => {
+    const d = DartPath.of(p);
+    return [d.feature, d.featurePath];
+  };
+  // cada cenário roda no seu diretório, com o yaml dele (ou sem nenhum)
+  const withConfig = (yaml, check) => {
+    const dir = fs.mkdtempSync(path.join(root, "case-"));
+    if (yaml !== null) fs.writeFileSync(path.join(dir, "danger-bot.yaml"), yaml);
+    process.chdir(dir);
+    clearDartPathCaches();
+    try {
+      check();
+    } finally {
+      process.chdir(cwd);
+      clearDartPathCaches();
+    }
+  };
+  try {
+    // sem yaml (e sem a chave): a primeira pasta `features/` com uma pasta depois, como antes
+    for (const yaml of [null, "settings:\n  verbose: false\n"]) {
+      withConfig(yaml, () => {
+        assert.deepEqual(facts("lib/features/order/domain/a.dart"), [
+          "order",
+          "lib/features/order",
+        ]);
+        assert.deepEqual(facts("packages/app/lib/features/x/a.dart"), [
+          "x",
+          "packages/app/lib/features/x",
+        ]);
+        assert.deepEqual(facts("lib/features/a.dart"), [null, null]);
+        assert.deepEqual(facts("lib/a/features/b/features/c/x.dart"), ["b", "lib/a/features/b"]);
+        assert.deepEqual(facts("lib/modules/waapi/domain/a.dart"), [null, null]);
+        assert.deepEqual(facts("features/x/a.dart"), ["x", "features/x"]);
+      });
+    }
+    // caminho: só `lib/modules`, que troca o padrão (features/ deixa de contar)
+    withConfig("paths:\n  features:\n    - lib/modules\n", () => {
+      assert.deepEqual(facts("lib/modules/waapi/domain/usecases/a_usecase.dart"), [
+        "waapi",
+        "lib/modules/waapi",
+      ]);
+      assert.deepEqual(facts("packages/app/lib/modules/x/a.dart"), [
+        "x",
+        "packages/app/lib/modules/x",
+      ]);
+      assert.deepEqual(facts("lib/modules/a.dart"), [null, null]);
+      assert.deepEqual(facts("lib/features/order/a.dart"), [null, null]);
+      assert.deepEqual(facts("lib/shared/x/a.dart"), [null, null]);
+      assert.deepEqual(facts("test/modules/waapi/a_test.dart"), [null, null]);
+      // o resto do caminho não muda
+      const p = DartPath.of("lib/modules/waapi/domain/usecases/a_usecase.dart");
+      assert.equal(p.layer, DartLayer.Domain);
+      assert.equal(p.expectedTestPath, "test/modules/waapi/domain/usecases/a_usecase_test.dart");
+    });
+    // vários itens, na ordem; nome de pasta solto; `./`, barra no fim e barra invertida
+    withConfig("paths:\n  features: ['./lib/modules/', 'lib\\\\shared', shells]\n", () => {
+      assert.deepEqual(facts("lib/modules/waapi/a.dart"), ["waapi", "lib/modules/waapi"]);
+      assert.deepEqual(facts("lib/shared/senior/a.dart"), ["senior", "lib/shared/senior"]);
+      assert.deepEqual(facts("lib/x/shells/main/a.dart"), ["main", "lib/x/shells/main"]);
+    });
+    // valor inválido (texto, número, lista vazia, itens vazios): vale o padrão
+    for (const value of ["lib/modules", "3", "[]", "[1, '', '/', null]"]) {
+      withConfig(`paths:\n  features: ${value}\n`, () => {
+        assert.deepEqual(facts("lib/features/order/a.dart"), ["order", "lib/features/order"]);
+        assert.deepEqual(facts("lib/modules/waapi/a.dart"), [null, null]);
+      });
+    }
+    // yaml inválido não lança: vale o padrão
+    withConfig("paths: [features: :\n", () => {
+      assert.deepEqual(facts("lib/features/order/a.dart"), ["order", "lib/features/order"]);
+    });
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("DartText", () => {
   assert.deepEqual(DartText.splitWords("getUserHTTPData"), ["get", "user", "http", "data"]);
   assert.equal(DartText.toSnakeCase("HTTPClientFactory"), "http_client_factory");

@@ -60,17 +60,17 @@ export default createPlugin(
         if (reported.has(singularFolder)) continue;
         reported.add(singularFolder);
 
-        const featureName = file.feature ?? "feature";
+        // a pasta de features e a feature (`features/order`, `modules/waapi` com paths.features)
+        const featureFolder =
+          file.featurePath === null
+            ? "features/feature"
+            : file.featurePath.split("/").slice(-2).join("/");
 
         const wrongTree =
-          `features/${featureName}/\n` +
-          `└── ${rule.layer}/\n` +
-          `    └── ${rule.singular}/   ← singular`;
+          `${featureFolder}/\n` + `└── ${rule.layer}/\n` + `    └── ${rule.singular}/   ← singular`;
 
         const correctTree =
-          `features/${featureName}/\n` +
-          `└── ${rule.layer}/\n` +
-          `    └── ${rule.plural}/   ✓ plural`;
+          `${featureFolder}/\n` + `└── ${rule.layer}/\n` + `    └── ${rule.plural}/   ✓ plural`;
 
         sendFormattedFail({
           title: "NOME DE PASTA FORA DO PADRÃO (SINGULAR)",

@@ -8,6 +8,15 @@ As versões até a 4.0.0 foram reconstruídas a partir do histórico de commits 
 
 ## [Não publicado]
 
+### Adicionado
+
+- Chave `paths.features` no `danger-bot.yaml`: as pastas que agrupam as features (ou módulos) do projeto, para arquiteturas fora do padrão `lib/features/` (ex.: `paths: { features: [lib/modules] }`). A pasta logo abaixo vira o `DartPath.feature`. Sem a chave, nada muda: vale qualquer pasta `features/`, como antes. Detalhes em [CONFIGURACAO](docs/CONFIGURACAO.md#paths).
+- `DartPath.featurePath`: o caminho até a pasta da feature (`lib/features/order`, `lib/modules/waapi`), ou `null` fora de features.
+
+### Modificado
+
+- `folder-naming-convention`: a árvore de pastas da mensagem usa a pasta de features do projeto (`modules/waapi/` com `paths.features: [lib/modules]`). Sem a chave, a mensagem é a mesma.
+
 ## [5.1.2] - 2026-11-06
 
 ### Corrigido
